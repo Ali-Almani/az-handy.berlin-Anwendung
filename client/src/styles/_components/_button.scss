@@ -1,0 +1,82 @@
+.btn {
+  display: inline-block;
+  padding: $spacing-sm $spacing-lg;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  text-align: center;
+  border-radius: 2px;
+  transition: $transition-base;
+  cursor: pointer;
+  border: 1px solid transparent;
+  color: white;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($primary-color, 10%);
+      color: white;
+    }
+  }
+
+  &--secondary {
+    background-color: $secondary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($secondary-color, 10%);
+      color: white;
+    }
+  }
+
+  &--outline {
+    background-color: transparent;
+    border-color: $primary-color;
+    color: $primary-color;
+
+    &:hover:not(:disabled) {
+      background-color: $primary-color;
+      color: white;
+    }
+  }
+
+  &--full-width {
+    width: 100%;
+  }
+
+  &--large {
+    padding: $spacing-md $spacing-xl;
+    font-size: 1.125rem;
+  }
+
+  &--small {
+    padding: $spacing-xs $spacing-md;
+    font-size: 0.875rem;
+  }
+
+  &--danger {
+    background-color: $danger-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($danger-color, 10%);
+      color: white;
+    }
+  }
+
+  &--success {
+    background-color: $success-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($success-color, 10%);
+      color: white;
+    }
+  }
+}

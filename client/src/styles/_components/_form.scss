@@ -1,0 +1,53 @@
+.form {
+  &-group {
+    margin-bottom: $spacing-lg;
+  }
+
+  &-label {
+    display: block;
+    margin-bottom: $spacing-sm;
+    font-weight: $font-weight-medium;
+    color: $text-color;
+  }
+
+  &-input {
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-base;
+    border: 1px solid $border-color;
+    border-radius: 2px;
+    transition: $transition-base;
+    background-color: $bg-color;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    }
+
+    &::placeholder {
+      color: $text-light;
+    }
+
+    &:disabled {
+      background-color: $bg-light;
+      cursor: not-allowed;
+    }
+  }
+
+  &-error {
+    margin-top: $spacing-xs;
+    color: $danger-color;
+    font-size: 0.875rem;
+  }
+
+  &-textarea {
+    @extend .form-input;
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  &-select {
+    @extend .form-input;
+  }
+}

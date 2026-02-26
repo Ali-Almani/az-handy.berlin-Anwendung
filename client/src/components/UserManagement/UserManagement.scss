@@ -1,0 +1,246 @@
+@import '../../styles/variables';
+
+.user-management {
+  .user-management-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: $text-color;
+    }
+
+    p {
+      color: $text-light;
+      font-size: 0.9rem;
+    }
+  }
+
+  .user-form-section {
+    background: $bg-light;
+    border-radius: $border-radius-md;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+
+    h3 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: $text-color;
+    }
+
+    .user-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+
+        @media (max-width: 768px) {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+  }
+
+  .avatar-upload-small {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .avatar-preview-label-small {
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .avatar-preview-small {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid $border-color;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      position: relative;
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: $primary-color;
+        transform: scale(1.05);
+
+        .avatar-overlay-small {
+          opacity: 1;
+        }
+      }
+
+      .avatar-image-small {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .avatar-placeholder-small {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: $text-color;
+        color: white;
+        font-size: 1.5rem;
+        font-weight: bold;
+        position: relative;
+      }
+
+      .avatar-overlay-small {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: 50%;
+
+        .avatar-overlay-text-small {
+          color: white;
+          font-size: 0.7rem;
+          font-weight: $font-weight-medium;
+          text-align: center;
+          padding: 0.25rem;
+        }
+      }
+    }
+
+    .avatar-input {
+      display: none;
+    }
+  }
+
+  .users-list {
+    h3 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: $text-color;
+    }
+
+    .loading,
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: $text-light;
+    }
+
+    .users-table {
+      overflow-x: auto;
+      background: white;
+      border-radius: $border-radius-md;
+      box-shadow: $shadow-sm;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+
+        thead {
+          background: $bg-light;
+          
+          th {
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            font-weight: $font-weight-bold;
+            color: $text-color;
+            border-bottom: 2px solid $border-color;
+            font-size: 0.85rem;
+            white-space: nowrap;
+
+            &:last-child {
+              text-align: right;
+            }
+          }
+        }
+
+        tbody {
+          tr {
+            border-bottom: 1px solid $border-color;
+            transition: background 0.2s;
+
+            &:hover {
+              background: $bg-light;
+            }
+
+            &:last-child {
+              border-bottom: none;
+            }
+          }
+
+          td {
+            padding: 0.75rem 0.5rem;
+            color: $text-color;
+            font-size: 0.85rem;
+            vertical-align: middle;
+
+            &:last-child {
+              text-align: right;
+              white-space: nowrap;
+            }
+          }
+        }
+      }
+
+      .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+
+        .user-avatar-small,
+        .user-avatar-placeholder-small {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .user-avatar-small {
+          object-fit: cover;
+        }
+
+        .user-avatar-placeholder-small {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #212529;
+          color: white;
+          font-weight: bold;
+          font-size: 0.85rem;
+        }
+      }
+
+      .role-badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: $border-radius-sm;
+        font-size: 0.75rem;
+        font-weight: $font-weight-medium;
+        background: $bg-light;
+        color: $text-color;
+        border: 1px solid $border-color;
+        white-space: nowrap;
+      }
+    }
+  }
+}

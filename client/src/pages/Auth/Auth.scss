@@ -1,0 +1,45 @@
+@import '../../styles/variables';
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: $spacing-xl 0;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+  background-color: $bg-color;
+  padding: $spacing-xl;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-md;
+
+  h2 {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.auth-form {
+  .form-error {
+    background-color: rgba($danger-color, 0.1);
+    color: $danger-color;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+    text-align: center;
+  }
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: $spacing-lg;
+  color: $text-light;
+
+  a {
+    color: $primary-color;
+    font-weight: $font-weight-medium;
+  }
+}

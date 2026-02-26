@@ -1,0 +1,72 @@
+@import '../../styles/variables';
+
+.home {
+  .hero {
+    text-align: center;
+    padding: $spacing-xxl 0;
+
+    &-subtitle {
+      font-size: 1.25rem;
+      color: $text-light;
+      margin-bottom: $spacing-xl;
+    }
+
+    &-actions {
+      display: flex;
+      gap: $spacing-md;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  }
+
+  .saved-content {
+    margin-top: $spacing-xxl;
+    padding: $spacing-lg 0;
+
+    .saved-text-content {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: $text-color;
+      direction: ltr;
+      text-align: left;
+
+      h1, h2, h3, h4, h5, h6 {
+        margin: 1rem 0 0.5rem 0;
+        font-weight: $font-weight-bold;
+      }
+
+      p {
+        margin: 0.5rem 0;
+      }
+
+      ul, ol {
+        margin: 0.5rem 0;
+        padding-left: 2rem;
+      }
+
+      ul {
+        list-style-type: disc;
+      }
+
+      ol {
+        list-style-type: decimal;
+        
+        li {
+          padding-left: 1rem;
+        }
+      }
+
+      strong {
+        font-weight: $font-weight-bold;
+      }
+
+      em {
+        font-style: italic;
+      }
+
+      u {
+        text-decoration: underline;
+      }
+    }
+  }
+}

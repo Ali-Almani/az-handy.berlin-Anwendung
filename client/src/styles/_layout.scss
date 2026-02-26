@@ -1,0 +1,18 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: $spacing-xl 0;
+}
+
+.footer {
+  background-color: $bg-light;
+  padding: $spacing-lg 0;
+  text-align: center;
+  color: $text-light;
+  margin-top: auto;
+}

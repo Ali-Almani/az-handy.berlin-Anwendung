@@ -1,0 +1,41 @@
+.navbar {
+  background-color: $bg-color;
+  box-shadow: $shadow-sm;
+  padding: $spacing-md 0;
+
+  &-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    text-decoration: none;
+  }
+
+  &-nav {
+    display: flex;
+    gap: $spacing-lg;
+    align-items: center;
+  }
+
+  &-link {
+    color: $text-color;
+    font-weight: $font-weight-medium;
+    transition: $transition-base;
+
+    &:hover {
+      color: $primary-color;
+    }
+
+    &--active {
+      color: $primary-color;
+    }
+  }
+}

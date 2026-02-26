@@ -1,0 +1,33 @@
+.card {
+  background-color: $bg-color;
+  border-radius: 2px;
+  box-shadow: $shadow-md;
+  padding: $spacing-lg;
+  transition: $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+
+  &-header {
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-md;
+    border-bottom: 1px solid $border-color;
+  }
+
+  &-title {
+    font-size: 1.5rem;
+    font-weight: $font-weight-bold;
+    margin-bottom: 0;
+  }
+
+  &-body {
+    margin-bottom: $spacing-md;
+  }
+
+  &-footer {
+    margin-top: $spacing-md;
+    padding-top: $spacing-md;
+    border-top: 1px solid $border-color;
+  }
+}

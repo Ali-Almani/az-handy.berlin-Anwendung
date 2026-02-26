@@ -1,0 +1,176 @@
+@import '../../styles/variables';
+
+.navbar-logo {
+  height: 60px;
+  width: auto;
+  display: block;
+}
+
+.navbar-brand-text {
+  display: inline-block;
+}
+
+.navbar-avatar-container {
+  position: relative;
+  margin-left: 1rem;
+}
+
+.navbar-avatar-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+}
+
+.navbar-avatar-image,
+.navbar-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  transition: opacity 0.2s ease;
+}
+
+.navbar-avatar-image {
+  object-fit: cover;
+}
+
+.navbar-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $text-color;
+  color: white;
+  font-weight: $font-weight-bold;
+  font-size: 0.9rem;
+}
+
+.navbar-avatar-btn:hover .navbar-avatar-image,
+.navbar-avatar-btn:hover .navbar-avatar-placeholder {
+  opacity: 0.8;
+}
+
+.navbar-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border-radius: 2px;
+  box-shadow: $shadow-lg;
+  min-width: 220px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.2s ease;
+
+  @keyframes dropdownFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+.navbar-dropdown-header {
+  padding: 1rem;
+  background: $bg-light;
+  border-bottom: 1px solid $border-color;
+}
+
+.navbar-dropdown-user-info {
+  .navbar-dropdown-name {
+    font-weight: $font-weight-bold;
+    color: $text-color;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .navbar-dropdown-email {
+    color: $text-light;
+    font-size: 0.85rem;
+  }
+}
+
+.navbar-dropdown-divider {
+  height: 1px;
+  background: $border-color;
+  margin: 0.5rem 0;
+}
+
+.navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: $text-color;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    background: $bg-light;
+  }
+
+  &:focus {
+    outline: none;
+    background: $bg-light;
+  }
+
+  &--danger {
+    color: $danger-color;
+
+    &:hover {
+      background: #fee;
+      color: darken($danger-color, 10%);
+    }
+  }
+}
+
+.navbar-dropdown-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-light;
+  flex-shrink: 0;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+}
+
+.navbar-dropdown-item--danger .navbar-dropdown-icon {
+  color: $danger-color;
+}
+
+@media (max-width: 768px) {
+  .navbar-dropdown {
+    right: -1rem;
+    min-width: 200px;
+  }
+}

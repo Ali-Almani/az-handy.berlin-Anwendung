@@ -1,0 +1,349 @@
+@import '../../styles/variables';
+
+.text-editor {
+  background: white;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+
+  .text-editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: $bg-light;
+    border-bottom: 1px solid $border-color;
+    flex-wrap: wrap;
+
+    .toolbar-btn {
+      background: white;
+      border: 1px solid $border-color;
+      border-radius: 2px;
+      padding: 0.4rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: $text-color;
+      transition: all 0.2s ease;
+      min-width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
+
+      &:hover {
+        background: $primary-color;
+        color: white;
+        border-color: $primary-color;
+        
+        svg {
+          color: white;
+        }
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: $border-color;
+      margin: 0 0.25rem;
+    }
+
+    .toolbar-dropdown {
+      position: relative;
+      display: inline-block;
+
+      .toolbar-dropdown-menu {
+        position: absolute;
+        top: calc(100% + 0.25rem);
+        left: 0;
+        background: white;
+        border: 1px solid $border-color;
+        border-radius: 2px;
+        box-shadow: $shadow-md;
+        z-index: 100;
+        min-width: 200px;
+        width: max-content;
+        overflow: hidden;
+
+        .toolbar-dropdown-item {
+          display: block;
+          width: 100%;
+          padding: 0.5rem 1rem;
+          text-align: left;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: $text-color;
+          font-size: 0.9rem;
+          transition: background 0.2s ease;
+          direction: ltr;
+          text-align: left;
+          white-space: nowrap;
+
+          &:hover {
+            background: $bg-light;
+          }
+
+          &:first-child {
+            font-weight: $font-weight-bold;
+            font-size: 1.2rem;
+          }
+
+          &:nth-child(2) {
+            font-weight: $font-weight-bold;
+            font-size: 1.1rem;
+          }
+
+          &:nth-child(3) {
+            font-weight: $font-weight-bold;
+            font-size: 1rem;
+          }
+        }
+      }
+      
+      .toolbar-color-picker {
+        position: absolute;
+        top: calc(100% + 0.25rem);
+        left: 0;
+        background: white;
+        border: 1px solid $border-color;
+        border-radius: 2px;
+        box-shadow: $shadow-md;
+        z-index: 100;
+        padding: 0.75rem;
+        min-width: 200px;
+        
+        .color-input {
+          width: 100%;
+          height: 40px;
+          border: 1px solid $border-color;
+          border-radius: 2px;
+          cursor: pointer;
+          margin-bottom: 0.5rem;
+        }
+        
+        .color-picker-presets {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.5rem;
+          
+          .color-preset {
+            width: 100%;
+            height: 30px;
+            border: 1px solid $border-color;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            
+            &:hover {
+              transform: scale(1.1);
+              border-color: $primary-color;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .text-editor-content {
+    min-height: 300px;
+    padding: 1.5rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: $text-color;
+    outline: none;
+    overflow-y: auto;
+    max-height: 600px;
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: embed;
+    
+    * {
+      direction: ltr !important;
+      text-align: left !important;
+      unicode-bidi: embed;
+    }
+
+    &:empty:before {
+      content: attr(data-placeholder);
+      color: #999;
+      font-style: italic;
+    }
+
+    &:focus {
+      outline: 2px solid $primary-color;
+      outline-offset: -2px;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      margin: 1rem 0 0.5rem 0;
+      font-weight: $font-weight-bold;
+    }
+
+    p {
+      margin: 0.5rem 0;
+    }
+
+    ul {
+      margin: 0.5rem 0;
+      padding-left: 2rem;
+      list-style-type: disc;
+      list-style-position: outside;
+      
+      li {
+        margin: 0.25rem 0;
+        display: list-item;
+        list-style-type: disc;
+        
+        &[style*="text-align"] {
+          text-align: inherit !important;
+        }
+        
+        &[style*="text-align: left"] {
+          text-align: left !important;
+        }
+        
+        &[style*="text-align: center"] {
+          text-align: center !important;
+        }
+        
+        &[style*="text-align: right"] {
+          text-align: right !important;
+        }
+      }
+    }
+    
+    ol {
+      margin: 0.5rem 0;
+      padding-left: 2rem;
+      list-style-type: decimal;
+      list-style-position: outside;
+      
+      li {
+        margin: 0.25rem 0;
+        padding-left: 1rem;
+        display: list-item;
+        list-style-type: decimal;
+        
+        &[style*="text-align"] {
+          text-align: inherit !important;
+        }
+        
+        &[style*="text-align: left"] {
+          text-align: left !important;
+        }
+        
+        &[style*="text-align: center"] {
+          text-align: center !important;
+        }
+        
+        &[style*="text-align: right"] {
+          text-align: right !important;
+        }
+      }
+    }
+    
+    p[style*="text-align"],
+    div[style*="text-align"],
+    h1[style*="text-align"],
+    h2[style*="text-align"],
+    h3[style*="text-align"],
+    h4[style*="text-align"],
+    h5[style*="text-align"],
+    h6[style*="text-align"] {
+      &[style*="text-align: left"] {
+        text-align: left !important;
+      }
+      
+      &[style*="text-align: center"] {
+        text-align: center !important;
+      }
+      
+      &[style*="text-align: right"] {
+        text-align: right !important;
+      }
+    }
+
+    strong {
+      font-weight: $font-weight-bold;
+    }
+
+    em {
+      font-style: italic;
+    }
+
+    u {
+      text-decoration: underline;
+    }
+  }
+
+  .text-editor-display {
+    padding: 1.5rem;
+    min-height: 200px;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: $text-color;
+    cursor: text;
+    border: 2px dashed transparent;
+    transition: border-color 0.2s ease;
+    direction: ltr;
+    text-align: left;
+
+    &:hover {
+      border-color: $border-color;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      margin: 1rem 0 0.5rem 0;
+      font-weight: $font-weight-bold;
+    }
+
+    p {
+      margin: 0.5rem 0;
+    }
+
+    ul {
+      margin: 0.5rem 0;
+      padding-left: 2rem;
+      list-style-type: disc;
+      list-style-position: outside;
+      
+      li {
+        display: list-item;
+        list-style-type: disc;
+      }
+    }
+    
+    ol {
+      margin: 0.5rem 0;
+      padding-left: 2rem;
+      list-style-type: decimal;
+      list-style-position: outside;
+      
+      li {
+        padding-left: 1rem;
+        display: list-item;
+        list-style-type: decimal;
+      }
+    }
+  }
+
+  .text-editor-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: $bg-light;
+    border-top: 1px solid $border-color;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "az-handy-berlin",
+  "version": "1.0.0",
+  "description": "Full-Stack Application for az-handy.berlin (React, Express, PostgreSQL)",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -Command \"$scriptPath = if ($env:INIT_CWD) { $env:INIT_CWD } else { (Get-Location).Path }; $script = Join-Path $scriptPath 'start-dev.ps1'; if (Test-Path $script) { Set-Location $scriptPath; & $script } else { Write-Host 'Error: start-dev.ps1 not found at $script' -ForegroundColor Red }\"",
+    "dev:windows": "powershell -ExecutionPolicy Bypass -Command \"$scriptPath = if ($env:INIT_CWD) { $env:INIT_CWD } else { (Get-Location).Path }; $serverPath = Join-Path $scriptPath 'server'; $clientPath = Join-Path $scriptPath 'client'; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"Set-Location '$serverPath'; npm run dev\"; Start-Sleep -Seconds 2; Start-Process powershell -ArgumentList '-NoExit', '-Command', \"Set-Location '$clientPath'; npm start\"\"",
+    "dev:concurrent": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "pushd server && npm run dev && popd",
+    "client": "powershell -ExecutionPolicy Bypass -Command \"$scriptPath = if ($env:INIT_CWD) { $env:INIT_CWD } else { (Get-Location).Path }; $clientPath = Join-Path $scriptPath 'client'; $script = Join-Path $clientPath 'start-dev.ps1'; if (Test-Path $script) { & $script } else { Write-Host 'start-dev.ps1 not found. Using vite directly...' -ForegroundColor Yellow; $viteCmd = Join-Path $clientPath 'node_modules\\.bin\\vite.cmd'; if (Test-Path $viteCmd) { & $viteCmd } else { Set-Location $clientPath; npx vite } }\"",
+    "build": "pushd client && npm run build && popd",
+    "install-server": "pushd server && npm install && popd",
+    "install-client": "pushd client && npm install && popd",
+    "install-all": "npm install && npm run install-server && npm run install-client",
+    "start": "pushd server && npm start && popd"
+  },
+  "keywords": [
+    "react",
+    "express",
+    "postgresql",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
