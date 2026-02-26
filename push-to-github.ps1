@@ -20,11 +20,10 @@ if (git remote get-url origin 2>$null) {
     git remote add origin $remoteUrl
 }
 
-Write-Host "`n=== Git: Branch zu main umbenennen ===" -ForegroundColor Cyan
-git branch -M main
-
 Write-Host "`n=== Git: Push zu GitHub ===" -ForegroundColor Cyan
-git push -u origin main
+# Pushe master (oder main falls umbenannt)
+$branch = (git branch --show-current)
+git push -u origin $branch
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`n=== Fertig! Projekt wurde zu GitHub hochgeladen. ===" -ForegroundColor Green

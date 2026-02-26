@@ -6,7 +6,7 @@ MERN Stack Application with SCSS and Best Practices
 
 - **Frontend**: React, SCSS
 - **Backend**: Node.js, Express
-- **Database**: MongoDB
+- **Database**: PostgreSQL (oder In-Memory für Tests)
 - **Build Tool**: Vite
 
 ## Project Structure
@@ -24,7 +24,7 @@ az-handy.berlin/
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- MongoDB (local or Atlas)
+- PostgreSQL (oder In-Memory-Modus ohne Datenbank)
 - npm or yarn
 
 ### Installation
@@ -37,7 +37,7 @@ npm run install-all
 2. Set up environment variables:
 ```bash
 cp server/.env.example server/.env
-# Edit server/.env with your MongoDB connection string and other configs
+# Edit server/.env with your PostgreSQL connection string (or USE_MEMORY_DB=true for testing)
 ```
 
 3. Start development servers:
@@ -62,7 +62,8 @@ Create a `.env` file in the `server` directory:
 ```
 PORT=5000
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/az-handy-berlin
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/az_handy_berlin
+# Oder ohne Datenbank: USE_MEMORY_DB=true
 JWT_SECRET=your-secret-key-here
 CLIENT_URL=http://localhost:3000
 ```

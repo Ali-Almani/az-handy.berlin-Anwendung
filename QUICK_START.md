@@ -2,38 +2,22 @@
 
 ## Server starten
 
-Der Server benötigt MongoDB. Hier sind die Optionen:
+Das Projekt verwendet **PostgreSQL** oder **In-Memory** (ohne Datenbank). Hier sind die Optionen:
 
-### Option 1: Lokales MongoDB (empfohlen für Entwicklung)
+### Option 1: PostgreSQL (empfohlen für Entwicklung)
 
-1. **MongoDB installieren** (falls noch nicht installiert):
-   - Download: https://www.mongodb.com/try/download/community
-   - Oder mit Chocolatey: `choco install mongodb`
+1. **PostgreSQL installieren** (falls noch nicht installiert):
+   - Download: https://www.postgresql.org/download/windows/
+   - Oder mit winget: `winget install PostgreSQL.PostgreSQL`
 
-2. **MongoDB starten**:
-   ```powershell
-   # Als Windows Service (wenn installiert):
-   net start MongoDB
-   
-   # Oder manuell:
-   mongod --dbpath "C:\data\db"
+2. **Datenbank erstellen**:
+   ```sql
+   CREATE DATABASE az_handy_berlin;
    ```
 
-3. **Server starten**:
-   ```powershell
-   cd server
-   npm run dev
+3. **`.env` Datei konfigurieren** (in `server/.env`):
    ```
-
-### Option 2: MongoDB Atlas (Cloud - keine lokale Installation)
-
-1. **Kostenloses Konto erstellen**: https://www.mongodb.com/cloud/atlas
-
-2. **Cluster erstellen** und Connection String kopieren
-
-3. **`.env` Datei aktualisieren**:
-   ```
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/az-handy-berlin
+   DATABASE_URL=postgresql://postgres:DEIN_PASSWORT@localhost:5432/az_handy_berlin
    ```
 
 4. **Server starten**:
@@ -42,14 +26,31 @@ Der Server benötigt MongoDB. Hier sind die Optionen:
    npm run dev
    ```
 
-### Option 3: Mit dem PowerShell-Skript (prüft MongoDB automatisch)
+Die Tabellen werden automatisch erstellt (Sequelize `sync`).
+
+### Option 2: In-Memory Modus (ohne Datenbank)
+
+Für schnelle Tests ohne PostgreSQL:
+
+1. **`.env` Datei** (in `server/.env`):
+   ```
+   USE_MEMORY_DB=true
+   ```
+
+2. **Server starten**:
+   ```powershell
+   cd server
+   npm run dev
+   ```
+
+⚠️ Daten gehen beim Neustart verloren – nur für Entwicklung/Testing!
+
+### Option 3: Mit dem PowerShell-Skript
 
 ```powershell
 cd server
-npm run dev:ps1
+.\start.ps1
 ```
-
-Das Skript prüft automatisch, ob MongoDB läuft und gibt hilfreiche Hinweise.
 
 ## Admin-Benutzer erstellen
 
@@ -79,14 +80,16 @@ Dies startet:
 
 ### "ERR_CONNECTION_REFUSED"
 - ✅ Prüfen Sie, ob der Server läuft (Port 5000)
-- ✅ Prüfen Sie, ob MongoDB läuft (Port 27017)
 - ✅ Prüfen Sie die `.env` Datei
 
-### "MongoDB connection error"
-- ✅ Stellen Sie sicher, dass MongoDB läuft
-- ✅ Prüfen Sie die `MONGODB_URI` in der `.env` Datei
-- ✅ Bei Atlas: Prüfen Sie die IP-Whitelist
+### "PostgreSQL connection error"
+- ✅ Stellen Sie sicher, dass PostgreSQL läuft (Port 5432)
+- ✅ Prüfen Sie die `DATABASE_URL` in der `.env` Datei
+- ✅ Prüfen Sie, ob die Datenbank `az_handy_berlin` existiert
 
 ### Server startet nicht
 - ✅ Prüfen Sie, ob Port 5000 frei ist: `netstat -ano | findstr :5000`
 - ✅ Prüfen Sie die Node.js Version: `node --version` (sollte v18+ sein)
+
+### Ohne Datenbank testen
+- ✅ Setzen Sie `USE_MEMORY_DB=true` in der `.env` Datei

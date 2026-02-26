@@ -50,7 +50,7 @@ az-handy.berlin/
 │   ├── middleware/        # Express Middleware
 │   │   ├── auth.js
 │   │   └── errorHandler.js
-│   ├── models/            # MongoDB Models
+│   ├── models/            # Sequelize Models (PostgreSQL)
 │   │   └── User.model.js
 │   ├── routes/            # API Routes
 │   │   ├── auth.routes.js
@@ -79,7 +79,7 @@ az-handy.berlin/
 - Input-Validierung mit express-validator
 - Error-Handling Middleware
 - CORS & Security Headers (Helmet)
-- MongoDB mit Mongoose
+- PostgreSQL mit Sequelize
 
 ## Frontend-Struktur (React)
 

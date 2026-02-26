@@ -66,7 +66,7 @@ Sie sollten sehen:
 
 ## 💡 Tipp:
 
-Der Server läuft jetzt **OHNE MongoDB** (In-Memory Modus)!
+Der Server läuft jetzt **OHNE Datenbank** (In-Memory Modus)!
 - Daten gehen beim Neustart verloren
 - Perfekt für Tests und Entwicklung
 - Admin-Benutzer wird automatisch erstellt

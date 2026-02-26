@@ -35,7 +35,7 @@ Wenn alles funktioniert:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 IN-MEMORY MODE (No MongoDB required)
+📦 IN-MEMORY MODE (No database required)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ Using in-memory database for testing
 ✅ Default admin user created (In-Memory Mode)
