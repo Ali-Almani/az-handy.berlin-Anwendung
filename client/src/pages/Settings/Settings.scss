@@ -162,6 +162,19 @@
       color: #3c3;
       border: 1px solid #cfc;
     }
+
+    &--warning {
+      background: #fff8e6;
+      color: #996600;
+      border: 1px solid #ffd966;
+    }
+  }
+
+  .alert.settings-restore-admin {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .form-help {

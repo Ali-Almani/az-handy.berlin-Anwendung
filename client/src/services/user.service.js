@@ -45,6 +45,22 @@ export const getAllUsers = () => {
   return api.get('/users');
 };
 
+export const updateUserByAdmin = (userId, userData) => {
+  if (USE_MOCK_API) {
+    const token = localStorage.getItem('token');
+    return mockApi.updateUserByAdmin(token, userId, userData);
+  }
+  return api.put(`/users/${userId}`, userData);
+};
+
+export const restoreAdmin = () => {
+  if (USE_MOCK_API) {
+    const token = localStorage.getItem('token');
+    return mockApi.restoreAdmin(token);
+  }
+  return api.post('/users/restore-admin');
+};
+
 export const deleteUser = (userId) => {
   if (USE_MOCK_API) {
     const token = localStorage.getItem('token');

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { getDashboardNote } from '../../services/dashboard.service';
 import './Home.scss';
 
 const Home = () => {
@@ -8,12 +9,17 @@ const Home = () => {
   const [savedContent, setSavedContent] = useState('');
 
   useEffect(() => {
-    // Lade gespeicherten Text aus localStorage
-    const saved = localStorage.getItem('dashboard-content');
-    if (saved) {
-      setSavedContent(saved);
-    }
-  }, []);
+    if (!user) return;
+    const fetchNote = async () => {
+      try {
+        const res = await getDashboardNote();
+        if (res.data?.content) setSavedContent(res.data.content);
+      } catch (err) {
+        console.error('Error loading note:', err);
+      }
+    };
+    fetchNote();
+  }, [user]);
 
   return (
     <div className="home">

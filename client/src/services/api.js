@@ -5,7 +5,11 @@ const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
                      import.meta.env.VITE_API_URL === 'mock' ||
                      !import.meta.env.VITE_API_URL;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// In Dev: Nutze Proxy (leerer baseURL = gleicher Origin, Proxy leitet /api weiter)
+// In Prod: Volle API-URL
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000/api');
+// Stelle sicher, dass baseURL immer auf /api endet (Pfade wie /users/... werden angehängt)
+const API_BASE = !API_URL ? '/api' : (API_URL.endsWith('/api') ? API_URL : `${API_URL.replace(/\/$/, '')}/api`);
 
 const createMockApi = () => {
   return {
@@ -36,7 +40,7 @@ const createMockApi = () => {
 
 const createRealApi = () => {
   const api = axios.create({
-    baseURL: API_URL,
+    baseURL: API_BASE,
     headers: {
       'Content-Type': 'application/json'
     }
@@ -86,7 +90,7 @@ export const uploadExcelFile = async (file) => {
     throw new Error('Excel-Upload im Mock-Modus nicht verfügbar. Bitte verwenden Sie den echten API-Modus.');
   }
 
-  const response = await axios.post(`${API_URL}/excel/upload`, formData, {
+  const response = await axios.post(`${API_BASE || '/api'}/excel/upload`, formData, {
     headers: {
       ...headers,
       'Content-Type': 'multipart/form-data'

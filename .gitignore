@@ -41,4 +41,5 @@ Thumbs.db
 
 # Build outputs
 server/uploads/
+server/data/
 client/build/

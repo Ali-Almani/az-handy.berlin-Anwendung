@@ -1,0 +1,234 @@
+import { useCallback } from 'react';
+
+const THIRTY_MINUTES = 30 * 60 * 1000;
+const MAX_COPIES = 5;
+
+export function useImeisCopyHandlers({
+  user,
+  copyHistory,
+  setCopyHistory,
+  copyTimestamps,
+  setCopyTimestamps,
+  rowActions,
+  setRowActions,
+  historyUndoStack,
+  setHistoryUndoStack,
+  selectedCells,
+  currentImeis,
+  getManufacturer,
+  getProductFull,
+  setShowRateLimitModal,
+  setRateLimitMessage,
+  setSelectedRowForDropdown,
+  setCopySuccess,
+  expandSelection,
+  persistImeis
+}) {
+  const checkCopyRateLimit = useCallback(() => {
+    if (!user?.name) return { allowed: true, remaining: 5, count: 0 };
+    const now = Date.now();
+    const recentCopies = (copyTimestamps ?? []).filter(t => (now - t) < THIRTY_MINUTES);
+    return { allowed: recentCopies.length < MAX_COPIES, remaining: Math.max(0, MAX_COPIES - recentCopies.length), count: recentCopies.length };
+  }, [user, copyTimestamps]);
+
+  const registerCopyAction = useCallback(() => {
+    if (!user?.name) return;
+    const now = Date.now();
+    const recentCopies = (copyTimestamps ?? []).filter(t => (now - t) < THIRTY_MINUTES);
+    recentCopies.push(now);
+    setCopyTimestamps(recentCopies);
+    persistImeis?.({ copyTimestamps: recentCopies });
+  }, [user, copyTimestamps, setCopyTimestamps, persistImeis]);
+
+  const showRateLimitError = useCallback(() => {
+    const now = Date.now();
+    const recentCopies = (copyTimestamps ?? []).filter(t => (now - t) < THIRTY_MINUTES);
+    const minutesRemaining = recentCopies.length > 0
+      ? Math.ceil((THIRTY_MINUTES - (now - Math.min(...recentCopies))) / (60 * 1000))
+      : 30;
+    setRateLimitMessage(`Rate-Limit erreicht! Sie haben bereits 5 IMEIs innerhalb der letzten 30 Minuten kopiert. Bitte warten Sie noch ${minutesRemaining} Minute(n).`);
+    setShowRateLimitModal(true);
+  }, [copyTimestamps, setRateLimitMessage, setShowRateLimitModal]);
+
+  const handleCopyRow = useCallback(async (item) => {
+    try {
+      const rateLimit = checkCopyRateLimit();
+      if (!rateLimit.allowed) {
+        showRateLimitError();
+        return;
+      }
+      const imeiToCopy = String(item.imei || '').trim();
+      if (imeiToCopy) {
+        await navigator.clipboard.writeText(imeiToCopy);
+        registerCopyAction();
+        const productFull = getProductFull(item);
+        let productForHistory = productFull || '';
+        const manufacturer = getManufacturer(item);
+        if (manufacturer && productForHistory) {
+          const productLower = productForHistory.toLowerCase();
+          if (productLower.startsWith(manufacturer.toLowerCase())) productForHistory = productForHistory.substring(manufacturer.length).trim();
+          productForHistory = productForHistory.replace(new RegExp(`\\b${manufacturer}\\b`, 'gi'), '').trim().replace(/\s+/g, ' ').trim();
+        }
+        const historyEntry = { imei: imeiToCopy, product: productForHistory || '-', action: 'checkout', timestamp: new Date().toISOString(), userName: user?.name || 'Unbekannt' };
+        const updatedHistory = [historyEntry, ...copyHistory.filter(entry => entry.imei !== imeiToCopy)].slice(0, 100);
+        setCopyHistory(updatedHistory);
+        persistImeis?.({ copyHistory: updatedHistory });
+        setCopySuccess?.(true);
+        setTimeout(() => setCopySuccess?.(false), 2000);
+        setSelectedRowForDropdown(null);
+      }
+    } catch (error) {
+      console.error('Error copying IMEI to clipboard:', error);
+      alert('Fehler beim Kopieren in die Zwischenablage: ' + error.message);
+    }
+  }, [getProductFull, getManufacturer, user, copyHistory, checkCopyRateLimit, registerCopyAction, setCopyHistory, setSelectedRowForDropdown, showRateLimitError]);
+
+  const handleDropdownSelect = useCallback(async (item, action) => {
+    const rateLimit = checkCopyRateLimit();
+    if (!rateLimit.allowed) {
+      showRateLimitError();
+      return;
+    }
+    const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
+    const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: new Date().toISOString() };
+    const updatedActions = { ...rowActions, [rowId]: actionData };
+    setRowActions(updatedActions);
+    persistImeis?.({ rowActions: updatedActions });
+    await handleCopyRow(item);
+  }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError]);
+
+  const handleUpdateHistoryAction = useCallback((index, newAction) => {
+    if (index < 0 || index >= copyHistory.length) return;
+    const entry = copyHistory[index];
+    const oldAction = entry.action || null;
+    const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
+    setHistoryUndoStack(prev => [...prev, undoState]);
+    if (newAction === 'angenommen') {
+      const updatedHistory = copyHistory.filter((_, i) => i !== index);
+      setCopyHistory(updatedHistory);
+      persistImeis?.({ copyHistory: updatedHistory });
+      return;
+    }
+    if (newAction === 'abgelehnt') {
+      const imeiToReject = entry.imei;
+      const updatedRowActions = { ...rowActions };
+      Object.keys(updatedRowActions).forEach(rowId => {
+        if (rowId.includes(`-${imeiToReject}-`)) delete updatedRowActions[rowId];
+      });
+      setRowActions(updatedRowActions);
+      const updatedHistory = copyHistory.filter((_, i) => i !== index);
+      setCopyHistory(updatedHistory);
+      persistImeis?.({ rowActions: updatedRowActions, copyHistory: updatedHistory });
+      return;
+    }
+    const updatedHistory = [...copyHistory];
+    updatedHistory[index] = { ...updatedHistory[index], action: newAction || null, userName: user?.name || updatedHistory[index].userName || 'Unbekannt', timestamp: new Date().toISOString() };
+    setCopyHistory(updatedHistory);
+    persistImeis?.({ copyHistory: updatedHistory });
+  }, [copyHistory, user, rowActions, setCopyHistory, setRowActions, setHistoryUndoStack]);
+
+  const handleHistoryModalUndo = useCallback(() => {
+    if (historyUndoStack.length === 0) return;
+    const undoState = historyUndoStack[historyUndoStack.length - 1];
+    if (undoState.newAction === 'angenommen' || undoState.newAction === 'abgelehnt') {
+      const updatedHistory = [...copyHistory];
+      updatedHistory.splice(undoState.index, 0, undoState.entry);
+      setCopyHistory(updatedHistory);
+      if (undoState.newAction === 'abgelehnt') {
+        setRowActions(undoState.rowActionsSnapshot);
+        persistImeis?.({ copyHistory: updatedHistory, rowActions: undoState.rowActionsSnapshot });
+      } else {
+        persistImeis?.({ copyHistory: updatedHistory });
+      }
+    } else {
+      const updatedHistory = [...copyHistory];
+      updatedHistory[undoState.index] = { ...undoState.entry, action: undoState.oldAction };
+      setCopyHistory(updatedHistory);
+      persistImeis?.({ copyHistory: updatedHistory });
+    }
+    setHistoryUndoStack(prev => prev.slice(0, -1));
+  }, [historyUndoStack, copyHistory, setCopyHistory, setRowActions, setHistoryUndoStack]);
+
+  const handleCopySelected = useCallback(async () => {
+    if (selectedCells.size === 0) return;
+    try {
+      const selectedRows = new Map();
+      const uniqueImeis = new Set();
+      selectedCells.forEach(cellId => {
+        const parts = cellId.split('-');
+        if (parts.length >= 3) {
+          const [sheet, imei, row] = parts;
+          const column = parts.slice(3).join('-') || 'row';
+          const rowKey = `${sheet}-${imei}-${row}`;
+          if (!selectedRows.has(rowKey)) {
+            selectedRows.set(rowKey, { sheet, imei, row, columns: new Set() });
+            if (imei) uniqueImeis.add(imei);
+          }
+          selectedRows.get(rowKey).columns.add(column);
+        }
+      });
+      const rateLimit = checkCopyRateLimit();
+      const imeisToCopy = uniqueImeis.size;
+      const totalAfterCopy = rateLimit.count + imeisToCopy;
+      if (totalAfterCopy > MAX_COPIES) {
+        const remaining = Math.max(0, MAX_COPIES - rateLimit.count);
+        if (remaining === 0) {
+          showRateLimitError();
+        } else {
+          setRateLimitMessage(`Sie können nur noch ${remaining} IMEI(s) innerhalb der nächsten 30 Minuten kopieren. Sie haben ${imeisToCopy} IMEI(s) ausgewählt. Bitte reduzieren Sie die Auswahl auf ${remaining} IMEI(s).`);
+          setShowRateLimitModal(true);
+        }
+        return;
+      }
+      const rowsToCopy = [];
+      selectedRows.forEach((rowInfo, rowKey) => {
+        const item = currentImeis.find(i => `${i.sheet || 'default'}-${i.imei}-${i.row}` === rowKey);
+        if (item) {
+          const rowData = [];
+          const isImeiSelected = rowInfo.columns.has('imei');
+          const manufacturerKey = Object.keys(item.rowData || {}).find(key => {
+            const lowerKey = key.toLowerCase();
+            return lowerKey.includes('hersteller') || lowerKey.includes('manufacturer') || lowerKey.includes('marke') || lowerKey.includes('brand');
+          });
+          const isManufacturerSelected = manufacturerKey && rowInfo.columns.has(manufacturerKey);
+          if ((isImeiSelected && isManufacturerSelected) || (isImeiSelected && !manufacturerKey) || (!isImeiSelected && !isManufacturerSelected)) {
+            rowData.push(item.imei || '');
+            rowData.push(getManufacturer(item) || '');
+          } else {
+            if (isImeiSelected) rowData.push(item.imei || '');
+            if (isManufacturerSelected && manufacturerKey) rowData.push(getManufacturer(item) || '');
+          }
+          while (rowData.length > 0 && (rowData[rowData.length - 1] === '' || rowData[rowData.length - 1] == null)) rowData.pop();
+          if (rowData.length > 0) rowsToCopy.push(rowData);
+        }
+      });
+      const textToCopy = rowsToCopy
+        .map(row => {
+          const cleanedRow = [...row];
+          while (cleanedRow.length > 0 && (!cleanedRow[cleanedRow.length - 1] || String(cleanedRow[cleanedRow.length - 1]).trim() === '')) cleanedRow.pop();
+          return cleanedRow.map(cell => String(cell || '').trim().replace(/\t/g, ' ')).join('\t');
+        })
+        .filter(row => row.trim() !== '')
+        .join('\n');
+      if (textToCopy) {
+        await navigator.clipboard.writeText(textToCopy);
+        uniqueImeis.forEach(() => registerCopyAction());
+        setCopySuccess?.(true);
+        setTimeout(() => setCopySuccess?.(false), 2000);
+      }
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      alert('Fehler beim Kopieren in die Zwischenablage');
+    }
+  }, [selectedCells, currentImeis, checkCopyRateLimit, registerCopyAction, user, getManufacturer, showRateLimitError, setRateLimitMessage, setShowRateLimitModal, setCopySuccess]);
+
+  return {
+    handleCopyRow,
+    handleDropdownSelect,
+    handleUpdateHistoryAction,
+    handleHistoryModalUndo,
+    handleCopySelected,
+    checkCopyRateLimit,
+    registerCopyAction
+  };
+}

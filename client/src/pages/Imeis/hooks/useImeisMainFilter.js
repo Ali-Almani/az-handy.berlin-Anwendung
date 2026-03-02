@@ -1,0 +1,105 @@
+import { useEffect, useRef } from 'react';
+
+export function useImeisMainFilter({
+  imeis,
+  activeSheet,
+  activeManufacturer,
+  activeProduct,
+  activeVersion,
+  activeVariant,
+  activeGB,
+  searchTerm,
+  rowActions,
+  getManufacturer,
+  getProduct,
+  getProductFull,
+  hasO2Aktion,
+  extractProductVersion,
+  extractProductVariant,
+  extractGB,
+  setFilteredImeis,
+  setAllColumns,
+  setCurrentPage,
+  setSelectedCells
+}) {
+  const prevFilterRef = useRef(null);
+
+  useEffect(() => {
+    let filtered = imeis;
+    if (activeSheet) filtered = filtered.filter(item => item.sheet === activeSheet);
+    if (activeManufacturer) {
+      filtered = filtered.filter(item => {
+        const manufacturer = getManufacturer(item);
+        return manufacturer && manufacturer.trim() === activeManufacturer;
+      });
+    }
+    if (activeManufacturer) {
+      if (activeVersion) {
+        filtered = filtered.filter(item => extractProductVersion(getProductFull(item)) === activeVersion);
+      }
+      if (activeVersion && activeVariant !== null) {
+        filtered = filtered.filter(item => {
+          const productFull = getProductFull(item);
+          const version = extractProductVersion(productFull);
+          const variant = extractProductVariant(productFull);
+          if (version !== activeVersion) return false;
+          if (activeVariant === '') return variant === '';
+          return variant === activeVariant;
+        });
+      }
+      if (activeVersion && activeVariant !== null && activeGB) {
+        filtered = filtered.filter(item => extractGB(getProductFull(item)) === activeGB);
+      }
+    }
+    if (!activeVersion && activeProduct) {
+      if (activeProduct === 'o2-Aktion') {
+        filtered = filtered.filter(item => hasO2Aktion(item));
+      } else {
+        filtered = filtered.filter(item => {
+          const product = getProduct(item);
+          return product && product.trim() === activeProduct;
+        });
+      }
+    }
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(item => item.imei.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    filtered = filtered.filter(item => {
+      const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
+      return rowActions[rowId]?.action !== 'reservieren';
+    });
+    setFilteredImeis(filtered);
+
+    if (filtered.length > 0) {
+      const firstItem = filtered[0];
+      let columns = [];
+      if (firstItem.columnOrder && Array.isArray(firstItem.columnOrder)) {
+        columns = [...firstItem.columnOrder];
+      } else if (firstItem.rowData) {
+        const allColumnNames = new Set();
+        filtered.forEach(item => {
+          if (item.rowData) Object.keys(item.rowData).forEach(key => allColumnNames.add(key));
+        });
+        const firstRowKeys = Object.keys(firstItem.rowData);
+        firstRowKeys.forEach(key => { if (!columns.includes(key)) columns.push(key); });
+        allColumnNames.forEach(key => { if (!columns.includes(key)) columns.push(key); });
+      } else if (firstItem.data && Array.isArray(firstItem.data)) {
+        let maxCols = 0;
+        filtered.forEach(item => {
+          if (item.data?.length) maxCols = Math.max(maxCols, item.data.length);
+        });
+        for (let i = 0; i < maxCols; i++) columns.push(`Spalte${i + 1}`);
+      }
+      setAllColumns(columns);
+    } else {
+      setAllColumns([]);
+    }
+    setCurrentPage(1);
+
+    const filterKey = `${activeSheet}|${activeManufacturer}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
+    if (prevFilterRef.current !== null && prevFilterRef.current !== filterKey) {
+      setSelectedCells(new Set());
+    }
+    prevFilterRef.current = filterKey;
+  }, [activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells]);
+}

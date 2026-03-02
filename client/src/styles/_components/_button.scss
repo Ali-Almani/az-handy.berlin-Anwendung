@@ -46,6 +46,15 @@
     }
   }
 
+  &--ghost {
+    background-color: transparent;
+    color: inherit;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
+
   &--full-width {
     width: 100%;
   }

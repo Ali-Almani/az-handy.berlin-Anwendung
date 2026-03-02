@@ -1,4 +1,7 @@
 import bcrypt from 'bcryptjs';
+import { loadJson, saveJson } from '../utils/filePersistence.js';
+
+const PERSIST = process.env.PERSIST_MEMORY_DATA !== 'false';
 
 const uuidv4 = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -10,7 +13,51 @@ const uuidv4 = () => {
 
 const users = [];
 
+const toPlainUser = (u) => ({
+  _id: u._id ?? u.id,
+  name: u.name,
+  email: u.email,
+  password: u.password,
+  role: u.role,
+  createdAt: u.createdAt,
+  updatedAt: u.updatedAt
+});
+
+const persistUsers = () => {
+  if (!PERSIST) return;
+  const data = users.map(u => {
+    const p = toPlainUser(u);
+    p.createdAt = p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt;
+    p.updatedAt = p.updatedAt instanceof Date ? p.updatedAt.toISOString() : p.updatedAt;
+    return p;
+  });
+  saveJson('users.json', data);
+};
+
+const loadUsers = () => {
+  if (!PERSIST) return;
+  const data = loadJson('users.json');
+  if (Array.isArray(data) && data.length > 0) {
+    users.length = 0;
+    data.forEach(u => {
+      users.push({
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        password: u.password,
+        role: u.role,
+        createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+        updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
+      });
+    });
+    console.log(`✅ ${users.length} Benutzer aus Datei geladen`);
+    return;
+  }
+};
+
 const createDefaultAdmin = async () => {
+  loadUsers();
+  if (users.length > 0) return;
   const adminPassword = await bcrypt.hash('Admin123!', 12);
   const adminUser = {
     _id: 'admin-' + uuidv4(),
@@ -22,6 +69,7 @@ const createDefaultAdmin = async () => {
     updatedAt: new Date()
   };
   users.push(adminUser);
+  persistUsers();
   console.log('✅ Default admin user created (In-Memory Mode)');
   console.log('   Email: admin@az-handy.berlin');
   console.log('   Password: Admin123!');
@@ -43,6 +91,9 @@ class InMemoryUser {
   }
 
   async save() {
+    if (this.password && !this.password.startsWith('$2')) {
+      this.password = await bcrypt.hash(this.password, 12);
+    }
     const existingIndex = users.findIndex(u => u._id === this._id);
     if (existingIndex >= 0) {
       this.updatedAt = new Date();
@@ -50,6 +101,7 @@ class InMemoryUser {
     } else {
       users.push(this);
     }
+    persistUsers();
     return this;
   }
 
@@ -93,7 +145,12 @@ class InMemoryUser {
   }
 
   static async findByPk(id) {
-    const user = users.find(u => u._id === id || u._id === String(id));
+    if (id == null || id === '') return null;
+    const sid = String(id);
+    const user = users.find(u => {
+      const uid = u._id ?? u.id;
+      return uid === id || String(uid) === sid;
+    });
     return user ? new InMemoryUser(user) : null;
   }
 
@@ -128,6 +185,15 @@ class InMemoryUser {
       await user.save();
     }
     return user;
+  }
+
+  static async destroy(options = {}) {
+    const id = options?.where?.id ?? options?.where?.user_id ?? options?.id;
+    const idx = users.findIndex(u => u._id === id || u.id === id || String(u._id) === String(id));
+    if (idx >= 0) {
+      users.splice(idx, 1);
+      persistUsers();
+    }
   }
 }
 
