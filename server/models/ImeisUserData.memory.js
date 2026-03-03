@@ -88,6 +88,10 @@ class InMemoryImeisUserData {
     return [{ ...data, id: data.user_id }, created];
   }
 
+  static async findAll() {
+    return Array.from(dataByUserId.values()).map((d) => ({ ...d, id: d.user_id }));
+  }
+
   static async upsert(values) {
     const userId = values.user_id;
     const data = getOrCreate(userId);

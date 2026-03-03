@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { loadImeis, deleteAllImeis } from '../../../utils/storage';
-import { persistImeisState } from '../../../services/imeis.service';
+import { persistImeisState, updateHistoryActionApi } from '../../../services/imeis.service';
+import { isBüroMitarbeiter } from '../../../utils/roles';
 import { useImeisVersionFilters } from './useImeisVersionFilters';
 import { useImeisCopyHandlers } from './useImeisCopyHandlers';
 import { useImeisData } from './useImeisData';
@@ -79,7 +80,7 @@ export function useImeis() {
     getProductUtil(item, (pn) => removeColorAndManufacturerFromProductUtil(pn, extractGBUtil)), []);
   const getManufacturer = getManufacturerUtil;
 
-  useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user);
+  useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user, showHistoryModal);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -180,7 +181,8 @@ export function useImeis() {
   const { handleCopyRow, handleDropdownSelect, handleUpdateHistoryAction, handleHistoryModalUndo, handleCopySelected } = useImeisCopyHandlers({
     user, copyHistory, setCopyHistory, copyTimestamps, setCopyTimestamps, rowActions, setRowActions, historyUndoStack, setHistoryUndoStack,
     selectedCells, currentImeis, getManufacturer, getProductFull, setShowRateLimitModal, setRateLimitMessage,
-    setSelectedRowForDropdown, setCopySuccess, expandSelection, persistImeis
+    setSelectedRowForDropdown, setCopySuccess, expandSelection, persistImeis,
+    updateHistoryActionApi, canUpdateOthersHistory: isBüroMitarbeiter(user), setImeis
   });
 
   useEffect(() => {

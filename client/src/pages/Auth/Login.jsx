@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { loginUser } from '../../services/auth.service';
+import { isMitarbeiterShop } from '../../utils/roles';
 import './Auth.scss';
 
 const Login = () => {
@@ -31,8 +32,9 @@ const Login = () => {
       const response = await loginUser(formData);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('loginTimestamp', Date.now().toString());
-      setUser(response.data.user);
-      navigate('/dashboard', { replace: true });
+      const userData = response.data.user;
+      setUser(userData);
+      navigate(isMitarbeiterShop(userData) ? '/imeis' : '/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login fehlgeschlagen');
     } finally {

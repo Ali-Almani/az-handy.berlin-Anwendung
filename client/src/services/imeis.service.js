@@ -6,7 +6,6 @@ const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
   !import.meta.env.VITE_API_URL;
 
 export const getImeisDataFromApi = async () => {
-  if (USE_MOCK_API) return null;
   try {
     const res = await api.get('/imeis/data');
     if (res.data?.success && res.data) {
@@ -30,6 +29,16 @@ export const saveImeisDataToApi = async (payload) => {
     await api.put('/imeis/data', payload);
   } catch (err) {
     console.error('Error saving IMEIS data to API:', err);
+  }
+};
+
+export const updateHistoryActionApi = async (imei, userName, newAction) => {
+  try {
+    const res = await api.patch('/imeis/data/history-action', { imei, userName, newAction });
+    return res.data;
+  } catch (err) {
+    console.error('Error updating history action:', err);
+    throw err;
   }
 };
 
@@ -61,8 +70,15 @@ let lastPersistTime = 0;
 const PERSIST_COOLDOWN_MS = 1500;
 
 export const persistImeisState = async (user, partial = {}) => {
-  const { imeis, cellColors, rowActions, copyHistory, copyTimestamps } = partial;
+  const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = partial;
+  const willCallApi = user && (imeis !== undefined || cellColors !== undefined || rowActions !== undefined || copyHistory !== undefined || copyTimestamps !== undefined || removedImei !== undefined);
+  if (willCallApi) lastPersistTime = Date.now();
   if (imeis !== undefined) await saveImeis(imeis);
+  if (removedImei !== undefined) {
+    const current = await loadImeis();
+    const filtered = current.filter(item => String(item?.imei || '').trim() !== String(removedImei).trim());
+    if (filtered.length !== current.length) await saveImeis(filtered);
+  }
   if (cellColors !== undefined) localStorage.setItem('imeis-cell-text-colors', JSON.stringify(cellColors));
   if (rowActions !== undefined) localStorage.setItem('imeis-row-actions', JSON.stringify(rowActions));
   if (copyHistory !== undefined) localStorage.setItem('imeis-copy-history', JSON.stringify(copyHistory));
@@ -74,9 +90,9 @@ export const persistImeisState = async (user, partial = {}) => {
     if (rowActions !== undefined) payload.rowActions = rowActions;
     if (copyHistory !== undefined) payload.copyHistory = copyHistory;
     if (copyTimestamps !== undefined) payload.copyTimestamps = copyTimestamps;
+    if (removedImei !== undefined) payload.removedImei = removedImei;
     if (Object.keys(payload).length > 0) {
       await saveImeisDataToApi(payload);
-      lastPersistTime = Date.now();
     }
   }
 };

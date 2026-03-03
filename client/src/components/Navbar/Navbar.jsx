@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { isAdmin } from '../../utils/roles';
+import { canAccessImeis, canAccessDashboard } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
@@ -61,18 +61,20 @@ const Navbar = () => {
                   News
                 </Link>
               </li>
-              {isAdmin(user) && (
+              {canAccessImeis(user) && (
                 <li>
                   <Link to="/imeis" className="navbar-link">
                     IMEIs
                   </Link>
                 </li>
               )}
-              <li>
-                <Link to="/dashboard" className="navbar-link">
-                  Dashboard 
-                </Link>
-              </li>
+              {canAccessDashboard(user) && (
+                <li>
+                  <Link to="/dashboard" className="navbar-link">
+                    Dashboard
+                  </Link>
+                </li>
+              )}
               <li className="navbar-avatar-container" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}

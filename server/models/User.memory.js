@@ -128,6 +128,11 @@ class InMemoryUser {
       const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
       return user ? new InMemoryUser(user) : null;
     }
+    const name = query.name || query.where?.name;
+    if (name) {
+      const user = users.find(u => String(u.name || '').trim() === String(name).trim());
+      return user ? new InMemoryUser(user) : null;
+    }
     const key = Object.keys(query)[0];
     const value = query[key];
     const user = users.find(u => {

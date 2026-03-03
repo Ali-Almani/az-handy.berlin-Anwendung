@@ -1,4 +1,4 @@
-import { isAdmin } from '../../utils/roles';
+import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand } from '../../utils/roles';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -88,7 +88,7 @@ const Imeis = () => {
     onRowActionRemove
   } = useImeis();
 
-  if (!isAdmin(user)) {
+  if (!canAccessImeis(user)) {
     return (
       <div className="imeis">
         <div className="card">
@@ -131,6 +131,8 @@ const Imeis = () => {
             imeisLength={imeis.length}
             onDeleteAll={handleDeleteAll}
             onShowZustand={onShowZustand}
+            showAdvancedActions={canUseImeiAdvancedActions(user)}
+            showBestand={canSeeBestand(user)}
           />
 
           {false && availableSheets.length > 0 && (

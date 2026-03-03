@@ -1,9 +1,11 @@
 import { mockLogin, mockRegister } from './mockAuth';
 import { mockGetProfile, mockUpdateProfile, mockUpdatePassword, mockCreateUserByAdmin, mockGetAllUsers, mockUpdateUserByAdmin, mockRestoreAdmin, mockDeleteUser } from './mockUserApi';
+import { loadImeis, saveImeis } from '../utils/storage';
 
 const mockUsers = [
   { id: 'admin-1', name: 'Ali Almani', email: 'admin@az-handy.berlin', password: 'Admin123!', role: 'Administrator', createdAt: new Date().toISOString() },
-  { id: 'user-1', name: 'Test Benutzer', email: 'test@example.com', password: 'test123', role: 'user', createdAt: new Date().toISOString() }
+  { id: 'user-1', name: 'Test Benutzer', email: 'test@example.com', password: 'test123', role: 'user', createdAt: new Date().toISOString() },
+  { id: 'mitarbeiter-1', name: 'Mitarbeiter Shop', email: 'mitarbeiter@az-handy.berlin', password: 'Test123!', role: 'Mitarbeiter shop', createdAt: new Date().toISOString() }
 ];
 
 const mockApi = {
@@ -16,7 +18,43 @@ const mockApi = {
   async getAllUsers(token) { return mockGetAllUsers(mockUsers, token); },
   async updateUserByAdmin(token, userId, userData) { return mockUpdateUserByAdmin(mockUsers, token, userId, userData); },
   async restoreAdmin(token) { return mockRestoreAdmin(mockUsers, token); },
-  async deleteUser(token, userId) { return mockDeleteUser(mockUsers, token, userId); }
+  async deleteUser(token, userId) { return mockDeleteUser(mockUsers, token, userId); },
+  async getImeisData() {
+    const imeis = await loadImeis();
+    return {
+      data: {
+        success: true,
+        imeis,
+        cellColors: JSON.parse(localStorage.getItem('imeis-cell-text-colors') || '{}'),
+        rowActions: JSON.parse(localStorage.getItem('imeis-row-actions') || '{}'),
+        copyHistory: JSON.parse(localStorage.getItem('imeis-copy-history') || '[]'),
+        copyTimestamps: JSON.parse(localStorage.getItem('imeis-copy-timestamps') || '[]')
+      }
+    };
+  },
+  async saveImeisData(payload) {
+    if (payload.imeis !== undefined) await saveImeis(payload.imeis);
+    if (payload.cellColors !== undefined) localStorage.setItem('imeis-cell-text-colors', JSON.stringify(payload.cellColors));
+    if (payload.rowActions !== undefined) localStorage.setItem('imeis-row-actions', JSON.stringify(payload.rowActions));
+    if (payload.copyHistory !== undefined) localStorage.setItem('imeis-copy-history', JSON.stringify(payload.copyHistory));
+    if (payload.copyTimestamps !== undefined) localStorage.setItem('imeis-copy-timestamps', JSON.stringify(payload.copyTimestamps));
+    return { data: { success: true } };
+  },
+  async updateHistoryAction({ imei, userName, newAction }) {
+    const copyHistory = JSON.parse(localStorage.getItem('imeis-copy-history') || '[]');
+    const updated = copyHistory.filter(
+      (e) => !(e && String(e.imei || '').trim() === String(imei).trim() && String(e.userName || '').trim() === String(userName).trim())
+    );
+    localStorage.setItem('imeis-copy-history', JSON.stringify(updated));
+    if (newAction === 'abgelehnt') {
+      const rowActions = JSON.parse(localStorage.getItem('imeis-row-actions') || '{}');
+      Object.keys(rowActions).forEach((rowId) => {
+        if (rowId.includes(`-${String(imei).trim()}-`)) delete rowActions[rowId];
+      });
+      localStorage.setItem('imeis-row-actions', JSON.stringify(rowActions));
+    }
+    return { data: { success: true } };
+  }
 };
 
 export default mockApi;

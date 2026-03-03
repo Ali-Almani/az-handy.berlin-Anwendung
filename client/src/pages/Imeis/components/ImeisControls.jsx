@@ -10,6 +10,8 @@ const ImeisControls = ({
   imeisLength,
   onDeleteAll,
   onShowZustand,
+  showAdvancedActions = true,
+  showBestand = true,
   itemsPerPage,
   onItemsPerPageChange,
   currentPage,
@@ -44,20 +46,22 @@ const ImeisControls = ({
               ↶ Rückgängig
             </button>
           )}
-          <button
-            onClick={onExport}
-            className="btn btn--secondary btn--small"
-            disabled={filteredImeisLength === 0}
-          >
-            Exportieren (CSV)
-          </button>
+          {showAdvancedActions && (
+            <button
+              onClick={onExport}
+              className="btn btn--secondary btn--small"
+              disabled={filteredImeisLength === 0}
+            >
+              Exportieren (CSV)
+            </button>
+          )}
           <button
             onClick={onShowHistory}
             className="btn btn--small imeis-history-btn"
           >
             Verlauf ({copyHistoryLength})
           </button>
-          {imeisLength > 0 && (
+          {showAdvancedActions && imeisLength > 0 && (
             <>
               <button
                 onClick={onDeleteAll}
@@ -65,12 +69,14 @@ const ImeisControls = ({
               >
                 Alle löschen
               </button>
-              <button
-                onClick={onShowZustand}
-                className="btn btn--secondary btn--small"
-              >
-                Bestand
-              </button>
+              {showBestand && (
+                <button
+                  onClick={onShowZustand}
+                  className="btn btn--secondary btn--small"
+                >
+                  Bestand
+                </button>
+              )}
             </>
           )}
         </div>

@@ -5,6 +5,7 @@ import { sequelize } from '../config/database.js';
 const ROLES = [
   'admin',
   'Administrator',
+  'Büro Mitarbeiter',
   'Marketing',
   'Callcenter',
   'Shops',

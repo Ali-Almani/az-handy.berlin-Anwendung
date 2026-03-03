@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
+/** Rate-Limit: 5 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
 const MAX_COPIES = 5;
 
 export function useImeisCopyHandlers({
@@ -22,17 +23,20 @@ export function useImeisCopyHandlers({
   setSelectedRowForDropdown,
   setCopySuccess,
   expandSelection,
-  persistImeis
+  persistImeis,
+  updateHistoryActionApi,
+  canUpdateOthersHistory = false,
+  setImeis
 }) {
   const checkCopyRateLimit = useCallback(() => {
-    if (!user?.name) return { allowed: true, remaining: 5, count: 0 };
+    if (!user) return { allowed: true, remaining: MAX_COPIES, count: 0 };
     const now = Date.now();
     const recentCopies = (copyTimestamps ?? []).filter(t => (now - t) < THIRTY_MINUTES);
     return { allowed: recentCopies.length < MAX_COPIES, remaining: Math.max(0, MAX_COPIES - recentCopies.length), count: recentCopies.length };
   }, [user, copyTimestamps]);
 
   const registerCopyAction = useCallback(() => {
-    if (!user?.name) return;
+    if (!user) return;
     const now = Date.now();
     const recentCopies = (copyTimestamps ?? []).filter(t => (now - t) < THIRTY_MINUTES);
     recentCopies.push(now);
@@ -97,16 +101,49 @@ export function useImeisCopyHandlers({
     await handleCopyRow(item);
   }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError]);
 
-  const handleUpdateHistoryAction = useCallback((index, newAction) => {
+  const handleUpdateHistoryAction = useCallback(async (index, newAction) => {
     if (index < 0 || index >= copyHistory.length) return;
     const entry = copyHistory[index];
     const oldAction = entry.action || null;
     const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
     setHistoryUndoStack(prev => [...prev, undoState]);
+
+    const isOthersEntry = canUpdateOthersHistory && entry.userName && String(entry.userName).trim() !== String(user?.name || '').trim();
+    if (isOthersEntry && (newAction === 'angenommen' || newAction === 'abgelehnt') && updateHistoryActionApi) {
+      try {
+        await updateHistoryActionApi(entry.imei, entry.userName, newAction);
+        const updatedHistory = copyHistory.filter((_, i) => i !== index);
+        setCopyHistory(updatedHistory);
+        if (newAction === 'angenommen' && setImeis) {
+          const imeiStr = String(entry.imei || '').trim();
+          setImeis(prev => prev.filter(item => String(item?.imei || '').trim() !== imeiStr));
+        }
+        if (newAction === 'abgelehnt') {
+          const imeiToReject = entry.imei;
+          const updatedRowActions = { ...rowActions };
+          Object.keys(updatedRowActions).forEach(rowId => {
+            if (rowId.includes(`-${imeiToReject}-`)) delete updatedRowActions[rowId];
+          });
+          setRowActions(updatedRowActions);
+        }
+      } catch (err) {
+        setHistoryUndoStack(prev => prev.slice(0, -1));
+        alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));
+      }
+      return;
+    }
+
     if (newAction === 'angenommen') {
+      const imeiStr = String(entry.imei || '').trim();
       const updatedHistory = copyHistory.filter((_, i) => i !== index);
       setCopyHistory(updatedHistory);
-      persistImeis?.({ copyHistory: updatedHistory });
+      if (setImeis) setImeis(prev => prev.filter(item => String(item?.imei || '').trim() !== imeiStr));
+      const updatedRowActions = { ...rowActions };
+      Object.keys(updatedRowActions).forEach(rowId => {
+        if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
+      });
+      setRowActions(updatedRowActions);
+      persistImeis?.({ copyHistory: updatedHistory, removedImei: imeiStr, rowActions: updatedRowActions });
       return;
     }
     if (newAction === 'abgelehnt') {
@@ -125,7 +162,7 @@ export function useImeisCopyHandlers({
     updatedHistory[index] = { ...updatedHistory[index], action: newAction || null, userName: user?.name || updatedHistory[index].userName || 'Unbekannt', timestamp: new Date().toISOString() };
     setCopyHistory(updatedHistory);
     persistImeis?.({ copyHistory: updatedHistory });
-  }, [copyHistory, user, rowActions, setCopyHistory, setRowActions, setHistoryUndoStack]);
+  }, [copyHistory, user, rowActions, setCopyHistory, setRowActions, setHistoryUndoStack, canUpdateOthersHistory, updateHistoryActionApi, setImeis]);
 
   const handleHistoryModalUndo = useCallback(() => {
     if (historyUndoStack.length === 0) return;

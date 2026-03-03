@@ -26,12 +26,24 @@ const createMockApi = () => {
         const token = localStorage.getItem('token');
         return await mockApi.getProfile(token);
       }
+      if (url === '/imeis/data') {
+        return await mockApi.getImeisData();
+      }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     put: async (url, data) => {
       if (url === '/users/profile') {
         const token = localStorage.getItem('token');
         return await mockApi.updateProfile(token, data);
+      }
+      if (url === '/imeis/data') {
+        return await mockApi.saveImeisData(data);
+      }
+      throw new Error(`Mock API: Route ${url} not implemented`);
+    },
+    patch: async (url, data) => {
+      if (url === '/imeis/data/history-action' || url === 'imeis/data/history-action') {
+        return await mockApi.updateHistoryAction(data);
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     }

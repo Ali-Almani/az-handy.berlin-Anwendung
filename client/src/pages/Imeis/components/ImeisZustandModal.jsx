@@ -18,7 +18,7 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
               <div style={{ fontSize: '1.2rem', color: '#005d95', marginBottom: '1rem' }}>Lade Daten...</div>
-              <div style={{ 
+              <div style={{
                 display: 'inline-block',
                 width: '40px',
                 height: '40px',
@@ -55,10 +55,10 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                           {manufacturerData.manufacturer}
                         </div>
                         <div style={{ flex: 1, position: 'relative', height: '28px', backgroundColor: '#e9ecef', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div 
-                            style={{ 
-                              height: '100%', 
-                              width: `${percentage}%`, 
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${percentage}%`,
                               backgroundColor: color,
                               transition: 'width 0.3s ease',
                               display: 'flex',
@@ -104,13 +104,13 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                   )
                 );
                 allCards.sort((a, b) => b.count - a.count);
-                
+
                 return (
                   <div key={mIndex} style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ 
-                      marginBottom: '0.5rem', 
-                      padding: '0.5rem', 
-                      backgroundColor: '#e9ecef', 
+                    <h4 style={{
+                      marginBottom: '0.5rem',
+                      padding: '0.5rem',
+                      backgroundColor: '#e9ecef',
                       borderRadius: '4px',
                       fontWeight: 'bold',
                       color: '#005d95'
@@ -119,7 +119,7 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                     </h4>
                     <div style={{ marginLeft: '1rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.75rem', width: 'calc(100% - 1rem)' }}>
                       {allCards.map((card) => (
-                        <div 
+                        <div
                           key={card.key}
                           style={{
                             padding: '0.5rem',
@@ -146,17 +146,17 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                             e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
-                          <div style={{ 
-                            whiteSpace: 'normal', 
-                            wordBreak: 'break-word', 
+                          <div style={{
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
                             fontSize: '0.9rem',
                             marginBottom: '0.25rem'
                           }}>
                             {card.displayText}
                           </div>
-                          <div style={{ 
-                            textAlign: 'right', 
-                            fontWeight: 'bold', 
+                          <div style={{
+                            textAlign: 'right',
+                            fontWeight: 'bold',
                             fontSize: '0.95rem',
                             color: '#495057',
                             fontFamily: "'Courier New', monospace"

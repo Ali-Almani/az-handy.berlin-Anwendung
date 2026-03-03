@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync } from '../../../services/imeis.service';
+import { isBüroMitarbeiter } from '../../../utils/roles';
 
 const POLL_INTERVAL_MS = 500;
+const VERLAUF_REFRESH_MS = 2000;
 
 function processCopyHistory(savedCopyHistory) {
   const uniqueHistoryMap = new Map();
@@ -47,7 +49,7 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   }
 }
 
-export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user) {
+export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user, showHistoryModal = false) {
   useEffect(() => {
     const setters = {
       setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps,
@@ -94,4 +96,21 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     const intervalId = setInterval(syncFromServer, POLL_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [user?.id]);
+
+  // Büro Mitarbeiter: Verlauf live aktualisieren, wenn Modal offen (neue Kopien anderer Nutzer sofort sichtbar)
+  useEffect(() => {
+    if (!showHistoryModal || !user?.id || !isBüroMitarbeiter(user)) return;
+    const refreshVerlauf = async () => {
+      try {
+        const data = await getImeisDataFromApi();
+        if (data?.copyHistory) {
+          const processed = processCopyHistory(data.copyHistory);
+          setCopyHistory(processed);
+        }
+      } catch (_) {}
+    };
+    refreshVerlauf();
+    const id = setInterval(refreshVerlauf, VERLAUF_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [showHistoryModal, user?.id, setCopyHistory]);
 }

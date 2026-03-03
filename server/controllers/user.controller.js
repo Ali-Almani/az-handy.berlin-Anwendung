@@ -8,6 +8,11 @@ export const getProfile = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    const userEmail = (user.email || '').toLowerCase();
+    let role = (user.role || '').trim();
+    if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
+      role = 'Administrator';
+    }
 
     res.json({
       success: true,
@@ -15,7 +20,7 @@ export const getProfile = async (req, res, next) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role,
         createdAt: user.createdAt
       }
     });
