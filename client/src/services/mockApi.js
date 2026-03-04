@@ -8,6 +8,11 @@ const mockUsers = [
   { id: 'mitarbeiter-1', name: 'Mitarbeiter Shop', email: 'mitarbeiter@az-handy.berlin', password: 'Test123!', role: 'Mitarbeiter shop', createdAt: new Date().toISOString() }
 ];
 
+export const mockGetAdminName = () => {
+  const admin = mockUsers.find((u) => (u.email || '').toLowerCase() === 'admin@az-handy.berlin');
+  return admin?.name || '';
+};
+
 const mockApi = {
   async login(credentials) { return mockLogin(mockUsers, credentials); },
   async register(userData) { return mockRegister(mockUsers, userData); },

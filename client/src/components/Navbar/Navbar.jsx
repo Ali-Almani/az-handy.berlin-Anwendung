@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { canAccessImeis, canAccessDashboard } from '../../utils/roles';
+import { canAccessImeis, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
@@ -60,6 +60,13 @@ const Navbar = () => {
                 <li>
                   <Link to="/imeis" className="navbar-link">
                     IMEIs
+                  </Link>
+                </li>
+              )}
+              {!isAdmin(user) && (
+                <li>
+                  <Link to="/news" className="navbar-link">
+                    News
                   </Link>
                 </li>
               )}

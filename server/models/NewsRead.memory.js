@@ -37,3 +37,22 @@ export const addRead = (userId, userName, contentHash) => {
 export const getReads = () => {
   return [...reads].sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
 };
+
+const simpleHash = (str) => {
+  if (!str || !str.trim()) return '';
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i) | 0;
+  }
+  return String(h);
+};
+
+export const getReadsByContentHash = (contentHash) => {
+  return reads.filter((r) => r.content_hash === contentHash).sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
+};
+
+export const deleteReadsByContentHash = (contentHash) => {
+  const before = reads.length;
+  reads = reads.filter((r) => r.content_hash !== contentHash);
+  if (reads.length !== before) persist();
+};

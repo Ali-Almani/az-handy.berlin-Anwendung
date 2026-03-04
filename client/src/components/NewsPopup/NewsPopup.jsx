@@ -1,12 +1,14 @@
 import './NewsPopup.scss';
 
-const NewsPopup = ({ content, onMarkAsRead }) => {
+const NewsPopup = ({ content, authorName, onMarkAsRead }) => {
   if (!content || !content.trim()) return null;
 
   return (
     <div className="news-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="news-popup-title">
       <div className="news-popup">
-        <h2 id="news-popup-title" className="news-popup-title">Neue Nachricht</h2>
+        <h2 id="news-popup-title" className="news-popup-title">
+          {authorName ? `Neue Nachricht von ${authorName}` : 'Neue Nachricht'}
+        </h2>
         <div
           className="news-popup-content"
           dangerouslySetInnerHTML={{ __html: content }}

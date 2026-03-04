@@ -5,7 +5,7 @@ import { useNewsPopup } from '../../hooks/useNewsPopup';
 import './Layout.scss';
 
 const Layout = ({ children }) => {
-  const { showPopup, content, onMarkAsRead } = useNewsPopup();
+  const { showPopup, content, authorName, onMarkAsRead } = useNewsPopup();
 
   return (
     <div className="app">
@@ -17,7 +17,7 @@ const Layout = ({ children }) => {
       </main>
       <Footer />
       {showPopup && (
-        <NewsPopup content={content} onMarkAsRead={onMarkAsRead} />
+        <NewsPopup content={content} authorName={authorName} onMarkAsRead={onMarkAsRead} />
       )}
     </div>
   );

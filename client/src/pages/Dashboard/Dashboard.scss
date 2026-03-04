@@ -215,4 +215,127 @@
       }
     }
   }
+
+  .dashboard-archive {
+    .dashboard-archive-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .dashboard-archive-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: $spacing-sm;
+      padding: $spacing-md;
+      margin-bottom: $spacing-md;
+      background: $bg-light;
+      border: 1px solid $border-color;
+      border-radius: 4px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .dashboard-archive-content {
+      flex: 1 1 100%;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .dashboard-archive-readers {
+      flex: 1 1 100%;
+      font-size: 0.9rem;
+      color: $text-light;
+    }
+
+    .dashboard-archive-edit-input {
+      flex: 1 1 100%;
+      width: 100%;
+      min-height: 80px;
+      padding: $spacing-sm $spacing-md;
+      font-size: 0.9rem;
+      font-family: inherit;
+      border: 1px solid $border-color;
+      border-radius: 4px;
+      resize: vertical;
+    }
+
+    .btn-archive-cancel {
+      padding: $spacing-sm $spacing-md;
+      font-size: 0.875rem;
+      font-weight: $font-weight-medium;
+      color: $text-color;
+      background: $bg-light;
+      border: 1px solid $border-color;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: darken($bg-light, 5%);
+      }
+    }
+
+    .dashboard-archive-actions {
+      display: flex;
+      gap: $spacing-sm;
+      margin-left: auto;
+    }
+
+    .btn-archive-edit {
+      padding: $spacing-sm $spacing-md;
+      font-size: 0.875rem;
+      font-weight: $font-weight-medium;
+      color: #fff;
+      background: linear-gradient(180deg, $primary-color 0%, darken($primary-color, 8%) 100%);
+      border: 1px solid darken($primary-color, 12%);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        background: linear-gradient(180deg, darken($primary-color, 8%) 0%, darken($primary-color, 15%) 100%);
+        border-color: darken($primary-color, 15%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active {
+        background: darken($primary-color, 15%);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .btn-archive-delete {
+      padding: $spacing-sm $spacing-md;
+      font-size: 0.875rem;
+      font-weight: $font-weight-medium;
+      color: #fff;
+      background: linear-gradient(180deg, $danger-color 0%, darken($danger-color, 8%) 100%);
+      border: 1px solid darken($danger-color, 12%);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        background: linear-gradient(180deg, darken($danger-color, 8%) 0%, darken($danger-color, 15%) 100%);
+        border-color: darken($danger-color, 15%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+      }
+
+      &:active {
+        background: darken($danger-color, 15%);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .text-muted {
+      color: $text-light;
+      font-style: italic;
+    }
+  }
 }

@@ -4,6 +4,7 @@ import Home from './pages/Home/Home';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
+import News from './pages/News/News';
 import Settings from './pages/Settings/Settings';
 import Imeis from './pages/Imeis/Imeis';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
@@ -20,6 +21,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/news"
+          element={
+            <ProtectedRoute>
+              <News />
             </ProtectedRoute>
           }
         />

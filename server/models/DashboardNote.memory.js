@@ -151,6 +151,26 @@ class InMemoryDashboardNote {
   static getHistory(userId, limit = 50) {
     return findHistoryByUserId(userId).slice(0, limit);
   }
+
+  static deleteHistoryEntry(entryId) {
+    const idx = history.findIndex((h) => String(h.id) === String(entryId));
+    if (idx >= 0) {
+      history.splice(idx, 1);
+      persistDashboard();
+      return true;
+    }
+    return false;
+  }
+
+  static updateHistoryEntry(entryId, content) {
+    const idx = history.findIndex((h) => String(h.id) === String(entryId));
+    if (idx >= 0) {
+      history[idx].content = content ?? '';
+      persistDashboard();
+      return true;
+    }
+    return false;
+  }
 }
 
 export default InMemoryDashboardNote;

@@ -1,0 +1,43 @@
+@import '../../styles/variables';
+
+.news-page {
+  .news-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .news-item {
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
+    background: $bg-light;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .news-content {
+    word-break: break-word;
+    margin-bottom: $spacing-sm;
+
+    p {
+      margin: 0 0 0.5em;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .news-date {
+    font-size: 0.875rem;
+    color: $text-light;
+  }
+
+  .news-empty {
+    color: $text-light;
+    font-style: italic;
+  }
+}

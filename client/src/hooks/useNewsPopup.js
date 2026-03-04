@@ -35,13 +35,14 @@ const simpleHash = (str) => {
 export function useNewsPopup() {
   const { user } = useAuth();
   const [content, setContent] = useState('');
+  const [authorName, setAuthorName] = useState('');
   const [showPopup, setShowPopup] = useState(false);
 
   const fetchNews = useCallback(async () => {
     if (!user?.id) return null;
     try {
       const res = await getNews();
-      return res?.data?.content ?? '';
+      return { content: res?.data?.content ?? '', authorName: (res?.data?.authorName ?? '').trim() };
     } catch {
       return null;
     }
@@ -51,13 +52,16 @@ export function useNewsPopup() {
     if (!user?.id || isAdmin(user)) return;
 
     const check = async () => {
-      const newContent = await fetchNews();
+      const data = await fetchNews();
+      if (!data) return;
+      const newContent = data.content;
       if (newContent == null) return;
       const hash = simpleHash(newContent);
       if (!hash) return;
       const lastRead = getLastReadHash(user.id);
       if (lastRead !== hash) {
         setContent(newContent);
+        setAuthorName(data.authorName || '');
         setShowPopup(true);
       }
     };
@@ -81,6 +85,7 @@ export function useNewsPopup() {
   return {
     showPopup: showPopup && content && !isAdmin(user),
     content,
+    authorName,
     onMarkAsRead: handleMarkAsRead
   };
 }

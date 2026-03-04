@@ -15,21 +15,39 @@ const isAdminUser = (user) => {
   return false;
 };
 
-/** News für alle: Admin-Notiz (Dashboard) als globale Nachricht */
+const simpleHash = (str) => {
+  if (!str || !str.trim()) return '';
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i) | 0;
+  }
+  return String(h);
+};
+
+/** News für alle: Admin-Notiz oder neueste Archiv-Nachricht (für Popup) */
 export const getNews = async (req, res, next) => {
   try {
     const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
-    const adminId = admin?.id ?? null;
+    const adminId = admin?.id ?? admin?._id ?? null;
+    let authorName = (admin?.name ?? admin?.get?.('name') ?? admin?.dataValues?.name ?? '').trim();
     if (!adminId) {
-      return res.json({ success: true, content: '', updatedAt: null });
+      return res.json({ success: true, content: '', updatedAt: null, authorName: '' });
     }
     const [note] = await DashboardNote.findOrCreate({
       where: { user_id: adminId },
       defaults: { content: '' }
     });
-    const content = (note?.content ?? note?.get?.('content') ?? '') || '';
-    const updatedAt = note?.updated_at ?? note?.get?.('updated_at') ?? null;
-    return res.json({ success: true, content, updatedAt });
+    let content = (note?.content ?? note?.get?.('content') ?? '') || '';
+    let updatedAt = note?.updated_at ?? note?.get?.('updated_at') ?? null;
+    if (!content.trim() && typeof DashboardNote.getHistory === 'function') {
+      const history = DashboardNote.getHistory(adminId, 1);
+      const latest = history[0];
+      if (latest && (latest.content ?? '').trim()) {
+        content = (latest.content ?? '').trim();
+        updatedAt = latest.created_at ?? latest.createdAt ?? null;
+      }
+    }
+    return res.json({ success: true, content, updatedAt, authorName });
   } catch (error) {
     next(error);
   }
@@ -74,12 +92,12 @@ export const saveNote = async (req, res, next) => {
     if (USE_MEMORY_DB) {
       const [note, created] = await DashboardNote.findOrCreate({
         where: { user_id: userId },
-        defaults: { content: content ?? '' }
+        defaults: { content: '' }
       });
-      if (!created) {
-        await note.update({ content: content ?? '' });
+      if (content && String(content).trim()) {
+        DashboardNote.addHistory(userId, content ?? '');
       }
-      DashboardNote.addHistory(userId, content ?? '');
+      await note.update({ content: '' });
       return res.json({
         success: true,
         message: 'Notiz gespeichert',
@@ -89,18 +107,16 @@ export const saveNote = async (req, res, next) => {
 
     const [note, created] = await DashboardNote.findOrCreate({
       where: { user_id: userId },
-      defaults: { content: content ?? '' }
+      defaults: { content: '' }
     });
 
-    if (!created) {
-      note.content = content ?? '';
-      await note.save();
+    if (content && String(content).trim()) {
+      await DashboardNoteHistory.create({
+        user_id: userId,
+        content: content ?? ''
+      });
     }
-
-    await DashboardNoteHistory.create({
-      user_id: userId,
-      content: content ?? ''
-    });
+    await note.update({ content: '' });
 
     res.json({
       success: true,
@@ -149,6 +165,106 @@ export const getNewsReaders = async (req, res, next) => {
         contentHash: r.content_hash
       }))
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Alte Nachrichten – für alle Rollen (Admin: mit Lesern, andere: nur Liste) */
+export const getNewsArchive = async (req, res, next) => {
+  try {
+    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const adminId = admin?.id ?? admin?._id ?? null;
+    if (!adminId) return res.json({ success: true, messages: [] });
+
+    const [note] = await DashboardNote.findOrCreate({
+      where: { user_id: adminId },
+      defaults: { content: '' }
+    });
+    const currentContent = (note?.content ?? note?.get?.('content') ?? '') || '';
+    const currentHash = simpleHash(currentContent);
+
+    const history = (typeof DashboardNote.getHistory === 'function' ? DashboardNote.getHistory(adminId, 100) : []) || [];
+    const messages = history
+      .filter((h) => {
+        const c = (h.content ?? '').trim();
+        return c && simpleHash(c) !== currentHash;
+      })
+      .map((h) => {
+        const content = (h.content ?? '').trim();
+        const hash = simpleHash(content);
+        const readers = NewsRead.getReadsByContentHash ? NewsRead.getReadsByContentHash(hash) : [];
+        return {
+          id: h.id,
+          content,
+          createdAt: h.created_at ?? h.createdAt,
+          readers: readers.map((r) => ({ userName: r.user_name, readAt: r.read_at }))
+        };
+      });
+
+    return res.json({ success: true, messages });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Nachricht im Archiv bearbeiten (nur Admin) */
+export const updateNewsArchiveEntry = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Nachrichten bearbeiten' });
+    }
+    const { id } = req.params;
+    const { content } = req.body;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+
+    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const adminId = admin?.id ?? admin?._id ?? null;
+    if (!adminId) return res.status(404).json({ message: 'Admin nicht gefunden' });
+
+    const history = (typeof DashboardNote.getHistory === 'function' ? DashboardNote.getHistory(adminId, 100) : []) || [];
+    const entry = history.find((h) => String(h.id) === String(id));
+    if (!entry) return res.status(404).json({ message: 'Nachricht nicht gefunden' });
+
+    const oldContent = (entry.content ?? '').trim();
+    const oldHash = simpleHash(oldContent);
+    const newContent = (content ?? '').trim();
+    if (NewsRead.deleteReadsByContentHash && oldHash) NewsRead.deleteReadsByContentHash(oldHash);
+    if (DashboardNote.updateHistoryEntry) DashboardNote.updateHistoryEntry(id, newContent);
+
+    return res.json({ success: true, message: 'Nachricht aktualisiert' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Nachricht aus Archiv löschen (nur Admin) */
+export const deleteNewsArchiveEntry = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Nachrichten löschen' });
+    }
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+
+    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const adminId = admin?.id ?? admin?._id ?? null;
+    if (!adminId) return res.status(404).json({ message: 'Admin nicht gefunden' });
+
+    const history = (typeof DashboardNote.getHistory === 'function' ? DashboardNote.getHistory(adminId, 100) : []) || [];
+    const entry = history.find((h) => String(h.id) === String(id));
+    if (!entry) return res.status(404).json({ message: 'Nachricht nicht gefunden' });
+
+    const content = (entry.content ?? '').trim();
+    const hash = simpleHash(content);
+    if (NewsRead.deleteReadsByContentHash) NewsRead.deleteReadsByContentHash(hash);
+    if (DashboardNote.deleteHistoryEntry) DashboardNote.deleteHistoryEntry(id);
+
+    return res.json({ success: true, message: 'Nachricht gelöscht' });
   } catch (error) {
     next(error);
   }

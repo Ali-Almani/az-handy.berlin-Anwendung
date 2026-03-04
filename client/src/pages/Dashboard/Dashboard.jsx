@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getDashboardNote, saveDashboardNote, getNewsReaders } from '../../services/dashboard.service';
+import { getDashboardNote, saveDashboardNote, getNewsArchive, updateNewsArchiveEntry, deleteNewsArchiveEntry } from '../../services/dashboard.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
 import TextEditor from '../../components/TextEditor/TextEditor';
@@ -13,7 +13,11 @@ const Dashboard = () => {
   const [noteContent, setNoteContent] = useState('');
   const [noteLoading, setNoteLoading] = useState(true);
   const [noteError, setNoteError] = useState(null);
-  const [readers, setReaders] = useState([]);
+  const [archive, setArchive] = useState([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+  const [editingId, setEditingId] = useState(null);
+  const [editingContent, setEditingContent] = useState('');
 
   useEffect(() => {
     if (!user?.id || !canShowDashboardNotes(user)) return;
@@ -35,15 +39,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user?.id || !isAdmin(user)) return;
-    const fetchReaders = async () => {
+    const fetchArchive = async () => {
       try {
-        const res = await getNewsReaders();
-        setReaders(res.data?.readers ?? []);
-      } catch {}
+        setArchiveLoading(true);
+        const res = await getNewsArchive();
+        setArchive(res.data?.messages ?? []);
+      } catch {
+        setArchive([]);
+      } finally {
+        setArchiveLoading(false);
+      }
     };
-    fetchReaders();
-    const id = setInterval(fetchReaders, 60000);
-    return () => clearInterval(id);
+    fetchArchive();
   }, [user?.id]);
 
   if (!canAccessDashboard(user)) {
@@ -53,53 +60,161 @@ const Dashboard = () => {
   const handleSave = async (content) => {
     try {
       await saveDashboardNote(content);
-      setNoteContent(content);
+      setNoteContent('');
+      setEditorKey((k) => k + 1);
+      if (isAdmin(user)) {
+        const res = await getNewsArchive();
+        setArchive(res.data?.messages ?? []);
+      }
     } catch (error) {
       console.error('Error saving note:', error);
     }
   };
 
+  const handleStartEditArchive = (m) => {
+    setEditingId(m.id);
+    setEditingContent(m.content || '');
+  };
+
+  const handleSaveEditArchive = async (id) => {
+    try {
+      await updateNewsArchiveEntry(id, editingContent);
+      setArchive((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, content: editingContent } : item))
+      );
+      setEditingId(null);
+      setEditingContent('');
+    } catch (error) {
+      console.error('Error updating message:', error);
+    }
+  };
+
+  const handleCancelEditArchive = () => {
+    setEditingId(null);
+    setEditingContent('');
+  };
+
+  const handleDeleteArchive = async (id) => {
+    try {
+      await deleteNewsArchiveEntry(id);
+      setArchive((prev) => prev.filter((m) => m.id !== id));
+      if (editingId === id) {
+        setEditingId(null);
+        setEditingContent('');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  };
+
   return (
     <div className="dashboard">
-      {canShowDashboardNotes(user) && (
-        <div className="card">
+      <div className="card dashboard-welcome">
+        <div className="card-header">
+          <h2 className="card-title">Willkommen, {user?.name}</h2>
+        </div>
+      </div>
+
+      {isAdmin(user) && canShowDashboardNotes(user) && (
+        <div className="card dashboard-new-message">
           <div className="card-header">
-            <h2 className="card-title">Willkommen, {user?.name}</h2>
+            <h2 className="card-title">Neue Nachricht schreiben</h2>
           </div>
           <div className="card-body">
             {noteError && <p className="text-error">{noteError}</p>}
             {noteLoading ? (
-              <p>Lade Notizen...</p>
+              <p>Lade...</p>
             ) : (
               <TextEditor
+                key={editorKey}
                 initialContent={noteContent}
                 onSave={handleSave}
-                placeholder="Schreiben Sie hier Ihre Notizen oder Gedanken..."
+                placeholder="Schreiben Sie hier Ihre Nachricht..."
               />
             )}
           </div>
         </div>
       )}
 
-      {isAdmin(user) && readers.length > 0 && (
-        <div className="card dashboard-readers">
+      {isAdmin(user) && (
+        <div className="card dashboard-archive">
           <div className="card-header">
-            <h2 className="card-title">News gelesen von</h2>
+            <h2 className="card-title">Alte Nachrichten</h2>
           </div>
           <div className="card-body">
-            <ul className="dashboard-readers-list">
-              {readers.map((r, i) => (
-                <li key={i}>
-                  <strong>{r.userName}</strong> – {new Date(r.readAt).toLocaleString('de-DE', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </li>
-              ))}
-            </ul>
+            {archiveLoading ? (
+              <p>Lade Archiv...</p>
+            ) : archive.length === 0 ? (
+              <p className="text-muted">Keine vergangenen Nachrichten.</p>
+            ) : (
+              <ul className="dashboard-archive-list">
+                {archive.map((m) => (
+                  <li key={m.id} className="dashboard-archive-item">
+                    {editingId === m.id ? (
+                      <>
+                        <textarea
+                          className="dashboard-archive-edit-input"
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          rows={4}
+                          placeholder="Nachricht bearbeiten..."
+                        />
+                        <div className="dashboard-archive-actions">
+                          <button
+                            type="button"
+                            className="btn-archive-edit"
+                            onClick={() => handleSaveEditArchive(m.id)}
+                            aria-label="Änderungen speichern"
+                          >
+                            Speichern
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-archive-cancel"
+                            onClick={handleCancelEditArchive}
+                            aria-label="Abbrechen"
+                          >
+                            Abbrechen
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          className="dashboard-archive-content"
+                          dangerouslySetInnerHTML={{ __html: m.content || '' }}
+                        />
+                        {m.readers?.length > 0 ? (
+                          <div className="dashboard-archive-readers">
+                            Gelesen von: {m.readers.map((r) => r.userName).join(', ')}
+                          </div>
+                        ) : (
+                          <div className="dashboard-archive-readers">Noch von niemandem gelesen.</div>
+                        )}
+                        <div className="dashboard-archive-actions">
+                          <button
+                            type="button"
+                            className="btn-archive-edit"
+                            onClick={() => handleStartEditArchive(m)}
+                            aria-label="Nachricht bearbeiten"
+                          >
+                            Bearbeiten
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-archive-delete"
+                            onClick={() => handleDeleteArchive(m.id)}
+                            aria-label="Nachricht löschen"
+                          >
+                            Löschen
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}
