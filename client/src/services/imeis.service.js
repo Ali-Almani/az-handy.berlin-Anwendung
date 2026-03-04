@@ -67,12 +67,17 @@ export const loadImeisWithApi = async (user) => {
 };
 
 let lastPersistTime = 0;
+let lastRemovedImeiTime = 0;
 const PERSIST_COOLDOWN_MS = 1500;
+const REMOVED_IMEI_COOLDOWN_MS = 5000;
 
 export const persistImeisState = async (user, partial = {}) => {
   const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = partial;
   const willCallApi = user && (imeis !== undefined || cellColors !== undefined || rowActions !== undefined || copyHistory !== undefined || copyTimestamps !== undefined || removedImei !== undefined);
-  if (willCallApi) lastPersistTime = Date.now();
+  if (willCallApi) {
+    lastPersistTime = Date.now();
+    if (removedImei !== undefined) lastRemovedImeiTime = Date.now();
+  }
   if (imeis !== undefined) await saveImeis(imeis);
   if (removedImei !== undefined) {
     const current = await loadImeis();
@@ -97,4 +102,13 @@ export const persistImeisState = async (user, partial = {}) => {
   }
 };
 
-export const shouldSkipSync = () => Date.now() - lastPersistTime < PERSIST_COOLDOWN_MS;
+export const shouldSkipSync = () => {
+  const sinceRemoved = Date.now() - lastRemovedImeiTime;
+  if (sinceRemoved < REMOVED_IMEI_COOLDOWN_MS) return true;
+  return Date.now() - lastPersistTime < PERSIST_COOLDOWN_MS;
+};
+
+/** Nach IMEI-Entfernung via API aufrufen, damit Sync nicht überschreibt */
+export const setRemovedImeiCooldown = () => {
+  lastRemovedImeiTime = Date.now();
+};

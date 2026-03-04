@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync } from '../../../services/imeis.service';
-import { isBüroMitarbeiter } from '../../../utils/roles';
 
 const POLL_INTERVAL_MS = 500;
-const VERLAUF_REFRESH_MS = 2000;
+const VERLAUF_REFRESH_MS = 1000;
 
 function processCopyHistory(savedCopyHistory) {
   const uniqueHistoryMap = new Map();
@@ -97,20 +96,22 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     return () => clearInterval(intervalId);
   }, [user?.id]);
 
-  // Büro Mitarbeiter: Verlauf live aktualisieren, wenn Modal offen (neue Kopien anderer Nutzer sofort sichtbar)
+  // Verlauf-Modal offen: Alle Rollen erhalten Echtzeit-Updates (IMEI-Liste + Verlauf), wenn jemand Angenommen/Abgelehnt markiert
   useEffect(() => {
-    if (!showHistoryModal || !user?.id || !isBüroMitarbeiter(user)) return;
+    if (!showHistoryModal || !user?.id) return;
+    const setters = {
+      setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps,
+      setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory
+    };
     const refreshVerlauf = async () => {
+      if (shouldSkipSync()) return;
       try {
         const data = await getImeisDataFromApi();
-        if (data?.copyHistory) {
-          const processed = processCopyHistory(data.copyHistory);
-          setCopyHistory(processed);
-        }
+        if (data) applyImeisData(data, setters, getManufacturer, false);
       } catch (_) {}
     };
     refreshVerlauf();
     const id = setInterval(refreshVerlauf, VERLAUF_REFRESH_MS);
     return () => clearInterval(id);
-  }, [showHistoryModal, user?.id, setCopyHistory]);
+  }, [showHistoryModal, user?.id, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory]);
 }

@@ -203,4 +203,16 @@
       }
     }
   }
+
+  .dashboard-readers {
+    .dashboard-readers-list {
+      margin: 0;
+      padding-left: 1.5rem;
+      list-style: disc;
+
+      li {
+        margin-bottom: 0.5rem;
+      }
+    }
+  }
 }

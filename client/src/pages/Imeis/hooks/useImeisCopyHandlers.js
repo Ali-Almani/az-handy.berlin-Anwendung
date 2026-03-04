@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { setRemovedImeiCooldown } from '../../../services/imeis.service';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 5 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -112,6 +113,7 @@ export function useImeisCopyHandlers({
     if (isOthersEntry && (newAction === 'angenommen' || newAction === 'abgelehnt') && updateHistoryActionApi) {
       try {
         await updateHistoryActionApi(entry.imei, entry.userName, newAction);
+        if (newAction === 'angenommen') setRemovedImeiCooldown();
         const updatedHistory = copyHistory.filter((_, i) => i !== index);
         setCopyHistory(updatedHistory);
         if (newAction === 'angenommen' && setImeis) {

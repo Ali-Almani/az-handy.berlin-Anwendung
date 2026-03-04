@@ -56,11 +56,6 @@ const Navbar = () => {
         <ul className="navbar-nav">
           {user ? (
             <>
-              <li>
-                <Link to="/" className="navbar-link">
-                  News
-                </Link>
-              </li>
               {canAccessImeis(user) && (
                 <li>
                   <Link to="/imeis" className="navbar-link">

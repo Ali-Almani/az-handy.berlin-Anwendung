@@ -38,8 +38,11 @@ export const updateProfile = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const userRole = (user.role || '').trim().toLowerCase();
+    const isAdminUser = userRole === 'admin' || userRole === 'administrator';
+
     if (name) user.name = name;
-    if (email) {
+    if (email && isAdminUser) {
       const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
       if (existingUser && existingUser.id !== user.id) {
         return res.status(400).json({ message: 'Email already in use' });
@@ -123,8 +126,13 @@ export const updateUserByAdmin = async (req, res, next) => {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
     const userEmail = (user.email || '').toLowerCase();
-    if (userEmail === 'admin@az-handy.berlin' && role && !['admin', 'Administrator'].includes(role)) {
-      return res.status(400).json({ message: 'Die Rolle von admin@az-handy.berlin kann nicht geändert werden' });
+    if (userEmail === 'admin@az-handy.berlin') {
+      if (role && !['admin', 'Administrator'].includes(role)) {
+        return res.status(400).json({ message: 'Die Rolle von admin@az-handy.berlin kann nicht geändert werden' });
+      }
+      if (email && email.toLowerCase().trim() !== userEmail) {
+        return res.status(400).json({ message: 'Die E-Mail von admin@az-handy.berlin kann nicht geändert werden' });
+      }
     }
     if (role) user.role = role;
     if (name) user.name = name;

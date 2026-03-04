@@ -200,19 +200,41 @@ export const saveImeisData = async (req, res, next) => {
       await removeImeiFromAllLists(removedImei);
     }
 
-    // Mitarbeiter shop: nur copyHistory und copyTimestamps speichern (Rate-Limit), keine IMEI-Änderungen. Büro Mitarbeiter darf hochladen.
+    // Mitarbeiter shop: nur copyHistory, copyTimestamps und rowActions – keine IMEI-Änderungen
     const isMitarbeiter = isMitarbeiterShop(role);
+    const ownerId = await getSharedImeiOwnerId();
+    const usesSharedData = shouldUseSharedImeiData(role) && ownerId && ownerId !== userId;
+
     const payload = {
       user_id: userId,
       ...(!isMitarbeiter && imeis !== undefined && { imeis_json: JSON.stringify(imeis) }),
       ...(!isMitarbeiter && cellColors !== undefined && { cell_colors_json: JSON.stringify(cellColors) }),
-      ...(!isMitarbeiter && rowActions !== undefined && { row_actions_json: JSON.stringify(rowActions) }),
+      ...(!isMitarbeiter && !usesSharedData && rowActions !== undefined && { row_actions_json: JSON.stringify(rowActions) }),
       ...(copyHistory !== undefined && { copy_history_json: JSON.stringify(copyHistory) }),
       ...(copyTimestamps !== undefined && { copy_timestamps_json: JSON.stringify(copyTimestamps) })
     };
 
+    const mergeRowActionsIntoOwner = async () => {
+      if (rowActions === undefined || !ownerId) return;
+      const [ownerRow] = await ImeisUserData.findOrCreate({
+        where: { user_id: ownerId },
+        defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+      });
+      const ownerActionsJson = (ownerRow.get && ownerRow.get('row_actions_json')) ?? ownerRow.row_actions_json;
+      let ownerActions = {};
+      try { ownerActions = ownerActionsJson ? JSON.parse(ownerActionsJson) : {}; } catch (_) {}
+      const currentUserName = currentUser?.name || '';
+      const merged = { ...ownerActions };
+      Object.keys(merged).forEach((k) => {
+        if (merged[k]?.userName === currentUserName && !(k in rowActions)) delete merged[k];
+      });
+      Object.assign(merged, rowActions);
+      await ImeisUserData.upsert({ user_id: ownerId, row_actions_json: JSON.stringify(merged) });
+    };
+
     if (USE_MEMORY_DB) {
       await ImeisUserData.upsert(payload);
+      if (usesSharedData && rowActions !== undefined) await mergeRowActionsIntoOwner();
       return res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
     }
 
@@ -223,7 +245,24 @@ export const saveImeisData = async (req, res, next) => {
 
     if (!isMitarbeiter && imeis !== undefined) data.imeis_json = JSON.stringify(imeis);
     if (!isMitarbeiter && cellColors !== undefined) data.cell_colors_json = JSON.stringify(cellColors);
-    if (!isMitarbeiter && rowActions !== undefined) data.row_actions_json = JSON.stringify(rowActions);
+    if (!isMitarbeiter && !usesSharedData && rowActions !== undefined) data.row_actions_json = JSON.stringify(rowActions);
+    if (usesSharedData && rowActions !== undefined) {
+      const [ownerData] = await ImeisUserData.findOrCreate({
+        where: { user_id: ownerId },
+        defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]' }
+      });
+      const ownerActionsJson = (ownerData.get && ownerData.get('row_actions_json')) ?? ownerData.row_actions_json;
+      let ownerActions = {};
+      try { ownerActions = ownerActionsJson ? JSON.parse(ownerActionsJson) : {}; } catch (_) {}
+      const currentUserName = currentUser?.name || '';
+      const merged = { ...ownerActions };
+      Object.keys(merged).forEach((k) => {
+        if (merged[k]?.userName === currentUserName && !(k in rowActions)) delete merged[k];
+      });
+      Object.assign(merged, rowActions);
+      ownerData.row_actions_json = JSON.stringify(merged);
+      await ownerData.save();
+    }
     if (copyHistory !== undefined) data.copy_history_json = JSON.stringify(copyHistory);
     if (copyTimestamps !== undefined) data.copy_timestamps_json = JSON.stringify(copyTimestamps);
     await data.save();

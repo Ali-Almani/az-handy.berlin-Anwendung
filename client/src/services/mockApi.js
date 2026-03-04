@@ -34,6 +34,12 @@ const mockApi = {
   },
   async saveImeisData(payload) {
     if (payload.imeis !== undefined) await saveImeis(payload.imeis);
+    if (payload.removedImei !== undefined) {
+      const imeis = await loadImeis();
+      const imeiStr = String(payload.removedImei || '').trim();
+      const filtered = imeis.filter((item) => String(item?.imei || '').trim() !== imeiStr);
+      await saveImeis(filtered);
+    }
     if (payload.cellColors !== undefined) localStorage.setItem('imeis-cell-text-colors', JSON.stringify(payload.cellColors));
     if (payload.rowActions !== undefined) localStorage.setItem('imeis-row-actions', JSON.stringify(payload.rowActions));
     if (payload.copyHistory !== undefined) localStorage.setItem('imeis-copy-history', JSON.stringify(payload.copyHistory));
@@ -41,17 +47,23 @@ const mockApi = {
     return { data: { success: true } };
   },
   async updateHistoryAction({ imei, userName, newAction }) {
+    const imeiStr = String(imei || '').trim();
     const copyHistory = JSON.parse(localStorage.getItem('imeis-copy-history') || '[]');
     const updated = copyHistory.filter(
-      (e) => !(e && String(e.imei || '').trim() === String(imei).trim() && String(e.userName || '').trim() === String(userName).trim())
+      (e) => !(e && String(e.imei || '').trim() === imeiStr && String(e.userName || '').trim() === String(userName).trim())
     );
     localStorage.setItem('imeis-copy-history', JSON.stringify(updated));
     if (newAction === 'abgelehnt') {
       const rowActions = JSON.parse(localStorage.getItem('imeis-row-actions') || '{}');
       Object.keys(rowActions).forEach((rowId) => {
-        if (rowId.includes(`-${String(imei).trim()}-`)) delete rowActions[rowId];
+        if (rowId.includes(`-${imeiStr}-`)) delete rowActions[rowId];
       });
       localStorage.setItem('imeis-row-actions', JSON.stringify(rowActions));
+    }
+    if (newAction === 'angenommen') {
+      const imeis = await loadImeis();
+      const filtered = imeis.filter((item) => String(item?.imei || '').trim() !== imeiStr);
+      await saveImeis(filtered);
     }
     return { data: { success: true } };
   }

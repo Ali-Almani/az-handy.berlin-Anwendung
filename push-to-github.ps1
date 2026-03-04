@@ -4,26 +4,33 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-Write-Host "=== Git: Dateien hinzufuegen ===" -ForegroundColor Cyan
-git add .
-if ($LASTEXITCODE -ne 0) { exit 1 }
-
-Write-Host "`n=== Git: Initialer Commit ===" -ForegroundColor Cyan
-git commit -m "Initial commit: AZ-handy.berlin project"
-if ($LASTEXITCODE -ne 0) { exit 1 }
-
-Write-Host "`n=== Git: Remote konfigurieren ===" -ForegroundColor Cyan
 $remoteUrl = "https://github.com/Ali-Almani/az-handy.berlin-Anwendung.git"
-if (git remote get-url origin 2>$null) {
-    git remote set-url origin $remoteUrl
-} else {
+if (-not (git remote get-url origin 2>$null)) {
+    Write-Host "=== Git: Remote hinzufuegen ===" -ForegroundColor Cyan
     git remote add origin $remoteUrl
 }
 
+Write-Host "=== Git: Dateien hinzufuegen ===" -ForegroundColor Cyan
+git add -A
+if ($LASTEXITCODE -ne 0) { exit 1 }
+
+$status = git status --porcelain
+if ($status) {
+    Write-Host "`n=== Git: Commit ===" -ForegroundColor Cyan
+    git commit -m "Update: News-Popup, IMEI-Sync, E-Mail-Berechtigungen, Benutzerverwaltung"
+    if ($LASTEXITCODE -ne 0) { exit 1 }
+} else {
+    Write-Host "`nKeine Aenderungen zum Committen." -ForegroundColor Yellow
+}
+
 Write-Host "`n=== Git: Push zu GitHub ===" -ForegroundColor Cyan
-# Pushe master (oder main falls umbenannt)
 $branch = (git branch --show-current)
 git push -u origin $branch
-if ($LASTEXITCODE -ne 0) { exit 1 }
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "`nPush fehlgeschlagen. Pruefen Sie:" -ForegroundColor Red
+    Write-Host "  - GitHub-Anmeldung (Token oder SSH-Key)" -ForegroundColor Red
+    Write-Host "  - Internetverbindung" -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "`n=== Fertig! Projekt wurde zu GitHub hochgeladen. ===" -ForegroundColor Green

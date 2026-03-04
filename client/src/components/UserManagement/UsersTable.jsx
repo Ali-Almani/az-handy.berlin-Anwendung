@@ -1,6 +1,16 @@
-import { ROLE_OPTIONS } from '../../utils/roles';
+import { useState } from 'react';
+import UserEditModal from './UserEditModal';
 
-const UsersTable = ({ users, loading, onDelete, onEdit }) => (
+const UsersTable = ({ users, loading, onDelete, onEdit }) => {
+  const [editingUser, setEditingUser] = useState(null);
+
+  const handleEditClick = (user) => setEditingUser(user);
+  const handleEditSave = (userId, updates) => {
+    onEdit?.(userId, updates);
+    setEditingUser(null);
+  };
+
+  return (
     <div className="users-list">
       <h3>Alle Benutzer ({users.length})</h3>
       {loading ? (
@@ -37,20 +47,15 @@ const UsersTable = ({ users, loading, onDelete, onEdit }) => (
                   <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '-'}</td>
                   <td>
                     <div className="user-actions">
-                      <select
-                        value={user.role || ''}
-                        onChange={(e) => { const role = e.target.value; if (role !== user.role) onEdit?.(user.id, { role }); }}
+                      <button
+                        type="button"
+                        onClick={() => handleEditClick(user)}
+                        className="btn btn--outline btn--small"
                         disabled={loading}
-                        className="role-select"
-                        title="Rolle ändern"
+                        title="Bearbeiten"
                       >
-                        {!ROLE_OPTIONS.some(o => o.value === user.role) && user.role && (
-                          <option value={user.role}>{user.role}</option>
-                        )}
-                        {ROLE_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                        Bearbeiten
+                      </button>
                       <button
                         type="button"
                         onClick={() => onDelete?.(user.id)}
@@ -67,7 +72,16 @@ const UsersTable = ({ users, loading, onDelete, onEdit }) => (
           </table>
         </div>
       )}
+      {editingUser && (
+        <UserEditModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={handleEditSave}
+          loading={loading}
+        />
+      )}
     </div>
-);
+  );
+};
 
 export default UsersTable;

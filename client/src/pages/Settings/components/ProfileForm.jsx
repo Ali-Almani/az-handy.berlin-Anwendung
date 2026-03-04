@@ -1,4 +1,4 @@
-const ProfileForm = ({ formData, loading, onInputChange, onAvatarChange, onSubmit }) => (
+const ProfileForm = ({ formData, loading, onInputChange, onAvatarChange, onSubmit, emailEditable = true }) => (
   <form onSubmit={onSubmit} className="settings-form">
     <div className="form-group">
       <label className="form-label">Profilbild</label>
@@ -28,7 +28,7 @@ const ProfileForm = ({ formData, loading, onInputChange, onAvatarChange, onSubmi
     </div>
     <div className="form-group">
       <label htmlFor="email" className="form-label">E-Mail</label>
-      <input type="email" id="email" name="email" className="form-input" value={formData.email} onChange={onInputChange} required />
+      <input type="email" id="email" name="email" className={`form-input ${!emailEditable ? 'form-input--readonly' : ''}`} value={formData.email} onChange={onInputChange} required readOnly={!emailEditable} />
     </div>
     <button type="submit" className="btn btn--primary" disabled={loading}>
       {loading ? 'Speichern...' : 'Profil speichern'}

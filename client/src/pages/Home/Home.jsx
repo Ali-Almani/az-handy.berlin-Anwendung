@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getDashboardNote } from '../../services/dashboard.service';
+import { getNews } from '../../services/dashboard.service';
 import './Home.scss';
 
 const Home = () => {
@@ -12,7 +12,7 @@ const Home = () => {
     if (!user) return;
     const fetchNote = async () => {
       try {
-        const res = await getDashboardNote();
+        const res = await getNews();
         if (res.data?.content) setSavedContent(res.data.content);
       } catch (err) {
         console.error('Error loading note:', err);
