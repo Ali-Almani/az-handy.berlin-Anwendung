@@ -19,6 +19,9 @@ const createMockApi = () => {
       } else if (url === '/auth/register') {
         return await mockApi.register(data);
       }
+      if (url === '/imeis/reminder') {
+        return { data: { success: true, message: 'Erinnerung gesendet' } };
+      }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     get: async (url) => {
@@ -28,6 +31,9 @@ const createMockApi = () => {
       }
       if (url === '/imeis/data') {
         return await mockApi.getImeisData();
+      }
+      if (url === '/imeis/reminders') {
+        return { data: { success: true, reminders: [] } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -44,6 +50,9 @@ const createMockApi = () => {
     patch: async (url, data) => {
       if (url === '/imeis/data/history-action' || url === 'imeis/data/history-action') {
         return await mockApi.updateHistoryAction(data);
+      }
+      if (url?.startsWith('/imeis/reminders/') && url?.endsWith('/read')) {
+        return { data: { success: true } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     }

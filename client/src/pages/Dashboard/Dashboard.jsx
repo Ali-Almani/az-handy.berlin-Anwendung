@@ -39,18 +39,20 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user?.id || !isAdmin(user)) return;
-    const fetchArchive = async () => {
+    const fetchArchive = async (isInitial = true) => {
       try {
-        setArchiveLoading(true);
+        if (isInitial) setArchiveLoading(true);
         const res = await getNewsArchive();
         setArchive(res.data?.messages ?? []);
       } catch {
         setArchive([]);
       } finally {
-        setArchiveLoading(false);
+        if (isInitial) setArchiveLoading(false);
       }
     };
-    fetchArchive();
+    fetchArchive(true);
+    const id = setInterval(() => fetchArchive(false), 3000);
+    return () => clearInterval(id);
   }, [user?.id]);
 
   if (!canAccessDashboard(user)) {
@@ -118,7 +120,7 @@ const Dashboard = () => {
       {isAdmin(user) && canShowDashboardNotes(user) && (
         <div className="card dashboard-new-message">
           <div className="card-header">
-            <h2 className="card-title">Neue Nachricht schreiben</h2>
+            <h2 className="card-title">Neue Anweisung schreiben</h2>
           </div>
           <div className="card-body">
             {noteError && <p className="text-error">{noteError}</p>}
@@ -139,7 +141,7 @@ const Dashboard = () => {
       {isAdmin(user) && (
         <div className="card dashboard-archive">
           <div className="card-header">
-            <h2 className="card-title">Alte Nachrichten</h2>
+            <h2 className="card-title">Alte Anweisung</h2>
           </div>
           <div className="card-body">
             {archiveLoading ? (

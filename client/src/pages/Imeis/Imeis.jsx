@@ -1,4 +1,6 @@
-import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand } from '../../utils/roles';
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter } from '../../utils/roles';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -7,6 +9,7 @@ import ImeisStats from './components/ImeisStats';
 import ImeisPagination from './components/ImeisPagination';
 import ImeisEmpty from './components/ImeisEmpty';
 import ImeisHistoryModal from './components/ImeisHistoryModal';
+import { sendImeiReminderApi, getMyImeiRemindersApi, markImeiReminderReadApi } from '../../services/imeis.service';
 import ImeisZustandModal from './components/ImeisZustandModal';
 import ImeisRateLimitModal from './components/ImeisRateLimitModal';
 import './Imeis.scss';
@@ -87,6 +90,19 @@ const Imeis = () => {
     onCloseZustandModal,
     onRowActionRemove
   } = useImeis();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('showVerlauf') === '1') {
+      setShowHistoryModal(true);
+      searchParams.delete('showVerlauf');
+      setSearchParams(searchParams, { replace: true });
+      getMyImeiRemindersApi().then((res) => {
+        (res?.reminders ?? []).forEach((r) => markImeiReminderReadApi(r.id));
+      });
+    }
+  }, [searchParams, setSearchParams, setShowHistoryModal]);
 
   if (!canAccessImeis(user)) {
     return (
@@ -225,6 +241,15 @@ const Imeis = () => {
         onUpdateHistoryAction={handleUpdateHistoryAction}
         historyUndoStack={historyUndoStack}
         onUndo={handleHistoryModalUndo}
+        canSendReminder={isBüroMitarbeiter(user)}
+        currentUserName={user?.name}
+        onSendReminder={async (entry) => {
+          try {
+            await sendImeiReminderApi(entry.userName, entry.imei);
+          } catch (err) {
+            console.error('Erinnerung senden fehlgeschlagen:', err);
+          }
+        }}
       />
 
       <ImeisZustandModal

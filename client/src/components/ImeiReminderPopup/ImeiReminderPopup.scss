@@ -1,0 +1,53 @@
+.imei-reminder-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: imei-reminder-fade-in 0.2s ease-out;
+}
+
+@keyframes imei-reminder-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.imei-reminder-popup {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-width: 90vw;
+  width: 420px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.imei-reminder-popup-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.imei-reminder-popup-content {
+  margin-bottom: 1.25rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+.imei-reminder-popup-btn {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.imei-reminder-popup-btn:hover {
+  background: #1d4ed8;
+}

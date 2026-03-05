@@ -5,7 +5,7 @@ import { canAccessImeis, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
-const Navbar = () => {
+const Navbar = ({ hasReminderBadge = false, reminderCount = 0, onOpenVerlauf }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -38,6 +38,11 @@ const Navbar = () => {
     setDropdownOpen(!dropdownOpen);
   };
 
+  const handleOpenVerlauf = () => {
+    onOpenVerlauf?.();
+    setDropdownOpen(false);
+  };
+
   const getInitials = (name) => {
     if (!name) return 'U';
     const parts = name.split(' ');
@@ -66,7 +71,7 @@ const Navbar = () => {
               {!isAdmin(user) && (
                 <li>
                   <Link to="/news" className="navbar-link">
-                    News
+                    Archive Anweisung
                   </Link>
                 </li>
               )}
@@ -94,6 +99,18 @@ const Navbar = () => {
                       {getInitials(user.name)}
                     </div>
                   )}
+                  {hasReminderBadge && (
+                    <span
+                      className="navbar-avatar-badge"
+                      title="Erinnerung: Verlauf prüfen – Klicken zum Öffnen"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenVerlauf(); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenVerlauf(); } }}
+                    >
+                      {reminderCount > 9 ? '9+' : reminderCount}
+                    </span>
+                  )}
                 </button>
                 {dropdownOpen && (
                   <div className="navbar-dropdown">
@@ -103,6 +120,16 @@ const Navbar = () => {
                         <div className="navbar-dropdown-email">{user.email}</div>
                       </div>
                     </div>
+                    {hasReminderBadge && onOpenVerlauf && (
+                      <button
+                        type="button"
+                        className="navbar-dropdown-item navbar-dropdown-item--reminder"
+                        onClick={handleOpenVerlauf}
+                      >
+                        <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderCount > 9 ? '9+' : reminderCount}</span>
+                        <span>Verlauf prüfen</span>
+                      </button>
+                    )}
                     <Link
                       to="/settings"
                       className="navbar-dropdown-item"

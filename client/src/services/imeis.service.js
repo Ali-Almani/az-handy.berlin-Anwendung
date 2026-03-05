@@ -42,6 +42,34 @@ export const updateHistoryActionApi = async (imei, userName, newAction) => {
   }
 };
 
+export const sendImeiReminderApi = async (targetUserName, imei) => {
+  try {
+    const res = await api.post('/imeis/reminder', { targetUserName, imei });
+    return res.data;
+  } catch (err) {
+    console.error('Error sending reminder:', err);
+    throw err;
+  }
+};
+
+export const getMyImeiRemindersApi = async () => {
+  try {
+    const res = await api.get('/imeis/reminders');
+    return res.data;
+  } catch (err) {
+    console.error('Error fetching reminders:', err);
+    return { success: true, reminders: [] };
+  }
+};
+
+export const markImeiReminderReadApi = async (reminderId) => {
+  try {
+    await api.patch(`/imeis/reminders/${reminderId}/read`);
+  } catch (err) {
+    console.error('Error marking reminder read:', err);
+  }
+};
+
 export const loadImeisWithApi = async (user) => {
   if (user) {
     const apiData = await getImeisDataFromApi();

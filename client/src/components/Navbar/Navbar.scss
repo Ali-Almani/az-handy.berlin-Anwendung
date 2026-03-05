@@ -15,6 +15,37 @@
   margin-left: 1rem;
 }
 
+.navbar-avatar-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $danger-color;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: $font-weight-bold;
+  border-radius: 9px;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+  &:hover {
+    background: darken($danger-color, 8%);
+  }
+
+  &--small {
+    position: static;
+    min-width: 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+  }
+}
+
 .navbar-avatar-btn {
   background: none;
   border: none;
@@ -144,6 +175,15 @@
     &:hover {
       background: #fee;
       color: darken($danger-color, 10%);
+    }
+  }
+
+  &--reminder {
+    background: #fff8e6;
+    font-weight: $font-weight-bold;
+
+    &:hover {
+      background: #ffecb3;
     }
   }
 }

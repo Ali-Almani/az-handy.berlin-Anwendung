@@ -18,7 +18,7 @@ const NewsPopup = ({ content, authorName, onMarkAsRead }) => {
           className="news-popup-btn"
           onClick={onMarkAsRead}
         >
-          Gelesen
+          Gelesen und verstanden
         </button>
       </div>
     </div>

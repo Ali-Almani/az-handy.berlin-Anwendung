@@ -31,12 +31,6 @@ const Settings = () => {
 
   const clearMessages = () => { setError(''); setSuccess(''); };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    clearMessages();
-  };
-
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -59,8 +53,7 @@ const Settings = () => {
     setLoading(true);
     clearMessages();
     try {
-      const updateData = { name: formData.name };
-      if (isAdmin(user)) updateData.email = formData.email;
+      const updateData = {};
       if (formData.avatar) updateData.avatar = formData.avatarPreview;
       const response = await updateUserProfile(updateData);
       setUser(response.data.user);
@@ -132,9 +125,9 @@ const Settings = () => {
         <div className="settings-section">
           <div className="settings-section-header">
             <h2>Profil bearbeiten</h2>
-            <p>Ändern Sie Ihren Namen, E-Mail und Avatar</p>
+            <p>Ändern Sie Ihr Profilbild</p>
           </div>
-          <ProfileForm formData={formData} loading={loading} onInputChange={handleInputChange} onAvatarChange={handleAvatarChange} onSubmit={handleProfileSubmit} emailEditable={isAdmin(user)} />
+          <ProfileForm formData={formData} loading={loading} onAvatarChange={handleAvatarChange} onSubmit={handleProfileSubmit} />
         </div>
         <div className="settings-section">
           <div className="settings-section-header">

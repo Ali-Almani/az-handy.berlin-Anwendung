@@ -6,11 +6,15 @@ const ImeisHistoryModal = ({
   copyHistory, 
   onUpdateHistoryAction,
   historyUndoStack,
-  onUndo
+  onUndo,
+  canSendReminder = false,
+  currentUserName = '',
+  onSendReminder
 }) => {
   const [confirmation, setConfirmation] = useState(null); // { index, action, message }
   const [toast, setToast] = useState(null); // { message, type: 'success' }
   const [toastProgress, setToastProgress] = useState(100);
+  const [sendingReminderFor, setSendingReminderFor] = useState(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -36,7 +40,7 @@ const ImeisHistoryModal = ({
       setConfirmation({
         index,
         action: 'angenommen',
-        message: 'Bist du sicher, dass der Vertrag bei Partos abgeschlossen wurde?'
+        message: <>Bist du sicher, dass du den <span style={{ color: 'red' }}>CHECK-OUT</span> durchgeführt hast?</>
       });
     } else if (selectedValue === 'abgelehnt') {
       setConfirmation({
@@ -63,6 +67,19 @@ const ImeisHistoryModal = ({
 
   const handleConfirmNo = () => {
     setConfirmation(null);
+  };
+
+  const handleSendReminder = async (entry) => {
+    if (!onSendReminder || !entry?.userName || !entry?.imei) return;
+    const isOwnEntry = String(entry.userName || '').trim() === String(currentUserName || '').trim();
+    if (isOwnEntry) return;
+    setSendingReminderFor(entry.imei);
+    try {
+      await onSendReminder(entry);
+      setToast({ message: 'Erinnerung gesendet.', type: 'success' });
+    } finally {
+      setSendingReminderFor(null);
+    }
   };
 
   if (!isOpen) return null;
@@ -130,7 +147,20 @@ const ImeisHistoryModal = ({
                         )}
                       </td>
                       <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{entry.product || entry.manufacturer || '-'}</td>
-                      <td>{entry.userName}</td>
+                      <td>
+                        {entry.userName}
+                        {canSendReminder && String(entry.userName || '').trim() !== String(currentUserName || '').trim() && (
+                          <button
+                            type="button"
+                            className="imeis-history-reminder-btn"
+                            onClick={(e) => { e.stopPropagation(); handleSendReminder(entry); }}
+                            disabled={sendingReminderFor === entry.imei}
+                            title="Erinnerung: Benutzt du noch diese IMEI?"
+                          >
+                            {sendingReminderFor === entry.imei ? '…' : 'Erinnerung senden'}
+                          </button>
+                        )}
+                      </td>
                       <td>
                         {new Date(entry.timestamp).toLocaleString('de-DE', {
                           day: '2-digit',

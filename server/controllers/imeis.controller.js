@@ -1,5 +1,6 @@
 import ImeisUserData from '../models/ImeisUserData.js';
 import User from '../models/User.js';
+import * as ImeiReminder from '../models/ImeiReminder.memory.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -329,6 +330,62 @@ export const updateHistoryAction = async (req, res, next) => {
     }
 
     res.json({ success: true, message: 'Aktion aktualisiert', rowActions: newAction === 'abgelehnt' ? {} : undefined });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro Mitarbeiter: Erinnerung an Mitarbeiter senden („Benutzt du noch diese IMEI?“) */
+export const sendImeiReminder = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (!isBüroMitarbeiter(role)) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter dürfen Erinnerungen senden' });
+    }
+    const { targetUserName, imei } = req.body;
+    if (!targetUserName || !imei) {
+      return res.status(400).json({ message: 'targetUserName und imei erforderlich' });
+    }
+
+    const targetUser = await User.findOne({ where: { name: targetUserName } });
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+
+    const targetId = targetUser.id ?? targetUser._id ?? targetUser.get?.('id');
+    const targetName = targetUser.name ?? targetUser.get?.('name') ?? targetUserName;
+    const fromName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Büro';
+
+    ImeiReminder.addReminder(targetId, targetName, imei, fromName);
+
+    res.json({ success: true, message: 'Erinnerung gesendet' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Eigene IMEI-Erinnerungen abrufen */
+export const getMyImeiReminders = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const reminders = ImeiReminder.getRemindersForUser(userId);
+    res.json({ success: true, reminders });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** IMEI-Erinnerung als gelesen markieren */
+export const markImeiReminderRead = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+    const ok = ImeiReminder.markReminderRead(id, userId);
+    if (!ok) return res.status(404).json({ message: 'Erinnerung nicht gefunden' });
+    res.json({ success: true, message: 'Als gelesen markiert' });
   } catch (error) {
     next(error);
   }

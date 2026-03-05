@@ -1,4 +1,4 @@
-const ProfileForm = ({ formData, loading, onInputChange, onAvatarChange, onSubmit, emailEditable = true }) => (
+const ProfileForm = ({ formData, loading, onAvatarChange, onSubmit }) => (
   <form onSubmit={onSubmit} className="settings-form">
     <div className="form-group">
       <label className="form-label">Profilbild</label>
@@ -21,14 +21,6 @@ const ProfileForm = ({ formData, loading, onInputChange, onAvatarChange, onSubmi
         <input type="file" id="avatar-upload" accept="image/*" onChange={onAvatarChange} className="avatar-input" />
         {formData.avatar && <span className="avatar-filename">{formData.avatar.name}</span>}
       </div>
-    </div>
-    <div className="form-group">
-      <label htmlFor="name" className="form-label">Name</label>
-      <input type="text" id="name" name="name" className="form-input" value={formData.name} onChange={onInputChange} required />
-    </div>
-    <div className="form-group">
-      <label htmlFor="email" className="form-label">E-Mail</label>
-      <input type="email" id="email" name="email" className={`form-input ${!emailEditable ? 'form-input--readonly' : ''}`} value={formData.email} onChange={onInputChange} required readOnly={!emailEditable} />
     </div>
     <button type="submit" className="btn btn--primary" disabled={loading}>
       {loading ? 'Speichern...' : 'Profil speichern'}
