@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { setRemovedImeiCooldown } from '../../../services/imeis.service';
+import { setRemovedImeiCooldown, notifyReminderResponseApi } from '../../../services/imeis.service';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 5 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -146,6 +146,7 @@ export function useImeisCopyHandlers({
       });
       setRowActions(updatedRowActions);
       persistImeis?.({ copyHistory: updatedHistory, removedImei: imeiStr, rowActions: updatedRowActions });
+      notifyReminderResponseApi(imeiStr, 'angenommen');
       return;
     }
     if (newAction === 'abgelehnt') {
@@ -158,6 +159,7 @@ export function useImeisCopyHandlers({
       const updatedHistory = copyHistory.filter((_, i) => i !== index);
       setCopyHistory(updatedHistory);
       persistImeis?.({ rowActions: updatedRowActions, copyHistory: updatedHistory });
+      notifyReminderResponseApi(String(imeiToReject || '').trim(), 'abgelehnt');
       return;
     }
     const updatedHistory = [...copyHistory];

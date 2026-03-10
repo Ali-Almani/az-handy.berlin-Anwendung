@@ -1,6 +1,9 @@
 import ImeisUserData from '../models/ImeisUserData.js';
 import User from '../models/User.js';
 import * as ImeiReminder from '../models/ImeiReminder.memory.js';
+import * as ExtraCopyRequest from '../models/ExtraCopyRequest.memory.js';
+import * as ExtraCopyNotification from '../models/ExtraCopyNotification.memory.js';
+import * as ReminderResponseNotification from '../models/ReminderResponseNotification.memory.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -357,8 +360,9 @@ export const sendImeiReminder = async (req, res, next) => {
     const targetId = targetUser.id ?? targetUser._id ?? targetUser.get?.('id');
     const targetName = targetUser.name ?? targetUser.get?.('name') ?? targetUserName;
     const fromName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Büro';
+    const fromId = currentUser?.id ?? currentUser?.get?.('id') ?? userId;
 
-    ImeiReminder.addReminder(targetId, targetName, imei, fromName);
+    ImeiReminder.addReminder(targetId, targetName, imei, fromName, fromId);
 
     res.json({ success: true, message: 'Erinnerung gesendet' });
   } catch (error) {
@@ -385,6 +389,198 @@ export const markImeiReminderRead = async (req, res, next) => {
     if (!id) return res.status(400).json({ message: 'ID erforderlich' });
     const ok = ImeiReminder.markReminderRead(id, userId);
     if (!ok) return res.status(404).json({ message: 'Erinnerung nicht gefunden' });
+    res.json({ success: true, message: 'Als gelesen markiert' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Benutzer: Benachrichtigung an Büro senden, wenn auf Erinnerung reagiert (angenommen/abgelehnt) */
+export const notifyReminderResponse = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (isBüroMitarbeiter(role) || isAdmin(role)) {
+      return res.status(403).json({ message: 'Büro Mitarbeiter und Administratoren senden keine Erinnerungs-Antworten' });
+    }
+    const { imei, action } = req.body;
+    if (!imei || !action || !['angenommen', 'abgelehnt'].includes(action)) {
+      return res.status(400).json({ message: 'imei und action (angenommen/abgelehnt) erforderlich' });
+    }
+    const userName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Unbekannt';
+    const reminders = ImeiReminder.findRemindersForUserAndImei(userId, imei);
+    const notified = new Set();
+    const io = req.app?.get?.('io');
+
+    for (const r of reminders) {
+      let fromId = r.from_user_id;
+      if (!fromId && r.from_user_name) {
+        const fromUser = await User.findOne({ where: { name: r.from_user_name } });
+        fromId = fromUser?.id ?? fromUser?._id ?? fromUser?.get?.('id');
+      }
+      if (fromId && !notified.has(String(fromId))) {
+        const notification = ReminderResponseNotification.addNotification(fromId, userName, imei, action);
+        notified.add(String(fromId));
+        if (io && notification) {
+          io.emit('reminder-response:new', { targetUserId: String(fromId), notification });
+        }
+      }
+    }
+    res.json({ success: true, message: 'Benachrichtigung gesendet' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro Mitarbeiter: Benachrichtigungen über Erinnerungs-Antworten abrufen */
+export const getReminderResponseNotifications = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter können diese Benachrichtigungen einsehen' });
+    }
+    const list = ReminderResponseNotification.getUnreadForUser(userId);
+    res.json({ success: true, notifications: list });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro Mitarbeiter: Benachrichtigung als gelesen markieren */
+export const markReminderResponseNotificationRead = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+    const ok = ReminderResponseNotification.markAsRead(id, userId);
+    if (!ok) return res.status(404).json({ message: 'Benachrichtigung nicht gefunden' });
+    res.json({ success: true, message: 'Als gelesen markiert' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Benutzer (nicht Büro): Anfrage für eine Extra-Kopie an Büro senden */
+export const createExtraCopyRequest = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (isBüroMitarbeiter(role) || isAdmin(role)) {
+      return res.status(403).json({ message: 'Büro Mitarbeiter und Administratoren benötigen keine Genehmigung' });
+    }
+    const userName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Unbekannt';
+    const id = ExtraCopyRequest.addRequest(userId, userName);
+    if (!id) {
+      return res.status(400).json({ message: 'Sie haben bereits eine offene Anfrage. Bitte warten Sie auf die Antwort.' });
+    }
+    res.json({ success: true, message: 'Anfrage an Büro gesendet', id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro Mitarbeiter: Offene Extra-Kopie-Anfragen abrufen */
+export const getExtraCopyRequests = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen einsehen' });
+    }
+    const requests = ExtraCopyRequest.getPendingRequests();
+    res.json({ success: true, requests });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro Mitarbeiter: Extra-Kopie genehmigen – entfernt ältesten Timestamp beim Antragsteller */
+export const approveExtraCopyRequest = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen genehmigen' });
+    }
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+    const request = ExtraCopyRequest.getRequestById(id);
+    if (!request || request.status !== 'pending') {
+      return res.status(404).json({ message: 'Anfrage nicht gefunden oder bereits bearbeitet' });
+    }
+    const requesterId = request.requester_user_id;
+
+    const [data] = await ImeisUserData.findOrCreate({
+      where: { user_id: requesterId },
+      defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+    });
+    const timestampsJson = (data.get && data.get('copy_timestamps_json')) ?? data.copy_timestamps_json;
+    let copyTimestamps = [];
+    try {
+      copyTimestamps = timestampsJson ? JSON.parse(timestampsJson) : [];
+    } catch (_) {}
+    if (copyTimestamps.length > 0) {
+      const sorted = [...copyTimestamps].sort((a, b) => a - b);
+      sorted.shift();
+      await ImeisUserData.upsert({ user_id: requesterId, copy_timestamps_json: JSON.stringify(sorted) });
+    }
+    ExtraCopyRequest.approveRequest(id, userId);
+    ExtraCopyNotification.addNotification(requesterId, 'approved', 'Ihre Anfrage für eine Extra-Kopie wurde genehmigt. Sie können jetzt eine weitere IMEI kopieren.');
+    res.json({ success: true, message: 'Extra-Kopie genehmigt' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro Mitarbeiter: Extra-Kopie ablehnen */
+export const rejectExtraCopyRequest = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = currentUser?.role ?? null;
+    if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen ablehnen' });
+    }
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+    const request = ExtraCopyRequest.getRequestById(id);
+    if (!request || request.status !== 'pending') {
+      return res.status(404).json({ message: 'Anfrage nicht gefunden oder bereits bearbeitet' });
+    }
+    const requesterId = request.requester_user_id;
+    ExtraCopyRequest.rejectRequest(id);
+    ExtraCopyNotification.addNotification(requesterId, 'rejected', 'Ihre Anfrage für eine Extra-Kopie wurde abgelehnt. Bitte warten Sie, bis das Rate-Limit wieder verfügbar ist.');
+    res.json({ success: true, message: 'Anfrage abgelehnt' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Benutzer: Eigene Extra-Kopie-Benachrichtigungen abrufen (Genehmigung/Ablehnung) */
+export const getExtraCopyNotifications = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const list = ExtraCopyNotification.getUnreadForUser(userId);
+    res.json({ success: true, notifications: list });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Benutzer: Benachrichtigung als gelesen markieren */
+export const markExtraCopyNotificationRead = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: 'ID erforderlich' });
+    const ok = ExtraCopyNotification.markAsRead(id, userId);
+    if (!ok) return res.status(404).json({ message: 'Benachrichtigung nicht gefunden' });
     res.json({ success: true, message: 'Als gelesen markiert' });
   } catch (error) {
     next(error);

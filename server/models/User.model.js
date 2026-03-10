@@ -47,6 +47,10 @@ const User = sequelize.define('User', {
   role: {
     type: DataTypes.ENUM(...ROLES),
     defaultValue: 'Marketing'
+  },
+  avatar: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'users',

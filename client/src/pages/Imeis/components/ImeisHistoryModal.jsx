@@ -4,6 +4,7 @@ const ImeisHistoryModal = ({
   isOpen, 
   onClose, 
   copyHistory, 
+  filterImeis,
   onUpdateHistoryAction,
   historyUndoStack,
   onUndo,
@@ -35,21 +36,21 @@ const ImeisHistoryModal = ({
     };
   }, [toast]);
 
-  const handleActionSelect = (index, selectedValue) => {
+  const handleActionSelect = (originalIndex, selectedValue) => {
     if (selectedValue === 'angenommen') {
       setConfirmation({
-        index,
+        index: originalIndex,
         action: 'angenommen',
-        message: <>Bist du sicher, dass du den <span style={{ color: 'red' }}>CHECK-OUT</span> durchgeführt hast?</>
+        message: <>Bist du sicher, dass du den <span style={{ color: 'red' }}>CHECK-OUT</span> bei Partos durchgeführt hast?</>
       });
     } else if (selectedValue === 'abgelehnt') {
       setConfirmation({
-        index,
+        index: originalIndex,
         action: 'abgelehnt',
         message: 'Bist du sicher, dass der Vertrag bei Partos abgelehnt wurde?'
       });
     } else if (selectedValue) {
-      onUpdateHistoryAction(index, selectedValue);
+      onUpdateHistoryAction(originalIndex, selectedValue);
     }
   };
 
@@ -84,6 +85,12 @@ const ImeisHistoryModal = ({
 
   if (!isOpen) return null;
 
+  const filteredHistory = filterImeis?.length
+    ? copyHistory
+        .map((e, i) => ({ entry: e, originalIndex: i }))
+        .filter(({ entry }) => filterImeis.includes(String(entry.imei || '').trim()))
+    : copyHistory.map((e, i) => ({ entry: e, originalIndex: i }));
+
   return (
     <div className="imeis-history-modal-overlay" onClick={onClose}>
       <div className="imeis-history-modal" onClick={(e) => e.stopPropagation()}>
@@ -98,12 +105,17 @@ const ImeisHistoryModal = ({
           </button>
         </div>
         <div className="imeis-history-modal-body">
-          {copyHistory.length === 0 ? (
+          {filteredHistory.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>
-              Noch keine IMEIs kopiert
+              {filterImeis?.length ? 'Keine Verlaufseinträge für die Erinnerungs-IMEIs gefunden.' : 'Noch keine IMEIs kopiert'}
             </p>
           ) : (
             <div className="imeis-history-list">
+              {filterImeis?.length > 0 && (
+                <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.75rem' }}>
+                  Nur IMEIs aus deinen Erinnerungen werden angezeigt.
+                </p>
+              )}
               <table className="imeis-history-table">
                 <thead>
                   <tr>
@@ -115,15 +127,15 @@ const ImeisHistoryModal = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {copyHistory.map((entry, index) => (
-                    <tr key={index}>
+                  {filteredHistory.map(({ entry, originalIndex }) => (
+                    <tr key={originalIndex}>
                       <td className="imei-value">{entry.imei}</td>
                       <td>
                         <select
                           value={entry.action === 'angenommen' ? 'angenommen' : entry.action === 'abgelehnt' ? 'abgelehnt' : ''}
                           onChange={(e) => {
                             const selectedValue = e.target.value;
-                            handleActionSelect(index, selectedValue);
+                            handleActionSelect(originalIndex, selectedValue);
                           }}
                           style={{
                             padding: '0.25rem 0.5rem',

@@ -22,7 +22,7 @@ const load = () => {
 
 load();
 
-export const addReminder = (targetUserId, targetUserName, imei, fromUserName) => {
+export const addReminder = (targetUserId, targetUserName, imei, fromUserName, fromUserId) => {
   const id = nextId++;
   const message = `Erinnerung: Benutzt du noch diese IMEI? (${imei})`;
   reminders.push({
@@ -32,6 +32,7 @@ export const addReminder = (targetUserId, targetUserName, imei, fromUserName) =>
     imei: String(imei || '').trim(),
     message,
     from_user_name: fromUserName || 'Büro',
+    from_user_id: fromUserId ?? null,
     created_at: new Date().toISOString(),
     read: false
   });
@@ -53,4 +54,13 @@ export const markReminderRead = (reminderId, userId) => {
     return true;
   }
   return false;
+};
+
+/** Finde Erinnerungen für Benutzer+IMEI (für Benachrichtigung an Büro bei Aktion) */
+export const findRemindersForUserAndImei = (targetUserId, imei) => {
+  const imeiStr = String(imei || '').trim();
+  const targetStr = String(targetUserId || '');
+  return reminders.filter(
+    (r) => String(r.target_user_id) === targetStr && String(r.imei || '').trim() === imeiStr && (r.from_user_id || r.from_user_name)
+  );
 };

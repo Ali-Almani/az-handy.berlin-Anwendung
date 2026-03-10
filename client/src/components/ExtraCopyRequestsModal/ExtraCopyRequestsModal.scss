@@ -1,0 +1,112 @@
+@import '../../styles/variables';
+
+/* Modal wird in Layout gerendert (nicht in .imeis) – Styles müssen hier definiert sein */
+.imeis-history-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.imeis-history-modal.extra-copy-requests-modal {
+  position: relative;
+  background: $bg-color;
+  border-radius: 2px;
+  box-shadow: $shadow-lg;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .imeis-history-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid $border-color;
+
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: $text-color;
+    }
+
+    .imeis-history-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: $text-light;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+
+      &:hover {
+        background: $bg-light;
+        color: $text-color;
+      }
+    }
+  }
+
+  .imeis-history-modal-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .imeis-history-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid $border-color;
+  }
+}
+
+.extra-copy-requests-modal {
+  .extra-copy-requests-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .extra-copy-request-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .extra-copy-request-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .extra-copy-request-time {
+      font-size: 0.85rem;
+      color: #666;
+    }
+  }
+
+  .extra-copy-request-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+}

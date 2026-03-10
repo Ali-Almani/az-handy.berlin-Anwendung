@@ -27,7 +27,9 @@ const persistDashboard = () => {
       id: h.id,
       user_id: h.user_id,
       content: h.content,
-      created_at: h.created_at instanceof Date ? h.created_at.toISOString() : h.created_at
+      created_at: h.created_at instanceof Date ? h.created_at.toISOString() : h.created_at,
+      updated_at: h.updated_at instanceof Date ? h.updated_at.toISOString() : h.updated_at,
+      updated_by: h.updated_by
     }))
   });
 };
@@ -55,7 +57,9 @@ const loadDashboard = () => {
         id: h.id,
         user_id: h.user_id,
         content: h.content || '',
-        created_at: h.created_at ? new Date(h.created_at) : new Date()
+        created_at: h.created_at ? new Date(h.created_at) : new Date(),
+        updated_at: h.updated_at ? new Date(h.updated_at) : null,
+        updated_by: h.updated_by || null
       });
     });
   }
@@ -143,7 +147,9 @@ class InMemoryDashboardNote {
       id: uuidv4(),
       user_id: userId,
       content: content || '',
-      created_at: new Date()
+      created_at: new Date(),
+      updated_at: null,
+      updated_by: null
     });
     persistDashboard();
   }
@@ -162,10 +168,12 @@ class InMemoryDashboardNote {
     return false;
   }
 
-  static updateHistoryEntry(entryId, content) {
+  static updateHistoryEntry(entryId, content, updatedBy = null) {
     const idx = history.findIndex((h) => String(h.id) === String(entryId));
     if (idx >= 0) {
       history[idx].content = content ?? '';
+      history[idx].updated_at = new Date();
+      history[idx].updated_by = updatedBy || null;
       persistDashboard();
       return true;
     }

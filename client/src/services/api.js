@@ -20,7 +20,21 @@ const createMockApi = () => {
         return await mockApi.register(data);
       }
       if (url === '/imeis/reminder') {
-        return { data: { success: true, message: 'Erinnerung gesendet' } };
+        const token = localStorage.getItem('token');
+        return await mockApi.sendReminder(token, data);
+      }
+      if (url === '/imeis/reminder-response') {
+        const token = localStorage.getItem('token');
+        return await mockApi.notifyReminderResponse(token, data);
+      }
+      if (url === '/imeis/extra-copy-request') {
+        return { data: { success: true, message: 'Anfrage an Büro gesendet', id: 1 } };
+      }
+      if (url?.match(/^\/imeis\/extra-copy-request\/\d+\/approve$/)) {
+        return { data: { success: true, message: 'Extra-Kopie genehmigt' } };
+      }
+      if (url?.match(/^\/imeis\/extra-copy-request\/\d+\/reject$/)) {
+        return { data: { success: true, message: 'Anfrage abgelehnt' } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -33,7 +47,18 @@ const createMockApi = () => {
         return await mockApi.getImeisData();
       }
       if (url === '/imeis/reminders') {
-        return { data: { success: true, reminders: [] } };
+        const token = localStorage.getItem('token');
+        return await mockApi.getMyReminders(token);
+      }
+      if (url === '/imeis/extra-copy-requests') {
+        return { data: { success: true, requests: [] } };
+      }
+      if (url === '/imeis/reminder-response-notifications') {
+        const token = localStorage.getItem('token');
+        return await mockApi.getReminderResponseNotifications(token);
+      }
+      if (url === '/imeis/extra-copy-notifications') {
+        return { data: { success: true, notifications: [] } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -52,7 +77,17 @@ const createMockApi = () => {
         return await mockApi.updateHistoryAction(data);
       }
       if (url?.startsWith('/imeis/reminders/') && url?.endsWith('/read')) {
-        return { data: { success: true } };
+        const token = localStorage.getItem('token');
+        const id = url.replace('/imeis/reminders/', '').replace('/read', '');
+        return await mockApi.markReminderRead(token, id);
+      }
+      if (url?.match(/^\/imeis\/extra-copy-notifications\/\d+\/read$/)) {
+        return { data: { success: true, message: 'Als gelesen markiert' } };
+      }
+      if (url?.match(/^\/imeis\/reminder-response-notifications\/.+\/read$/)) {
+        const token = localStorage.getItem('token');
+        const id = url.replace('/imeis/reminder-response-notifications/', '').replace('/read', '');
+        return await mockApi.markReminderResponseNotificationRead(token, id);
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     }
@@ -124,8 +159,9 @@ export const uploadExcelFile = async (file) => {
 if (USE_MOCK_API) {
   console.log('🔧 Mock API Modus aktiviert - Kein Backend-Server erforderlich!');
   console.log('📝 Test-Login-Daten:');
-  console.log('   Email: admin@az-handy.berlin');
-  console.log('   Password: Admin123!');
+  console.log('   Admin: admin@az-handy.berlin / Admin123!');
+  console.log('   Büro (Erinnerung senden): m.somer@az-handy.berlin / !azHandy.berlin20260203?');
+  console.log('   Benutzer (Aktion wählen): test@example.com / test123');
 }
 
 export default api;

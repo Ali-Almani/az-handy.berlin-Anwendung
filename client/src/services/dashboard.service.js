@@ -28,7 +28,7 @@ const mockGetNews = async () => {
     }
   }
   const authorName = (mockGetAdminName() || 'Ali Almani').trim();
-  return { data: { ...res.data, content, updatedAt, authorName } };
+  return { data: { ...res.data, content, updatedAt, authorName, hasRead: false } };
 };
 
 const mockSaveNote = async (content) => {
@@ -125,6 +125,8 @@ export const getNewsArchive = () => {
             id: `mock-${i}-${h.createdAt || ''}`,
             content,
             createdAt: h.createdAt,
+            updatedAt: h.updatedAt || null,
+            updatedBy: h.updatedBy || null,
             readers: msgReaders.map((r) => ({ userName: r.userName, readAt: r.readAt }))
           };
         });
@@ -137,14 +139,19 @@ export const getNewsArchive = () => {
 };
 
 /** Nachricht im Archiv bearbeiten (nur Admin) */
-export const updateNewsArchiveEntry = (id, content) => {
+export const updateNewsArchiveEntry = (id, content, editorName = 'Administrator') => {
   if (USE_MOCK_API) {
     try {
       const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
       const createdAt = String(id).replace(/^mock-\d+-/, '');
       const idx = history.findIndex((h) => String(h.createdAt || '') === createdAt);
       if (idx >= 0) {
-        history[idx] = { ...history[idx], content: content || '' };
+        history[idx] = {
+          ...history[idx],
+          content: content || '',
+          updatedAt: new Date().toISOString(),
+          updatedBy: editorName || 'Administrator'
+        };
         localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       }
     } catch {}

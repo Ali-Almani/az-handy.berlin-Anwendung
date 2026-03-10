@@ -19,6 +19,7 @@ const toPlainUser = (u) => ({
   email: u.email,
   password: u.password,
   role: u.role,
+  avatar: u.avatar ?? null,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt
 });
@@ -46,6 +47,7 @@ const loadUsers = () => {
         email: u.email,
         password: u.password,
         role: u.role,
+        avatar: u.avatar ?? null,
         createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
         updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
       });
@@ -86,6 +88,7 @@ class InMemoryUser {
     this.email = data.email.toLowerCase().trim();
     this.password = data.password;
     this.role = data.role || 'user';
+    this.avatar = data.avatar ?? null;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }

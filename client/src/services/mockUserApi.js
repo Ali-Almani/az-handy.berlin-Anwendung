@@ -17,8 +17,10 @@ export const mockGetProfile = async (mockUsers, token) => {
   if (!userId) throw authError('Ungültiger Token');
   const user = mockUsers.find(u => u.id === userId);
   if (!user) throw notFoundError();
+  const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`mock-avatar-${userId}`) : null;
+  const avatar = user.avatar || storedAvatar || null;
   return {
-    data: { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, createdAt: user.createdAt } }
+    data: { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar, createdAt: user.createdAt } }
   };
 };
 
@@ -33,9 +35,20 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
     if (mockUsers.some(u => u.email === updates.email && u.id !== userId)) throw badRequestError('E-Mail wird bereits verwendet');
     mockUsers[userIndex].email = updates.email;
   }
-  if (updates.avatar) mockUsers[userIndex].avatar = updates.avatar;
+  if (updates.avatar !== undefined) {
+    mockUsers[userIndex].avatar = updates.avatar || null;
+    try {
+      if (updates.avatar) {
+        localStorage.setItem(`mock-avatar-${userId}`, updates.avatar);
+      } else {
+        localStorage.removeItem(`mock-avatar-${userId}`);
+      }
+    } catch (_) {}
+  }
   const u = mockUsers[userIndex];
-  return { data: { success: true, message: 'Profil erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar || null } } };
+  const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`mock-avatar-${userId}`) : null;
+  const avatar = u.avatar || storedAvatar || null;
+  return { data: { success: true, message: 'Profil erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role, avatar } } };
 };
 
 export const mockUpdatePassword = async (mockUsers, token, passwordData) => {

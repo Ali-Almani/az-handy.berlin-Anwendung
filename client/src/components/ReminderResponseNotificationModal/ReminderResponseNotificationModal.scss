@@ -1,0 +1,84 @@
+@import '../../styles/variables';
+
+.reminder-response-notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.reminder-response-notification-modal {
+  position: relative;
+  background: $bg-color;
+  border-radius: 2px;
+  box-shadow: $shadow-lg;
+  max-width: 420px;
+  width: 90%;
+  overflow: hidden;
+}
+
+.reminder-response-notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: $text-color;
+  }
+
+  .reminder-response-notification-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: $text-light;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+
+    &:hover {
+      background: $bg-light;
+      color: $text-color;
+    }
+  }
+}
+
+.reminder-response-notification-body {
+  padding: 1.25rem;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+    font-size: 1rem;
+  }
+
+  .reminder-response-notification-success {
+    color: #2e7d32;
+  }
+
+  .reminder-response-notification-rejected {
+    color: #c62828;
+  }
+}
+
+.reminder-response-notification-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid $border-color;
+}

@@ -80,9 +80,14 @@ const Dashboard = () => {
 
   const handleSaveEditArchive = async (id) => {
     try {
-      await updateNewsArchiveEntry(id, editingContent);
+      await updateNewsArchiveEntry(id, editingContent, user?.name);
+      const now = new Date().toISOString();
       setArchive((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, content: editingContent } : item))
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, content: editingContent, updatedAt: now, updatedBy: user?.name }
+            : item
+        )
       );
       setEditingId(null);
       setEditingContent('');
@@ -120,7 +125,7 @@ const Dashboard = () => {
       {isAdmin(user) && canShowDashboardNotes(user) && (
         <div className="card dashboard-new-message">
           <div className="card-header">
-            <h2 className="card-title">Neue Anweisung schreiben</h2>
+            <h2 className="card-title">Anweisung schreiben</h2>
           </div>
           <div className="card-body">
             {noteError && <p className="text-error">{noteError}</p>}
@@ -186,6 +191,29 @@ const Dashboard = () => {
                           className="dashboard-archive-content"
                           dangerouslySetInnerHTML={{ __html: m.content || '' }}
                         />
+                        {m.createdAt && (
+                          <div className="dashboard-archive-date">
+                            Erstellt: {new Date(m.createdAt).toLocaleString('de-DE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        )}
+                        {m.updatedAt && (
+                          <div className="dashboard-archive-edited">
+                            Bearbeitet am {new Date(m.updatedAt).toLocaleString('de-DE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                            {m.updatedBy && ` von ${m.updatedBy}`}
+                          </div>
+                        )}
                         {m.readers?.length > 0 ? (
                           <div className="dashboard-archive-readers">
                             Gelesen von: {m.readers.map((r) => r.userName).join(', ')}

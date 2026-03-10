@@ -75,7 +75,8 @@ export const login = async (req, res, next) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role
+        role,
+        avatar: user.avatar || null
       }
     });
   } catch (error) {

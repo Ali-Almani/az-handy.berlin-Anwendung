@@ -1,5 +1,7 @@
 import './loadEnv.js';
+import http from 'http';
 import express from 'express';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -7,7 +9,16 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { initDatabase } from './models/index.js';
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true
+  }
+});
+app.set('io', io);
 
 app.use(helmet());
 app.use(cors({
@@ -48,7 +59,7 @@ const mountRoutes = async () => {
 
 const startServer = async () => {
   await mountRoutes();
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🌐 API available at: http://localhost:${PORT}/api`);

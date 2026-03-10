@@ -245,6 +245,21 @@
       word-break: break-word;
     }
 
+    .dashboard-archive-date {
+      flex: 1 1 100%;
+      font-size: 0.85rem;
+      color: $text-light;
+      margin-top: $spacing-xs;
+    }
+
+    .dashboard-archive-edited {
+      flex: 1 1 100%;
+      font-size: 0.85rem;
+      color: $text-light;
+      font-style: italic;
+      margin-top: $spacing-xs;
+    }
+
     .dashboard-archive-readers {
       flex: 1 1 100%;
       font-size: 0.9rem;

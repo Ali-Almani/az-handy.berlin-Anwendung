@@ -12,18 +12,20 @@ const News = () => {
 
   useEffect(() => {
     if (!user?.id) return;
-    const fetchNews = async () => {
+    const fetchNews = async (isInitial = true) => {
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         const res = await getNewsArchive();
         setMessages(res.data?.messages ?? []);
       } catch {
         setMessages([]);
       } finally {
-        setLoading(false);
+        if (isInitial) setLoading(false);
       }
     };
-    fetchNews();
+    fetchNews(true);
+    const id = setInterval(() => fetchNews(false), 3000);
+    return () => clearInterval(id);
   }, [user?.id]);
 
   if (isAdmin(user)) {
@@ -51,13 +53,25 @@ const News = () => {
                   />
                   {m.createdAt && (
                     <div className="news-date">
-                      {new Date(m.createdAt).toLocaleString('de-DE', {
+                      Erstellt: {new Date(m.createdAt).toLocaleString('de-DE', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
+                    </div>
+                  )}
+                  {m.updatedAt && (
+                    <div className="news-date news-date-edited">
+                      Bearbeitet am {new Date(m.updatedAt).toLocaleString('de-DE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                      {m.updatedBy && ` von ${m.updatedBy}`}
                     </div>
                   )}
                 </li>

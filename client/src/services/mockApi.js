@@ -1,10 +1,12 @@
 import { mockLogin, mockRegister } from './mockAuth';
 import { mockGetProfile, mockUpdateProfile, mockUpdatePassword, mockCreateUserByAdmin, mockGetAllUsers, mockUpdateUserByAdmin, mockRestoreAdmin, mockDeleteUser } from './mockUserApi';
+import { mockSendReminder, mockGetMyReminders, mockMarkReminderRead, mockNotifyReminderResponse, mockGetReminderResponseNotifications, mockMarkReminderResponseNotificationRead } from './mockImeiReminders';
 import { loadImeis, saveImeis } from '../utils/storage';
 
 const mockUsers = [
   { id: 'admin-1', name: 'Ali Almani', email: 'admin@az-handy.berlin', password: 'Admin123!', role: 'Administrator', createdAt: new Date().toISOString() },
-  { id: 'user-1', name: 'Test Benutzer', email: 'test@example.com', password: 'test123', role: 'user', createdAt: new Date().toISOString() },
+  { id: 'buero-1', name: 'M. Somer', email: 'm.somer@az-handy.berlin', password: '!azHandy.berlin20260203?', role: 'Büro Mitarbeiter', createdAt: new Date().toISOString() },
+  { id: 'user-1', name: 'Test Benutzer', email: 'test@example.com', password: 'test123', role: 'Marketing', createdAt: new Date().toISOString() },
   { id: 'mitarbeiter-1', name: 'Mitarbeiter Shop', email: 'mitarbeiter@az-handy.berlin', password: 'Test123!', role: 'Mitarbeiter shop', createdAt: new Date().toISOString() }
 ];
 
@@ -50,6 +52,24 @@ const mockApi = {
     if (payload.copyHistory !== undefined) localStorage.setItem('imeis-copy-history', JSON.stringify(payload.copyHistory));
     if (payload.copyTimestamps !== undefined) localStorage.setItem('imeis-copy-timestamps', JSON.stringify(payload.copyTimestamps));
     return { data: { success: true } };
+  },
+  async sendReminder(token, data) {
+    return mockSendReminder(mockUsers, token, data);
+  },
+  async getMyReminders(token) {
+    return mockGetMyReminders(token);
+  },
+  async markReminderRead(token, reminderId) {
+    return mockMarkReminderRead(token, reminderId);
+  },
+  async notifyReminderResponse(token, data) {
+    return mockNotifyReminderResponse(mockUsers, token, data);
+  },
+  async getReminderResponseNotifications(token) {
+    return mockGetReminderResponseNotifications(mockUsers, token);
+  },
+  async markReminderResponseNotificationRead(token, id) {
+    return mockMarkReminderResponseNotificationRead(token, id);
   },
   async updateHistoryAction({ imei, userName, newAction }) {
     const imeiStr = String(imei || '').trim();

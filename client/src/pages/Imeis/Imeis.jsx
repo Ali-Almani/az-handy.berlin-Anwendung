@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter } from '../../utils/roles';
+import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isAdmin } from '../../utils/roles';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -9,7 +9,7 @@ import ImeisStats from './components/ImeisStats';
 import ImeisPagination from './components/ImeisPagination';
 import ImeisEmpty from './components/ImeisEmpty';
 import ImeisHistoryModal from './components/ImeisHistoryModal';
-import { sendImeiReminderApi, getMyImeiRemindersApi, markImeiReminderReadApi } from '../../services/imeis.service';
+import { sendImeiReminderApi, getMyImeiRemindersApi, markImeiReminderReadApi, createExtraCopyRequestApi } from '../../services/imeis.service';
 import ImeisZustandModal from './components/ImeisZustandModal';
 import ImeisRateLimitModal from './components/ImeisRateLimitModal';
 import './Imeis.scss';
@@ -92,14 +92,18 @@ const Imeis = () => {
   } = useImeis();
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const [reminderImeiFilter, setReminderImeiFilter] = useState(null);
 
   useEffect(() => {
     if (searchParams.get('showVerlauf') === '1') {
-      setShowHistoryModal(true);
       searchParams.delete('showVerlauf');
       setSearchParams(searchParams, { replace: true });
       getMyImeiRemindersApi().then((res) => {
-        (res?.reminders ?? []).forEach((r) => markImeiReminderReadApi(r.id));
+        const reminders = res?.reminders ?? [];
+        const imeis = [...new Set(reminders.map((r) => String(r.imei || '').trim()).filter(Boolean))];
+        setReminderImeiFilter(imeis.length > 0 ? imeis : null);
+        setShowHistoryModal(true);
+        reminders.forEach((r) => markImeiReminderReadApi(r.id));
       });
     }
   }, [searchParams, setSearchParams, setShowHistoryModal]);
@@ -143,7 +147,7 @@ const Imeis = () => {
             onExport={handleExport}
             filteredImeisLength={filteredImeis.length}
             copyHistoryLength={copyHistory.length}
-            onShowHistory={() => setShowHistoryModal(true)}
+            onShowHistory={() => { setReminderImeiFilter(null); setShowHistoryModal(true); }}
             imeisLength={imeis.length}
             onDeleteAll={handleDeleteAll}
             onShowZustand={onShowZustand}
@@ -236,8 +240,9 @@ const Imeis = () => {
 
       <ImeisHistoryModal
         isOpen={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
+        onClose={() => { setShowHistoryModal(false); setReminderImeiFilter(null); }}
         copyHistory={copyHistory}
+        filterImeis={reminderImeiFilter}
         onUpdateHistoryAction={handleUpdateHistoryAction}
         historyUndoStack={historyUndoStack}
         onUndo={handleHistoryModalUndo}
@@ -263,6 +268,8 @@ const Imeis = () => {
         isOpen={showRateLimitModal}
         onClose={() => setShowRateLimitModal(false)}
         message={rateLimitMessage}
+        canRequestExtra={user && !isBüroMitarbeiter(user) && !isAdmin(user)}
+        onRequestExtra={createExtraCopyRequestApi}
       />
     </div>
   );

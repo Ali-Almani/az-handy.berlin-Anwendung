@@ -70,6 +70,62 @@ export const markImeiReminderReadApi = async (reminderId) => {
   }
 };
 
+/** Benutzer: Büro benachrichtigen, dass auf Erinnerung reagiert wurde */
+export const notifyReminderResponseApi = async (imei, action) => {
+  try {
+    await api.post('/imeis/reminder-response', { imei, action });
+  } catch (err) {
+    console.error('Error notifying reminder response:', err);
+  }
+};
+
+/** Büro: Benachrichtigungen über Erinnerungs-Antworten abrufen */
+export const getReminderResponseNotificationsApi = async () => {
+  const res = await api.get('/imeis/reminder-response-notifications');
+  return res.data;
+};
+
+/** Büro: Benachrichtigung als gelesen markieren */
+export const markReminderResponseNotificationReadApi = async (id) => {
+  await api.patch(`/imeis/reminder-response-notifications/${id}/read`);
+};
+
+/** Anfrage für Extra-Kopie an Büro senden (bei Rate-Limit) */
+export const createExtraCopyRequestApi = async () => {
+  const res = await api.post('/imeis/extra-copy-request');
+  return res.data;
+};
+
+/** Büro: Offene Extra-Kopie-Anfragen abrufen */
+export const getExtraCopyRequestsApi = async () => {
+  const res = await api.get('/imeis/extra-copy-requests');
+  return res.data;
+};
+
+/** Büro: Extra-Kopie genehmigen */
+export const approveExtraCopyRequestApi = async (id) => {
+  const res = await api.post(`/imeis/extra-copy-request/${id}/approve`);
+  return res.data;
+};
+
+/** Büro: Extra-Kopie ablehnen */
+export const rejectExtraCopyRequestApi = async (id) => {
+  const res = await api.post(`/imeis/extra-copy-request/${id}/reject`);
+  return res.data;
+};
+
+/** Benutzer: Eigene Extra-Kopie-Benachrichtigungen abrufen */
+export const getExtraCopyNotificationsApi = async () => {
+  const res = await api.get('/imeis/extra-copy-notifications');
+  return res.data;
+};
+
+/** Benutzer: Benachrichtigung als gelesen markieren */
+export const markExtraCopyNotificationReadApi = async (id) => {
+  const res = await api.patch(`/imeis/extra-copy-notifications/${id}/read`);
+  return res.data;
+};
+
 export const loadImeisWithApi = async (user) => {
   if (user) {
     const apiData = await getImeisDataFromApi();

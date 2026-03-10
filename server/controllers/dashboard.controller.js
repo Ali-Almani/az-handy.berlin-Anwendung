@@ -31,7 +31,7 @@ export const getNews = async (req, res, next) => {
     const adminId = admin?.id ?? admin?._id ?? null;
     let authorName = (admin?.name ?? admin?.get?.('name') ?? admin?.dataValues?.name ?? '').trim();
     if (!adminId) {
-      return res.json({ success: true, content: '', updatedAt: null, authorName: '' });
+      return res.json({ success: true, content: '', updatedAt: null, authorName: '', hasRead: false });
     }
     const [note] = await DashboardNote.findOrCreate({
       where: { user_id: adminId },
@@ -47,7 +47,10 @@ export const getNews = async (req, res, next) => {
         updatedAt = latest.created_at ?? latest.createdAt ?? null;
       }
     }
-    return res.json({ success: true, content, updatedAt, authorName });
+    const contentHash = simpleHash(content);
+    const userId = req.user?.userId ?? null;
+    const hasRead = contentHash && userId && NewsRead.hasUserRead(userId, contentHash);
+    return res.json({ success: true, content, updatedAt, authorName, hasRead: !!hasRead });
   } catch (error) {
     next(error);
   }
@@ -98,6 +101,7 @@ export const saveNote = async (req, res, next) => {
         DashboardNote.addHistory(userId, content ?? '');
       }
       await note.update({ content: '' });
+      broadcastNewsIfAdmin(req, content, userId);
       return res.json({
         success: true,
         message: 'Notiz gespeichert',
@@ -117,6 +121,7 @@ export const saveNote = async (req, res, next) => {
       });
     }
     await note.update({ content: '' });
+    broadcastNewsIfAdmin(req, content, userId);
 
     res.json({
       success: true,
@@ -127,6 +132,19 @@ export const saveNote = async (req, res, next) => {
     next(error);
   }
 };
+
+/** Echtzeit-Broadcast: Wenn Admin eine Anweisung speichert, an alle Benutzer senden */
+async function broadcastNewsIfAdmin(req, content, userId) {
+  if (!content || !String(content).trim()) return;
+  const io = req.app?.get?.('io');
+  if (!io) return;
+  try {
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) return;
+    const authorName = (currentUser?.name ?? currentUser?.get?.('name') ?? currentUser?.dataValues?.name ?? 'Administrator').trim();
+    io.emit('news:new', { content: String(content).trim(), authorName });
+  } catch {}
+}
 
 /** News als gelesen markieren (nur für nicht-Admin) */
 export const markNewsAsRead = async (req, res, next) => {
@@ -198,6 +216,8 @@ export const getNewsArchive = async (req, res, next) => {
           id: h.id,
           content,
           createdAt: h.created_at ?? h.createdAt,
+          updatedAt: h.updated_at ?? h.updatedAt ?? null,
+          updatedBy: h.updated_by ?? null,
           readers: readers.map((r) => ({ userName: r.user_name, readAt: r.read_at }))
         };
       });
@@ -231,8 +251,9 @@ export const updateNewsArchiveEntry = async (req, res, next) => {
     const oldContent = (entry.content ?? '').trim();
     const oldHash = simpleHash(oldContent);
     const newContent = (content ?? '').trim();
+    const editorName = (currentUser?.name ?? currentUser?.get?.('name') ?? currentUser?.dataValues?.name ?? 'Administrator').trim();
     if (NewsRead.deleteReadsByContentHash && oldHash) NewsRead.deleteReadsByContentHash(oldHash);
-    if (DashboardNote.updateHistoryEntry) DashboardNote.updateHistoryEntry(id, newContent);
+    if (DashboardNote.updateHistoryEntry) DashboardNote.updateHistoryEntry(id, newContent, editorName);
 
     return res.json({ success: true, message: 'Nachricht aktualisiert' });
   } catch (error) {

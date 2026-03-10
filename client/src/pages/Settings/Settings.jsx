@@ -13,6 +13,7 @@ const Settings = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ name: '', email: '', avatar: null, avatarPreview: null });
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
   useEffect(() => {
@@ -36,10 +37,15 @@ const Settings = () => {
     if (!file) return;
     if (!file.type.startsWith('image/')) { setError('Bitte wählen Sie eine Bilddatei aus'); return; }
     if (file.size > 5 * 1024 * 1024) { setError('Bild darf maximal 5MB groß sein'); return; }
-    const reader = new FileReader();
-    reader.onloadend = () => setFormData(prev => ({ ...prev, avatar: file, avatarPreview: reader.result }));
-    reader.readAsDataURL(file);
     setError('');
+    setAvatarLoading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, avatar: file, avatarPreview: reader.result }));
+      setAvatarLoading(false);
+    };
+    reader.onerror = () => { setAvatarLoading(false); setError('Bild konnte nicht gelesen werden'); };
+    reader.readAsDataURL(file);
   };
 
   const handlePasswordChange = (e) => {
@@ -61,6 +67,21 @@ const Settings = () => {
       setFormData(prev => ({ ...prev, avatar: null }));
     } catch (err) {
       setError(err.response?.data?.message || 'Fehler beim Aktualisieren des Profils');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    setLoading(true);
+    clearMessages();
+    try {
+      const response = await updateUserProfile({ avatar: null });
+      setUser(response.data.user);
+      setSuccess('Profilbild wurde entfernt.');
+      setFormData(prev => ({ ...prev, avatar: null, avatarPreview: null }));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Fehler beim Entfernen des Profilbilds');
     } finally {
       setLoading(false);
     }
@@ -127,7 +148,7 @@ const Settings = () => {
             <h2>Profil bearbeiten</h2>
             <p>Ändern Sie Ihr Profilbild</p>
           </div>
-          <ProfileForm formData={formData} loading={loading} onAvatarChange={handleAvatarChange} onSubmit={handleProfileSubmit} />
+          <ProfileForm formData={formData} loading={loading} avatarLoading={avatarLoading} onAvatarChange={handleAvatarChange} onAvatarRemove={handleAvatarRemove} onSubmit={handleProfileSubmit} />
         </div>
         <div className="settings-section">
           <div className="settings-section-header">

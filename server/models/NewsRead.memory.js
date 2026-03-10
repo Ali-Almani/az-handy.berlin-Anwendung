@@ -51,6 +51,14 @@ export const getReadsByContentHash = (contentHash) => {
   return reads.filter((r) => r.content_hash === contentHash).sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
 };
 
+/** Prüft, ob ein Benutzer diese Anweisung bereits gelesen hat (für Popup: nur einmal anzeigen) */
+export const hasUserRead = (userId, contentHash) => {
+  if (!userId || !contentHash) return false;
+  return reads.some(
+    (r) => String(r.user_id) === String(userId) && r.content_hash === String(contentHash)
+  );
+};
+
 export const deleteReadsByContentHash = (contentHash) => {
   const before = reads.length;
   reads = reads.filter((r) => r.content_hash !== contentHash);

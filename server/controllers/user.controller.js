@@ -21,6 +21,7 @@ export const getProfile = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role,
+        avatar: user.avatar || null,
         createdAt: user.createdAt
       }
     });
@@ -31,7 +32,7 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, avatar } = req.body;
     const user = await User.findByPk(req.user.userId);
 
     if (!user) {
@@ -49,6 +50,7 @@ export const updateProfile = async (req, res, next) => {
       }
       user.email = email.toLowerCase().trim();
     }
+    if (avatar !== undefined) user.avatar = avatar || null;
 
     await user.save();
 
@@ -59,7 +61,8 @@ export const updateProfile = async (req, res, next) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        avatar: user.avatar || null
       }
     });
   } catch (error) {
@@ -94,7 +97,7 @@ export const createUserByAdmin = async (req, res, next) => {
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer erstellen' });
     }
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, avatar } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, E-Mail und Passwort sind erforderlich' });
     }
@@ -102,11 +105,11 @@ export const createUserByAdmin = async (req, res, next) => {
     if (existing) {
       return res.status(400).json({ message: 'E-Mail wird bereits verwendet' });
     }
-    const user = await User.create({ name, email: email.toLowerCase(), password, role: role || 'Marketing' });
+    const user = await User.create({ name, email: email.toLowerCase(), password, role: role || 'Marketing', avatar: avatar || null });
     res.status(201).json({
       success: true,
       message: 'Benutzer erfolgreich erstellt',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null }
     });
   } catch (error) {
     next(error);
@@ -120,7 +123,7 @@ export const updateUserByAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer bearbeiten' });
     }
     const { id } = req.params;
-    const { role, name, email } = req.body;
+    const { role, name, email, avatar } = req.body;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
@@ -143,11 +146,12 @@ export const updateUserByAdmin = async (req, res, next) => {
       }
       user.email = email.toLowerCase().trim();
     }
+    if (avatar !== undefined) user.avatar = avatar || null;
     await user.save();
     res.json({
       success: true,
       message: 'Benutzer erfolgreich aktualisiert',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null }
     });
   } catch (error) {
     next(error);
@@ -191,7 +195,7 @@ export const restoreAdmin = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Admin-Rolle wiederhergestellt',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null }
     });
   } catch (error) {
     next(error);

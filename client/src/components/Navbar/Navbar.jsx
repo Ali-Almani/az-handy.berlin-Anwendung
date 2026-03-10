@@ -5,7 +5,20 @@ import { canAccessImeis, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
-const Navbar = ({ hasReminderBadge = false, reminderCount = 0, onOpenVerlauf }) => {
+const Navbar = ({
+  hasReminderBadge = false,
+  reminderCount = 0,
+  onOpenVerlauf,
+  hasExtraCopyBadge = false,
+  extraCopyCount = 0,
+  onOpenExtraCopyModal,
+  hasExtraCopyResultBadge = false,
+  extraCopyResultCount = 0,
+  onOpenExtraCopyResultModal,
+  hasReminderResponseBadge = false,
+  reminderResponseCount = 0,
+  onOpenReminderResponseModal
+}) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -40,6 +53,21 @@ const Navbar = ({ hasReminderBadge = false, reminderCount = 0, onOpenVerlauf }) 
 
   const handleOpenVerlauf = () => {
     onOpenVerlauf?.();
+    setDropdownOpen(false);
+  };
+
+  const handleOpenExtraCopyModal = () => {
+    onOpenExtraCopyModal?.();
+    setDropdownOpen(false);
+  };
+
+  const handleOpenExtraCopyResultModal = () => {
+    onOpenExtraCopyResultModal?.();
+    setDropdownOpen(false);
+  };
+
+  const handleOpenReminderResponseModal = () => {
+    onOpenReminderResponseModal?.();
     setDropdownOpen(false);
   };
 
@@ -111,6 +139,42 @@ const Navbar = ({ hasReminderBadge = false, reminderCount = 0, onOpenVerlauf }) 
                       {reminderCount > 9 ? '9+' : reminderCount}
                     </span>
                   )}
+                  {hasExtraCopyBadge && (
+                    <span
+                      className="navbar-avatar-badge navbar-avatar-badge--extra"
+                      title="Anfragen für Extra-Kopie – Klicken zum Öffnen"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenExtraCopyModal(); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenExtraCopyModal(); } }}
+                    >
+                      {extraCopyCount > 9 ? '9+' : extraCopyCount}
+                    </span>
+                  )}
+                  {hasExtraCopyResultBadge && (
+                    <span
+                      className="navbar-avatar-badge navbar-avatar-badge--result"
+                      title="Benachrichtigung: Extra-Kopie-Anfrage – Klicken zum Öffnen"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenExtraCopyResultModal(); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenExtraCopyResultModal(); } }}
+                    >
+                      {extraCopyResultCount > 9 ? '9+' : extraCopyResultCount}
+                    </span>
+                  )}
+                  {hasReminderResponseBadge && (
+                    <span
+                      className="navbar-avatar-badge navbar-avatar-badge--reminder-response"
+                      title="Erinnerung beantwortet – Klicken zum Öffnen"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenReminderResponseModal(); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenReminderResponseModal(); } }}
+                    >
+                      {reminderResponseCount > 9 ? '9+' : reminderResponseCount}
+                    </span>
+                  )}
                 </button>
                 {dropdownOpen && (
                   <div className="navbar-dropdown">
@@ -128,6 +192,36 @@ const Navbar = ({ hasReminderBadge = false, reminderCount = 0, onOpenVerlauf }) 
                       >
                         <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderCount > 9 ? '9+' : reminderCount}</span>
                         <span>Verlauf prüfen</span>
+                      </button>
+                    )}
+                    {hasExtraCopyBadge && onOpenExtraCopyModal && (
+                      <button
+                        type="button"
+                        className="navbar-dropdown-item navbar-dropdown-item--reminder"
+                        onClick={handleOpenExtraCopyModal}
+                      >
+                        <span className="navbar-avatar-badge navbar-avatar-badge--small">{extraCopyCount > 9 ? '9+' : extraCopyCount}</span>
+                        <span>Extra-Kopie-Anfragen</span>
+                      </button>
+                    )}
+                    {hasExtraCopyResultBadge && onOpenExtraCopyResultModal && (
+                      <button
+                        type="button"
+                        className="navbar-dropdown-item navbar-dropdown-item--reminder"
+                        onClick={handleOpenExtraCopyResultModal}
+                      >
+                        <span className="navbar-avatar-badge navbar-avatar-badge--small">{extraCopyResultCount > 9 ? '9+' : extraCopyResultCount}</span>
+                        <span>Benachrichtigung: Extra-Kopie</span>
+                      </button>
+                    )}
+                    {hasReminderResponseBadge && onOpenReminderResponseModal && (
+                      <button
+                        type="button"
+                        className="navbar-dropdown-item navbar-dropdown-item--reminder"
+                        onClick={handleOpenReminderResponseModal}
+                      >
+                        <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderResponseCount > 9 ? '9+' : reminderResponseCount}</span>
+                        <span>Erinnerung beantwortet</span>
                       </button>
                     )}
                     <Link

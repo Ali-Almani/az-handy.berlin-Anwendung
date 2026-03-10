@@ -34,6 +34,12 @@
   .news-date {
     font-size: 0.875rem;
     color: $text-light;
+    margin-top: $spacing-xs;
+
+    &.news-date-edited {
+      font-style: italic;
+      margin-top: $spacing-xs;
+    }
   }
 
   .news-empty {

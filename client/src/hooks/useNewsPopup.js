@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { getNews, markNewsAsRead } from '../services/dashboard.service';
+import { getSocket } from '../services/socket';
 import { isAdmin } from '../utils/roles';
 
-const NEWS_POLL_MS = 15000;
+const NEWS_POLL_MS = 15000; // Fallback-Polling falls Socket nicht verfügbar
 const STORAGE_KEY = 'news-last-read';
 
 const getLastReadHash = (userId) => {
@@ -42,7 +43,11 @@ export function useNewsPopup() {
     if (!user?.id) return null;
     try {
       const res = await getNews();
-      return { content: res?.data?.content ?? '', authorName: (res?.data?.authorName ?? '').trim() };
+      return {
+        content: res?.data?.content ?? '',
+        authorName: (res?.data?.authorName ?? '').trim(),
+        hasRead: !!res?.data?.hasRead
+      };
     } catch {
       return null;
     }
@@ -51,24 +56,41 @@ export function useNewsPopup() {
   useEffect(() => {
     if (!user?.id || isAdmin(user)) return;
 
-    const check = async () => {
-      const data = await fetchNews();
-      if (!data) return;
-      const newContent = data.content;
-      if (newContent == null) return;
+    const showNewNews = (newContent, newAuthorName, hasReadFromServer = false) => {
+      if (!newContent || !newContent.trim()) return;
+      if (hasReadFromServer) return; // Server sagt: Benutzer hat bereits gelesen → kein Popup
       const hash = simpleHash(newContent);
       if (!hash) return;
       const lastRead = getLastReadHash(user.id);
       if (lastRead !== hash) {
         setContent(newContent);
-        setAuthorName(data.authorName || '');
+        setAuthorName(newAuthorName || '');
         setShowPopup(true);
       }
     };
 
+    const check = async () => {
+      const data = await fetchNews();
+      if (!data) return;
+      showNewNews(data.content, data.authorName, data.hasRead);
+    };
+
+    // Echtzeit: Socket.io – wenn Admin Anweisung speichert, sofort Popup
+    const socket = getSocket();
+    const onNewsNew = (payload) => {
+      if (payload?.content) showNewNews(payload.content, payload.authorName || '', false);
+    };
+    if (socket) {
+      socket.on('news:new', onNewsNew);
+    }
+
     check();
     const id = setInterval(check, NEWS_POLL_MS);
-    return () => clearInterval(id);
+
+    return () => {
+      clearInterval(id);
+      if (socket) socket.off('news:new', onNewsNew);
+    };
   }, [user?.id, fetchNews]);
 
   const handleMarkAsRead = useCallback(async () => {
@@ -80,7 +102,7 @@ export function useNewsPopup() {
       } catch {}
     }
     setShowPopup(false);
-  }, [content, user?.id]);
+  }, [content, user?.id, user?.name]);
 
   return {
     showPopup: showPopup && content && !isAdmin(user),
