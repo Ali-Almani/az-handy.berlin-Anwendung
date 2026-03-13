@@ -1,18 +1,17 @@
 import { loadJson, saveJson } from '../utils/filePersistence.js';
-
-const PERSIST = process.env.PERSIST_MEMORY_DATA !== 'false';
+import { getPersist } from '../utils/persistConfig.js';
 const FILE = 'extra_copy_notifications.json';
 
 let notifications = [];
 let nextId = 1;
 
 const persist = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   saveJson(FILE, { notifications, nextId });
 };
 
 const load = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = loadJson(FILE);
   if (data?.notifications?.length !== undefined) {
     notifications = data.notifications;

@@ -1,6 +1,5 @@
 import { loadJson, saveJson } from '../utils/filePersistence.js';
-
-const PERSIST = process.env.PERSIST_MEMORY_DATA !== 'false';
+import { getPersist } from '../utils/persistConfig.js';
 
 const uuidv4 = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -14,7 +13,7 @@ const notes = [];
 const history = [];
 
 const persistDashboard = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   saveJson('dashboard.json', {
     notes: notes.map(n => ({
       id: n.id,
@@ -35,7 +34,7 @@ const persistDashboard = () => {
 };
 
 const loadDashboard = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = loadJson('dashboard.json');
   if (data?.notes?.length) {
     notes.length = 0;

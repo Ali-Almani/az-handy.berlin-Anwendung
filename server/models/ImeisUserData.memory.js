@@ -1,11 +1,10 @@
 import { loadJson, saveJson } from '../utils/filePersistence.js';
-
-const PERSIST = process.env.PERSIST_MEMORY_DATA !== 'false';
+import { getPersist } from '../utils/persistConfig.js';
 
 const dataByUserId = new Map();
 
 const persistImeis = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = {};
   dataByUserId.forEach((v, k) => {
     data[k] = {
@@ -23,7 +22,7 @@ const persistImeis = () => {
 };
 
 const loadImeis = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = loadJson('imeis.json');
   if (data && typeof data === 'object') {
     Object.entries(data).forEach(([k, v]) => {

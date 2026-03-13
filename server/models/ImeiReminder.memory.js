@@ -1,18 +1,17 @@
 import { loadJson, saveJson } from '../utils/filePersistence.js';
-
-const PERSIST = process.env.PERSIST_MEMORY_DATA !== 'false';
+import { getPersist } from '../utils/persistConfig.js';
 const FILE = 'imei_reminders.json';
 
 let reminders = [];
 let nextId = 1;
 
 const persist = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   saveJson(FILE, { reminders, nextId });
 };
 
 const load = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = loadJson(FILE);
   if (data?.reminders?.length) {
     reminders = data.reminders;

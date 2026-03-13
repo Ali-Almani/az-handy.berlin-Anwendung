@@ -37,7 +37,10 @@ export const saveJson = (filename, data) => {
   ensureDataDir();
   const filepath = path.join(DATA_DIR, filename);
   try {
-    fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8');
+    const fd = fs.openSync(filepath, 'w');
+    fs.writeFileSync(fd, JSON.stringify(data, null, 2), 'utf-8');
+    fs.fsyncSync(fd); // Daten sofort auf Disk schreiben
+    fs.closeSync(fd);
   } catch (err) {
     console.error(`❌ Could not save ${filename} (${filepath}):`, err.message);
   }

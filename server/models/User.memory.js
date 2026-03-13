@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
-
-const getPersist = () => process.env.PERSIST_MEMORY_DATA !== 'false';
+import { getPersist } from '../utils/persistConfig.js';
 
 const uuidv4 = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {

@@ -10,8 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-// In Produktion: Persistenz immer aktivieren (vor dem Laden der Modelle!)
-if (process.env.NODE_ENV === 'production') {
+// Persistenz immer aktivieren (Daten bleiben nach Neustart) – außer explizit 'false' in .env
+if (process.env.PERSIST_MEMORY_DATA !== 'false') {
   process.env.PERSIST_MEMORY_DATA = 'true';
 }
 
