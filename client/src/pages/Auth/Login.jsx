@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { loginUser } from '../../services/auth.service';
 import { isMitarbeiterShop } from '../../utils/roles';
@@ -14,6 +14,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
 
   const handleChange = (e) => {
     setFormData({
@@ -34,7 +36,9 @@ const Login = () => {
       localStorage.setItem('loginTimestamp', Date.now().toString());
       const userData = response.data.user;
       setUser(userData);
-      navigate(isMitarbeiterShop(userData) ? '/imeis' : '/dashboard', { replace: true });
+      // Nach Login zur ursprünglichen URL (z.B. /imeis?showVerlauf=1) weiterleiten
+      const targetPath = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : (isMitarbeiterShop(userData) ? '/imeis' : '/dashboard');
+      navigate(targetPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login fehlgeschlagen');
     } finally {

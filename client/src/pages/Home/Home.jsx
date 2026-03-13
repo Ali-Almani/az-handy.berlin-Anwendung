@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getNews } from '../../services/dashboard.service';
+import Login from '../Auth/Login';
 import './Home.scss';
 
 const Home = () => {
@@ -20,6 +21,11 @@ const Home = () => {
     };
     fetchNote();
   }, [user]);
+
+  // Startseite: Login-Form anzeigen wenn nicht eingeloggt
+  if (!user) {
+    return <Login />;
+  }
 
   return (
     <div className="home">
