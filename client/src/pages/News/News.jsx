@@ -36,7 +36,7 @@ const News = () => {
     <div className="news-page">
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Archive Anweisung</h2>
+          <h2 className="card-title">Archiv Anweisung</h2>
         </div>
         <div className="card-body">
           {loading ? (

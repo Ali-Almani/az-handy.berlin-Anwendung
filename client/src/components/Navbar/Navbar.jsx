@@ -99,7 +99,7 @@ const Navbar = ({
               {!isAdmin(user) && (
                 <li>
                   <Link to="/news" className="navbar-link">
-                    Archive Anweisung
+                    Archiv Anweisung
                   </Link>
                 </li>
               )}
