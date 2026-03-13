@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
 
-const PERSIST = process.env.PERSIST_MEMORY_DATA !== 'false';
+const getPersist = () => process.env.PERSIST_MEMORY_DATA !== 'false';
 
 const uuidv4 = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -25,7 +25,7 @@ const toPlainUser = (u) => ({
 });
 
 const persistUsers = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = users.map(u => {
     const p = toPlainUser(u);
     p.createdAt = p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt;
@@ -36,7 +36,7 @@ const persistUsers = () => {
 };
 
 const loadUsers = () => {
-  if (!PERSIST) return;
+  if (!getPersist()) return;
   const data = loadJson('users.json');
   if (Array.isArray(data) && data.length > 0) {
     users.length = 0;
