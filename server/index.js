@@ -72,6 +72,10 @@ let USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' || !hasPostgresConfig;
 
 if (USE_MEMORY_DB) {
   process.env.USE_MEMORY_DB = 'true';
+  // In Produktion: Persistenz immer aktivieren (Daten bleiben nach Neustart)
+  if (process.env.NODE_ENV === 'production') {
+    process.env.PERSIST_MEMORY_DATA = 'true';
+  }
   const persist = process.env.PERSIST_MEMORY_DATA !== 'false';
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -103,6 +107,10 @@ if (USE_MEMORY_DB) {
       console.error('');
       process.env.USE_MEMORY_DB = 'true';
       USE_MEMORY_DB = true;
+      // In Produktion: Persistenz immer aktivieren
+      if (process.env.NODE_ENV === 'production') {
+        process.env.PERSIST_MEMORY_DATA = 'true';
+      }
 
       const persist = process.env.PERSIST_MEMORY_DATA !== 'false';
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
