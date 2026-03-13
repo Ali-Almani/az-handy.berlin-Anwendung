@@ -75,11 +75,12 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
   }
 };
 
-/** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden (User mit IMEI-Daten) */
+/** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden. Bevorzugt Büro/Admin bei gleicher Anzahl. */
 const getSharedImeiOwnerId = async () => {
   const all = await ImeisUserData.findAll();
   let best = null;
   let bestCount = 0;
+  let bestIsBueroOrAdmin = false;
   for (const row of all) {
     const imeisJson = (row.get && row.get('imeis_json')) ?? row.imeis_json;
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
@@ -87,9 +88,16 @@ const getSharedImeiOwnerId = async () => {
     try {
       arr = imeisJson ? JSON.parse(imeisJson) : [];
     } catch (_) {}
-    if (Array.isArray(arr) && arr.length > bestCount) {
-      bestCount = arr.length;
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    const user = await User.findByPk(rowUserId);
+    const role = user?.role ?? '';
+    const isBueroOrAdmin = role.trim() === 'Büro Mitarbeiter' || role.toLowerCase().includes('admin');
+    const count = arr.length;
+    const replace = count > bestCount || (count === bestCount && isBueroOrAdmin && !bestIsBueroOrAdmin);
+    if (replace) {
+      bestCount = count;
       best = rowUserId;
+      bestIsBueroOrAdmin = isBueroOrAdmin;
     }
   }
   if (best) return best;

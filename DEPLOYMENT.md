@@ -211,6 +211,10 @@ pm2 startup
 
 **Domain zeigt nicht auf Server:** DNS-Propagation abwarten (bis 48 Std.), A-Record bei United Domains prüfen
 
+**Daten gehen nach Refresh/Neustart verloren:** In Produktion ist Persistenz automatisch aktiv. Prüfen:
+- `server/data/` muss existieren und beschreibbar sein: `mkdir -p server/data && chmod 755 server/data`
+- Beim Start zeigt der Server den Pfad: `Pfad: /var/www/az-handy/server/data`
+
 ---
 
 ## Server-Anforderungen

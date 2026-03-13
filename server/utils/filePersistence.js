@@ -3,13 +3,21 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// Absoluter Pfad – funktioniert auch bei PM2/verschiedenen Arbeitsverzeichnissen
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
 
-const ensureDataDir = () => {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+export const ensureDataDir = () => {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      console.log(`📁 Datenverzeichnis erstellt: ${DATA_DIR}`);
+    }
+  } catch (err) {
+    console.error(`❌ Datenverzeichnis konnte nicht erstellt werden (${DATA_DIR}):`, err.message);
   }
 };
+
+export const getDataDir = () => DATA_DIR;
 
 export const loadJson = (filename) => {
   ensureDataDir();
@@ -31,6 +39,6 @@ export const saveJson = (filename, data) => {
   try {
     fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error(`Could not save ${filename}:`, err.message);
+    console.error(`❌ Could not save ${filename} (${filepath}):`, err.message);
   }
 };

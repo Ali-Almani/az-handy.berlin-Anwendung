@@ -82,7 +82,10 @@ if (USE_MEMORY_DB) {
   console.log('📦 IN-MEMORY MODE (No database required)');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   if (persist) {
+    const { getDataDir, ensureDataDir } = await import('./utils/filePersistence.js');
+    ensureDataDir(); // Datenverzeichnis sofort erstellen, bevor Modelle laden
     console.log('✅ Daten werden in server/data/*.json gespeichert (bleiben nach Neustart)');
+    console.log(`   Pfad: ${getDataDir()}`);
   } else {
     console.log('⚠️  Data will be lost on server restart');
     console.log('   Für Persistenz: PERSIST_MEMORY_DATA=true in .env setzen');
