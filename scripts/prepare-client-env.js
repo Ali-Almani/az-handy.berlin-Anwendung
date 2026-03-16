@@ -23,6 +23,7 @@ if (fs.existsSync(envPath)) {
 const apiUrl = clientUrl.replace(/\/$/, '') + '/api';
 const envContent = `# Auto-generated for production build - use real API, not Mock
 VITE_API_URL=${apiUrl}
+VITE_USE_MOCK_API=false
 `;
 
 fs.writeFileSync(clientEnvPath, envContent);

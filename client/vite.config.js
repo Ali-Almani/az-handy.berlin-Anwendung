@@ -7,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const useMockApi = env.VITE_USE_MOCK_API === 'true' || env.VITE_API_URL === 'mock' || !env.VITE_API_URL;
+  // Production: Immer echte API nutzen, falls URL gesetzt (oder Default)
+  const apiUrl = env.VITE_API_URL || (mode === 'production' ? 'https://az-schnelltest.berlin/api' : '');
+  const useMockApi = env.VITE_USE_MOCK_API === 'true' || env.VITE_API_URL === 'mock' || !apiUrl;
 
   const proxy = {
     '/api': {
@@ -60,7 +62,12 @@ export default defineConfig(({ mode }) => {
   cacheDir: path.resolve(__dirname, 'node_modules/.vite'), // Use resolve to handle UNC paths better
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    // Erzwinge API-URL in Production-Build (falls .env nicht geladen wird)
+    define: mode === 'production' && apiUrl ? {
+      'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl),
+      'import.meta.env.VITE_USE_MOCK_API': JSON.stringify('false')
+    } : {}
   }
   };
 });
