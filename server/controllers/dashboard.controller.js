@@ -202,7 +202,19 @@ export const getNewsArchive = async (req, res, next) => {
     const currentContent = (note?.content ?? note?.get?.('content') ?? '') || '';
     const currentHash = simpleHash(currentContent);
 
-    const history = (typeof DashboardNote.getHistory === 'function' ? DashboardNote.getHistory(adminId, 100) : []) || [];
+    let history = [];
+    if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
+      history = DashboardNote.getHistory(adminId, 100) || [];
+    } else if (!USE_MEMORY_DB) {
+      const rows = await DashboardNoteHistory.findAll({
+        where: { user_id: adminId },
+        order: [['created_at', 'DESC']],
+        limit: 100,
+        raw: true
+      });
+      history = rows.map((r) => ({ id: r.id, content: r.content, created_at: r.created_at }));
+    }
+
     const messages = history
       .filter((h) => {
         const c = (h.content ?? '').trim();
@@ -244,8 +256,16 @@ export const updateNewsArchiveEntry = async (req, res, next) => {
     const adminId = admin?.id ?? admin?._id ?? null;
     if (!adminId) return res.status(404).json({ message: 'Admin nicht gefunden' });
 
-    const history = (typeof DashboardNote.getHistory === 'function' ? DashboardNote.getHistory(adminId, 100) : []) || [];
-    const entry = history.find((h) => String(h.id) === String(id));
+    let entry = null;
+    if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
+      const history = DashboardNote.getHistory(adminId, 100) || [];
+      entry = history.find((h) => String(h.id) === String(id));
+    } else if (!USE_MEMORY_DB) {
+      entry = await DashboardNoteHistory.findOne({
+        where: { id, user_id: adminId },
+        raw: true
+      });
+    }
     if (!entry) return res.status(404).json({ message: 'Nachricht nicht gefunden' });
 
     const oldContent = (entry.content ?? '').trim();
@@ -253,7 +273,11 @@ export const updateNewsArchiveEntry = async (req, res, next) => {
     const newContent = (content ?? '').trim();
     const editorName = (currentUser?.name ?? currentUser?.get?.('name') ?? currentUser?.dataValues?.name ?? 'Administrator').trim();
     if (NewsRead.deleteReadsByContentHash && oldHash) NewsRead.deleteReadsByContentHash(oldHash);
-    if (DashboardNote.updateHistoryEntry) DashboardNote.updateHistoryEntry(id, newContent, editorName);
+    if (USE_MEMORY_DB && DashboardNote.updateHistoryEntry) {
+      DashboardNote.updateHistoryEntry(id, newContent, editorName);
+    } else if (!USE_MEMORY_DB) {
+      await DashboardNoteHistory.update({ content: newContent }, { where: { id, user_id: adminId } });
+    }
 
     return res.json({ success: true, message: 'Nachricht aktualisiert' });
   } catch (error) {
@@ -276,14 +300,26 @@ export const deleteNewsArchiveEntry = async (req, res, next) => {
     const adminId = admin?.id ?? admin?._id ?? null;
     if (!adminId) return res.status(404).json({ message: 'Admin nicht gefunden' });
 
-    const history = (typeof DashboardNote.getHistory === 'function' ? DashboardNote.getHistory(adminId, 100) : []) || [];
-    const entry = history.find((h) => String(h.id) === String(id));
+    let entry = null;
+    if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
+      const history = DashboardNote.getHistory(adminId, 100) || [];
+      entry = history.find((h) => String(h.id) === String(id));
+    } else if (!USE_MEMORY_DB) {
+      entry = await DashboardNoteHistory.findOne({
+        where: { id, user_id: adminId },
+        raw: true
+      });
+    }
     if (!entry) return res.status(404).json({ message: 'Nachricht nicht gefunden' });
 
     const content = (entry.content ?? '').trim();
     const hash = simpleHash(content);
     if (NewsRead.deleteReadsByContentHash) NewsRead.deleteReadsByContentHash(hash);
-    if (DashboardNote.deleteHistoryEntry) DashboardNote.deleteHistoryEntry(id);
+    if (USE_MEMORY_DB && DashboardNote.deleteHistoryEntry) {
+      DashboardNote.deleteHistoryEntry(id);
+    } else if (!USE_MEMORY_DB) {
+      await DashboardNoteHistory.destroy({ where: { id, user_id: adminId } });
+    }
 
     return res.json({ success: true, message: 'Nachricht gelöscht' });
   } catch (error) {
