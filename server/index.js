@@ -100,6 +100,8 @@ if (USE_MEMORY_DB) {
   initDatabase()
     .then(() => {
       console.log('✅ Connected to PostgreSQL');
+      console.log('📊 User-Daten: PostgreSQL (persistent)');
+      process.env.USE_MEMORY_DB = 'false'; // Sicherstellen, dass Routes PostgreSQL nutzen
       startServer();
     })
     .catch((error) => {

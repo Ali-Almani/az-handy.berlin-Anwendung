@@ -9,10 +9,11 @@
     "dev:concurrent": "concurrently \"npm run server\" \"npm run client\"",
     "server": "pushd server && npm run dev && popd",
     "client": "powershell -ExecutionPolicy Bypass -Command \"$scriptPath = if ($env:INIT_CWD) { $env:INIT_CWD } else { (Get-Location).Path }; $clientPath = Join-Path $scriptPath 'client'; $script = Join-Path $clientPath 'start-dev.ps1'; if (Test-Path $script) { & $script } else { Write-Host 'start-dev.ps1 not found. Using vite directly...' -ForegroundColor Yellow; $viteCmd = Join-Path $clientPath 'node_modules\\.bin\\vite.cmd'; if (Test-Path $viteCmd) { & $viteCmd } else { Set-Location $clientPath; npx vite } }\"",
-    "build": "pushd client && npm run build && popd",
-    "install-server": "pushd server && npm install && popd",
-    "install-client": "pushd client && npm install && popd",
+    "build": "node scripts/prepare-client-env.js && npm run build --prefix client",
+    "install-server": "npm install --prefix server",
+    "install-client": "npm install --prefix client",
     "install-all": "npm install && npm run install-server && npm run install-client",
+    "deploy:prepare": "npm install && npm run install-server && npm run install-client && node scripts/prepare-client-env.js && npm run build --prefix client",
     "start": "pushd server && npm start && popd"
   },
   "keywords": [
