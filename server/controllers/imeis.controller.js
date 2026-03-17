@@ -248,10 +248,9 @@ export const saveImeisData = async (req, res, next) => {
     if (USE_MEMORY_DB) {
       await ImeisUserData.upsert(payload);
       if (usesSharedData && rowActions !== undefined) await mergeRowActionsIntoOwner();
-      if (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) {
-        const io = req.app?.get?.('io');
-        if (io) io.emit('imeis:updated');
-      }
+      const io = req.app?.get?.('io');
+      const dataChanged = (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) || rowActions !== undefined || removedImei;
+      if (io && dataChanged) io.emit('imeis:updated');
       return res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
     }
 
@@ -284,11 +283,10 @@ export const saveImeisData = async (req, res, next) => {
     if (copyTimestamps !== undefined) data.copy_timestamps_json = JSON.stringify(copyTimestamps);
     await data.save();
 
-    // Echtzeit: Alle verbundenen Clients benachrichtigen (z.B. nach Excel-Upload)
-    if (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) {
-      const io = req.app?.get?.('io');
-      if (io) io.emit('imeis:updated');
-    }
+    // Echtzeit: Alle verbundenen Clients benachrichtigen (Excel-Upload, Reservieren, IMEI entfernt)
+    const io = req.app?.get?.('io');
+    const dataChanged = (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) || rowActions !== undefined || removedImei;
+    if (io && dataChanged) io.emit('imeis:updated');
 
     res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
   } catch (error) {
@@ -350,6 +348,10 @@ export const updateHistoryAction = async (req, res, next) => {
         await ImeisUserData.upsert({ user_id: dataOwnerId, row_actions_json: JSON.stringify(rowActions) });
       }
     }
+
+    // Echtzeit: Alle Benutzer benachrichtigen (IMEI-Liste hat sich geändert: angenommen = entfernt, abgelehnt = rowActions geändert)
+    const io = req.app?.get?.('io');
+    if (io) io.emit('imeis:updated');
 
     res.json({ success: true, message: 'Aktion aktualisiert', rowActions: newAction === 'abgelehnt' ? {} : undefined });
   } catch (error) {
