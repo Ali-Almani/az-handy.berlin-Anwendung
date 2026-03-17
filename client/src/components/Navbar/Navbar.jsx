@@ -110,6 +110,11 @@ const Navbar = ({
                   </Link>
                 </li>
               )}
+              <li>
+                <Link to="/dokumentation" className="navbar-link">
+                  Dokumentation
+                </Link>
+              </li>
               <li className="navbar-avatar-container" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}

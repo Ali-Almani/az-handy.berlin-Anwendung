@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import News from './pages/News/News';
 import Settings from './pages/Settings/Settings';
 import Imeis from './pages/Imeis/Imeis';
+import Documentation from './pages/Documentation/Documentation';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 function App() {
@@ -45,6 +46,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Imeis />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dokumentation"
+          element={
+            <ProtectedRoute>
+              <Documentation />
             </ProtectedRoute>
           }
         />
