@@ -45,15 +45,9 @@ export const isBüroMitarbeiter = (user) => {
   return user.role === ROLES.BUERO_MITARBEITER;
 };
 
-// Prüfe ob Benutzer IMEI-Seite sehen darf (Admin, Büro, Teamleiter, Mitarbeiter shop)
+// Prüfe ob Benutzer IMEI-Seite sehen darf – alle eingeloggten Benutzer (gemeinsame Liste nach Büro-Upload)
 export const canAccessImeis = (user) => {
-  if (!user) return false;
-  const role = String(user.role || '').trim();
-  if (isAdmin(user)) return true;
-  if (role === ROLES.BUERO_MITARBEITER || role === ROLES.TEAMLEITER_SHOP || role === ROLES.MITARBEITER_SHOP) return true;
-  if (user.email && String(user.email).toLowerCase() === 'admin@az-handy.berlin') return true;
-  if (role.toLowerCase().includes('admin')) return true;
-  return false;
+  return !!user;
 };
 
 // Prüfe ob Benutzer Export und Alle löschen sehen darf (Admin, Teamleiter, Büro Mitarbeiter)
