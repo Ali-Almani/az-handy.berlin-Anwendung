@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync } from '../../../services/imeis.service';
+import { getSocket } from '../../../services/socket';
 
 const POLL_INTERVAL_MS = 500;
 const VERLAUF_REFRESH_MS = 1000;
@@ -93,7 +94,20 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
 
     syncFromServer();
     const intervalId = setInterval(syncFromServer, POLL_INTERVAL_MS);
-    return () => clearInterval(intervalId);
+
+    // Echtzeit: Sofort aktualisieren wenn jemand Excel hochlädt (z.B. Büro)
+    const socket = getSocket();
+    const onImeisUpdated = () => {
+      getImeisDataFromApi().then((data) => {
+        if (data) applyImeisData(data, setters, getManufacturer, false);
+      });
+    };
+    if (socket) socket.on('imeis:updated', onImeisUpdated);
+
+    return () => {
+      clearInterval(intervalId);
+      if (socket) socket.off('imeis:updated', onImeisUpdated);
+    };
   }, [user?.id]);
 
   // Verlauf-Modal offen: Alle Rollen erhalten Echtzeit-Updates (IMEI-Liste + Verlauf), wenn jemand Angenommen/Abgelehnt markiert

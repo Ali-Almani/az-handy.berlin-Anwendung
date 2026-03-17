@@ -248,6 +248,10 @@ export const saveImeisData = async (req, res, next) => {
     if (USE_MEMORY_DB) {
       await ImeisUserData.upsert(payload);
       if (usesSharedData && rowActions !== undefined) await mergeRowActionsIntoOwner();
+      if (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) {
+        const io = req.app?.get?.('io');
+        if (io) io.emit('imeis:updated');
+      }
       return res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
     }
 
@@ -279,6 +283,12 @@ export const saveImeisData = async (req, res, next) => {
     if (copyHistory !== undefined) data.copy_history_json = JSON.stringify(copyHistory);
     if (copyTimestamps !== undefined) data.copy_timestamps_json = JSON.stringify(copyTimestamps);
     await data.save();
+
+    // Echtzeit: Alle verbundenen Clients benachrichtigen (z.B. nach Excel-Upload)
+    if (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) {
+      const io = req.app?.get?.('io');
+      if (io) io.emit('imeis:updated');
+    }
 
     res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
   } catch (error) {
