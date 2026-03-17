@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { isBüroMitarbeiter } from '../../utils/roles';
 import './Documentation.scss';
 
 const Documentation = () => {
   const { user } = useAuth();
+  const isBüro = isBüroMitarbeiter(user);
 
   return (
     <div className="documentation">
@@ -51,7 +53,7 @@ const Documentation = () => {
         <h3>IMEI kopieren</h3>
         <ol>
           <li>Klicken Sie auf eine IMEI-Zelle, um die Zeile zu markieren.</li>
-          <li>In der Spalte <strong>Aktion</strong> erscheint ein Dropdown mit der Option <strong>Kopieren</strong>.</li>
+          <li>In der Spalte <strong>Aktion</strong> erscheint eine Checkbox mit der Option <strong>Kopieren</strong>.</li>
           <li>Wählen Sie <strong>Kopieren</strong> – die IMEI wird in die Zwischenablage kopiert.</li>
           <li>Alternativ: Markieren Sie mehrere Zellen (Klicken/Ziehen oder Shift+Klick für Bereich) und nutzen Sie die Kopier-Aktion.</li>
         </ol>
@@ -72,8 +74,12 @@ const Documentation = () => {
         </p>
         <ul>
           <li>Ihre eigenen Kopien einsehen</li>
-          <li>Als Büro-Mitarbeiter: Einträge anderer als <strong>angenommen</strong> oder <strong>abgelehnt</strong> markieren</li>
-          <li>Als Büro-Mitarbeiter: Eine <strong>Erinnerung</strong> an Mitarbeiter senden („Benutzt du noch diese IMEI?“)</li>
+          {isBüro && (
+            <>
+              <li>Einträge anderer als <strong>angenommen</strong> oder <strong>abgelehnt</strong> markieren</li>
+              <li>Eine <strong>Erinnerung</strong> an Mitarbeiter senden („Benutzt du noch diese IMEI?“)</li>
+            </>
+          )}
         </ul>
 
         <h3>Reservieren</h3>
@@ -82,11 +88,15 @@ const Documentation = () => {
           um eine IMEI zu reservieren.
         </p>
 
-        <h3>Excel-Upload (nur Büro Mitarbeiter)</h3>
-        <p>
-          Büro-Mitarbeiter können im <Link to="/dashboard">Dashboard</Link> Excel- oder CSV-Dateien
-          hochladen. Die IMEIs erscheinen danach für alle Benutzer.
-        </p>
+        {isBüro && (
+          <>
+            <h3>Excel-Upload (nur Büro Mitarbeiter)</h3>
+            <p>
+              Büro-Mitarbeiter können im <Link to="/dashboard">Dashboard</Link> Excel- oder CSV-Dateien
+              hochladen. Die IMEIs erscheinen danach für alle Benutzer.
+            </p>
+          </>
+        )}
       </section>
 
       <section className="doc-section">
@@ -104,17 +114,6 @@ const Documentation = () => {
       </section>
 
       <section className="doc-section">
-        <h2>Dashboard (Admin & Büro)</h2>
-        <p>
-          Administratoren und Büro-Mitarbeiter haben Zugriff auf das <Link to="/dashboard">Dashboard</Link>:
-        </p>
-        <ul>
-          <li><strong>Administrator:</strong> News/Anweisung erstellen, Archiv verwalten, Benutzerverwaltung</li>
-          <li><strong>Büro Mitarbeiter:</strong> Excel-Upload für IMEI-Liste</li>
-        </ul>
-      </section>
-
-      <section className="doc-section">
         <h2>Archiv Anweisung</h2>
         <p>
           Alle Benutzer (außer Admin) sehen unter <strong>Archiv Anweisung</strong> die gespeicherten
@@ -122,68 +121,10 @@ const Documentation = () => {
         </p>
       </section>
 
-      <section className="doc-section">
-        <h2>Rollen und Berechtigungen</h2>
-        <table className="doc-table">
-          <thead>
-            <tr>
-              <th>Rolle</th>
-              <th>IMEIs</th>
-              <th>Verlauf</th>
-              <th>Excel-Upload</th>
-              <th>Dashboard</th>
-              <th>Benutzerverwaltung</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Administrator</td>
-              <td>✓</td>
-              <td>Eigener</td>
-              <td>–</td>
-              <td>✓ (News, Archiv)</td>
-              <td>✓</td>
-            </tr>
-            <tr>
-              <td>Büro Mitarbeiter</td>
-              <td>✓</td>
-              <td>Alle</td>
-              <td>✓</td>
-              <td>✓ (Excel-Upload)</td>
-              <td>–</td>
-            </tr>
-            <tr>
-              <td>Teamleiter shop</td>
-              <td>✓</td>
-              <td>Eigener</td>
-              <td>–</td>
-              <td>✓</td>
-              <td>–</td>
-            </tr>
-            <tr>
-              <td>Mitarbeiter shop</td>
-              <td>✓</td>
-              <td>Eigener</td>
-              <td>–</td>
-              <td>–</td>
-              <td>–</td>
-            </tr>
-            <tr>
-              <td>Marketing, Callcenter, etc.</td>
-              <td>✓</td>
-              <td>Eigener</td>
-              <td>–</td>
-              <td>✓</td>
-              <td>–</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
       <section className="doc-section doc-section--help">
         <h2>Hilfe</h2>
         <p>
-          Bei Fragen wenden Sie sich an Ihren Administrator oder das Büro.
+          Bei Fragen kontaktieren Sie <a href="mailto:a.almani@az-handy.berlin">a.almani@az-handy.berlin</a>.
         </p>
       </section>
     </div>
