@@ -1,12 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import UserEditModal from './UserEditModal';
 import UserResetPasswordModal from './UserResetPasswordModal';
 
 const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const dropdownRef = useRef(null);
 
-  const handleEditClick = (user) => setEditingUser(user);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleEditClick = (user) => { setEditingUser(user); setOpenDropdownId(null); };
   const handleEditSave = (userId, updates) => {
     onEdit?.(userId, updates);
     setEditingUser(null);
@@ -52,33 +64,24 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
                   <td><span className={`role-badge role-badge--${user.role}`}>{user.role}</span></td>
                   <td>{(user.createdAt ?? user.created_at) ? new Date(user.createdAt ?? user.created_at).toLocaleDateString('de-DE') : '-'}</td>
                   <td>
-                    <div className="user-actions">
+                    <div className="user-actions user-actions-dropdown" ref={openDropdownId === user.id ? dropdownRef : null}>
                       <button
                         type="button"
-                        onClick={() => setResetPasswordUser(user)}
+                        onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
                         className="btn btn--outline btn--small"
                         disabled={loading}
-                        title="Passwort setzen (z.B. wenn Mitarbeiter Passwort vergessen hat)"
+                        aria-haspopup="true"
+                        aria-expanded={openDropdownId === user.id}
                       >
-                        Passwort setzen
+                        Aktionen ▾
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleEditClick(user)}
-                        className="btn btn--outline btn--small"
-                        disabled={loading}
-                        title="Bearbeiten"
-                      >
-                        Bearbeiten
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete?.(user.id)}
-                        className="btn btn--danger btn--small"
-                        disabled={loading}
-                      >
-                        Löschen
-                      </button>
+                      {openDropdownId === user.id && (
+                        <div className="user-actions-dropdown-menu">
+                          <button type="button" onClick={() => { setResetPasswordUser(user); setOpenDropdownId(null); }}>Passwort zurücksetzen</button>
+                          <button type="button" onClick={() => handleEditClick(user)}>Bearbeiten</button>
+                          <button type="button" onClick={() => { onDelete?.(user.id); setOpenDropdownId(null); }} className="user-actions-dropdown-item--danger">Löschen</button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
