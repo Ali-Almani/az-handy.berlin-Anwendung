@@ -204,6 +204,29 @@ export const restoreAdmin = async (req, res, next) => {
   }
 };
 
+export const setPasswordByAdmin = async (req, res, next) => {
+  try {
+    const currentUser = await User.findByPk(req.user.userId);
+    if (!currentUser || !isAdmin(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Passwörter zurücksetzen' });
+    }
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Neues Passwort muss mindestens 6 Zeichen haben' });
+    }
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: 'Passwort erfolgreich gesetzt' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteUserById = async (req, res, next) => {
   try {
     const currentUser = await User.findByPk(req.user.userId);

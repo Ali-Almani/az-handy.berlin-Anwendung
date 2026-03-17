@@ -1,5 +1,5 @@
 import { mockLogin, mockRegister } from './mockAuth';
-import { mockGetProfile, mockUpdateProfile, mockUpdatePassword, mockCreateUserByAdmin, mockGetAllUsers, mockUpdateUserByAdmin, mockRestoreAdmin, mockDeleteUser } from './mockUserApi';
+import { mockGetProfile, mockUpdateProfile, mockUpdatePassword, mockCreateUserByAdmin, mockGetAllUsers, mockUpdateUserByAdmin, mockSetPasswordByAdmin, mockRestoreAdmin, mockDeleteUser } from './mockUserApi';
 import { mockSendReminder, mockGetMyReminders, mockMarkReminderRead, mockNotifyReminderResponse, mockGetReminderResponseNotifications, mockMarkReminderResponseNotificationRead } from './mockImeiReminders';
 import { loadImeis, saveImeis } from '../utils/storage';
 
@@ -24,6 +24,7 @@ const mockApi = {
   async createUserByAdmin(token, userData) { return mockCreateUserByAdmin(mockUsers, token, userData); },
   async getAllUsers(token) { return mockGetAllUsers(mockUsers, token); },
   async updateUserByAdmin(token, userId, userData) { return mockUpdateUserByAdmin(mockUsers, token, userId, userData); },
+  async setPasswordByAdmin(token, userId, newPassword) { return mockSetPasswordByAdmin(mockUsers, token, userId, newPassword); },
   async restoreAdmin(token) { return mockRestoreAdmin(mockUsers, token); },
   async deleteUser(token, userId) { return mockDeleteUser(mockUsers, token, userId); },
   async getImeisData() {

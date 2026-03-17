@@ -87,6 +87,19 @@ export const mockGetAllUsers = async (mockUsers, token) => {
   return { data: { success: true, users } };
 };
 
+export const mockSetPasswordByAdmin = async (mockUsers, token, userId, newPassword) => {
+  await delay(500);
+  const adminId = parseToken(token);
+  if (!adminId) throw authError();
+  const adminUser = mockUsers.find(u => u.id === adminId);
+  if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können Passwörter setzen');
+  const userIndex = mockUsers.findIndex(u => u.id === userId);
+  if (userIndex === -1) throw notFoundError();
+  if (!newPassword || newPassword.length < 6) throw badRequestError('Neues Passwort muss mindestens 6 Zeichen haben');
+  mockUsers[userIndex].password = newPassword;
+  return { data: { success: true, message: 'Passwort erfolgreich gesetzt' } };
+};
+
 export const mockRestoreAdmin = async (mockUsers, token) => {
   await delay(500);
   const userId = parseToken(token);

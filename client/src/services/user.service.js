@@ -53,6 +53,14 @@ export const updateUserByAdmin = (userId, userData) => {
   return api.put(`/users/${userId}`, userData);
 };
 
+export const setPasswordByAdmin = (userId, newPassword) => {
+  if (USE_MOCK_API) {
+    const token = localStorage.getItem('token');
+    return mockApi.setPasswordByAdmin(token, userId, newPassword);
+  }
+  return api.put(`/users/${userId}/password`, { newPassword });
+};
+
 export const restoreAdmin = () => {
   if (USE_MOCK_API) {
     const token = localStorage.getItem('token');

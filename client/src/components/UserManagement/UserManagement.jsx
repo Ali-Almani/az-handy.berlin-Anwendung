@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createUser, getAllUsers, updateUserByAdmin, deleteUser } from '../../services/user.service';
+import { createUser, getAllUsers, updateUserByAdmin, deleteUser, setPasswordByAdmin } from '../../services/user.service';
 import UserForm from './UserForm';
 import UsersTable from './UsersTable';
 import './UserManagement.scss';
@@ -102,6 +102,19 @@ const UserManagement = () => {
     }
   };
 
+  const handleResetPassword = async (userId, newPassword) => {
+    try {
+      setLoading(true);
+      setError('');
+      await setPasswordByAdmin(userId, newPassword);
+      setSuccess('Passwort erfolgreich gesetzt!');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Fehler beim Setzen des Passworts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="user-management">
       <div className="user-management-header">
@@ -124,7 +137,7 @@ const UserManagement = () => {
           onSubmit={handleSubmit}
         />
       )}
-      <UsersTable users={users} loading={loading && !showForm} onDelete={handleDelete} onEdit={handleEdit} />
+      <UsersTable users={users} loading={loading && !showForm} onDelete={handleDelete} onEdit={handleEdit} onResetPassword={handleResetPassword} />
     </div>
   );
 };

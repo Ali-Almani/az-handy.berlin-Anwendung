@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import UserEditModal from './UserEditModal';
+import UserResetPasswordModal from './UserResetPasswordModal';
 
-const UsersTable = ({ users, loading, onDelete, onEdit }) => {
+const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
   const [editingUser, setEditingUser] = useState(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
 
   const handleEditClick = (user) => setEditingUser(user);
   const handleEditSave = (userId, updates) => {
     onEdit?.(userId, updates);
     setEditingUser(null);
+  };
+  const handleResetPasswordSave = (userId, newPassword) => {
+    onResetPassword?.(userId, newPassword);
+    setResetPasswordUser(null);
   };
 
   return (
@@ -49,6 +55,15 @@ const UsersTable = ({ users, loading, onDelete, onEdit }) => {
                     <div className="user-actions">
                       <button
                         type="button"
+                        onClick={() => setResetPasswordUser(user)}
+                        className="btn btn--outline btn--small"
+                        disabled={loading}
+                        title="Passwort setzen (z.B. wenn Mitarbeiter Passwort vergessen hat)"
+                      >
+                        Passwort setzen
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleEditClick(user)}
                         className="btn btn--outline btn--small"
                         disabled={loading}
@@ -77,6 +92,14 @@ const UsersTable = ({ users, loading, onDelete, onEdit }) => {
           user={editingUser}
           onClose={() => setEditingUser(null)}
           onSave={handleEditSave}
+          loading={loading}
+        />
+      )}
+      {resetPasswordUser && (
+        <UserResetPasswordModal
+          user={resetPasswordUser}
+          onClose={() => setResetPasswordUser(null)}
+          onSave={handleResetPasswordSave}
           loading={loading}
         />
       )}
