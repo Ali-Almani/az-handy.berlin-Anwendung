@@ -6,8 +6,10 @@ import NewsPopup from '../NewsPopup/NewsPopup';
 import ExtraCopyRequestsModal from '../ExtraCopyRequestsModal/ExtraCopyRequestsModal';
 import ExtraCopyNotificationModal from '../ExtraCopyNotificationModal/ExtraCopyNotificationModal';
 import ReminderResponseNotificationModal from '../ReminderResponseNotificationModal/ReminderResponseNotificationModal';
+import { useAuth } from '../../hooks/useAuth';
 import { useNewsPopup } from '../../hooks/useNewsPopup';
 import { useImeiReminderBadge } from '../../hooks/useImeiReminderPopup';
+import { getSocket } from '../../services/socket';
 import { useExtraCopyRequests } from '../../hooks/useExtraCopyRequests';
 import { useExtraCopyNotification } from '../../hooks/useExtraCopyNotification';
 import { useReminderResponseNotification } from '../../hooks/useReminderResponseNotification';
@@ -15,6 +17,12 @@ import './Layout.scss';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Socket früh verbinden, damit Echtzeit-Updates (z.B. Excel-Upload durch Büro) bei allen funktionieren
+  useEffect(() => {
+    if (user?.id) getSocket();
+  }, [user?.id]);
   const [showExtraCopyModal, setShowExtraCopyModal] = useState(false);
   const [showExtraCopyNotificationModal, setShowExtraCopyNotificationModal] = useState(false);
   const [showReminderResponseModal, setShowReminderResponseModal] = useState(false);
