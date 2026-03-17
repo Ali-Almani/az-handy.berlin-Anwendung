@@ -9,8 +9,13 @@ export const getImeisDataFromApi = async () => {
   try {
     const res = await api.get('/imeis/data');
     if (res.data?.success && res.data) {
+      let imeis = res.data.imeis ?? [];
+      // Wenn API leere IMEIs zurückgibt, lokale Daten nutzen (z.B. nach Excel-Upload, bevor Sync)
+      if (imeis.length === 0) {
+        imeis = await loadImeis();
+      }
       return {
-        imeis: res.data.imeis ?? [],
+        imeis,
         cellColors: res.data.cellColors ?? {},
         rowActions: res.data.rowActions ?? {},
         copyHistory: res.data.copyHistory ?? [],
@@ -127,11 +132,15 @@ export const markExtraCopyNotificationReadApi = async (id) => {
 };
 
 export const loadImeisWithApi = async (user) => {
+  const localImeis = await loadImeis();
   if (user) {
     const apiData = await getImeisDataFromApi();
-    if (apiData) return apiData;
+    if (apiData) {
+      // Wenn API leere IMEIs zurückgibt, aber lokal Daten existieren (z.B. nach Excel-Upload), lokale nutzen
+      const imeisToUse = (apiData.imeis?.length > 0) ? apiData.imeis : localImeis;
+      return { ...apiData, imeis: imeisToUse };
+    }
   }
-  const localImeis = await loadImeis();
   let copyTimestamps = JSON.parse(localStorage.getItem('imeis-copy-timestamps') || '[]');
   if (copyTimestamps.length === 0 && user?.name) {
     const legacyKey = `imeis-copy-rate-limit-${user.name}`;
