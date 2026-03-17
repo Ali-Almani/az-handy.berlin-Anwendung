@@ -1,9 +1,12 @@
 import api from './api';
 import { loadImeis, saveImeis } from '../utils/storage';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
+// In Produktion: Immer echte API (wie in api.js)
+const USE_MOCK_API = import.meta.env.PROD ? false : (
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
   import.meta.env.VITE_API_URL === 'mock' ||
-  !import.meta.env.VITE_API_URL;
+  !import.meta.env.VITE_API_URL
+);
 
 export const getImeisDataFromApi = async () => {
   try {

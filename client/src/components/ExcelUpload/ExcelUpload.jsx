@@ -41,9 +41,11 @@ const ExcelUpload = () => {
     setUploadedImeis([]);
 
     try {
-      const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
+      const USE_MOCK_API = import.meta.env.PROD ? false : (
+        import.meta.env.VITE_USE_MOCK_API === 'true' ||
         import.meta.env.VITE_API_URL === 'mock' ||
-        !import.meta.env.VITE_API_URL;
+        !import.meta.env.VITE_API_URL
+      );
 
       let imeis = [];
 

@@ -1,9 +1,12 @@
 import axios from 'axios';
 import mockApi from './mockApi.js';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || 
-                     import.meta.env.VITE_API_URL === 'mock' ||
-                     !import.meta.env.VITE_API_URL;
+// In Produktion: Immer echte API (nie Mock), damit IMEI-Daten für alle Benutzer sichtbar sind
+const USE_MOCK_API = import.meta.env.PROD ? false : (
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
+  import.meta.env.VITE_API_URL === 'mock' ||
+  !import.meta.env.VITE_API_URL
+);
 
 // In Dev: Nutze Proxy (leerer baseURL = gleicher Origin, Proxy leitet /api weiter)
 // In Prod: Volle API-URL
