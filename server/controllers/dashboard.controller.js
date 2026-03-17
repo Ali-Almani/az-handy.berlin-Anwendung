@@ -39,12 +39,24 @@ export const getNews = async (req, res, next) => {
     });
     let content = (note?.content ?? note?.get?.('content') ?? '') || '';
     let updatedAt = note?.updated_at ?? note?.get?.('updated_at') ?? null;
-    if (!content.trim() && typeof DashboardNote.getHistory === 'function') {
-      const history = DashboardNote.getHistory(adminId, 1);
-      const latest = history[0];
-      if (latest && (latest.content ?? '').trim()) {
-        content = (latest.content ?? '').trim();
-        updatedAt = latest.created_at ?? latest.createdAt ?? null;
+    if (!content.trim()) {
+      if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
+        const history = DashboardNote.getHistory(adminId, 1);
+        const latest = history[0];
+        if (latest && (latest.content ?? '').trim()) {
+          content = (latest.content ?? '').trim();
+          updatedAt = latest.created_at ?? latest.createdAt ?? null;
+        }
+      } else if (!USE_MEMORY_DB) {
+        const latest = await DashboardNoteHistory.findOne({
+          where: { user_id: adminId },
+          order: [['created_at', 'DESC']],
+          raw: true
+        });
+        if (latest && (latest.content ?? '').trim()) {
+          content = (latest.content ?? '').trim();
+          updatedAt = latest.created_at ?? null;
+        }
       }
     }
     const contentHash = simpleHash(content);

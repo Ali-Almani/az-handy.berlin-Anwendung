@@ -54,14 +54,12 @@ const Login = () => {
           {error && <div className="form-error">{error}</div>}
           
           <div className="form-group">
-            <label htmlFor="email" className="form-label">
-              E-Mail
-            </label>
             <input
               type="email"
               id="email"
               name="email"
               className="form-input"
+              placeholder="E-Mail"
               value={formData.email}
               onChange={handleChange}
               required
@@ -69,14 +67,12 @@ const Login = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              Passwort
-            </label>
             <input
               type="password"
               id="password"
               name="password"
               className="form-input"
+              placeholder="Passwort"
               value={formData.password}
               onChange={handleChange}
               required

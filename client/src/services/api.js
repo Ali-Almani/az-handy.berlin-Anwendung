@@ -67,6 +67,10 @@ const createMockApi = () => {
         const token = localStorage.getItem('token');
         return await mockApi.updateProfile(token, data);
       }
+      if (url === '/users/password') {
+        const token = localStorage.getItem('token');
+        return await mockApi.updatePassword(token, data);
+      }
       if (url === '/imeis/data') {
         return await mockApi.saveImeisData(data);
       }

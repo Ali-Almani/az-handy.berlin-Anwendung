@@ -19,7 +19,8 @@ const isBüroMitarbeiter = (role) => {
 };
 
 const isAdmin = (role) => role && typeof role === 'string' && (role.toLowerCase().includes('admin') || role.trim() === 'Administrator');
-const shouldUseSharedImeiData = (role) => isMitarbeiterShop(role) || isBüroMitarbeiter(role) || isAdmin(role);
+/** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
+const shouldUseSharedImeiData = () => true;
 
 /** Merge copy_history aus allen Benutzern für Verlauf (Büro Mitarbeiter sieht gesamte Historie) */
 const getMergedCopyHistory = async () => {
