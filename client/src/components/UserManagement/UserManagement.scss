@@ -236,19 +236,52 @@
           position: relative;
         }
 
-        .user-actions-dropdown-menu {
-          position: absolute;
-          top: 100%;
-          left: 0;
-          margin-top: 0.25rem;
-          background: white;
-          border: 1px solid $border-color;
+        .role-select {
+          padding: 0.28rem 0.4rem;
           border-radius: $border-radius-sm;
-          box-shadow: $shadow-md;
-          z-index: 100;
-          min-width: 180px;
+          border: 1px solid $border-color;
+          font-size: 0.72rem;
+          background: white;
+          min-width: 100px;
+          cursor: pointer;
+        }
 
-          button {
+        .btn--small {
+          padding: 0.28rem 0.5rem;
+          font-size: 0.72rem;
+        }
+      }
+
+      .user-actions-dropdown-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .user-actions-dropdown-menu {
+        background: white;
+        border: 1px solid $border-color;
+        border-radius: $border-radius-md;
+        box-shadow: $shadow-lg;
+        min-width: 220px;
+
+        &--centered {
+          padding: 0.5rem 0;
+        }
+
+        .user-actions-dropdown-header {
+          padding: 0.75rem 1rem;
+          font-weight: $font-weight-medium;
+          border-bottom: 1px solid $border-color;
+          font-size: 0.95rem;
+        }
+
+        button {
             display: block;
             width: 100%;
             padding: 0.5rem 1rem;
@@ -267,22 +300,6 @@
               background: #fee;
               color: $danger-color;
             }
-          }
-        }
-
-        .role-select {
-          padding: 0.28rem 0.4rem;
-          border-radius: $border-radius-sm;
-          border: 1px solid $border-color;
-          font-size: 0.72rem;
-          background: white;
-          min-width: 100px;
-          cursor: pointer;
-        }
-
-        .btn--small {
-          padding: 0.28rem 0.5rem;
-          font-size: 0.72rem;
         }
       }
 

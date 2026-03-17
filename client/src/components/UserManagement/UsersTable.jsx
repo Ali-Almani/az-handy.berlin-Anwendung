@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import UserEditModal from './UserEditModal';
 import UserResetPasswordModal from './UserResetPasswordModal';
 
@@ -6,17 +6,6 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpenDropdownId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleEditClick = (user) => { setEditingUser(user); setOpenDropdownId(null); };
   const handleEditSave = (userId, updates) => {
@@ -64,7 +53,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
                   <td><span className={`role-badge role-badge--${user.role}`}>{user.role}</span></td>
                   <td>{(user.createdAt ?? user.created_at) ? new Date(user.createdAt ?? user.created_at).toLocaleDateString('de-DE') : '-'}</td>
                   <td>
-                    <div className="user-actions user-actions-dropdown" ref={openDropdownId === user.id ? dropdownRef : null}>
+                    <div className="user-actions user-actions-dropdown">
                       <button
                         type="button"
                         onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
@@ -75,13 +64,6 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
                       >
                         Aktionen ▾
                       </button>
-                      {openDropdownId === user.id && (
-                        <div className="user-actions-dropdown-menu">
-                          <button type="button" onClick={() => { setResetPasswordUser(user); setOpenDropdownId(null); }}>Passwort zurücksetzen</button>
-                          <button type="button" onClick={() => handleEditClick(user)}>Bearbeiten</button>
-                          <button type="button" onClick={() => { onDelete?.(user.id); setOpenDropdownId(null); }} className="user-actions-dropdown-item--danger">Löschen</button>
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -90,6 +72,20 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
           </table>
         </div>
       )}
+      {openDropdownId && (() => {
+        const user = users.find(u => u.id === openDropdownId);
+        if (!user) return null;
+        return (
+          <div className="user-actions-dropdown-overlay" onClick={() => setOpenDropdownId(null)}>
+            <div className="user-actions-dropdown-menu user-actions-dropdown-menu--centered" onClick={(e) => e.stopPropagation()}>
+              <div className="user-actions-dropdown-header">Aktionen – {user.name}</div>
+              <button type="button" onClick={() => { setResetPasswordUser(user); setOpenDropdownId(null); }}>Passwort zurücksetzen</button>
+              <button type="button" onClick={() => handleEditClick(user)}>Bearbeiten</button>
+              <button type="button" onClick={() => { onDelete?.(user.id); setOpenDropdownId(null); }} className="user-actions-dropdown-item--danger">Löschen</button>
+            </div>
+          </div>
+        );
+      })()}
       {editingUser && (
         <UserEditModal
           user={editingUser}
