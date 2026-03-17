@@ -19,10 +19,13 @@ const UserManagement = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await getAllUsers();
       setUsers(response.data.users || []);
-    } catch {
-      setError('Benutzer konnten nicht geladen werden');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Benutzer konnten nicht geladen werden';
+      setError(msg);
+      setUsers([]);
     } finally {
       setLoading(false);
     }

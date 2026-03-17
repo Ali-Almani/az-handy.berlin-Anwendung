@@ -76,7 +76,7 @@ export const getAllUsers = async (req, res, next) => {
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer verwalten' });
     }
-    const users = User.findAll ? await User.findAll({ attributes: ['id', 'name', 'email', 'role', 'avatar', 'createdAt', 'updatedAt'] }) : (User.find ? await User.find() : []);
+    const users = User.findAll ? await User.findAll() : (User.find ? await User.find() : []);
     const list = Array.isArray(users) ? users : (users.rows || []);
     res.json({
       success: true,
