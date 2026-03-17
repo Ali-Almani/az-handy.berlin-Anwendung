@@ -18,7 +18,7 @@ const Documentation = () => {
         <h2>Was ist az-handy.berlin?</h2>
         <p>
           az-handy.berlin ist ein internes Mitarbeiterverwaltungssystem für die IMEI-Verwaltung.
-          Alle eingeloggten Benutzer sehen die gemeinsame IMEI-Liste (von Büro hochgeladen),
+          Alle eingeloggten Benutzer sehen die gemeinsame IMEI-Liste (von Melih hochgeladen),
           können IMEIs kopieren und ihren eigenen Verlauf einsehen.
         </p>
       </section>
@@ -59,7 +59,7 @@ const Documentation = () => {
         </ol>
         <p className="doc-note">
           Es gibt ein Limit: Pro 30 Minuten können Sie eine begrenzte Anzahl IMEIs kopieren.
-          Wenn Sie das Limit erreicht haben, können Sie eine <strong>Extra-Kopie</strong> beim Büro anfragen.
+          Wenn Sie das Limit erreicht haben, können Sie eine <strong>Extra-Kopie</strong> bei Melih anfragen.
         </p>
 
         <h3>Suche und Filter</h3>
@@ -90,9 +90,9 @@ const Documentation = () => {
 
         {isBüro && (
           <>
-            <h3>Excel-Upload (nur Büro Mitarbeiter)</h3>
+            <h3>Excel-Upload (nur Melih)</h3>
             <p>
-              Büro-Mitarbeiter können im <Link to="/dashboard">Dashboard</Link> Excel- oder CSV-Dateien
+              Melih kann im <Link to="/dashboard">Dashboard</Link> Excel- oder CSV-Dateien
               hochladen. Die IMEIs erscheinen danach für alle Benutzer.
             </p>
           </>
