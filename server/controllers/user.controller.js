@@ -76,14 +76,15 @@ export const getAllUsers = async (req, res, next) => {
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer verwalten' });
     }
-    const users = User.findAll ? await User.findAll() : (User.find ? await User.find() : []);
+    const users = User.findAll ? await User.findAll({ attributes: ['id', 'name', 'email', 'role', 'avatar', 'createdAt', 'updatedAt'] }) : (User.find ? await User.find() : []);
     const list = Array.isArray(users) ? users : (users.rows || []);
     res.json({
       success: true,
       users: list.map((u) => {
         const uu = u.toJSON ? u.toJSON() : u;
         const { password, ...rest } = uu;
-        return rest;
+        const createdAt = rest.createdAt ?? rest.created_at;
+        return { ...rest, createdAt: createdAt ?? null };
       })
     });
   } catch (error) {
@@ -106,10 +107,11 @@ export const createUserByAdmin = async (req, res, next) => {
       return res.status(400).json({ message: 'E-Mail wird bereits verwendet' });
     }
     const user = await User.create({ name, email: email.toLowerCase(), password, role: role || 'Marketing', avatar: avatar || null });
+    const createdAt = user.createdAt ?? user.created_at ?? new Date();
     res.status(201).json({
       success: true,
       message: 'Benutzer erfolgreich erstellt',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, createdAt }
     });
   } catch (error) {
     next(error);

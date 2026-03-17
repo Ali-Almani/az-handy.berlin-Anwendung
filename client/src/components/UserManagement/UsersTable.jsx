@@ -44,7 +44,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit }) => {
                   </td>
                   <td>{user.email}</td>
                   <td><span className={`role-badge role-badge--${user.role}`}>{user.role}</span></td>
-                  <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '-'}</td>
+                  <td>{(user.createdAt ?? user.created_at) ? new Date(user.createdAt ?? user.created_at).toLocaleDateString('de-DE') : '-'}</td>
                   <td>
                     <div className="user-actions">
                       <button
