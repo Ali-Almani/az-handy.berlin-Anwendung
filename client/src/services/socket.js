@@ -1,8 +1,11 @@
 import { io } from 'socket.io-client';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
+// In Produktion: Immer Socket nutzen (wie api.js), damit Echtzeit-Updates funktionieren
+const USE_MOCK_API = import.meta.env.PROD ? false : (
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
   import.meta.env.VITE_API_URL === 'mock' ||
-  !import.meta.env.VITE_API_URL;
+  !import.meta.env.VITE_API_URL
+);
 
 // In Dev: Vite proxy leitet /socket.io an Backend weiter → gleicher Origin nutzen
 // In Prod: Gleicher Origin oder VITE_API_URL als Backend-Basis

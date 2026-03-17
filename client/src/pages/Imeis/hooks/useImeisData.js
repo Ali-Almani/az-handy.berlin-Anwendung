@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 
-const POLL_INTERVAL_MS = 500;
+const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
 
 function processCopyHistory(savedCopyHistory) {
@@ -95,18 +95,28 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     syncFromServer();
     const intervalId = setInterval(syncFromServer, POLL_INTERVAL_MS);
 
-    // Echtzeit: Sofort aktualisieren wenn jemand Excel hochlädt (z.B. Büro)
+    // Echtzeit: Sofort aktualisieren wenn Büro Excel hochlädt, alle löscht etc.
     const socket = getSocket();
     const onImeisUpdated = () => {
       getImeisDataFromApi().then((data) => {
         if (data) applyImeisData(data, setters, getManufacturer, false);
       });
     };
-    if (socket) socket.on('imeis:updated', onImeisUpdated);
+    if (socket) {
+      socket.on('imeis:updated', onImeisUpdated);
+      if (!socket.connected) socket.connect();
+    }
+
+    // Fallback: Bei Tab-Wechsel neu laden (falls Socket-Event verpasst)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncFromServer();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       clearInterval(intervalId);
       if (socket) socket.off('imeis:updated', onImeisUpdated);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [user?.id]);
 
