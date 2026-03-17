@@ -46,4 +46,10 @@ fi
 echo "♻️ Nginx neu laden..."
 sudo systemctl reload nginx 2>/dev/null || true
 
+echo ""
 echo "✅ Deployment fertig!"
+echo ""
+echo "⚠️  Falls IMEI-Liste im normalen Browser nicht erscheint:"
+echo "    Nginx-Cache-Anpassung anwenden (index.html nicht cachen):"
+echo "    sudo cp deploy/nginx-az-schnelltest.conf /etc/nginx/sites-available/az-schnelltest"
+echo "    sudo nginx -t && sudo systemctl reload nginx"
