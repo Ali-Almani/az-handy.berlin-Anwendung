@@ -1,5 +1,60 @@
 @import '../../styles/variables';
 
+/* Dropdown zentriert im gesamten Fenster (via Portal) */
+.user-actions-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.user-actions-dropdown-menu {
+  background: white;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-lg;
+  min-width: 240px;
+
+  &--centered {
+    padding: 0;
+  }
+
+  .user-actions-dropdown-header {
+    padding: 1rem 1.25rem;
+    font-weight: $font-weight-medium;
+    border-bottom: 1px solid $border-color;
+    font-size: 1rem;
+  }
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    text-align: left;
+    background: none;
+    border: none;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: $text-color;
+
+    &:hover {
+      background: $bg-light;
+    }
+
+    &.user-actions-dropdown-item--danger:hover {
+      background: #fee;
+      color: $danger-color;
+    }
+  }
+}
+
 .user-management {
   .user-management-header {
     display: flex;
@@ -252,56 +307,6 @@
         }
       }
 
-      .user-actions-dropdown-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        background: rgba(0, 0, 0, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-      }
-
-      .user-actions-dropdown-menu {
-        background: white;
-        border: 1px solid $border-color;
-        border-radius: $border-radius-md;
-        box-shadow: $shadow-lg;
-        min-width: 220px;
-
-        &--centered {
-          padding: 0.5rem 0;
-        }
-
-        .user-actions-dropdown-header {
-          padding: 0.75rem 1rem;
-          font-weight: $font-weight-medium;
-          border-bottom: 1px solid $border-color;
-          font-size: 0.95rem;
-        }
-
-        button {
-            display: block;
-            width: 100%;
-            padding: 0.5rem 1rem;
-            text-align: left;
-            background: none;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            color: $text-color;
-
-            &:hover {
-              background: $bg-light;
-            }
-
-            &.user-actions-dropdown-item--danger:hover {
-              background: #fee;
-              color: $danger-color;
-            }
-        }
-      }
 
       .role-badge {
         display: inline-block;

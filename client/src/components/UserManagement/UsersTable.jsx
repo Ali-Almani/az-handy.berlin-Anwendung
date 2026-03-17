@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import UserEditModal from './UserEditModal';
 import UserResetPasswordModal from './UserResetPasswordModal';
 
@@ -75,7 +76,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
       {openDropdownId && (() => {
         const user = users.find(u => u.id === openDropdownId);
         if (!user) return null;
-        return (
+        const dropdownContent = (
           <div className="user-actions-dropdown-overlay" onClick={() => setOpenDropdownId(null)}>
             <div className="user-actions-dropdown-menu user-actions-dropdown-menu--centered" onClick={(e) => e.stopPropagation()}>
               <div className="user-actions-dropdown-header">Aktionen – {user.name}</div>
@@ -85,6 +86,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
             </div>
           </div>
         );
+        return createPortal(dropdownContent, document.body);
       })()}
       {editingUser && (
         <UserEditModal
