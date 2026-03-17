@@ -249,7 +249,7 @@ export const saveImeisData = async (req, res, next) => {
       await ImeisUserData.upsert(payload);
       if (usesSharedData && rowActions !== undefined) await mergeRowActionsIntoOwner();
       const io = req.app?.get?.('io');
-      const dataChanged = (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) || rowActions !== undefined || removedImei;
+      const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei;
       if (io && dataChanged) io.emit('imeis:updated');
       return res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
     }
@@ -283,9 +283,9 @@ export const saveImeisData = async (req, res, next) => {
     if (copyTimestamps !== undefined) data.copy_timestamps_json = JSON.stringify(copyTimestamps);
     await data.save();
 
-    // Echtzeit: Alle verbundenen Clients benachrichtigen (Excel-Upload, Reservieren, IMEI entfernt)
+    // Echtzeit: Alle verbundenen Clients benachrichtigen (Excel-Upload, Alle löschen, Reservieren, IMEI entfernt)
     const io = req.app?.get?.('io');
-    const dataChanged = (imeis !== undefined && Array.isArray(imeis) && imeis.length > 0) || rowActions !== undefined || removedImei;
+    const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei;
     if (io && dataChanged) io.emit('imeis:updated');
 
     res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
