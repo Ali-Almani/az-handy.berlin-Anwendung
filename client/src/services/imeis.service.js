@@ -12,11 +12,9 @@ export const getImeisDataFromApi = async () => {
   try {
     const res = await api.get('/imeis/data');
     if (res.data?.success && res.data) {
-      let imeis = res.data.imeis ?? [];
-      // Wenn API leere IMEIs zurückgibt, lokale Daten nutzen (z.B. nach Excel-Upload, bevor Sync)
-      if (imeis.length === 0) {
-        imeis = await loadImeis();
-      }
+      const imeis = res.data.imeis ?? [];
+      // Immer Server-Daten nutzen – kein Fallback auf lokale Daten, damit alle Benutzer
+      // (auch im normalen Browser) die gleiche Liste sehen nach Büro Löschen/Upload
       return {
         imeis,
         cellColors: res.data.cellColors ?? {},
@@ -139,9 +137,8 @@ export const loadImeisWithApi = async (user) => {
   if (user) {
     const apiData = await getImeisDataFromApi();
     if (apiData) {
-      // Wenn API leere IMEIs zurückgibt, aber lokal Daten existieren (z.B. nach Excel-Upload), lokale nutzen
-      const imeisToUse = (apiData.imeis?.length > 0) ? apiData.imeis : localImeis;
-      return { ...apiData, imeis: imeisToUse };
+      // Immer Server-Daten nutzen – damit alle Benutzer (auch normaler Browser) gleiche Liste sehen
+      return apiData;
     }
   }
   let copyTimestamps = JSON.parse(localStorage.getItem('imeis-copy-timestamps') || '[]');
