@@ -13,6 +13,11 @@ const isMitarbeiterShop = (role) => {
   return role.trim() === 'Mitarbeiter shop';
 };
 
+const isTeamleiterShop = (role) => {
+  if (!role || typeof role !== 'string') return false;
+  return role.trim() === 'Teamleiter shop';
+};
+
 const isBüroMitarbeiter = (role) => {
   if (!role || typeof role !== 'string') return false;
   return role.trim() === 'Büro Mitarbeiter';
@@ -25,6 +30,34 @@ const shouldUseSharedImeiData = () => true;
 /** Merge copy_history aus allen Benutzern für Verlauf (Büro Mitarbeiter sieht gesamte Historie) */
 const getMergedCopyHistory = async () => {
   const all = await ImeisUserData.findAll();
+  const merged = [];
+  for (const row of all) {
+    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+    if (historyJson) {
+      try {
+        const arr = JSON.parse(historyJson);
+        if (Array.isArray(arr)) merged.push(...arr);
+      } catch (_) {}
+    }
+  }
+  return merged
+    .filter((e) => e && (e.imei || e.timestamp))
+    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+    .slice(0, 200);
+};
+
+/** Merge copy_history nur von Benutzern mit gleichem einsatz_ort (Teamleiter shop sieht Verlauf seiner Kategorie) */
+const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
+  if (!einsatzOrt || typeof einsatzOrt !== 'string') return [];
+  const usersInCategory = await User.findAll({
+    where: { einsatz_ort: einsatzOrt.trim() },
+    attributes: ['id']
+  });
+  const userIds = new Set(usersInCategory.map((u) => u.id));
+  if (userIds.size === 0) return [];
+  const all = await ImeisUserData.findAll({
+    where: { user_id: Array.from(userIds) }
+  });
   const merged = [];
   for (const row of all) {
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
@@ -136,6 +169,8 @@ export const getImeisData = async (req, res, next) => {
         if (isMitarbeiterShop(role)) {
           const userName = currentUser?.name || '';
           copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
+        } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
+          copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
         } else {
           copyHistory = rawHistory;
         }
@@ -145,6 +180,9 @@ export const getImeisData = async (req, res, next) => {
       }
       if (isBüroMitarbeiter(role)) {
         copyHistory = await getMergedCopyHistory();
+      }
+      if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
+        copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
       }
 
       return res.json({
@@ -178,6 +216,8 @@ export const getImeisData = async (req, res, next) => {
       if (isMitarbeiterShop(role)) {
         const userName = currentUser?.name || '';
         copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
+      } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
+        copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
       } else {
         copyHistory = rawHistory;
       }
@@ -187,6 +227,9 @@ export const getImeisData = async (req, res, next) => {
     }
     if (isBüroMitarbeiter(role)) {
       copyHistory = await getMergedCopyHistory();
+    }
+    if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
+      copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
     }
 
     res.json({
@@ -296,14 +339,16 @@ export const saveImeisData = async (req, res, next) => {
   }
 };
 
-/** Büro Mitarbeiter: Aktion (angenommen/abgelehnt) für Einträge anderer Benutzer aktualisieren */
+/** Büro Mitarbeiter: Aktion (angenommen/abgelehnt) für alle. Teamleiter shop: nur für Benutzer seiner Kategorie (einsatz_ort). */
 export const updateHistoryAction = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? null;
-    if (!isBüroMitarbeiter(role)) {
-      return res.status(403).json({ message: 'Nur Büro Mitarbeiter dürfen Aktionen für andere aktualisieren' });
+    const isBüro = isBüroMitarbeiter(role);
+    const isTeamleiter = isTeamleiterShop(role);
+    if (!isBüro && !isTeamleiter) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter oder Teamleiter shop dürfen Aktionen für andere aktualisieren' });
     }
     const { imei, userName, newAction } = req.body;
     if (!imei || !userName) {
@@ -313,6 +358,13 @@ export const updateHistoryAction = async (req, res, next) => {
     const targetUser = await User.findOne({ where: { name: userName } });
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+    if (isTeamleiter && !isBüro) {
+      const tlOrt = (currentUser?.einsatz_ort || '').trim();
+      const targetOrt = (targetUser?.einsatz_ort || '').trim();
+      if (!tlOrt || tlOrt !== targetOrt) {
+        return res.status(403).json({ message: 'Teamleiter dürfen nur Aktionen für Benutzer ihrer Kategorie (einsatz_ort) aktualisieren' });
+      }
     }
 
     const [targetData] = await ImeisUserData.findOrCreate({
@@ -361,14 +413,16 @@ export const updateHistoryAction = async (req, res, next) => {
   }
 };
 
-/** Büro Mitarbeiter: Erinnerung an Mitarbeiter senden („Benutzt du noch diese IMEI?“) */
+/** Büro Mitarbeiter: Erinnerung an alle. Teamleiter shop: nur an Benutzer seiner Kategorie (einsatz_ort). */
 export const sendImeiReminder = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? null;
-    if (!isBüroMitarbeiter(role)) {
-      return res.status(403).json({ message: 'Nur Büro Mitarbeiter dürfen Erinnerungen senden' });
+    const isBüro = isBüroMitarbeiter(role);
+    const isTeamleiter = isTeamleiterShop(role);
+    if (!isBüro && !isTeamleiter) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter oder Teamleiter shop dürfen Erinnerungen senden' });
     }
     const { targetUserName, imei } = req.body;
     if (!targetUserName || !imei) {
@@ -378,6 +432,13 @@ export const sendImeiReminder = async (req, res, next) => {
     const targetUser = await User.findOne({ where: { name: targetUserName } });
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+    if (isTeamleiter && !isBüro) {
+      const tlOrt = (currentUser?.einsatz_ort || '').trim();
+      const targetOrt = (targetUser?.einsatz_ort || '').trim();
+      if (!tlOrt || tlOrt !== targetOrt) {
+        return res.status(403).json({ message: 'Teamleiter dürfen nur Erinnerungen an Benutzer ihrer Kategorie (einsatz_ort) senden' });
+      }
     }
 
     const targetId = targetUser.id ?? targetUser._id ?? targetUser.get?.('id');

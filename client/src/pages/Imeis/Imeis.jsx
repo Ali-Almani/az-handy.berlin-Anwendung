@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isAdmin } from '../../utils/roles';
+import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isTeamleiterShop, isAdmin } from '../../utils/roles';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -246,7 +246,7 @@ const Imeis = () => {
         onUpdateHistoryAction={handleUpdateHistoryAction}
         historyUndoStack={historyUndoStack}
         onUndo={handleHistoryModalUndo}
-        canSendReminder={isBüroMitarbeiter(user)}
+        canSendReminder={isBüroMitarbeiter(user) || isTeamleiterShop(user)}
         currentUserName={user?.name}
         onSendReminder={async (entry) => {
           try {

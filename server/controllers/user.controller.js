@@ -22,6 +22,7 @@ export const getProfile = async (req, res, next) => {
         email: user.email,
         role,
         avatar: user.avatar || null,
+        einsatz_ort: user.einsatz_ort || null,
         createdAt: user.createdAt
       }
     });
@@ -98,7 +99,7 @@ export const createUserByAdmin = async (req, res, next) => {
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer erstellen' });
     }
-    const { name, email, password, role, avatar } = req.body;
+    const { name, email, password, role, avatar, einsatz_ort } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, E-Mail und Passwort sind erforderlich' });
     }
@@ -106,12 +107,12 @@ export const createUserByAdmin = async (req, res, next) => {
     if (existing) {
       return res.status(400).json({ message: 'E-Mail wird bereits verwendet' });
     }
-    const user = await User.create({ name, email: email.toLowerCase(), password, role: role || 'Marketing', avatar: avatar || null });
+    const user = await User.create({ name, email: email.toLowerCase(), password, role: role || 'Marketing', avatar: avatar || null, einsatz_ort: einsatz_ort || null });
     const createdAt = user.createdAt ?? user.created_at ?? new Date();
     res.status(201).json({
       success: true,
       message: 'Benutzer erfolgreich erstellt',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, createdAt }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, einsatz_ort: user.einsatz_ort || null, createdAt }
     });
   } catch (error) {
     next(error);
@@ -125,7 +126,7 @@ export const updateUserByAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer bearbeiten' });
     }
     const { id } = req.params;
-    const { role, name, email, avatar } = req.body;
+    const { role, name, email, avatar, einsatz_ort } = req.body;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
@@ -149,11 +150,12 @@ export const updateUserByAdmin = async (req, res, next) => {
       user.email = email.toLowerCase().trim();
     }
     if (avatar !== undefined) user.avatar = avatar || null;
+    if (einsatz_ort !== undefined) user.einsatz_ort = einsatz_ort || null;
     await user.save();
     res.json({
       success: true,
       message: 'Benutzer erfolgreich aktualisiert',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, einsatz_ort: user.einsatz_ort || null }
     });
   } catch (error) {
     next(error);

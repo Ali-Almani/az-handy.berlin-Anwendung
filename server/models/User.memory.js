@@ -19,6 +19,7 @@ const toPlainUser = (u) => ({
   password: u.password,
   role: u.role,
   avatar: u.avatar ?? null,
+  einsatz_ort: u.einsatz_ort ?? null,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt
 });
@@ -47,6 +48,7 @@ const loadUsers = () => {
         password: u.password,
         role: u.role,
         avatar: u.avatar ?? null,
+        einsatz_ort: u.einsatz_ort ?? null,
         createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
         updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
       });
@@ -88,6 +90,7 @@ class InMemoryUser {
     this.password = data.password;
     this.role = data.role || 'user';
     this.avatar = data.avatar ?? null;
+    this.einsatz_ort = data.einsatz_ort ?? null;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }
@@ -180,6 +183,22 @@ class InMemoryUser {
     return users
       .filter(u => {
         return Object.keys(query).every(key => u[key] === query[key]);
+      })
+      .map(u => new InMemoryUser(u));
+  }
+
+  static async findAll(options = {}) {
+    const where = options?.where || {};
+    if (Object.keys(where).length === 0) {
+      return users.map(u => new InMemoryUser(u));
+    }
+    return users
+      .filter(u => {
+        return Object.entries(where).every(([key, val]) => {
+          const uv = u[key];
+          if (val == null) return uv == null || uv === '';
+          return String(uv || '').trim() === String(val || '').trim();
+        });
       })
       .map(u => new InMemoryUser(u));
   }

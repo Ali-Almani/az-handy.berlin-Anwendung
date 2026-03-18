@@ -39,6 +39,12 @@ export const isMitarbeiterShop = (user) => {
   return user.role === ROLES.MITARBEITER_SHOP;
 };
 
+// Prüfe ob Benutzer Teamleiter shop ist
+export const isTeamleiterShop = (user) => {
+  if (!user) return false;
+  return user.role === ROLES.TEAMLEITER_SHOP;
+};
+
 // Prüfe ob Benutzer Büro Mitarbeiter ist
 export const isBüroMitarbeiter = (user) => {
   if (!user) return false;

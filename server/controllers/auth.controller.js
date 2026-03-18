@@ -76,7 +76,8 @@ export const login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role,
-        avatar: user.avatar || null
+        avatar: user.avatar || null,
+        einsatz_ort: user.einsatz_ort || null
       }
     });
   } catch (error) {
