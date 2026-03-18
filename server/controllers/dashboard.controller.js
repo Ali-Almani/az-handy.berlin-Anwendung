@@ -9,11 +9,15 @@ const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
 const isAdminUser = (user) => {
   if (!user) return false;
   const role = String(user.role ?? user.get?.('role') ?? '').trim();
-  const email = String(user.email ?? user.get?.('email') ?? '').toLowerCase();
-  if (role.toLowerCase().includes('admin')) return true;
-  if (email === 'admin@az-handy.berlin') return true;
-  return false;
+  return role === 'Administrator' || role === 'admin' || role.toLowerCase().includes('admin');
 };
+
+/** Ersten Benutzer mit Rolle Administrator/admin finden (für gemeinsame Admin-Notizen) */
+async function getAdminUserForNotes() {
+  const admins1 = await User.findAll({ where: { role: 'Administrator' } });
+  const admins2 = await User.findAll({ where: { role: 'admin' } });
+  return admins1[0] || admins2[0] || null;
+}
 
 const simpleHash = (str) => {
   if (!str || !str.trim()) return '';
@@ -27,7 +31,7 @@ const simpleHash = (str) => {
 /** News für alle: Admin-Notiz oder neueste Archiv-Nachricht (für Popup) */
 export const getNews = async (req, res, next) => {
   try {
-    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const admin = await getAdminUserForNotes();
     const adminId = admin?.id ?? admin?._id ?? null;
     let authorName = (admin?.name ?? admin?.get?.('name') ?? admin?.dataValues?.name ?? '').trim();
     if (!adminId) {
@@ -71,10 +75,14 @@ export const getNews = async (req, res, next) => {
 export const getNote = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const admin = await getAdminUserForNotes();
+    const adminId = admin?.id ?? admin?._id ?? userId;
+    const noteUserId = isAdminUser(currentUser) ? adminId : userId;
 
     if (USE_MEMORY_DB) {
       const [note] = await DashboardNote.findOrCreate({
-        where: { user_id: userId },
+        where: { user_id: noteUserId },
         defaults: { content: '' }
       });
       return res.json({
@@ -85,7 +93,7 @@ export const getNote = async (req, res, next) => {
     }
 
     const [note] = await DashboardNote.findOrCreate({
-      where: { user_id: userId },
+      where: { user_id: noteUserId },
       defaults: { content: '' }
     });
 
@@ -102,15 +110,22 @@ export const getNote = async (req, res, next) => {
 export const saveNote = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Anweisungen schreiben' });
+    }
     const { content } = req.body;
 
+    const admin = await getAdminUserForNotes();
+    const adminId = admin?.id ?? admin?._id ?? userId;
+
     if (USE_MEMORY_DB) {
-      const [note, created] = await DashboardNote.findOrCreate({
-        where: { user_id: userId },
+      const [note] = await DashboardNote.findOrCreate({
+        where: { user_id: adminId },
         defaults: { content: '' }
       });
       if (content && String(content).trim()) {
-        DashboardNote.addHistory(userId, content ?? '');
+        DashboardNote.addHistory(adminId, content ?? '');
       }
       await note.update({ content: '' });
       broadcastNewsIfAdmin(req, content, userId);
@@ -121,14 +136,14 @@ export const saveNote = async (req, res, next) => {
       });
     }
 
-    const [note, created] = await DashboardNote.findOrCreate({
-      where: { user_id: userId },
+    const [note] = await DashboardNote.findOrCreate({
+      where: { user_id: adminId },
       defaults: { content: '' }
     });
 
     if (content && String(content).trim()) {
       await DashboardNoteHistory.create({
-        user_id: userId,
+        user_id: adminId,
         content: content ?? ''
       });
     }
@@ -203,7 +218,7 @@ export const getNewsReaders = async (req, res, next) => {
 /** Alte Nachrichten – für alle Rollen (Admin: mit Lesern, andere: nur Liste) */
 export const getNewsArchive = async (req, res, next) => {
   try {
-    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const admin = await getAdminUserForNotes();
     const adminId = admin?.id ?? admin?._id ?? null;
     if (!adminId) return res.json({ success: true, messages: [] });
 
@@ -264,9 +279,9 @@ export const updateNewsArchiveEntry = async (req, res, next) => {
     const { content } = req.body;
     if (!id) return res.status(400).json({ message: 'ID erforderlich' });
 
-    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const admin = await getAdminUserForNotes();
     const adminId = admin?.id ?? admin?._id ?? null;
-    if (!adminId) return res.status(404).json({ message: 'Admin nicht gefunden' });
+    if (!adminId) return res.status(404).json({ message: 'Kein Administrator gefunden' });
 
     let entry = null;
     if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
@@ -308,9 +323,9 @@ export const deleteNewsArchiveEntry = async (req, res, next) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: 'ID erforderlich' });
 
-    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const admin = await getAdminUserForNotes();
     const adminId = admin?.id ?? admin?._id ?? null;
-    if (!adminId) return res.status(404).json({ message: 'Admin nicht gefunden' });
+    if (!adminId) return res.status(404).json({ message: 'Kein Administrator gefunden' });
 
     let entry = null;
     if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
