@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ROLE_OPTIONS } from '../../utils/roles';
+import { ROLE_OPTIONS, EINSATZ_ORT_OPTIONS } from '../../utils/roles';
 import './UserEditModal.scss';
 
 const UserEditModal = ({ user, onClose, onSave, loading }) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
+  const [einsatzOrt, setEinsatzOrt] = useState('');
 
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
       setRole(user.role || 'Marketing');
+      setEinsatzOrt(user.einsatz_ort || '');
     }
   }, [user]);
 
@@ -22,6 +24,7 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
     const updates = {};
     if (!isAdminAccount && email !== user.email) updates.email = email;
     if (role !== user.role) updates.role = role;
+    if (einsatzOrt !== (user.einsatz_ort || '')) updates.einsatz_ort = einsatzOrt || null;
     if (Object.keys(updates).length > 0) onSave(user.id, updates);
     onClose();
   };
@@ -43,6 +46,14 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
             <select className="form-input" value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Einsatz Ort</label>
+            <select className="form-input" value={einsatzOrt} onChange={(e) => setEinsatzOrt(e.target.value)}>
+              {EINSATZ_ORT_OPTIONS.map((opt) => (
+                <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>

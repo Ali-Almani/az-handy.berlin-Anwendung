@@ -83,7 +83,7 @@ export const mockGetAllUsers = async (mockUsers, token) => {
   if (!adminId) throw authError();
   const adminUser = mockUsers.find(u => u.id === adminId);
   if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können alle Benutzer sehen');
-  const users = mockUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar || null, createdAt: u.createdAt }));
+  const users = mockUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar || null, einsatz_ort: u.einsatz_ort || null, createdAt: u.createdAt }));
   return { data: { success: true, users } };
 };
 
@@ -125,6 +125,7 @@ export const mockUpdateUserByAdmin = async (mockUsers, token, userId, updates) =
   }
   if (updates.role) mockUsers[userIndex].role = updates.role;
   if (updates.name) mockUsers[userIndex].name = updates.name;
+  if (updates.einsatz_ort !== undefined) mockUsers[userIndex].einsatz_ort = updates.einsatz_ort || null;
   if (updates.email) {
     if (mockUsers.some(u => u.email === updates.email && u.id !== userId)) throw badRequestError('E-Mail wird bereits verwendet');
     mockUsers[userIndex].email = updates.email;

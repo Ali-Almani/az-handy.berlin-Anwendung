@@ -31,6 +31,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Einsatz Ort</th>
                 <th>E-Mail</th>
                 <th>Rolle</th>
                 <th>Erstellt</th>
@@ -50,6 +51,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
                       <span>{user.name}</span>
                     </div>
                   </td>
+                  <td>{user.einsatz_ort || '–'}</td>
                   <td>{user.email}</td>
                   <td><span className={`role-badge role-badge--${user.role}`}>{user.role}</span></td>
                   <td>{(user.createdAt ?? user.created_at) ? new Date(user.createdAt ?? user.created_at).toLocaleDateString('de-DE') : '-'}</td>
