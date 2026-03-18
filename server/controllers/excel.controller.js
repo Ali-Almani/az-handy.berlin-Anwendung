@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { saveImeisDataToStorage } from './imeis.controller.js';
 
 const exceljsColorToHex = (color) => {
   if (!color) return null;
@@ -79,8 +80,19 @@ export const processExcelFile = async (req, res) => {
             rowDataFormats: {},
             columnOrder: headers
           });
-        }
       }
+    }
+
+    const saveDirectlyCsv = req.body?.saveDirectly === 'true' || req.body?.saveDirectly === true;
+    if (saveDirectlyCsv && req.user?.userId && imeis.length > 0) {
+      await saveImeisDataToStorage(req.user.userId, { imeis }, req.app);
+      return res.json({
+        success: true,
+        message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,
+        data: imeis,
+        saved: true
+      });
+    }
 
       return res.json({
         success: true,
@@ -169,6 +181,18 @@ export const processExcelFile = async (req, res) => {
         }
       });
     });
+
+    // saveDirectly: Server speichert direkt – vermeidet 413 bei großem JSON-Payload
+    const saveDirectly = req.body?.saveDirectly === 'true' || req.body?.saveDirectly === true;
+    if (saveDirectly && req.user?.userId && imeis.length > 0) {
+      await saveImeisDataToStorage(req.user.userId, { imeis }, req.app);
+      return res.json({
+        success: true,
+        message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,
+        data: imeis,
+        saved: true
+      });
+    }
 
     res.json({
       success: true,

@@ -139,9 +139,10 @@ const createRealApi = () => {
 
 const api = USE_MOCK_API ? createMockApi() : createRealApi();
 
-export const uploadExcelFile = async (file) => {
+export const uploadExcelFile = async (file, options = {}) => {
   const formData = new FormData();
   formData.append('file', file);
+  if (options.saveDirectly) formData.append('saveDirectly', 'true');
 
   const token = localStorage.getItem('token');
   const headers = {};

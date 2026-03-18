@@ -54,7 +54,7 @@ const ExcelUpload = () => {
         imeis = await readExcelFile(selectedFile);
       } else {
         setUploadStatus({ type: 'info', message: 'Datei wird hochgeladen und verarbeitet...' });
-        const response = await uploadExcelFile(selectedFile);
+        const response = await uploadExcelFile(selectedFile, { saveDirectly: true });
         if (!response.success || !response.data?.length) {
           setUploadStatus({ type: 'error', message: response.message || 'Keine IMEI-Daten in der Datei gefunden' });
           setIsProcessing(false);
@@ -72,7 +72,10 @@ const ExcelUpload = () => {
       setUploadedImeis(imeis);
       setUploadStatus({ type: 'success', message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen. Alte Daten wurden ersetzt.` });
       await saveImeis(imeis);
-      await persistImeisState(user, { imeis });
+      if (USE_MOCK_API) {
+        await persistImeisState(user, { imeis });
+      }
+      // Bei echter API: saveDirectly=true – Server speichert direkt, kein PUT mit großem JSON (vermeidet 413)
 
       setSelectedFile(null);
       const fileInput = document.getElementById('excel-file-input');
