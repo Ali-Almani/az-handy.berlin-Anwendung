@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react';
 import { createUser, getAllUsers, updateUserByAdmin, deleteUser, setPasswordByAdmin } from '../../services/user.service';
+import { EINSATZ_ORT_OPTIONS } from '../../utils/roles';
 import UserForm from './UserForm';
 import UsersTable from './UsersTable';
 import './UserManagement.scss';
+
+const EINSATZ_ORT_ORDER = EINSATZ_ORT_OPTIONS.filter((o) => o.value).map((o) => o.value);
+
+const sortUsersByEinsatzOrt = (users) => {
+  return [...users].sort((a, b) => {
+    const aOrt = (a.einsatz_ort || '').trim();
+    const bOrt = (b.einsatz_ort || '').trim();
+    const aIdx = aOrt ? EINSATZ_ORT_ORDER.indexOf(aOrt) : 999;
+    const bIdx = bOrt ? EINSATZ_ORT_ORDER.indexOf(bOrt) : 999;
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+};
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -138,7 +152,7 @@ const UserManagement = () => {
           onSubmit={handleSubmit}
         />
       )}
-      <UsersTable users={users} loading={loading && !showForm} onDelete={handleDelete} onEdit={handleEdit} onResetPassword={handleResetPassword} />
+      <UsersTable users={sortUsersByEinsatzOrt(users)} loading={loading && !showForm} onDelete={handleDelete} onEdit={handleEdit} onResetPassword={handleResetPassword} />
     </div>
   );
 };

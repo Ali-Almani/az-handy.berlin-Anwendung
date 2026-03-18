@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { setRemovedImeiCooldown, notifyReminderResponseApi } from '../../../services/imeis.service';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
-/** Rate-Limit: 5 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
-const MAX_COPIES = 5;
+/** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
+const MAX_COPIES = 10;
 
 export function useImeisCopyHandlers({
   user,
@@ -51,7 +51,7 @@ export function useImeisCopyHandlers({
     const minutesRemaining = recentCopies.length > 0
       ? Math.ceil((THIRTY_MINUTES - (now - Math.min(...recentCopies))) / (60 * 1000))
       : 30;
-    setRateLimitMessage(`Rate-Limit erreicht! Sie haben bereits 5 IMEIs innerhalb der letzten 30 Minuten kopiert. Bitte warten Sie noch ${minutesRemaining} Minute(n).`);
+    setRateLimitMessage(`Rate-Limit erreicht! Sie haben bereits 10 IMEIs innerhalb der letzten 30 Minuten kopiert. Bitte warten Sie noch ${minutesRemaining} Minute(n).`);
     setShowRateLimitModal(true);
   }, [copyTimestamps, setRateLimitMessage, setShowRateLimitModal]);
 

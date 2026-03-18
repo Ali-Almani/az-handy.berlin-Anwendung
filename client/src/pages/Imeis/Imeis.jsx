@@ -249,11 +249,7 @@ const Imeis = () => {
         canSendReminder={isBüroMitarbeiter(user) || isTeamleiterShop(user)}
         currentUserName={user?.name}
         onSendReminder={async (entry) => {
-          try {
-            await sendImeiReminderApi(entry.userName, entry.imei);
-          } catch (err) {
-            console.error('Erinnerung senden fehlgeschlagen:', err);
-          }
+          await sendImeiReminderApi(entry.userName, entry.imei);
         }}
       />
 

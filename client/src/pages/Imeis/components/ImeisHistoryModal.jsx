@@ -78,6 +78,9 @@ const ImeisHistoryModal = ({
     try {
       await onSendReminder(entry);
       setToast({ message: 'Erinnerung gesendet.', type: 'success' });
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Erinnerung konnte nicht gesendet werden.';
+      setToast({ message: msg, type: 'error' });
     } finally {
       setSendingReminderFor(null);
     }
@@ -238,7 +241,7 @@ const ImeisHistoryModal = ({
             className={`imeis-toast imeis-toast--${toast.type}`}
             role="alert"
           >
-            <span className="imeis-toast-icon">✓</span>
+            <span className="imeis-toast-icon">{toast.type === 'error' ? '!' : '✓'}</span>
             <span className="imeis-toast-message">{toast.message}</span>
             <button
               className="imeis-toast-close"
