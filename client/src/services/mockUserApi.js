@@ -72,9 +72,9 @@ export const mockCreateUserByAdmin = async (mockUsers, token, userData) => {
   const adminUser = mockUsers.find(u => u.id === adminId);
   if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können Benutzer erstellen');
   if (mockUsers.find(u => u.email === userData.email)) throw badRequestError('E-Mail wird bereits verwendet');
-  const newUser = { id: `user-${Date.now()}`, name: userData.name, email: userData.email, password: userData.password, role: userData.role || 'Marketing Mitarbeiter', avatar: userData.avatar || null, createdAt: new Date().toISOString() };
+  const newUser = { id: `user-${Date.now()}`, name: userData.name, email: userData.email, password: userData.password, role: userData.role || 'Marketing Mitarbeiter', avatar: userData.avatar || null, einsatz_ort: userData.einsatz_ort || null, createdAt: new Date().toISOString() };
   mockUsers.push(newUser);
-  return { data: { success: true, message: 'Benutzer erfolgreich erstellt', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, avatar: newUser.avatar || null } } };
+  return { data: { success: true, message: 'Benutzer erfolgreich erstellt', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, avatar: newUser.avatar || null, einsatz_ort: newUser.einsatz_ort || null } } };
 };
 
 export const mockGetAllUsers = async (mockUsers, token) => {

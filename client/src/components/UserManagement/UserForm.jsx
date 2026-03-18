@@ -1,4 +1,4 @@
-import { ROLE_OPTIONS } from '../../utils/roles';
+import { ROLE_OPTIONS, EINSATZ_ORT_OPTIONS } from '../../utils/roles';
 
 const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmit }) => (
   <div className="user-form-section">
@@ -24,6 +24,12 @@ const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmi
           <label htmlFor="new-role" className="form-label">Rolle</label>
           <select id="new-role" name="role" className="form-input" value={newUserData.role} onChange={onInputChange} required>
             {ROLE_OPTIONS.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="new-einsatz-ort" className="form-label">Einsatz Ort</label>
+          <select id="new-einsatz-ort" name="einsatz_ort" className="form-input" value={newUserData.einsatz_ort || ''} onChange={onInputChange}>
+            {EINSATZ_ORT_OPTIONS.map(opt => <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>)}
           </select>
         </div>
       </div>

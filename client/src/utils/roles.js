@@ -11,6 +11,18 @@ export const ROLES = {
   MITARBEITER_SHOP: 'Mitarbeiter shop'
 };
 
+// Einsatzorte für Shop-Mitarbeiter
+export const EINSATZ_ORT_OPTIONS = [
+  { value: '', label: '– Keiner –' },
+  { value: 'Bad', label: 'Bad' },
+  { value: 'Haupt', label: 'Haupt' },
+  { value: 'KM127', label: 'KM127' },
+  { value: 'KM169', label: 'KM169' },
+  { value: 'KM50', label: 'KM50' },
+  { value: 'Sonne', label: 'Sonne' },
+  { value: 'Turm', label: 'Turm' }
+];
+
 // Rollen als Array für Dropdown
 export const ROLE_OPTIONS = [
   { value: ROLES.ADMINISTRATOR, label: 'Administrator' },

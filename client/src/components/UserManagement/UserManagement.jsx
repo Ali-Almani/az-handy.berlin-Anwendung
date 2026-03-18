@@ -11,7 +11,7 @@ const UserManagement = () => {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [newUserData, setNewUserData] = useState({
-    name: '', email: '', password: '', role: 'Marketing', avatar: null, avatarPreview: null
+    name: '', email: '', password: '', role: 'Marketing', einsatz_ort: '', avatar: null, avatarPreview: null
   });
 
   useEffect(() => { loadUsers(); }, []);
@@ -61,10 +61,11 @@ const UserManagement = () => {
     }
     try {
       const userData = { name: newUserData.name, email: newUserData.email, password: newUserData.password, role: newUserData.role };
+      if (newUserData.einsatz_ort) userData.einsatz_ort = newUserData.einsatz_ort;
       if (newUserData.avatarPreview) userData.avatar = newUserData.avatarPreview;
       await createUser(userData);
       setSuccess('Benutzer erfolgreich erstellt!');
-      setNewUserData({ name: '', email: '', password: '', role: 'Marketing', avatar: null, avatarPreview: null });
+      setNewUserData({ name: '', email: '', password: '', role: 'Marketing', einsatz_ort: '', avatar: null, avatarPreview: null });
       setShowForm(false);
       loadUsers();
     } catch (err) {
