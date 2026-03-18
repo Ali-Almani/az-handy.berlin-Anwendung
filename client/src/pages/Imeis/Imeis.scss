@@ -568,18 +568,19 @@
     .imeis-history-table {
       width: 100%;
       border-collapse: collapse;
+      border: 1px solid $border-color;
 
       thead {
         background: $bg-light;
-        
+
         th {
-          padding: $spacing-sm $spacing-md;
+          padding: 0.6rem 0.75rem;
           text-align: left;
           font-weight: $font-weight-bold;
           color: $text-color;
-          border-bottom: 2px solid $border-color;
           font-size: 0.9rem;
-          
+          border: 1px solid $border-color;
+
           &:nth-child(1) {
             width: 15%;
           }
@@ -600,26 +601,30 @@
 
       tbody {
         tr {
-          border-bottom: 1px solid $border-color;
           transition: background 0.2s;
 
-          &:hover {
-            background: $bg-light;
+          &:nth-child(odd) {
+            background: #fff;
           }
 
-          &:last-child {
-            border-bottom: none;
+          &:nth-child(even) {
+            background: #f8f9fa;
+          }
+
+          &:hover {
+            background: #e9ecef !important;
           }
         }
 
         td {
-          padding: $spacing-sm $spacing-md;
+          padding: 0.6rem 0.75rem;
           color: $text-color;
           font-size: 0.9rem;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           max-width: 0;
+          border: 1px solid $border-color;
 
           &:nth-child(3) {
             white-space: normal;

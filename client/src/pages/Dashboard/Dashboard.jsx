@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getDashboardNote, saveDashboardNote, getNewsArchive, updateNewsArchiveEntry, deleteNewsArchiveEntry } from '../../services/dashboard.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
+import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
 import './Dashboard.scss';
@@ -52,7 +53,13 @@ const Dashboard = () => {
     };
     fetchArchive(true);
     const id = setInterval(() => fetchArchive(false), 3000);
-    return () => clearInterval(id);
+    const socket = getSocket();
+    const onNewsNew = () => fetchArchive(false);
+    if (socket) socket.on('news:new', onNewsNew);
+    return () => {
+      clearInterval(id);
+      if (socket) socket.off('news:new', onNewsNew);
+    };
   }, [user?.id]);
 
   if (!canAccessDashboard(user)) {
@@ -61,10 +68,21 @@ const Dashboard = () => {
 
   const handleSave = async (content) => {
     try {
+      const trimmed = (content || '').trim();
+      if (!trimmed) return;
       await saveDashboardNote(content);
       setNoteContent('');
       setEditorKey((k) => k + 1);
       if (isAdmin(user)) {
+        const newMsg = {
+          id: `new-${Date.now()}`,
+          content: trimmed,
+          createdAt: new Date().toISOString(),
+          updatedAt: null,
+          updatedBy: null,
+          readers: []
+        };
+        setArchive((prev) => [newMsg, ...prev]);
         const res = await getNewsArchive();
         setArchive(res.data?.messages ?? []);
       }

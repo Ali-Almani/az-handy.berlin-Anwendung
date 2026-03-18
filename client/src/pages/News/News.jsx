@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getNewsArchive } from '../../services/dashboard.service';
 import { isAdmin } from '../../utils/roles';
+import { getSocket } from '../../services/socket';
 import './News.scss';
 
 const News = () => {
@@ -25,7 +26,13 @@ const News = () => {
     };
     fetchNews(true);
     const id = setInterval(() => fetchNews(false), 3000);
-    return () => clearInterval(id);
+    const socket = getSocket();
+    const onNewsNew = () => fetchNews(false);
+    if (socket) socket.on('news:new', onNewsNew);
+    return () => {
+      clearInterval(id);
+      if (socket) socket.off('news:new', onNewsNew);
+    };
   }, [user?.id]);
 
   if (isAdmin(user)) {
