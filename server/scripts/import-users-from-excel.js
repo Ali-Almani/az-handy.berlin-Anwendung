@@ -4,7 +4,7 @@
  * - Name = Vorname + Nachname
  * - Passwort = !azHandy.berlin20260203?
  * - Email = wie in Excel
- * - Einsatz Orte (Spalten): Bad, Haupt, KM127, KM169, KM50, Sonne, Turm
+ * - Einsatz Orte (Spalten): Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt
  * - Wenn "SL" in einer Einsatz-Ort-Spalte → Teamleiter shop, einsatz_ort = diese Kategorie
  * - Sonst → Mitarbeiter shop, einsatz_ort = erste nicht-leere Einsatz-Ort-Spalte
  *
@@ -69,7 +69,7 @@ async function main() {
   const colNachname = findCol(sheet, ['Nachname', 'Last Name']);
   const colEmail = findCol(sheet, ['Email', 'E-Mail', 'e-mail', 'Mail']);
 
-  const EINSATZ_ORTE = ['Bad', 'Haupt', 'KM127', 'KM169', 'KM50', 'Sonne', 'Turm'];
+  const EINSATZ_ORTE = ['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
   const colEinsatzOrt = {};
   for (const ort of EINSATZ_ORTE) {
     const c = findCol(sheet, [ort]);

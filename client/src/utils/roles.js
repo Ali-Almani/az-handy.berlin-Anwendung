@@ -11,16 +11,17 @@ export const ROLES = {
   MITARBEITER_SHOP: 'Mitarbeiter shop'
 };
 
-// Einsatzorte für Shop-Mitarbeiter
+// Einsatzorte für Shop-Mitarbeiter (Reihenfolge: Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt)
 export const EINSATZ_ORT_OPTIONS = [
   { value: '', label: '– Keiner –' },
-  { value: 'Bad', label: 'Bad' },
-  { value: 'Haupt', label: 'Haupt' },
+  { value: 'Zentrale', label: 'Zentrale' },
+  { value: 'Sonne', label: 'Sonne' },
   { value: 'KM127', label: 'KM127' },
   { value: 'KM169', label: 'KM169' },
   { value: 'KM50', label: 'KM50' },
-  { value: 'Sonne', label: 'Sonne' },
-  { value: 'Turm', label: 'Turm' }
+  { value: 'Turm', label: 'Turm' },
+  { value: 'Bad', label: 'Bad' },
+  { value: 'Haupt', label: 'Haupt' }
 ];
 
 // Rollen als Array für Dropdown

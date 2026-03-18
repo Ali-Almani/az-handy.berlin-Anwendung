@@ -6,7 +6,7 @@ Skript: MA_Zuornung_Shop.xlsx → Neue Benutzer vorbereiten
 - Passwort = !azHandy.berlin20260203?
 - Email = wie in Excel
 - Rolle = Mitarbeiter shop (Standard)
-- Einsatz Orte (Spalten): Bad, Haupt, KM127, KM169, KM50, Sonne, Turm
+- Einsatz Orte (Spalten): Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt
 - Wenn "SL" in einer Einsatz-Ort-Spalte → Teamleiter shop, einsatz_ort = diese Kategorie
 
 Ausgabe: MA_Zuornung_Shop_Neu.xlsx + users_import.json
@@ -46,7 +46,7 @@ def main():
     col_nachname = find_col(df, ["Nachname", "Last Name"])
     col_email = find_col(df, ["Email", "E-Mail", "e-mail", "Mail"])
 
-    EINSATZ_ORTE = ["Bad", "Haupt", "KM127", "KM169", "KM50", "Sonne", "Turm"]
+    EINSATZ_ORTE = ["Zentrale", "Sonne", "KM127", "KM169", "KM50", "Turm", "Bad", "Haupt"]
     col_einsatz = {ort: find_col(df, [ort]) for ort in EINSATZ_ORTE}
 
     if not col_vorname or not col_nachname:
