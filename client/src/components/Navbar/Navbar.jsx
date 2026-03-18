@@ -230,6 +230,19 @@ const Navbar = ({
                       </button>
                     )}
                     <Link
+                      to="/dokumentation"
+                      className="navbar-dropdown-item"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <span className="navbar-dropdown-icon">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M2 3h12v10H2V3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </span>
+                      Dokumentation
+                    </Link>
+                    <Link
                       to="/settings"
                       className="navbar-dropdown-item"
                       onClick={() => setDropdownOpen(false)}
