@@ -1,7 +1,7 @@
 @import '../../styles/variables';
 
 .settings {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
 
@@ -29,7 +29,7 @@
   .settings-section {
     background: white;
     border-radius: $border-radius-md;
-    padding: 2rem;
+    padding: 2.5rem;
     box-shadow: $shadow-sm;
     border: 4px solid $bg-light;
     margin-bottom: 1.5rem;
