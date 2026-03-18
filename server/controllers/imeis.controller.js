@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import ImeisUserData from '../models/ImeisUserData.js';
 import User from '../models/User.js';
 import * as ImeiReminder from '../models/ImeiReminder.memory.js';
@@ -56,7 +57,7 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   const userIds = new Set(usersInCategory.map((u) => u.id));
   if (userIds.size === 0) return [];
   const all = await ImeisUserData.findAll({
-    where: { user_id: Array.from(userIds) }
+    where: { user_id: { [Op.in]: Array.from(userIds) } }
   });
   const merged = [];
   for (const row of all) {

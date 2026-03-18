@@ -87,8 +87,19 @@ class InMemoryImeisUserData {
     return [{ ...data, id: data.user_id }, created];
   }
 
-  static async findAll() {
-    return Array.from(dataByUserId.values()).map((d) => ({ ...d, id: d.user_id }));
+  static async findAll(options = {}) {
+    let rows = Array.from(dataByUserId.values()).map((d) => ({ ...d, id: d.user_id }));
+    const where = options?.where || {};
+    let userIds = where?.user_id;
+    if (userIds && typeof userIds === 'object' && !Array.isArray(userIds)) {
+      const vals = Object.values(userIds);
+      if (vals.length === 1 && Array.isArray(vals[0])) userIds = vals[0];
+    }
+    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+      const idSet = new Set(userIds.map((id) => String(id)));
+      rows = rows.filter((r) => idSet.has(String(r.user_id)));
+    }
+    return rows;
   }
 
   static async upsert(values) {
