@@ -54,7 +54,7 @@ export function useNewsPopup() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user?.id || isAdmin(user)) return;
+    if (!user?.id) return;
 
     const showNewNews = (newContent, newAuthorName, hasReadFromServer = false) => {
       if (!newContent || !newContent.trim()) return;
@@ -97,15 +97,17 @@ export function useNewsPopup() {
     const hash = simpleHash(content);
     if (hash) {
       setLastReadHash(user?.id, hash);
-      try {
-        await markNewsAsRead(hash, user?.name);
-      } catch {}
+      if (!isAdmin(user)) {
+        try {
+          await markNewsAsRead(hash, user?.name);
+        } catch {}
+      }
     }
     setShowPopup(false);
-  }, [content, user?.id, user?.name]);
+  }, [content, user, user?.id, user?.name]);
 
   return {
-    showPopup: showPopup && content && !isAdmin(user),
+    showPopup: showPopup && !!content,
     content,
     authorName,
     onMarkAsRead: handleMarkAsRead
