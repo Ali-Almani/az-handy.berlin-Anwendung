@@ -7,6 +7,7 @@ import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
+import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import './Dashboard.scss';
 
 const Dashboard = () => {
@@ -139,6 +140,17 @@ const Dashboard = () => {
           <h2 className="card-title">Willkommen, {user?.name}</h2>
         </div>
       </div>
+
+      {isAdmin(user) && (
+        <div className="card dashboard-performance">
+          <div className="card-header">
+            <h2 className="card-title">Kennzahlen</h2>
+          </div>
+          <div className="card-body">
+            <PerformanceDashboard isAdmin={isAdmin(user)} />
+          </div>
+        </div>
+      )}
 
       {isAdmin(user) && canShowDashboardNotes(user) && (
         <div className="card dashboard-new-message">

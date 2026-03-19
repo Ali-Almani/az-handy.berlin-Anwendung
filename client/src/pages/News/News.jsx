@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getNewsArchive } from '../../services/dashboard.service';
 import { isAdmin } from '../../utils/roles';
@@ -35,15 +34,11 @@ const News = () => {
     };
   }, [user?.id]);
 
-  if (isAdmin(user)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return (
     <div className="news-page">
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Archiv Anweisung</h2>
+          <h2 className="card-title">NEWS</h2>
         </div>
         <div className="card-body">
           {loading ? (

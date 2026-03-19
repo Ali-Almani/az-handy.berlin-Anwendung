@@ -1,6 +1,22 @@
 @import '../../styles/variables';
 
 .news-page {
+  max-width: 800px;
+  margin: 0 auto;
+
+  .card-header {
+    background: linear-gradient(135deg, rgba($primary-color, 0.08) 0%, rgba($primary-color, 0.02) 100%);
+    border-radius: 8px 8px 0 0;
+    margin: -$spacing-lg -$spacing-lg $spacing-lg -$spacing-lg;
+    padding: $spacing-lg;
+  }
+
+  .card-title {
+    color: $primary-color;
+    font-size: 1.5rem;
+    letter-spacing: 0.02em;
+  }
+
   .news-list {
     margin: 0;
     padding: 0;
@@ -8,11 +24,17 @@
   }
 
   .news-item {
-    padding: $spacing-md;
+    padding: $spacing-lg;
     margin-bottom: $spacing-md;
-    background: $bg-light;
-    border: 1px solid $border-color;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+    border: 1px solid rgba($primary-color, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
 
     &:last-child {
       margin-bottom: 0;
@@ -22,6 +44,9 @@
   .news-content {
     word-break: break-word;
     margin-bottom: $spacing-sm;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: $text-color;
 
     p {
       margin: 0 0 0.5em;
@@ -32,9 +57,11 @@
   }
 
   .news-date {
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: $text-light;
-    margin-top: $spacing-xs;
+    margin-top: $spacing-sm;
+    padding-top: $spacing-sm;
+    border-top: 1px solid rgba($border-color, 0.6);
 
     &.news-date-edited {
       font-style: italic;
@@ -45,5 +72,7 @@
   .news-empty {
     color: $text-light;
     font-style: italic;
+    text-align: center;
+    padding: $spacing-xxl;
   }
 }

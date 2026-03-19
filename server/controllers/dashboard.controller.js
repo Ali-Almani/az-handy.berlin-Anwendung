@@ -2,6 +2,7 @@ import DashboardNote from '../models/DashboardNote.js';
 import DashboardNoteHistory from '../models/DashboardNoteHistory.model.js';
 import User from '../models/User.js';
 import * as NewsRead from '../models/NewsRead.memory.js';
+import { loadJson, saveJson } from '../utils/filePersistence.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -349,6 +350,37 @@ export const deleteNewsArchiveEntry = async (req, res, next) => {
     }
 
     return res.json({ success: true, message: 'Nachricht gelöscht' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const PERFORMANCE_FILE = 'dashboard-performance.json';
+
+/** Performance-Kennzahlen (Monatsziel, Quartalsziel) – für alle lesbar */
+export const getPerformanceMetrics = async (req, res, next) => {
+  try {
+    const data = loadJson(PERFORMANCE_FILE);
+    return res.json({ success: true, metrics: data?.metrics ?? null });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Performance-Kennzahlen speichern (nur Admin) */
+export const savePerformanceMetrics = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Kennzahlen bearbeiten' });
+    }
+    const { metrics } = req.body;
+    if (!metrics || typeof metrics !== 'object') {
+      return res.status(400).json({ message: 'metrics erforderlich' });
+    }
+    saveJson(PERFORMANCE_FILE, { metrics, updatedAt: new Date().toISOString() });
+    return res.json({ success: true, message: 'Kennzahlen gespeichert' });
   } catch (error) {
     next(error);
   }

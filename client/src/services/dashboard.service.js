@@ -186,3 +186,35 @@ export const getDashboardNoteHistory = (limit = 50) => {
   }
   return api.get('/dashboard/note/history', { params: { limit } });
 };
+
+const PERFORMANCE_STORAGE_KEY = 'dashboard-performance-metrics';
+
+const mockGetPerformanceMetrics = async () => {
+  try {
+    const stored = localStorage.getItem(PERFORMANCE_STORAGE_KEY);
+    const metrics = stored ? JSON.parse(stored) : null;
+    return { data: { success: true, metrics } };
+  } catch {
+    return { data: { success: true, metrics: null } };
+  }
+};
+
+const mockSavePerformanceMetrics = async (metrics) => {
+  localStorage.setItem(PERFORMANCE_STORAGE_KEY, JSON.stringify(metrics));
+  return { data: { success: true, message: 'Kennzahlen gespeichert' } };
+};
+
+/** Performance-Kennzahlen (Monatsziel, Quartalsziel) – für alle lesbar, Admin kann bearbeiten */
+export const getPerformanceMetrics = () => {
+  if (USE_MOCK_API) {
+    return mockGetPerformanceMetrics();
+  }
+  return api.get('/dashboard/performance');
+};
+
+export const savePerformanceMetrics = (metrics) => {
+  if (USE_MOCK_API) {
+    return mockSavePerformanceMetrics(metrics);
+  }
+  return api.put('/dashboard/performance', { metrics });
+};
