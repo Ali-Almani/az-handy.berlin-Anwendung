@@ -50,12 +50,18 @@ const Documentation = () => {
           haben Zugriff auf dieselbe Liste.
         </p>
 
-        <h3>IMEI kopieren</h3>
+        <h3>Reservieren und IMEI kopieren</h3>
+        <p>
+          Beim Markieren einer Zeile können Sie die Checkbox <strong>Reservieren</strong> aktivieren,
+          um eine IMEI zu reservieren.
+        </p>
+        <p>
+          Zum Kopieren einer IMEI:
+        </p>
         <ol>
           <li>Klicken Sie auf eine IMEI-Zelle, um die Zeile zu markieren.</li>
           <li>In der Spalte <strong>Aktion</strong> erscheint eine Checkbox mit der Option <strong>Kopieren</strong>.</li>
           <li>Wählen Sie <strong>Kopieren</strong> – die IMEI wird in die Zwischenablage kopiert.</li>
-          <li>Alternativ: Markieren Sie mehrere Zellen (Klicken/Ziehen oder Shift+Klick für Bereich) und nutzen Sie die Kopier-Aktion.</li>
         </ol>
         <p className="doc-note">
           Es gibt ein Limit: Pro 30 Minuten können Sie eine begrenzte Anzahl IMEIs kopieren.
@@ -81,12 +87,6 @@ const Documentation = () => {
             </>
           )}
         </ul>
-
-        <h3>Reservieren</h3>
-        <p>
-          Beim Markieren einer Zeile können Sie die Checkbox <strong>Reservieren</strong> aktivieren,
-          um eine IMEI zu reservieren.
-        </p>
 
         {isBüro && (
           <>
