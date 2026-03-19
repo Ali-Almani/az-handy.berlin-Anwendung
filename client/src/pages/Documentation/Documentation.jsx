@@ -60,8 +60,8 @@ const Documentation = () => {
         </p>
         <ol>
           <li>Klicken Sie auf eine IMEI-Zelle, um die Zeile zu markieren.</li>
-          <li>In der Spalte <strong>Aktion</strong> erscheint eine Checkbox mit der Option <strong>Kopieren</strong>.</li>
-          <li>Wählen Sie <strong>Kopieren</strong> – die IMEI wird in die Zwischenablage kopiert.</li>
+          <li>In der Spalte <strong>Aktion</strong> erscheint eine Checkbox mit der Option <strong>Reservieren</strong>.</li>
+          <li>Wählen Sie <strong>Reservieren</strong> – die IMEI wird in die Zwischenablage kopiert.</li>
         </ol>
         <p className="doc-note">
           Es gibt ein Limit: Pro 30 Minuten können Sie eine begrenzte Anzahl IMEIs kopieren.
@@ -116,8 +116,8 @@ const Documentation = () => {
       <section className="doc-section">
         <h2>Archiv Anweisung</h2>
         <p>
-          Alle Benutzer (außer Admin) sehen unter <strong>Archiv Anweisung</strong> die gespeicherten
-          Nachrichten und Anweisungen. Der Administrator erstellt diese im Dashboard.
+          Alle Benutzer sehen unter <strong>Archiv Anweisung</strong> die gespeicherten
+          Nachrichten und Anweisungen, die vom Akram erstellt wurden.
         </p>
       </section>
 
