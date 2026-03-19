@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getNewsArchive } from '../../services/dashboard.service';
-import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
+import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
+import { isAdmin } from '../../utils/roles';
 import './News.scss';
 
 const News = () => {
@@ -36,9 +37,18 @@ const News = () => {
 
   return (
     <div className="news-page">
+      <div className="card news-page__kennzahlen">
+        <div className="card-header">
+          <h2 className="card-title">Kennzahlen</h2>
+        </div>
+        <div className="card-body">
+          <PerformanceDashboard isAdmin={isAdmin(user)} />
+        </div>
+      </div>
+
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">NEWS</h2>
+          <h2 className="card-title">Anweisungen</h2>
         </div>
         <div className="card-body">
           {loading ? (

@@ -365,6 +365,14 @@ const PerformanceDashboard = ({ isAdmin }) => {
               />
             </label>
             <label>
+              Permission Quote Ziel (z.B. &gt;75%)
+              <input
+                type="text"
+                value={editData?.monatsziel?.permissionQuote?.ziel ?? ''}
+                onChange={(e) => updateEdit('monatsziel.permissionQuote.ziel', e.target.value)}
+              />
+            </label>
+            <label>
               Rotational Churn Aktuell (%)
               <input
                 type="number"
@@ -374,12 +382,68 @@ const PerformanceDashboard = ({ isAdmin }) => {
               />
             </label>
             <label>
+              Rotational Churn Ziel (z.B. &lt;6%)
+              <input
+                type="text"
+                value={editData?.monatsziel?.rotationalChurn?.ziel ?? ''}
+                onChange={(e) => updateEdit('monatsziel.rotationalChurn.ziel', e.target.value)}
+              />
+            </label>
+            <label>
               PO-X-VVL Aktuell (%)
               <input
                 type="number"
                 step="0.01"
                 value={editData?.monatsziel?.poXVvl?.aktuell ?? ''}
                 onChange={(e) => updateEdit('monatsziel.poXVvl.aktuell', parseFloat(e.target.value) || 0)}
+              />
+            </label>
+            <label>
+              PO-X-VVL Ziel (z.B. &gt;16%)
+              <input
+                type="text"
+                value={editData?.monatsziel?.poXVvl?.ziel ?? ''}
+                onChange={(e) => updateEdit('monatsziel.poXVvl.ziel', e.target.value)}
+              />
+            </label>
+            <label>
+              Prepaid Letzter Monat
+              <input
+                type="number"
+                value={editData?.quartalsziel?.prepaid?.letzterMonat ?? ''}
+                onChange={(e) => updateEdit('quartalsziel.prepaid.letzterMonat', parseInt(e.target.value, 10) || 0)}
+              />
+            </label>
+            <label>
+              Prepaid Aktuell
+              <input
+                type="number"
+                value={editData?.quartalsziel?.prepaid?.aktuell ?? ''}
+                onChange={(e) => updateEdit('quartalsziel.prepaid.aktuell', parseInt(e.target.value, 10) || 0)}
+              />
+            </label>
+            <label>
+              Prepaid Ziel
+              <input
+                type="number"
+                value={editData?.quartalsziel?.prepaid?.ziel ?? ''}
+                onChange={(e) => updateEdit('quartalsziel.prepaid.ziel', parseInt(e.target.value, 10) || 0)}
+              />
+            </label>
+            <label>
+              Prepaid Status (Text)
+              <input
+                type="text"
+                value={editData?.quartalsziel?.prepaid?.status ?? ''}
+                onChange={(e) => updateEdit('quartalsziel.prepaid.status', e.target.value)}
+              />
+            </label>
+            <label>
+              DSL Letzter Monat
+              <input
+                type="number"
+                value={editData?.quartalsziel?.dsl?.letzterMonat ?? ''}
+                onChange={(e) => updateEdit('quartalsziel.dsl.letzterMonat', parseInt(e.target.value, 10) || 0)}
               />
             </label>
             <label>
@@ -412,6 +476,14 @@ const PerformanceDashboard = ({ isAdmin }) => {
                 type="number"
                 value={editData?.quartalsziel?.dsl?.fehlen ?? ''}
                 onChange={(e) => updateEdit('quartalsziel.dsl.fehlen', parseInt(e.target.value, 10) || 0)}
+              />
+            </label>
+            <label>
+              o2 TV Letzter Monat
+              <input
+                type="number"
+                value={editData?.quartalsziel?.o2tv?.letzterMonat ?? ''}
+                onChange={(e) => updateEdit('quartalsziel.o2tv.letzterMonat', parseInt(e.target.value, 10) || 0)}
               />
             </label>
             <label>
