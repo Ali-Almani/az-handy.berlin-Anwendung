@@ -190,7 +190,9 @@
     font-weight: $font-weight-bold;
     color: #34495e;
     padding: $spacing-md $spacing-sm;
-    min-width: 40px;
+    width: 52px;
+    min-width: 52px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -202,6 +204,7 @@
 
   &__table-card {
     flex: 1;
+    min-width: 0;
     background: #ffffff;
     border: 1px solid #e8e8e8;
     border-radius: $border-radius-card;
