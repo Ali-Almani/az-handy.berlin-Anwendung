@@ -25,13 +25,15 @@ const Navbar = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
   const mobileDropdownRef = useRef(null);
+  const mobileHeaderDropdownRef = useRef(null);
 
   // Schließe Dropdown beim Klick außerhalb
   useEffect(() => {
     const handleClickOutside = (event) => {
       const outsideDesktop = !dropdownRef.current?.contains(event.target);
       const outsideMobile = !mobileDropdownRef.current?.contains(event.target);
-      if (outsideDesktop && outsideMobile) {
+      const outsideMobileHeader = !mobileHeaderDropdownRef.current?.contains(event.target);
+      if (outsideDesktop && outsideMobile && outsideMobileHeader) {
         setDropdownOpen(false);
       }
     };
@@ -136,17 +138,6 @@ const Navbar = ({
   return (
     <nav className="navbar">
       <div className="navbar-container container">
-        <button
-          type="button"
-          className="navbar-hamburger"
-          onClick={toggleMobileMenu}
-          aria-label="Menü öffnen"
-          aria-expanded={mobileMenuOpen}
-        >
-          <span className="navbar-hamburger-bar" />
-          <span className="navbar-hamburger-bar" />
-          <span className="navbar-hamburger-bar" />
-        </button>
         <Link to="/" className="navbar-brand" onClick={closeMobileMenu}>
           <img src={logo} alt="az-handy.berlin Logo" className="navbar-logo" />
         </Link>
@@ -320,6 +311,101 @@ const Navbar = ({
             </>
           )}
         </ul>
+        <div className="navbar-mobile-right">
+          {user ? (
+            <div className="navbar-avatar-container" ref={mobileHeaderDropdownRef}>
+              <button onClick={toggleDropdown} className="navbar-avatar-btn" aria-label="Benutzermenü">
+                {user.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="navbar-avatar-image" />
+                ) : (
+                  <div className="navbar-avatar-placeholder">{getInitials(user.name)}</div>
+                )}
+                {hasReminderBadge && (
+                  <span className="navbar-avatar-badge" title="Erinnerung: Verlauf prüfen" onClick={(e) => { e.stopPropagation(); handleOpenVerlauf(); }} role="button" tabIndex={0}>
+                    {reminderCount > 9 ? '9+' : reminderCount}
+                  </span>
+                )}
+                {hasExtraCopyBadge && (
+                  <span className="navbar-avatar-badge navbar-avatar-badge--extra" onClick={(e) => { e.stopPropagation(); handleOpenExtraCopyModal(); }} role="button" tabIndex={0}>
+                    {extraCopyCount > 9 ? '9+' : extraCopyCount}
+                  </span>
+                )}
+                {hasExtraCopyResultBadge && (
+                  <span className="navbar-avatar-badge navbar-avatar-badge--result" onClick={(e) => { e.stopPropagation(); handleOpenExtraCopyResultModal(); }} role="button" tabIndex={0}>
+                    {extraCopyResultCount > 9 ? '9+' : extraCopyResultCount}
+                  </span>
+                )}
+                {hasReminderResponseBadge && (
+                  <span className="navbar-avatar-badge navbar-avatar-badge--reminder-response" onClick={(e) => { e.stopPropagation(); handleOpenReminderResponseModal(); }} role="button" tabIndex={0}>
+                    {reminderResponseCount > 9 ? '9+' : reminderResponseCount}
+                  </span>
+                )}
+              </button>
+              {dropdownOpen && (
+                <div className="navbar-dropdown navbar-dropdown--header">
+                  <div className="navbar-dropdown-header">
+                    <div className="navbar-dropdown-user-info">
+                      <div className="navbar-dropdown-name">{user.name}</div>
+                      <div className="navbar-dropdown-email">{user.email}</div>
+                    </div>
+                  </div>
+                  {hasReminderBadge && onOpenVerlauf && (
+                    <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenVerlauf}>
+                      <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderCount > 9 ? '9+' : reminderCount}</span>
+                      <span>Verlauf prüfen</span>
+                    </button>
+                  )}
+                  {hasExtraCopyBadge && onOpenExtraCopyModal && (
+                    <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenExtraCopyModal}>
+                      <span className="navbar-avatar-badge navbar-avatar-badge--small">{extraCopyCount > 9 ? '9+' : extraCopyCount}</span>
+                      <span>Extra-Kopie-Anfragen</span>
+                    </button>
+                  )}
+                  {hasExtraCopyResultBadge && onOpenExtraCopyResultModal && (
+                    <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenExtraCopyResultModal}>
+                      <span className="navbar-avatar-badge navbar-avatar-badge--small">{extraCopyResultCount > 9 ? '9+' : extraCopyResultCount}</span>
+                      <span>Benachrichtigung: Extra-Kopie</span>
+                    </button>
+                  )}
+                  {hasReminderResponseBadge && onOpenReminderResponseModal && (
+                    <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenReminderResponseModal}>
+                      <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderResponseCount > 9 ? '9+' : reminderResponseCount}</span>
+                      <span>Erinnerung beantwortet</span>
+                    </button>
+                  )}
+                  <Link to="/dokumentation" className="navbar-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                    <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2V3z" stroke="currentColor" strokeWidth="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.5"/></svg></span>
+                    Dokumentation
+                  </Link>
+                  <Link to="/settings" className="navbar-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                    <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1.5V3M8 13V14.5M14.5 8H13M3 8H1.5" stroke="currentColor" strokeWidth="1.5"/></svg></span>
+                    Einstellungen
+                  </Link>
+                  <div className="navbar-dropdown-divider" />
+                  <button onClick={handleLogout} className="navbar-dropdown-item navbar-dropdown-item--danger">
+                    <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 14H3C2.44772 14 2 13.5523 2 13V3C2 2.44772 2.44772 2 3 2H6M10 11L14 7M14 7L10 3M14 7H6" stroke="currentColor" strokeWidth="1.5"/></svg></span>
+                    Abmelden
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="btn btn--primary btn--small" onClick={closeMobileMenu}>
+              Anmelden
+            </Link>
+          )}
+          <button
+            type="button"
+            className="navbar-hamburger"
+            onClick={toggleMobileMenu}
+            aria-label="Menü öffnen"
+            aria-expanded={mobileMenuOpen}
+          >
+            <span className="navbar-hamburger-bar" />
+            <span className="navbar-hamburger-bar" />
+            <span className="navbar-hamburger-bar" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu overlay */}
