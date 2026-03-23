@@ -9,38 +9,47 @@
 
   &__kennzahlen {
     order: -1;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     overflow: hidden;
 
     .card-header {
-      background: linear-gradient(135deg, rgba($primary-color, 0.08) 0%, rgba($primary-color, 0.02) 100%);
+      background: #ffffff;
       border: none;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      border-bottom: 1px solid #e8e8e8;
       margin: -$spacing-lg -$spacing-lg $spacing-md -$spacing-lg;
       padding: $spacing-md $spacing-lg;
-      border-radius: 10px 10px 0 0;
+      border-radius: 0;
     }
 
     .card-title {
-      color: $primary-color;
-      font-size: 1.25rem;
+      color: #34495e;
+      font-size: 1.125rem;
       font-weight: $font-weight-bold;
     }
   }
 
-  .card-header {
-    background: linear-gradient(135deg, rgba($primary-color, 0.08) 0%, rgba($primary-color, 0.02) 100%);
-    border-radius: 8px 8px 0 0;
-    margin: -$spacing-lg -$spacing-lg $spacing-lg -$spacing-lg;
-    padding: $spacing-lg;
-  }
+  > .card:not(.news-page__kennzahlen) {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
-  .card-title {
-    color: $primary-color;
-    font-size: 1.5rem;
-    letter-spacing: 0.02em;
+    .card-header {
+      background: #ffffff;
+      border: none;
+      border-bottom: 1px solid #e8e8e8;
+      margin: -$spacing-lg -$spacing-lg $spacing-lg -$spacing-lg;
+      padding: $spacing-md $spacing-lg;
+    }
+
+    .card-title {
+      color: #34495e;
+      font-size: 1.125rem;
+      font-weight: $font-weight-bold;
+    }
   }
 
   .news-list {
@@ -52,15 +61,10 @@
   .news-item {
     padding: $spacing-lg;
     margin-bottom: $spacing-md;
-    background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
-    border: 1px solid rgba($primary-color, 0.12);
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-
-    &:hover {
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    }
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 
     &:last-child {
       margin-bottom: 0;
@@ -84,10 +88,10 @@
 
   .news-date {
     font-size: 0.85rem;
-    color: $text-light;
+    color: #7f8c8d;
     margin-top: $spacing-sm;
     padding-top: $spacing-sm;
-    border-top: 1px solid rgba($border-color, 0.6);
+    border-top: 1px solid #e8e8e8;
 
     &.news-date-edited {
       font-style: italic;
@@ -96,7 +100,7 @@
   }
 
   .news-empty {
-    color: $text-light;
+    color: #7f8c8d;
     font-style: italic;
     text-align: center;
     padding: $spacing-xxl;
