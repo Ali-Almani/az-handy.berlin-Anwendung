@@ -214,7 +214,7 @@
 
   &__table {
     width: 100%;
-    min-width: 600px;
+    min-width: 1000px;
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
@@ -225,17 +225,18 @@
       border: 1px solid #e8e8e8;
       color: #34495e;
       box-sizing: border-box;
+      white-space: nowrap;
     }
 
     th:first-child,
     td:first-child {
       width: 12%;
     }
-    th:nth-child(2), td:nth-child(2) { width: 9%; }
-    th:nth-child(3), td:nth-child(3) { width: 9%; }
+    th:nth-child(2), td:nth-child(2) { width: 10%; }
+    th:nth-child(3), td:nth-child(3) { width: 10%; }
     th:nth-child(4), td:nth-child(4) { width: 20%; }
-    th:nth-child(5), td:nth-child(5) { width: 9%; }
-    th:nth-child(6), td:nth-child(6) { width: 15%; }
+    th:nth-child(5), td:nth-child(5) { width: 10%; }
+    th:nth-child(6), td:nth-child(6) { width: 16%; }
 
     th {
       text-align: left;
@@ -290,6 +291,59 @@
     height: 1px;
     background: #e8e8e8;
     margin: $spacing-lg 0;
+  }
+
+  &__notizen {
+    margin-top: $spacing-lg;
+    padding-top: $spacing-lg;
+    border-top: 1px solid #e8e8e8;
+
+    &-label {
+      display: block;
+      font-weight: $font-weight-bold;
+      font-size: 0.95rem;
+      color: #34495e;
+      margin-bottom: $spacing-sm;
+    }
+
+    &-input {
+      width: 100%;
+      min-height: 100px;
+      padding: $spacing-md;
+      font-size: 0.95rem;
+      font-family: inherit;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-card;
+      resize: vertical;
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 2px rgba($primary-color, 0.15);
+      }
+
+      &::placeholder {
+        color: #9ca3af;
+      }
+    }
+
+    &-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: $spacing-md;
+      background: #f8f9fa;
+      border: 1px solid #e8e8e8;
+      border-radius: $border-radius-card;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #34495e;
+    }
+
+    &-placeholder {
+      color: #9ca3af;
+      font-style: italic;
+    }
   }
 
   &__edit-form {
