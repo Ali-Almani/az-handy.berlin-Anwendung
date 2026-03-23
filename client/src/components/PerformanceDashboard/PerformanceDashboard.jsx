@@ -197,12 +197,12 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
             <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
               {saving ? 'Speichern...' : 'Speichern'}
             </button>
-            <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
+            <button type="button" className="btn btn--outline btn--small" onClick={handleCancelEdit}>
               Abbrechen
             </button>
           </div>
         ) : (
-          <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
+          <button type="button" className="btn btn--outline btn--small" onClick={handleStartEdit}>
             Bearbeiten
           </button>
         )
@@ -391,7 +391,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       {!readOnly && isAdmin && !metaInHeader && (
         <div className="performance-dashboard__footer">
           {!editing ? (
-            <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
+            <button type="button" className="btn btn--outline btn--small" onClick={handleStartEdit}>
               Bearbeiten
             </button>
           ) : (
@@ -399,7 +399,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
               <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
                 {saving ? 'Speichern...' : 'Speichern'}
               </button>
-              <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
+              <button type="button" className="btn btn--outline btn--small" onClick={handleCancelEdit}>
                 Abbrechen
               </button>
             </div>

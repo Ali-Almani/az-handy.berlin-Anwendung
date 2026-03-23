@@ -202,7 +202,7 @@ const Dashboard = () => {
                         <div className="dashboard-archive-actions">
                           <button
                             type="button"
-                            className="btn-archive-edit"
+                            className="btn btn--primary btn--small"
                             onClick={() => handleSaveEditArchive(m.id)}
                             aria-label="Änderungen speichern"
                           >
@@ -210,7 +210,7 @@ const Dashboard = () => {
                           </button>
                           <button
                             type="button"
-                            className="btn-archive-cancel"
+                            className="btn btn--outline btn--small"
                             onClick={handleCancelEditArchive}
                             aria-label="Abbrechen"
                           >
@@ -257,7 +257,7 @@ const Dashboard = () => {
                         <div className="dashboard-archive-actions">
                           <button
                             type="button"
-                            className="btn-archive-edit"
+                            className="btn btn--outline btn--small"
                             onClick={() => handleStartEditArchive(m)}
                             aria-label="Nachricht bearbeiten"
                           >
@@ -265,7 +265,7 @@ const Dashboard = () => {
                           </button>
                           <button
                             type="button"
-                            className="btn-archive-delete"
+                            className="btn btn--danger btn--small"
                             onClick={() => handleDeleteArchive(m.id)}
                             aria-label="Nachricht löschen"
                           >
