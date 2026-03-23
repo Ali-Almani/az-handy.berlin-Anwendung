@@ -153,7 +153,7 @@
 
 .metric-card {
   background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
-  border: 1px solid rgba($primary-color, 0.1);
+  border: none;
   border-radius: 10px;
   padding: $spacing-lg;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
@@ -171,7 +171,7 @@
     color: $text-light;
     margin-bottom: $spacing-sm;
     padding-bottom: $spacing-xs;
-    border-bottom: 1px solid rgba($border-color, 0.5);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
 
   &__value {
@@ -234,16 +234,19 @@
     }
   }
 
-  &--postpaid,
+  &--postpaid {
+    border-left: 4px solid #0077b6;
+  }
+
   &--vvl {
-    border-left: 4px solid $primary-color;
+    border-left: 4px solid #00a0dc;
   }
 
   &--percent {
-    border-left: 4px solid $info-color;
+    border-left: 4px solid #17a2b8;
   }
 
   &--quarter {
-    border-left: 4px solid $secondary-color;
+    border-left: 4px solid #5a6268;
   }
 }
