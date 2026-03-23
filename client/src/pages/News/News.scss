@@ -25,6 +25,33 @@
       border-radius: 0;
     }
 
+    .card-header--kennzahlen {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: $spacing-lg;
+    }
+
+    .card-header__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-lg;
+      font-size: 0.9rem;
+      color: #7f8c8d;
+    }
+
+    .card-header__meta-item {
+      padding: $spacing-xs $spacing-sm;
+      background: #f8f9fa;
+      border-radius: $border-radius-card;
+      border: 1px solid #e8e8e8;
+
+      strong {
+        color: #34495e;
+        margin-right: 0.25rem;
+      }
+    }
+
     .card-title {
       color: #34495e;
       font-size: 1.125rem;

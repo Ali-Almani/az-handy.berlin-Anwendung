@@ -8,6 +8,7 @@ import './News.scss';
 
 const News = () => {
   const { user } = useAuth();
+  const [metricsMeta, setMetricsMeta] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,11 +39,24 @@ const News = () => {
   return (
     <div className="news-page">
       <div className="card news-page__kennzahlen">
-        <div className="card-header">
+        <div className="card-header card-header--kennzahlen">
           <h2 className="card-title">Kennzahlen</h2>
+          <div className="card-header__meta">
+            <span className="card-header__meta-item">
+              <strong>Stand der Daten</strong> {metricsMeta?.dataStatus ?? '–'}
+            </span>
+            <span className="card-header__meta-item">
+              <strong>Resttage im Monat</strong> {metricsMeta?.resttage ?? metricsMeta?.workingDays ?? '–'}
+            </span>
+          </div>
         </div>
         <div className="card-body">
-          <PerformanceDashboard isAdmin={isAdmin(user)} readOnly />
+          <PerformanceDashboard
+            isAdmin={isAdmin(user)}
+            readOnly
+            metaInHeader
+            onMetricsLoaded={setMetricsMeta}
+          />
         </div>
       </div>
 

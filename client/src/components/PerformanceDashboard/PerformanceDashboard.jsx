@@ -20,7 +20,7 @@ const DEFAULT_METRICS = {
   }
 };
 
-const PerformanceDashboard = ({ isAdmin, readOnly = false }) => {
+const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false, onMetricsLoaded }) => {
   const [metrics, setMetrics] = useState(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,16 +33,15 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false }) => {
         setLoading(true);
         const res = await getPerformanceMetrics();
         if (res?.data?.metrics) {
-          setMetrics((prev) => {
-            const merged = { ...DEFAULT_METRICS };
-            const m = res.data.metrics;
-            if (m?.dataStatus) merged.dataStatus = m.dataStatus;
-            if (m?.resttage != null) merged.resttage = m.resttage;
-            if (m?.workingDays != null) merged.resttage = m.workingDays;
-            if (m?.monatsziel) merged.monatsziel = { ...merged.monatsziel, ...m.monatsziel };
-            if (m?.quartalsziel) merged.quartalsziel = { ...merged.quartalsziel, ...m.quartalsziel };
-            return merged;
-          });
+          const m = res.data.metrics;
+          const merged = { ...DEFAULT_METRICS };
+          if (m?.dataStatus) merged.dataStatus = m.dataStatus;
+          if (m?.resttage != null) merged.resttage = m.resttage;
+          if (m?.workingDays != null) merged.resttage = m.workingDays;
+          if (m?.monatsziel) merged.monatsziel = { ...merged.monatsziel, ...m.monatsziel };
+          if (m?.quartalsziel) merged.quartalsziel = { ...merged.quartalsziel, ...m.quartalsziel };
+          setMetrics(merged);
+          onMetricsLoaded?.(merged);
         }
       } catch {
         // use defaults
@@ -51,7 +50,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false }) => {
       }
     };
     fetch();
-  }, []);
+  }, [onMetricsLoaded]);
 
   const handleStartEdit = () => {
     setEditData(JSON.parse(JSON.stringify(metrics)));
@@ -161,31 +160,35 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false }) => {
 
   return (
     <div className="performance-dashboard">
-      <div className="performance-dashboard__header">
-        <div className="performance-dashboard__meta">
-          <span className="performance-dashboard__meta-item">
-            <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
-          </span>
-          <span className="performance-dashboard__meta-item">
-            <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
-          </span>
+      {(!metaInHeader || (!readOnly && isAdmin)) && (
+        <div className={`performance-dashboard__header ${metaInHeader ? 'performance-dashboard__header--actions-only' : ''}`}>
+          {!metaInHeader && (
+            <div className="performance-dashboard__meta">
+              <span className="performance-dashboard__meta-item">
+                <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
+              </span>
+              <span className="performance-dashboard__meta-item">
+                <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
+              </span>
+            </div>
+          )}
+          {!readOnly && isAdmin && !editing && (
+            <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
+              Bearbeiten
+            </button>
+          )}
+          {!readOnly && isAdmin && editing && (
+            <div className="performance-dashboard__actions">
+              <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
+                {saving ? 'Speichern...' : 'Speichern'}
+              </button>
+              <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
+                Abbrechen
+              </button>
+            </div>
+          )}
         </div>
-        {!readOnly && isAdmin && !editing && (
-          <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
-            Bearbeiten
-          </button>
-        )}
-        {!readOnly && isAdmin && editing && (
-          <div className="performance-dashboard__actions">
-            <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
-              {saving ? 'Speichern...' : 'Speichern'}
-            </button>
-            <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
-              Abbrechen
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="performance-dashboard__table-wrapper">
         {/* Monatsziel */}

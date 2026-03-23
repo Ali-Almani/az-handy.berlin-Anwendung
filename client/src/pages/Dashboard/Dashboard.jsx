@@ -12,6 +12,7 @@ import './Dashboard.scss';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [metricsMeta, setMetricsMeta] = useState(null);
   const [noteContent, setNoteContent] = useState('');
   const [noteLoading, setNoteLoading] = useState(true);
   const [noteError, setNoteError] = useState(null);
@@ -143,11 +144,21 @@ const Dashboard = () => {
 
       {isAdmin(user) && (
         <div className="card dashboard-performance">
-          <div className="card-header">
+          <div className="card-header card-header--kennzahlen">
             <h2 className="card-title">Kennzahlen</h2>
-          </div>
-          <div className="card-body">
-            <PerformanceDashboard isAdmin={isAdmin(user)} />
+            <div className="card-header__meta">
+              <span className="card-header__meta-item">
+                <strong>Stand der Daten</strong> {metricsMeta?.dataStatus ?? '–'}
+              </span>
+              <span className="card-header__meta-item">
+                <strong>Resttage im Monat</strong> {metricsMeta?.resttage ?? metricsMeta?.workingDays ?? '–'}
+              </span>
+            </div>
+            <PerformanceDashboard
+              isAdmin={isAdmin(user)}
+              metaInHeader
+              onMetricsLoaded={setMetricsMeta}
+            />
           </div>
         </div>
       )}
