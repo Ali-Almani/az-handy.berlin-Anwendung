@@ -169,7 +169,7 @@ const Dashboard = () => {
                 key={editorKey}
                 initialContent={noteContent}
                 onSave={handleSave}
-                placeholder="Schreiben Sie hier Ihre Nachricht..."
+                placeholder="schreiben Sie hier Ihre Anweisung ."
               />
             )}
           </div>
