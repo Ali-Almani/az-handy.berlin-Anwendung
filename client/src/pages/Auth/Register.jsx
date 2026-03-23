@@ -32,7 +32,7 @@ const Register = () => {
       const response = await registerUser(formData);
       localStorage.setItem('token', response.data.token);
       setUser(response.data.user);
-      navigate('/dashboard', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Registrierung fehlgeschlagen');
     } finally {
