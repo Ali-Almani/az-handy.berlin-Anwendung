@@ -368,10 +368,10 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
           </div>
         </section>
 
-        {!readOnly && isAdmin && (
+        {((m?.notizen && String(m.notizen).trim()) || (!readOnly && isAdmin)) && (
           <div className="performance-dashboard__notizen">
             <label className="performance-dashboard__notizen-label">Notizen</label>
-            {editing ? (
+            {!readOnly && isAdmin && editing ? (
               <textarea
                 className="performance-dashboard__notizen-input"
                 value={editData?.notizen ?? ''}
