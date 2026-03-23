@@ -42,7 +42,7 @@ const News = () => {
           <h2 className="card-title">Kennzahlen</h2>
         </div>
         <div className="card-body">
-          <PerformanceDashboard isAdmin={isAdmin(user)} />
+          <PerformanceDashboard isAdmin={isAdmin(user)} readOnly />
         </div>
       </div>
 

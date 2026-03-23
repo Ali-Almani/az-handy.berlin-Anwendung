@@ -20,7 +20,7 @@ const DEFAULT_METRICS = {
   }
 };
 
-const PerformanceDashboard = ({ isAdmin }) => {
+const PerformanceDashboard = ({ isAdmin, readOnly = false }) => {
   const [metrics, setMetrics] = useState(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -170,12 +170,12 @@ const PerformanceDashboard = ({ isAdmin }) => {
             <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
           </span>
         </div>
-        {isAdmin && !editing && (
+        {!readOnly && isAdmin && !editing && (
           <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
             Bearbeiten
           </button>
         )}
-        {isAdmin && editing && (
+        {!readOnly && isAdmin && editing && (
           <div className="performance-dashboard__actions">
             <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
               {saving ? 'Speichern...' : 'Speichern'}
@@ -276,7 +276,7 @@ const PerformanceDashboard = ({ isAdmin }) => {
         </section>
       </div>
 
-      {editing && isAdmin && (
+      {editing && isAdmin && !readOnly && (
         <div className="performance-dashboard__edit-form">
           <h4>Werte bearbeiten</h4>
           <div className="performance-dashboard__edit-grid">
