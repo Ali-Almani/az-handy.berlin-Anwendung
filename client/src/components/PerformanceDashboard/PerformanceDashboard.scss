@@ -67,6 +67,74 @@
     }
   }
 
+  &__meta-input {
+    margin-left: 0.25rem;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-card;
+    font-size: 0.9rem;
+    min-width: 120px;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
+  &__meta-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    padding: $spacing-md $spacing-lg;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: $border-radius-card;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+      font-size: 0.9rem;
+    }
+
+    input {
+      margin-left: 0;
+      padding: $spacing-xs $spacing-sm;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-card;
+      font-size: 0.9rem;
+      min-width: 120px;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+      }
+    }
+  }
+
+  &__footer {
+    margin-top: $spacing-lg;
+    padding: $spacing-md 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__cell-input {
+    width: 100%;
+    min-width: 60px;
+    max-width: 120px;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-card;
+    font-size: 0.9rem;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
   &__actions {
     display: flex;
     gap: $spacing-sm;

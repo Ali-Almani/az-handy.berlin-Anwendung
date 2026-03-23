@@ -27,30 +27,33 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        const res = await getPerformanceMetrics();
-        if (res?.data?.metrics) {
-          const m = res.data.metrics;
-          const merged = { ...DEFAULT_METRICS };
-          if (m?.dataStatus) merged.dataStatus = m.dataStatus;
-          if (m?.resttage != null) merged.resttage = m.resttage;
-          if (m?.workingDays != null) merged.resttage = m.workingDays;
-          if (m?.monatsziel) merged.monatsziel = { ...merged.monatsziel, ...m.monatsziel };
-          if (m?.quartalsziel) merged.quartalsziel = { ...merged.quartalsziel, ...m.quartalsziel };
-          setMetrics(merged);
-          onMetricsLoaded?.(merged);
-        }
-      } catch {
-        // use defaults
-      } finally {
-        setLoading(false);
+  const fetchMetrics = React.useCallback(async (isInitial = true) => {
+    try {
+      if (isInitial) setLoading(true);
+      const res = await getPerformanceMetrics();
+      if (res?.data?.metrics) {
+        const m = res.data.metrics;
+        const merged = { ...DEFAULT_METRICS };
+        if (m?.dataStatus) merged.dataStatus = m.dataStatus;
+        if (m?.resttage != null) merged.resttage = m.resttage;
+        if (m?.workingDays != null) merged.resttage = m.workingDays;
+        if (m?.monatsziel) merged.monatsziel = { ...merged.monatsziel, ...m.monatsziel };
+        if (m?.quartalsziel) merged.quartalsziel = { ...merged.quartalsziel, ...m.quartalsziel };
+        setMetrics(merged);
+        onMetricsLoaded?.(merged);
       }
-    };
-    fetch();
+    } catch {
+      // use defaults
+    } finally {
+      if (isInitial) setLoading(false);
+    }
   }, [onMetricsLoaded]);
+
+  useEffect(() => {
+    fetchMetrics(true);
+    const id = readOnly ? setInterval(() => fetchMetrics(false), 30000) : null;
+    return () => { if (id) clearInterval(id); };
+  }, [fetchMetrics, readOnly]);
 
   const handleStartEdit = () => {
     setEditData(JSON.parse(JSON.stringify(metrics)));
@@ -68,6 +71,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       setSaving(true);
       await savePerformanceMetrics(editData);
       setMetrics(editData);
+      onMetricsLoaded?.(editData);
       setEditing(false);
       setEditData(null);
     } catch (err) {
@@ -160,33 +164,44 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   return (
     <div className="performance-dashboard">
-      {(!metaInHeader || (!readOnly && isAdmin)) && (
-        <div className={`performance-dashboard__header ${metaInHeader ? 'performance-dashboard__header--actions-only' : ''}`}>
-          {!metaInHeader && (
-            <div className="performance-dashboard__meta">
-              <span className="performance-dashboard__meta-item">
-                <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
-              </span>
-              <span className="performance-dashboard__meta-item">
-                <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
-              </span>
-            </div>
-          )}
-          {!readOnly && isAdmin && !editing && (
-            <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
-              Bearbeiten
-            </button>
-          )}
-          {!readOnly && isAdmin && editing && (
-            <div className="performance-dashboard__actions">
-              <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
-                {saving ? 'Speichern...' : 'Speichern'}
-              </button>
-              <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
-                Abbrechen
-              </button>
-            </div>
-          )}
+      {!metaInHeader && (
+        <div className="performance-dashboard__header">
+          <div className="performance-dashboard__meta">
+            {editing && !readOnly && isAdmin ? (
+              <>
+                <label className="performance-dashboard__meta-item">
+                  <strong>Stand der Daten</strong>
+                  <input type="text" className="performance-dashboard__meta-input" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
+                </label>
+                <label className="performance-dashboard__meta-item">
+                  <strong>Resttage im Monat</strong>
+                  <input type="number" className="performance-dashboard__meta-input" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
+                </label>
+              </>
+            ) : (
+              <>
+                <span className="performance-dashboard__meta-item">
+                  <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
+                </span>
+                <span className="performance-dashboard__meta-item">
+                  <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {editing && metaInHeader && !readOnly && (
+        <div className="performance-dashboard__meta-edit">
+          <label>
+            <strong>Stand der Daten</strong>
+            <input type="text" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
+          </label>
+          <label>
+            <strong>Resttage im Monat</strong>
+            <input type="number" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
+          </label>
         </div>
       )}
 
@@ -214,16 +229,26 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   return (
                     <tr key={key}>
                       <td className="performance-dashboard__cell-label">{label}</td>
-                      <td>{key === 'postpaid' || key === 'vvl' ? (row?.deltaZuGestern ?? '–') : '–'}</td>
                       <td>
-                        {row?.aktuell != null
-                          ? isPercent
-                            ? `${Number(row.aktuell).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
-                            : row.aktuell
-                          : '–'}
+                        {editing && (key === 'postpaid' || key === 'vvl') ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.deltaZuGestern ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaZuGestern`, parseInt(e.target.value, 10) || 0)} />
+                        ) : key === 'postpaid' || key === 'vvl' ? (row?.deltaZuGestern ?? '–') : '–'}
                       </td>
-                      <td>{key === 'postpaid' || key === 'vvl' ? (row?.hochrechnung ?? '–') : '–'}</td>
-                      <td>{row?.ziel ?? '–'}</td>
+                      <td>
+                        {editing ? (
+                          <input type={isPercent ? 'number' : 'number'} step={isPercent ? '0.01' : '1'} className="performance-dashboard__cell-input" value={row?.aktuell ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.aktuell`, isPercent ? parseFloat(e.target.value) || 0 : parseInt(e.target.value, 10) || 0)} />
+                        ) : row?.aktuell != null ? (isPercent ? `${Number(row.aktuell).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : row.aktuell) : '–'}
+                      </td>
+                      <td>
+                        {editing && (key === 'postpaid' || key === 'vvl') ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.hochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.hochrechnung`, parseInt(e.target.value, 10) || 0)} />
+                        ) : key === 'postpaid' || key === 'vvl' ? (row?.hochrechnung ?? '–') : '–'}
+                      </td>
+                      <td>
+                        {editing ? (
+                          <input type="text" className="performance-dashboard__cell-input" value={row?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.ziel`, e.target.value)} />
+                        ) : (row?.ziel ?? '–')}
+                      </td>
                       <td>
                         <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
                           {status.text}
@@ -261,14 +286,34 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   return (
                     <tr key={key}>
                       <td className="performance-dashboard__cell-label">{label}</td>
-                      <td className="performance-dashboard__cell-muted">{row?.vormonate ?? row?.letzterMonat ?? '–'}</td>
-                      <td>{row?.aktuell ?? '–'}</td>
-                      <td>{row?.gesamt ?? row?.hochrechnung ?? '–'}</td>
-                      <td>{row?.ziel ?? '–'}</td>
+                      <td className="performance-dashboard__cell-muted">
+                        {editing ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.vormonate ?? row?.letzterMonat ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.vormonate`, parseInt(e.target.value, 10) || 0)} />
+                        ) : (row?.vormonate ?? row?.letzterMonat ?? '–')}
+                      </td>
                       <td>
-                        <span className={`performance-dashboard__status performance-dashboard__status--${status.ok ? 'ok' : 'warn'}`}>
-                          {status.text}
-                        </span>
+                        {editing ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.aktuell ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.aktuell`, parseInt(e.target.value, 10) || 0)} />
+                        ) : (row?.aktuell ?? '–')}
+                      </td>
+                      <td>
+                        {editing ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.gesamt ?? row?.hochrechnung ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.gesamt`, parseInt(e.target.value, 10) || 0)} />
+                        ) : (row?.gesamt ?? row?.hochrechnung ?? '–')}
+                      </td>
+                      <td>
+                        {editing ? (
+                          <input type="text" className="performance-dashboard__cell-input" value={row?.ziel ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.ziel`, e.target.value)} />
+                        ) : (row?.ziel ?? '–')}
+                      </td>
+                      <td>
+                        {editing ? (
+                          <input type="text" className="performance-dashboard__cell-input" value={row?.rest ?? row?.fehlen ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.rest`, e.target.value)} />
+                        ) : (
+                          <span className={`performance-dashboard__status performance-dashboard__status--${status.ok ? 'ok' : 'warn'}`}>
+                            {status.text}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -279,42 +324,22 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
         </section>
       </div>
 
-      {editing && isAdmin && !readOnly && (
-        <div className="performance-dashboard__edit-form">
-          <h4>Werte bearbeiten</h4>
-          <div className="performance-dashboard__edit-grid">
-            <label>
-              Stand der Daten
-              <input type="text" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
-            </label>
-            <label>
-              Resttage im Monat
-              <input type="number" value={editData?.resttage ?? editData?.workingDays ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
-            </label>
-            {['postpaid', 'vvl'].map((k) => (
-              <React.Fragment key={k}>
-                <label>{k} Delta zu gestern<input type="number" value={editData?.monatsziel?.[k]?.deltaZuGestern ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.deltaZuGestern`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Aktuell<input type="number" value={editData?.monatsziel?.[k]?.aktuell ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.aktuell`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Hochrechnung<input type="number" value={editData?.monatsziel?.[k]?.hochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.hochrechnung`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Ziel<input type="number" value={editData?.monatsziel?.[k]?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.ziel`, parseInt(e.target.value, 10) || 0)} /></label>
-              </React.Fragment>
-            ))}
-            {['permissionQuote', 'rotationalChurn', 'poXVvl', 'foxX'].map((k) => (
-              <React.Fragment key={k}>
-                <label>{k} Aktuell<input type="number" step="0.01" value={editData?.monatsziel?.[k]?.aktuell ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.aktuell`, parseFloat(e.target.value) || 0)} /></label>
-                <label>{k} Ziel<input type="text" value={editData?.monatsziel?.[k]?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.ziel`, e.target.value)} /></label>
-              </React.Fragment>
-            ))}
-            {['prepaid', 'dsl', 'o2tv'].map((k) => (
-              <React.Fragment key={k}>
-                <label>{k} Vormonate<input type="number" value={editData?.quartalsziel?.[k]?.vormonate ?? editData?.quartalsziel?.[k]?.letzterMonat ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.vormonate`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Aktuell<input type="number" value={editData?.quartalsziel?.[k]?.aktuell ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.aktuell`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Gesamt Quartal<input type="number" value={editData?.quartalsziel?.[k]?.gesamt ?? editData?.quartalsziel?.[k]?.hochrechnung ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.gesamt`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Ziel<input type="number" value={editData?.quartalsziel?.[k]?.ziel ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.ziel`, parseInt(e.target.value, 10) || 0)} /></label>
-                <label>{k} Rest<input type="text" value={editData?.quartalsziel?.[k]?.rest ?? editData?.quartalsziel?.[k]?.fehlen ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.rest`, e.target.value)} /></label>
-              </React.Fragment>
-            ))}
-          </div>
+      {!readOnly && isAdmin && (
+        <div className="performance-dashboard__footer">
+          {!editing ? (
+            <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
+              Bearbeiten
+            </button>
+          ) : (
+            <div className="performance-dashboard__actions">
+              <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
+                {saving ? 'Speichern...' : 'Speichern'}
+              </button>
+              <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
+                Abbrechen
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
