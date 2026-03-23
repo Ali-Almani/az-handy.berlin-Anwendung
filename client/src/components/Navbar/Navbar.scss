@@ -373,17 +373,12 @@
   }
 }
 
-/* Mobile: Logo links, Avatar + Hamburger rechts */
+/* Mobile: Logo links, Hamburger rechts */
 .navbar-mobile-right {
   display: none;
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
-}
-
-.navbar-dropdown--header {
-  right: 0;
-  left: auto;
 }
 
 /* Responsive: ab 992px Desktop, darunter Mobile */
