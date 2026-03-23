@@ -52,6 +52,11 @@
         color: #34495e;
         margin-right: 0.25rem;
       }
+
+      &--editable {
+        display: inline-flex;
+        align-items: center;
+      }
     }
 
     .card-title {

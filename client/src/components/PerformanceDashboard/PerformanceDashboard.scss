@@ -136,12 +136,28 @@
 
   &__cell-input {
     width: 100%;
-    min-width: 60px;
-    max-width: 120px;
+    min-width: 0;
+    max-width: 100%;
     padding: $spacing-xs $spacing-sm;
     border: 1px solid $border-color;
     border-radius: $border-radius-card;
     font-size: 0.9rem;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
+  &__meta-input-inline {
+    margin-left: 0.25rem;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-card;
+    font-size: 0.9rem;
+    min-width: 80px;
+    max-width: 140px;
 
     &:focus {
       outline: none;
@@ -196,6 +212,7 @@
   &__table {
     width: 100%;
     min-width: 600px;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
 
@@ -204,7 +221,18 @@
       padding: $spacing-sm $spacing-md;
       border: 1px solid #e8e8e8;
       color: #34495e;
+      box-sizing: border-box;
     }
+
+    th:first-child,
+    td:first-child {
+      width: 14%;
+    }
+    th:nth-child(2), td:nth-child(2) { width: 10%; }
+    th:nth-child(3), td:nth-child(3) { width: 10%; }
+    th:nth-child(4), td:nth-child(4) { width: 12%; }
+    th:nth-child(5), td:nth-child(5) { width: 10%; }
+    th:nth-child(6), td:nth-child(6) { width: 16%; }
 
     th {
       text-align: left;

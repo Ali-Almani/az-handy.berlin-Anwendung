@@ -109,6 +109,8 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       return { text: String(d >= 0 ? d : d), ok: d >= 0 };
     }
     if (row === 'permissionQuote' || row === 'poXVvl' || row === 'foxX') {
+      const statusOverride = mo?.statusOverride;
+      if (statusOverride != null && String(statusOverride).trim() !== '') return { text: String(statusOverride), ok: null };
       const z = mo?.ziel || '';
       if (!z.startsWith('>')) return { text: '–', ok: null };
       const th = parseFloat(String(z).slice(1).replace('%', '').replace(',', '.'));
@@ -116,6 +118,8 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       return { text: ok ? 'OK' : 'Achtung', ok };
     }
     if (row === 'rotationalChurn') {
+      const statusOverride = mo?.statusOverride;
+      if (statusOverride != null && String(statusOverride).trim() !== '') return { text: String(statusOverride), ok: null };
       const z = mo?.ziel || '';
       if (!z.startsWith('<')) return { text: '–', ok: null };
       const th = parseFloat(String(z).slice(1).replace('%', '').replace(',', '.'));
@@ -165,12 +169,26 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   const headerMetaAndActions = metaInHeader && !readOnly && (
     <div className="card-header__meta performance-dashboard__header-meta">
-      <span className="card-header__meta-item">
-        <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
-      </span>
-      <span className="card-header__meta-item">
-        <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
-      </span>
+      {editing && isAdmin ? (
+        <label className="card-header__meta-item card-header__meta-item--editable">
+          <strong>Stand der Daten</strong>
+          <input type="text" className="performance-dashboard__meta-input-inline" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
+        </label>
+      ) : (
+        <span className="card-header__meta-item">
+          <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
+        </span>
+      )}
+      {editing && isAdmin ? (
+        <label className="card-header__meta-item card-header__meta-item--editable">
+          <strong>Resttage im Monat</strong>
+          <input type="number" className="performance-dashboard__meta-input-inline" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
+        </label>
+      ) : (
+        <span className="card-header__meta-item">
+          <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
+        </span>
+      )}
       {!readOnly && isAdmin && (
         editing ? (
           <div className="performance-dashboard__actions">
@@ -190,23 +208,9 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
     </div>
   );
 
-  const metaEditBar = editing && metaInHeader && !readOnly && isAdmin && (
-    <div className="performance-dashboard__meta-edit">
-      <label>
-        <strong>Stand der Daten</strong>
-        <input type="text" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
-      </label>
-      <label>
-        <strong>Resttage im Monat</strong>
-        <input type="number" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
-      </label>
-    </div>
-  );
-
   return (
     <>
       {headerMetaAndActions}
-      {metaEditBar}
       <div className="performance-dashboard performance-dashboard__content">
       {!metaInHeader && (
         <div className="performance-dashboard__header">
@@ -261,9 +265,9 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                     <tr key={key}>
                       <td className="performance-dashboard__cell-label">{label}</td>
                       <td>
-                        {editing && (key === 'postpaid' || key === 'vvl') ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.deltaZuGestern ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaZuGestern`, parseInt(e.target.value, 10) || 0)} />
-                        ) : key === 'postpaid' || key === 'vvl' ? (row?.deltaZuGestern ?? '–') : '–'}
+                        {editing ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.deltaZuGestern ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaZuGestern`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
+                        ) : key === 'postpaid' || key === 'vvl' ? (row?.deltaZuGestern ?? '–') : (row?.deltaZuGestern != null ? row.deltaZuGestern : '–')}
                       </td>
                       <td>
                         {editing ? (
@@ -271,9 +275,9 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                         ) : row?.aktuell != null ? (isPercent ? `${Number(row.aktuell).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : row.aktuell) : '–'}
                       </td>
                       <td>
-                        {editing && (key === 'postpaid' || key === 'vvl') ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.hochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.hochrechnung`, parseInt(e.target.value, 10) || 0)} />
-                        ) : key === 'postpaid' || key === 'vvl' ? (row?.hochrechnung ?? '–') : '–'}
+                        {editing ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.hochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.hochrechnung`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
+                        ) : key === 'postpaid' || key === 'vvl' ? (row?.hochrechnung ?? '–') : (row?.hochrechnung != null ? row.hochrechnung : '–')}
                       </td>
                       <td>
                         {editing ? (
@@ -281,8 +285,12 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                         ) : (row?.ziel ?? '–')}
                       </td>
                       <td>
-                        {editing && (key === 'postpaid' || key === 'vvl') ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.deltaHochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaHochrechnung`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
+                        {editing ? (
+                          (key === 'postpaid' || key === 'vvl') ? (
+                            <input type="number" className="performance-dashboard__cell-input" value={row?.deltaHochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaHochrechnung`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
+                          ) : (
+                            <input type="text" className="performance-dashboard__cell-input" value={row?.statusOverride ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.statusOverride`, e.target.value)} />
+                          )
                         ) : (
                           <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
                             {status.text}
