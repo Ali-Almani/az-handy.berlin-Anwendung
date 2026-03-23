@@ -96,13 +96,6 @@ const Navbar = ({
                   </Link>
                 </li>
               )}
-              {user && (
-                <li>
-                  <Link to="/news" className="navbar-link">
-                    NEWS
-                  </Link>
-                </li>
-              )}
               {canAccessDashboard(user) && (
                 <li>
                   <Link to="/dashboard" className="navbar-link">

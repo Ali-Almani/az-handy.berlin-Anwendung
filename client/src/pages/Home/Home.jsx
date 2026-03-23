@@ -1,26 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getNews } from '../../services/dashboard.service';
+import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
+import { isAdmin } from '../../utils/roles';
 import Login from '../Auth/Login';
 import './Home.scss';
 
 const Home = () => {
   const { user } = useAuth();
-  const [savedContent, setSavedContent] = useState('');
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchNote = async () => {
-      try {
-        const res = await getNews();
-        if (res.data?.content) setSavedContent(res.data.content);
-      } catch (err) {
-        console.error('Error loading note:', err);
-      }
-    };
-    fetchNote();
-  }, [user]);
+  const [metricsMeta, setMetricsMeta] = useState(null);
 
   // Startseite: Login-Form anzeigen wenn nicht eingeloggt
   if (!user) {
@@ -29,21 +16,27 @@ const Home = () => {
 
   return (
     <div className="home">
-    
-      
-      {savedContent && (
-        <section className="saved-content">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Archiv Anweisung</h2>
-            </div>
-            <div 
-              className="card-body saved-text-content"
-              dangerouslySetInnerHTML={{ __html: savedContent }}
-            />
+      <div className="card home__kennzahlen">
+        <div className="card-header card-header--kennzahlen">
+          <h2 className="card-title">Kennzahlen</h2>
+          <div className="card-header__meta">
+            <span className="card-header__meta-item">
+              <strong>Stand der Daten</strong> {metricsMeta?.dataStatus ?? '–'}
+            </span>
+            <span className="card-header__meta-item">
+              <strong>Resttage im Monat</strong> {metricsMeta?.resttage ?? metricsMeta?.workingDays ?? '–'}
+            </span>
           </div>
-        </section>
-      )}
+        </div>
+        <div className="card-body">
+          <PerformanceDashboard
+            isAdmin={isAdmin(user)}
+            readOnly
+            metaInHeader
+            onMetricsLoaded={setMetricsMeta}
+          />
+        </div>
+      </div>
     </div>
   );
 };
