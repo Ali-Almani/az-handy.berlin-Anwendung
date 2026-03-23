@@ -1,12 +1,13 @@
 .card {
   background-color: $bg-color;
-  border-radius: 2px;
-  box-shadow: $shadow-md;
+  border: 1px solid #e8e8e8;
+  border-radius: $border-radius-card;
+  box-shadow: $shadow-card;
   padding: $spacing-lg;
   transition: $transition-base;
 
   &:hover {
-    box-shadow: $shadow-lg;
+    box-shadow: $shadow-md;
   }
 
   &-header {

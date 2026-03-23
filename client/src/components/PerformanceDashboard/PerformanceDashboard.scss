@@ -37,8 +37,8 @@
     padding: $spacing-md $spacing-lg;
     background: #ffffff;
     border: 1px solid #e8e8e8;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-radius: $border-radius-card;
+    box-shadow: $shadow-card;
   }
 
   &__meta {
@@ -52,7 +52,7 @@
   &__meta-item {
     padding: $spacing-xs $spacing-sm;
     background: #f8f9fa;
-    border-radius: 4px;
+    border-radius: $border-radius-card;
     border: 1px solid #e8e8e8;
 
     strong {
@@ -103,8 +103,8 @@
     padding: $spacing-lg;
     background: #ffffff;
     border: 1px solid #e8e8e8;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-radius: $border-radius-card;
+    box-shadow: $shadow-card;
 
     h4 {
       margin: 0 0 $spacing-md 0;
@@ -131,7 +131,7 @@
       input {
         padding: $spacing-sm $spacing-md;
         border: 1px solid $border-color;
-        border-radius: 2px;
+        border-radius: $border-radius-card;
         font-size: 0.95rem;
         background: $bg-color;
         transition: $transition-base;
@@ -149,10 +149,10 @@
 .metric-card {
   background: #ffffff;
   border: 1px solid #e8e8e8;
-  border-radius: 4px;
+  border-radius: $border-radius-card;
   padding: $spacing-lg;
   transition: box-shadow 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: $shadow-card;
 
   &:hover {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -193,7 +193,7 @@
   &__delta {
     margin-top: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
-    border-radius: 4px;
+    border-radius: $border-radius-card;
     font-size: 0.875rem;
     font-weight: $font-weight-medium;
     text-align: center;
@@ -213,7 +213,7 @@
   &__status {
     margin-top: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
-    border-radius: 4px;
+    border-radius: $border-radius-card;
     font-size: 0.8rem;
     font-weight: $font-weight-medium;
     border: none;
