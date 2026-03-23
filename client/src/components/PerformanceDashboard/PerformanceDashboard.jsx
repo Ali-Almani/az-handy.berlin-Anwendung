@@ -103,8 +103,9 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   const getMonatStatus = (row, mo) => {
     if (row === 'postpaid' || row === 'vvl') {
-      const d = calcDeltaMonat(mo?.hochrechnung, mo?.ziel);
-      if (d == null) return { text: '–', ok: null };
+      const override = mo?.deltaHochrechnung;
+      const d = override != null ? Number(override) : calcDeltaMonat(mo?.hochrechnung, mo?.ziel);
+      if (d == null || (override == null && isNaN(d))) return { text: '–', ok: null };
       return { text: String(d >= 0 ? d : d), ok: d >= 0 };
     }
     if (row === 'permissionQuote' || row === 'poXVvl' || row === 'foxX') {
@@ -162,8 +163,51 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
     { key: 'o2tv', label: 'o2 TV' }
   ];
 
+  const headerMetaAndActions = metaInHeader && !readOnly && (
+    <div className="card-header__meta performance-dashboard__header-meta">
+      <span className="card-header__meta-item">
+        <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
+      </span>
+      <span className="card-header__meta-item">
+        <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
+      </span>
+      {!readOnly && isAdmin && (
+        editing ? (
+          <div className="performance-dashboard__actions">
+            <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
+              {saving ? 'Speichern...' : 'Speichern'}
+            </button>
+            <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
+              Abbrechen
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
+            Bearbeiten
+          </button>
+        )
+      )}
+    </div>
+  );
+
+  const metaEditBar = editing && metaInHeader && !readOnly && isAdmin && (
+    <div className="performance-dashboard__meta-edit">
+      <label>
+        <strong>Stand der Daten</strong>
+        <input type="text" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
+      </label>
+      <label>
+        <strong>Resttage im Monat</strong>
+        <input type="number" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
+      </label>
+    </div>
+  );
+
   return (
-    <div className="performance-dashboard">
+    <>
+      {headerMetaAndActions}
+      {metaEditBar}
+      <div className="performance-dashboard performance-dashboard__content">
       {!metaInHeader && (
         <div className="performance-dashboard__header">
           <div className="performance-dashboard__meta">
@@ -189,19 +233,6 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
               </>
             )}
           </div>
-        </div>
-      )}
-
-      {editing && metaInHeader && !readOnly && (
-        <div className="performance-dashboard__meta-edit">
-          <label>
-            <strong>Stand der Daten</strong>
-            <input type="text" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
-          </label>
-          <label>
-            <strong>Resttage im Monat</strong>
-            <input type="number" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
-          </label>
         </div>
       )}
 
@@ -250,9 +281,13 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                         ) : (row?.ziel ?? '–')}
                       </td>
                       <td>
-                        <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
-                          {status.text}
-                        </span>
+                        {editing && (key === 'postpaid' || key === 'vvl') ? (
+                          <input type="number" className="performance-dashboard__cell-input" value={row?.deltaHochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaHochrechnung`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
+                        ) : (
+                          <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
+                            {status.text}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -324,7 +359,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
         </section>
       </div>
 
-      {!readOnly && isAdmin && (
+      {!readOnly && isAdmin && !metaInHeader && (
         <div className="performance-dashboard__footer">
           {!editing ? (
             <button type="button" className="btn btn--primary btn--small" onClick={handleStartEdit}>
@@ -343,6 +378,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
         </div>
       )}
     </div>
+    </>
   );
 };
 

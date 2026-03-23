@@ -4,6 +4,20 @@
   background: $bg-color;
   padding: 0;
 
+  &__header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-lg;
+    margin-left: auto;
+  }
+
+  &__content {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
   &--loading {
     display: flex;
     flex-direction: column;

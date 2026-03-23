@@ -30,6 +30,8 @@
       flex-wrap: wrap;
       align-items: center;
       gap: $spacing-lg;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .card-header__meta {
