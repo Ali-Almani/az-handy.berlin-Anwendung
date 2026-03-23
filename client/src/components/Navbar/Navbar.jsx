@@ -115,14 +115,14 @@ const Navbar = ({
 
   const navLinks = (
     <>
-      {canAccessImeis(user) && (
-        <li>
-          <Link to="/imeis" className="navbar-link" onClick={closeMobileMenu}>IMEIs</Link>
-        </li>
-      )}
       {canAccessDashboard(user) && (
         <li>
           <Link to="/dashboard" className="navbar-link" onClick={closeMobileMenu}>Dashboard</Link>
+        </li>
+      )}
+      {canAccessImeis(user) && (
+        <li>
+          <Link to="/imeis" className="navbar-link" onClick={closeMobileMenu}>IMEIs</Link>
         </li>
       )}
       {user && !isAdmin(user) && (
