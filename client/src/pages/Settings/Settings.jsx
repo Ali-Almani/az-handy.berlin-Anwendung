@@ -150,7 +150,7 @@ const Settings = () => {
           </div>
           <ProfileForm formData={formData} loading={loading} avatarLoading={avatarLoading} onAvatarChange={handleAvatarChange} onAvatarRemove={handleAvatarRemove} onSubmit={handleProfileSubmit} />
         </div>
-        <div className="settings-section">
+        <div className="settings-section settings-section--password">
           <div className="settings-section-header">
             <h2>Passwort ändern</h2>
             <p>Ändern Sie Ihr Passwort für mehr Sicherheit</p>
