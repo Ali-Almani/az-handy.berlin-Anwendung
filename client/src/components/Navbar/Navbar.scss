@@ -373,7 +373,12 @@
   }
 }
 
-/* Mobile: Logo links, Hamburger rechts */
+/* Mobile: Logo links, Avatar + Hamburger rechts */
+.navbar-dropdown--header {
+  right: 0;
+  left: auto;
+}
+
 .navbar-mobile-right {
   display: none;
   align-items: center;
