@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getPerformanceMetrics, savePerformanceMetrics } from '../../services/dashboard.service';
 import './PerformanceDashboard.scss';
 
 const DEFAULT_METRICS = {
-  dataStatus: '05.03.2026',
-  workingDays: 26,
+  dataStatus: '19.03.2024',
+  resttage: 10,
   monatsziel: {
-    postpaid: { aktuell: 157, hochrechnung: 1999, ziel: 2000 },
-    vvl: { aktuell: 132, hochrechnung: 1144, ziel: 1400 },
-    permissionQuote: { aktuell: 85.37, ziel: '>75%' },
-    rotationalChurn: { aktuell: 5.71, ziel: '<6%' },
-    poXVvl: { aktuell: 18.05, ziel: '>16%' }
+    postpaid: { deltaZuGestern: 107, aktuell: 931, hochrechnung: 1729, ziel: 2000 },
+    vvl: { deltaZuGestern: 107, aktuell: 908, hochrechnung: 1574, ziel: 1400 },
+    permissionQuote: { aktuell: 87.45, ziel: '>75%' },
+    rotationalChurn: { aktuell: 5.2, ziel: '<6%' },
+    poXVvl: { aktuell: 18.5, ziel: '>16%' },
+    foxX: { aktuell: 6.2, ziel: '>5%' }
   },
   quartalsziel: {
-    prepaid: { letzterMonat: 181, aktuell: 0, hochrechnung: null, ziel: 180, status: 'Erledigt. Keine Prepaid mehr' },
-    dsl: { letzterMonat: 197, aktuell: 4, hochrechnung: 187, ziel: 300, fehlen: 99 },
-    o2tv: { letzterMonat: 95, aktuell: 3, hochrechnung: 98, ziel: 162, fehlen: 64 }
+    prepaid: { vormonate: 181, aktuell: 15, gesamt: 196, ziel: 180, rest: 'OK' },
+    dsl: { vormonate: 197, aktuell: 67, gesamt: 264, ziel: 300, rest: 36 },
+    o2tv: { vormonate: 95, aktuell: 17, gesamt: 112, ziel: 162, rest: 50 }
   }
 };
 
@@ -32,7 +33,16 @@ const PerformanceDashboard = ({ isAdmin }) => {
         setLoading(true);
         const res = await getPerformanceMetrics();
         if (res?.data?.metrics) {
-          setMetrics({ ...DEFAULT_METRICS, ...res.data.metrics });
+          setMetrics((prev) => {
+            const merged = { ...DEFAULT_METRICS };
+            const m = res.data.metrics;
+            if (m?.dataStatus) merged.dataStatus = m.dataStatus;
+            if (m?.resttage != null) merged.resttage = m.resttage;
+            if (m?.workingDays != null) merged.resttage = m.workingDays;
+            if (m?.monatsziel) merged.monatsziel = { ...merged.monatsziel, ...m.monatsziel };
+            if (m?.quartalsziel) merged.quartalsziel = { ...merged.quartalsziel, ...m.quartalsziel };
+            return merged;
+          });
         }
       } catch {
         // use defaults
@@ -83,24 +93,42 @@ const PerformanceDashboard = ({ isAdmin }) => {
     });
   };
 
-  const calcDelta = (hochrechnung, ziel) => {
-    if (hochrechnung == null || ziel == null) return null;
-    const d = Number(hochrechnung) - Number(ziel);
-    return d;
+  const calcDeltaMonat = (hochrechnung, ziel) => {
+    if (hochrechnung == null || ziel == null || typeof ziel === 'string') return null;
+    return Number(hochrechnung) - Number(ziel);
   };
 
-  const isOk = (type, aktuell, ziel) => {
-    if (!ziel || typeof ziel !== 'string') return null;
-    const z = ziel.trim();
-    if (z.startsWith('>')) {
-      const threshold = parseFloat(z.slice(1).replace('%', '').replace(',', '.'));
-      return Number(aktuell) >= threshold;
+  const getMonatStatus = (row, mo) => {
+    if (row === 'postpaid' || row === 'vvl') {
+      const d = calcDeltaMonat(mo?.hochrechnung, mo?.ziel);
+      if (d == null) return { text: '–', ok: null };
+      return { text: String(d >= 0 ? d : d), ok: d >= 0 };
     }
-    if (z.startsWith('<')) {
-      const threshold = parseFloat(z.slice(1).replace('%', '').replace(',', '.'));
-      return Number(aktuell) < threshold;
+    if (row === 'permissionQuote' || row === 'poXVvl' || row === 'foxX') {
+      const z = mo?.ziel || '';
+      if (!z.startsWith('>')) return { text: '–', ok: null };
+      const th = parseFloat(String(z).slice(1).replace('%', '').replace(',', '.'));
+      const ok = Number(mo?.aktuell ?? 0) >= th;
+      return { text: ok ? 'OK' : 'Achtung', ok };
     }
-    return null;
+    if (row === 'rotationalChurn') {
+      const z = mo?.ziel || '';
+      if (!z.startsWith('<')) return { text: '–', ok: null };
+      const th = parseFloat(String(z).slice(1).replace('%', '').replace(',', '.'));
+      const ok = Number(mo?.aktuell ?? 0) < th;
+      return { text: ok ? 'OK' : 'Achtung', ok };
+    }
+    return { text: '–', ok: null };
+  };
+
+  const getQuartalStatus = (qo) => {
+    const rest = qo?.rest;
+    if (rest === 'OK' || rest === 'Erledigt' || (typeof rest === 'string' && rest.toLowerCase().includes('ok'))) {
+      return { text: 'OK', ok: true };
+    }
+    const num = typeof rest === 'number' ? rest : parseInt(rest, 10);
+    if (!isNaN(num) && num > 0) return { text: String(num), ok: false };
+    return { text: String(rest ?? '–'), ok: false };
   };
 
   if (loading) {
@@ -116,15 +144,30 @@ const PerformanceDashboard = ({ isAdmin }) => {
   const mo = m?.monatsziel || {};
   const qo = m?.quartalsziel || {};
 
+  const monatRows = [
+    { key: 'postpaid', label: 'Postpaid' },
+    { key: 'vvl', label: 'VVL' },
+    { key: 'permissionQuote', label: 'Permission Quote' },
+    { key: 'rotationalChurn', label: 'Rotational Churn' },
+    { key: 'poXVvl', label: 'PO-X-VVL' },
+    { key: 'foxX', label: 'FOX-X' }
+  ];
+
+  const quartalRows = [
+    { key: 'prepaid', label: 'Prepaid' },
+    { key: 'dsl', label: 'DSL' },
+    { key: 'o2tv', label: 'o2 TV' }
+  ];
+
   return (
     <div className="performance-dashboard">
       <div className="performance-dashboard__header">
         <div className="performance-dashboard__meta">
           <span className="performance-dashboard__meta-item">
-            <strong>Stückzahlen Datenbestand:</strong> {m?.dataStatus ?? '–'}
+            <strong>Stand der Daten</strong> {m?.dataStatus ?? '–'}
           </span>
           <span className="performance-dashboard__meta-item">
-            <strong>Arbeitstage im Monat:</strong> {m?.workingDays ?? '–'}
+            <strong>Resttage im Monat</strong> {m?.resttage ?? m?.workingDays ?? '–'}
           </span>
         </div>
         {isAdmin && !editing && (
@@ -134,12 +177,7 @@ const PerformanceDashboard = ({ isAdmin }) => {
         )}
         {isAdmin && editing && (
           <div className="performance-dashboard__actions">
-            <button
-              type="button"
-              className="btn btn--primary btn--small"
-              onClick={handleSave}
-              disabled={saving}
-            >
+            <button type="button" className="btn btn--primary btn--small" onClick={handleSave} disabled={saving}>
               {saving ? 'Speichern...' : 'Speichern'}
             </button>
             <button type="button" className="btn btn--secondary btn--small" onClick={handleCancelEdit}>
@@ -149,140 +187,91 @@ const PerformanceDashboard = ({ isAdmin }) => {
         )}
       </div>
 
-      <div className="performance-dashboard__grid">
+      <div className="performance-dashboard__table-wrapper">
         {/* Monatsziel */}
         <section className="performance-dashboard__section">
-          <h3 className="performance-dashboard__section-title">Monatsziel</h3>
-          <div className="performance-dashboard__cards">
-            <div className="metric-card metric-card--postpaid">
-              <div className="metric-card__label">Postpaid</div>
-              <div className="metric-card__value">{mo.postpaid?.aktuell ?? '–'}</div>
-              <div className="metric-card__row">
-                <span>Hochrechnung:</span>
-                <span>{mo.postpaid?.hochrechnung ?? '–'}</span>
-              </div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{mo.postpaid?.ziel ?? '–'}</span>
-              </div>
-              <div className={`metric-card__delta ${calcDelta(mo.postpaid?.hochrechnung, mo.postpaid?.ziel) >= 0 ? 'metric-card__delta--ok' : 'metric-card__delta--warn'}`}>
-                Δ {calcDelta(mo.postpaid?.hochrechnung, mo.postpaid?.ziel) ?? '–'}
-              </div>
-            </div>
-
-            <div className="metric-card metric-card--vvl">
-              <div className="metric-card__label">VVL</div>
-              <div className="metric-card__value">{mo.vvl?.aktuell ?? '–'}</div>
-              <div className="metric-card__row">
-                <span>Hochrechnung:</span>
-                <span>{mo.vvl?.hochrechnung ?? '–'}</span>
-              </div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{mo.vvl?.ziel ?? '–'}</span>
-              </div>
-              <div className={`metric-card__delta ${calcDelta(mo.vvl?.hochrechnung, mo.vvl?.ziel) >= 0 ? 'metric-card__delta--ok' : 'metric-card__delta--warn'}`}>
-                Δ {calcDelta(mo.vvl?.hochrechnung, mo.vvl?.ziel) ?? '–'}
-              </div>
-            </div>
-
-            <div className="metric-card metric-card--percent">
-              <div className="metric-card__label">Permission Quote</div>
-              <div className="metric-card__value">{mo.permissionQuote?.aktuell ?? '–'}%</div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{mo.permissionQuote?.ziel ?? '–'}</span>
-              </div>
-              <div className={`metric-card__delta ${isOk('>', mo.permissionQuote?.aktuell, mo.permissionQuote?.ziel) ? 'metric-card__delta--ok' : 'metric-card__delta--warn'}`}>
-                {isOk('>', mo.permissionQuote?.aktuell, mo.permissionQuote?.ziel) ? 'OK' : '–'}
-              </div>
-            </div>
-
-            <div className="metric-card metric-card--percent">
-              <div className="metric-card__label">Rotational Churn</div>
-              <div className="metric-card__value">{mo.rotationalChurn?.aktuell ?? '–'}%</div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{mo.rotationalChurn?.ziel ?? '–'}</span>
-              </div>
-              <div className={`metric-card__delta ${isOk('<', mo.rotationalChurn?.aktuell, mo.rotationalChurn?.ziel) ? 'metric-card__delta--ok' : 'metric-card__delta--warn'}`}>
-                {isOk('<', mo.rotationalChurn?.aktuell, mo.rotationalChurn?.ziel) ? 'OK' : '–'}
-              </div>
-            </div>
-
-            <div className="metric-card metric-card--percent">
-              <div className="metric-card__label">PO-X-VVL</div>
-              <div className="metric-card__value">{mo.poXVvl?.aktuell ?? '–'}%</div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{mo.poXVvl?.ziel ?? '–'}</span>
-              </div>
-              <div className={`metric-card__delta ${isOk('>', mo.poXVvl?.aktuell, mo.poXVvl?.ziel) ? 'metric-card__delta--ok' : 'metric-card__delta--warn'}`}>
-                {isOk('>', mo.poXVvl?.aktuell, mo.poXVvl?.ziel) ? 'OK' : '–'}
-              </div>
-            </div>
+          <div className="performance-dashboard__section-label">Monatsziel</div>
+          <div className="performance-dashboard__table-card">
+            <table className="performance-dashboard__table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Delta zu gestern</th>
+                  <th>Aktuell</th>
+                  <th>Hochrechnung Monat</th>
+                  <th>Ziel AZ</th>
+                  <th>Delta zur Hochrechnung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monatRows.map(({ key, label }) => {
+                  const row = mo[key];
+                  const isPercent = ['permissionQuote', 'rotationalChurn', 'poXVvl', 'foxX'].includes(key);
+                  const status = getMonatStatus(key, row);
+                  return (
+                    <tr key={key}>
+                      <td className="performance-dashboard__cell-label">{label}</td>
+                      <td>{key === 'postpaid' || key === 'vvl' ? (row?.deltaZuGestern ?? '–') : '–'}</td>
+                      <td>
+                        {row?.aktuell != null
+                          ? isPercent
+                            ? `${Number(row.aktuell).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+                            : row.aktuell
+                          : '–'}
+                      </td>
+                      <td>{key === 'postpaid' || key === 'vvl' ? (row?.hochrechnung ?? '–') : '–'}</td>
+                      <td>{row?.ziel ?? '–'}</td>
+                      <td>
+                        <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
+                          {status.text}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
 
+        <div className="performance-dashboard__divider" />
+
         {/* Quartalsziel */}
         <section className="performance-dashboard__section">
-          <h3 className="performance-dashboard__section-title">Quartalsziel</h3>
-          <div className="performance-dashboard__cards">
-            <div className="metric-card metric-card--quarter">
-              <div className="metric-card__label">Prepaid</div>
-              <div className="metric-card__row metric-card__row--muted">
-                <span>Letzter Monat:</span>
-                <span>{qo.prepaid?.letzterMonat ?? '–'}</span>
-              </div>
-              <div className="metric-card__value">{qo.prepaid?.aktuell ?? '–'}</div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{qo.prepaid?.ziel ?? '–'}</span>
-              </div>
-              <div className="metric-card__status metric-card__status--done">
-                {qo.prepaid?.status ?? '–'}
-              </div>
-            </div>
-
-            <div className="metric-card metric-card--quarter">
-              <div className="metric-card__label">DSL</div>
-              <div className="metric-card__row metric-card__row--muted">
-                <span>Letzter Monat:</span>
-                <span>{qo.dsl?.letzterMonat ?? '–'}</span>
-              </div>
-              <div className="metric-card__value">{qo.dsl?.aktuell ?? '–'}</div>
-              <div className="metric-card__row">
-                <span>Hochrechnung Quartal:</span>
-                <span>{qo.dsl?.hochrechnung ?? '–'}</span>
-              </div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{qo.dsl?.ziel ?? '–'}</span>
-              </div>
-              <div className="metric-card__status metric-card__status--missing">
-                Aktuell fehlen: {qo.dsl?.fehlen ?? '–'}
-              </div>
-            </div>
-
-            <div className="metric-card metric-card--quarter">
-              <div className="metric-card__label">o2 TV</div>
-              <div className="metric-card__row metric-card__row--muted">
-                <span>Letzter Monat:</span>
-                <span>{qo.o2tv?.letzterMonat ?? '–'}</span>
-              </div>
-              <div className="metric-card__value">{qo.o2tv?.aktuell ?? '–'}</div>
-              <div className="metric-card__row">
-                <span>Hochrechnung Quartal:</span>
-                <span>{qo.o2tv?.hochrechnung ?? '–'}</span>
-              </div>
-              <div className="metric-card__row">
-                <span>Ziel AZ:</span>
-                <span>{qo.o2tv?.ziel ?? '–'}</span>
-              </div>
-              <div className="metric-card__status metric-card__status--missing">
-                Aktuell fehlen: {qo.o2tv?.fehlen ?? '–'}
-              </div>
-            </div>
+          <div className="performance-dashboard__section-label">Quartalsziel</div>
+          <div className="performance-dashboard__table-card">
+            <table className="performance-dashboard__table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Vormonate</th>
+                  <th>Aktuell</th>
+                  <th>Gesamt Quartal</th>
+                  <th>Ziel AZ</th>
+                  <th>Rest</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quartalRows.map(({ key, label }) => {
+                  const row = qo[key];
+                  const status = getQuartalStatus(row);
+                  return (
+                    <tr key={key}>
+                      <td className="performance-dashboard__cell-label">{label}</td>
+                      <td className="performance-dashboard__cell-muted">{row?.vormonate ?? row?.letzterMonat ?? '–'}</td>
+                      <td>{row?.aktuell ?? '–'}</td>
+                      <td>{row?.gesamt ?? row?.hochrechnung ?? '–'}</td>
+                      <td>{row?.ziel ?? '–'}</td>
+                      <td>
+                        <span className={`performance-dashboard__status performance-dashboard__status--${status.ok ? 'ok' : 'warn'}`}>
+                          {status.text}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
       </div>
@@ -292,232 +281,36 @@ const PerformanceDashboard = ({ isAdmin }) => {
           <h4>Werte bearbeiten</h4>
           <div className="performance-dashboard__edit-grid">
             <label>
-              Stückzahlen Datenbestand
-              <input
-                type="text"
-                value={editData?.dataStatus ?? ''}
-                onChange={(e) => updateEdit('dataStatus', e.target.value)}
-              />
+              Stand der Daten
+              <input type="text" value={editData?.dataStatus ?? ''} onChange={(e) => updateEdit('dataStatus', e.target.value)} />
             </label>
             <label>
-              Arbeitstage
-              <input
-                type="number"
-                value={editData?.workingDays ?? ''}
-                onChange={(e) => updateEdit('workingDays', parseInt(e.target.value, 10) || 0)}
-              />
+              Resttage im Monat
+              <input type="number" value={editData?.resttage ?? editData?.workingDays ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
             </label>
-            <label>
-              Postpaid Aktuell
-              <input
-                type="number"
-                value={editData?.monatsziel?.postpaid?.aktuell ?? ''}
-                onChange={(e) => updateEdit('monatsziel.postpaid.aktuell', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              Postpaid Hochrechnung
-              <input
-                type="number"
-                value={editData?.monatsziel?.postpaid?.hochrechnung ?? ''}
-                onChange={(e) => updateEdit('monatsziel.postpaid.hochrechnung', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              Postpaid Ziel
-              <input
-                type="number"
-                value={editData?.monatsziel?.postpaid?.ziel ?? ''}
-                onChange={(e) => updateEdit('monatsziel.postpaid.ziel', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              VVL Aktuell
-              <input
-                type="number"
-                value={editData?.monatsziel?.vvl?.aktuell ?? ''}
-                onChange={(e) => updateEdit('monatsziel.vvl.aktuell', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              VVL Hochrechnung
-              <input
-                type="number"
-                value={editData?.monatsziel?.vvl?.hochrechnung ?? ''}
-                onChange={(e) => updateEdit('monatsziel.vvl.hochrechnung', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              VVL Ziel
-              <input
-                type="number"
-                value={editData?.monatsziel?.vvl?.ziel ?? ''}
-                onChange={(e) => updateEdit('monatsziel.vvl.ziel', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              Permission Quote Aktuell (%)
-              <input
-                type="number"
-                step="0.01"
-                value={editData?.monatsziel?.permissionQuote?.aktuell ?? ''}
-                onChange={(e) => updateEdit('monatsziel.permissionQuote.aktuell', parseFloat(e.target.value) || 0)}
-              />
-            </label>
-            <label>
-              Permission Quote Ziel (z.B. &gt;75%)
-              <input
-                type="text"
-                value={editData?.monatsziel?.permissionQuote?.ziel ?? ''}
-                onChange={(e) => updateEdit('monatsziel.permissionQuote.ziel', e.target.value)}
-              />
-            </label>
-            <label>
-              Rotational Churn Aktuell (%)
-              <input
-                type="number"
-                step="0.01"
-                value={editData?.monatsziel?.rotationalChurn?.aktuell ?? ''}
-                onChange={(e) => updateEdit('monatsziel.rotationalChurn.aktuell', parseFloat(e.target.value) || 0)}
-              />
-            </label>
-            <label>
-              Rotational Churn Ziel (z.B. &lt;6%)
-              <input
-                type="text"
-                value={editData?.monatsziel?.rotationalChurn?.ziel ?? ''}
-                onChange={(e) => updateEdit('monatsziel.rotationalChurn.ziel', e.target.value)}
-              />
-            </label>
-            <label>
-              PO-X-VVL Aktuell (%)
-              <input
-                type="number"
-                step="0.01"
-                value={editData?.monatsziel?.poXVvl?.aktuell ?? ''}
-                onChange={(e) => updateEdit('monatsziel.poXVvl.aktuell', parseFloat(e.target.value) || 0)}
-              />
-            </label>
-            <label>
-              PO-X-VVL Ziel (z.B. &gt;16%)
-              <input
-                type="text"
-                value={editData?.monatsziel?.poXVvl?.ziel ?? ''}
-                onChange={(e) => updateEdit('monatsziel.poXVvl.ziel', e.target.value)}
-              />
-            </label>
-            <label>
-              Prepaid Letzter Monat
-              <input
-                type="number"
-                value={editData?.quartalsziel?.prepaid?.letzterMonat ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.prepaid.letzterMonat', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              Prepaid Aktuell
-              <input
-                type="number"
-                value={editData?.quartalsziel?.prepaid?.aktuell ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.prepaid.aktuell', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              Prepaid Ziel
-              <input
-                type="number"
-                value={editData?.quartalsziel?.prepaid?.ziel ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.prepaid.ziel', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              Prepaid Status (Text)
-              <input
-                type="text"
-                value={editData?.quartalsziel?.prepaid?.status ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.prepaid.status', e.target.value)}
-              />
-            </label>
-            <label>
-              DSL Letzter Monat
-              <input
-                type="number"
-                value={editData?.quartalsziel?.dsl?.letzterMonat ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.dsl.letzterMonat', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              DSL Aktuell
-              <input
-                type="number"
-                value={editData?.quartalsziel?.dsl?.aktuell ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.dsl.aktuell', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              DSL Hochrechnung
-              <input
-                type="number"
-                value={editData?.quartalsziel?.dsl?.hochrechnung ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.dsl.hochrechnung', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              DSL Ziel
-              <input
-                type="number"
-                value={editData?.quartalsziel?.dsl?.ziel ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.dsl.ziel', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              DSL Fehlen
-              <input
-                type="number"
-                value={editData?.quartalsziel?.dsl?.fehlen ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.dsl.fehlen', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              o2 TV Letzter Monat
-              <input
-                type="number"
-                value={editData?.quartalsziel?.o2tv?.letzterMonat ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.o2tv.letzterMonat', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              o2 TV Aktuell
-              <input
-                type="number"
-                value={editData?.quartalsziel?.o2tv?.aktuell ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.o2tv.aktuell', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              o2 TV Hochrechnung
-              <input
-                type="number"
-                value={editData?.quartalsziel?.o2tv?.hochrechnung ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.o2tv.hochrechnung', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              o2 TV Ziel
-              <input
-                type="number"
-                value={editData?.quartalsziel?.o2tv?.ziel ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.o2tv.ziel', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
-            <label>
-              o2 TV Fehlen
-              <input
-                type="number"
-                value={editData?.quartalsziel?.o2tv?.fehlen ?? ''}
-                onChange={(e) => updateEdit('quartalsziel.o2tv.fehlen', parseInt(e.target.value, 10) || 0)}
-              />
-            </label>
+            {['postpaid', 'vvl'].map((k) => (
+              <React.Fragment key={k}>
+                <label>{k} Delta zu gestern<input type="number" value={editData?.monatsziel?.[k]?.deltaZuGestern ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.deltaZuGestern`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Aktuell<input type="number" value={editData?.monatsziel?.[k]?.aktuell ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.aktuell`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Hochrechnung<input type="number" value={editData?.monatsziel?.[k]?.hochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.hochrechnung`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Ziel<input type="number" value={editData?.monatsziel?.[k]?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.ziel`, parseInt(e.target.value, 10) || 0)} /></label>
+              </React.Fragment>
+            ))}
+            {['permissionQuote', 'rotationalChurn', 'poXVvl', 'foxX'].map((k) => (
+              <React.Fragment key={k}>
+                <label>{k} Aktuell<input type="number" step="0.01" value={editData?.monatsziel?.[k]?.aktuell ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.aktuell`, parseFloat(e.target.value) || 0)} /></label>
+                <label>{k} Ziel<input type="text" value={editData?.monatsziel?.[k]?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${k}.ziel`, e.target.value)} /></label>
+              </React.Fragment>
+            ))}
+            {['prepaid', 'dsl', 'o2tv'].map((k) => (
+              <React.Fragment key={k}>
+                <label>{k} Vormonate<input type="number" value={editData?.quartalsziel?.[k]?.vormonate ?? editData?.quartalsziel?.[k]?.letzterMonat ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.vormonate`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Aktuell<input type="number" value={editData?.quartalsziel?.[k]?.aktuell ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.aktuell`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Gesamt Quartal<input type="number" value={editData?.quartalsziel?.[k]?.gesamt ?? editData?.quartalsziel?.[k]?.hochrechnung ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.gesamt`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Ziel<input type="number" value={editData?.quartalsziel?.[k]?.ziel ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.ziel`, parseInt(e.target.value, 10) || 0)} /></label>
+                <label>{k} Rest<input type="text" value={editData?.quartalsziel?.[k]?.rest ?? editData?.quartalsziel?.[k]?.fehlen ?? ''} onChange={(e) => updateEdit(`quartalsziel.${k}.rest`, e.target.value)} /></label>
+              </React.Fragment>
+            ))}
           </div>
         </div>
       )}

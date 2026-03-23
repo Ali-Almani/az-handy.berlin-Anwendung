@@ -66,36 +66,115 @@
     gap: $spacing-sm;
   }
 
-  &__grid {
+  &__table-wrapper {
     display: flex;
     flex-direction: column;
-    gap: $spacing-xxl;
+    gap: 0;
   }
 
   &__section {
-    &-title {
-      font-size: 1rem;
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+  }
+
+  &__section-label {
+    writing-mode: vertical-rl;
+    transform: rotate(-180deg);
+    font-size: 1rem;
+    font-weight: $font-weight-bold;
+    color: #34495e;
+    padding: $spacing-md $spacing-sm;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border: 1px solid #e8e8e8;
+    border-radius: $border-radius-card 0 0 $border-radius-card;
+    box-shadow: $shadow-card;
+  }
+
+  &__table-card {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-left: none;
+    border-radius: 0 $border-radius-card $border-radius-card 0;
+    box-shadow: $shadow-card;
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th {
+      padding: $spacing-sm $spacing-md;
+      text-align: left;
       font-weight: $font-weight-bold;
       color: #34495e;
-      margin: 0 0 $spacing-md 0;
-      padding-bottom: $spacing-sm;
       border-bottom: 1px solid #e8e8e8;
+      background: #f8f9fa;
+    }
+
+    td {
+      padding: $spacing-sm $spacing-md;
+      border-bottom: 1px solid #e8e8e8;
+      color: #34495e;
+
+      &:last-child {
+        text-align: center;
+      }
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: rgba(0, 0, 0, 0.02);
     }
   }
 
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: $spacing-md;
+  &__cell-label {
+    font-weight: $font-weight-medium;
+    color: #34495e;
+  }
 
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-      gap: $spacing-lg;
+  &__cell-muted {
+    color: #7f8c8d;
+  }
+
+  &__status {
+    display: inline-block;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-card;
+    font-size: 0.85rem;
+    font-weight: $font-weight-medium;
+
+    &--ok {
+      background: rgba($success-color, 0.15);
+      color: darken($success-color, 12%);
     }
 
-    @media (min-width: 1100px) {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    &--warn {
+      background: rgba($danger-color, 0.15);
+      color: darken($danger-color, 8%);
     }
+
+    &--neutral {
+      background: rgba(0, 0, 0, 0.06);
+      color: #7f8c8d;
+    }
+  }
+
+  &__divider {
+    height: 1px;
+    background: #e8e8e8;
+    margin: $spacing-lg 0;
   }
 
   &__edit-form {
@@ -144,89 +223,4 @@
       }
     }
   }
-}
-
-.metric-card {
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
-  border-radius: $border-radius-card;
-  padding: $spacing-lg;
-  transition: box-shadow 0.2s ease;
-  box-shadow: $shadow-card;
-
-  &:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  &__label {
-    font-size: 0.75rem;
-    font-weight: $font-weight-bold;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #7f8c8d;
-    margin-bottom: $spacing-sm;
-    padding-bottom: $spacing-xs;
-    border-bottom: 1px solid #e8e8e8;
-  }
-
-  &__value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #34495e;
-    line-height: 1.2;
-    margin-bottom: $spacing-sm;
-  }
-
-  &__row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    color: #34495e;
-    margin-bottom: 0.2rem;
-
-    &--muted {
-      color: #7f8c8d;
-      font-size: 0.8rem;
-    }
-  }
-
-  &__delta {
-    margin-top: $spacing-sm;
-    padding: $spacing-xs $spacing-sm;
-    border-radius: $border-radius-card;
-    font-size: 0.875rem;
-    font-weight: $font-weight-medium;
-    text-align: center;
-    border: none;
-
-    &--ok {
-      background: rgba($success-color, 0.12);
-      color: darken($success-color, 12%);
-    }
-
-    &--warn {
-      background: rgba($danger-color, 0.08);
-      color: darken($danger-color, 5%);
-    }
-  }
-
-  &__status {
-    margin-top: $spacing-sm;
-    padding: $spacing-xs $spacing-sm;
-    border-radius: $border-radius-card;
-    font-size: 0.8rem;
-    font-weight: $font-weight-medium;
-    border: none;
-
-    &--done {
-      background: rgba($success-color, 0.12);
-      color: darken($success-color, 12%);
-    }
-
-    &--missing {
-      background: rgba($danger-color, 0.08);
-      color: darken($danger-color, 8%);
-    }
-  }
-
 }
