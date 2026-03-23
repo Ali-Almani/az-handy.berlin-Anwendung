@@ -35,9 +35,10 @@
     gap: $spacing-md;
     margin-bottom: $spacing-lg;
     padding: $spacing-md $spacing-lg;
-    background: $bg-light;
-    border: 1px solid $border-color;
-    border-radius: 2px;
+    background: linear-gradient(135deg, rgba($primary-color, 0.05) 0%, rgba($primary-color, 0.02) 100%);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: none;
   }
 
   &__meta {
@@ -50,9 +51,10 @@
 
   &__meta-item {
     padding: $spacing-xs $spacing-sm;
-    background: $bg-color;
-    border-radius: 2px;
-    border: 1px solid $border-color;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
     strong {
       color: $primary-color;
@@ -78,8 +80,9 @@
       color: $primary-color;
       margin: 0 0 $spacing-md 0;
       padding: $spacing-sm $spacing-md;
-      background: linear-gradient(90deg, rgba($primary-color, 0.08) 0%, transparent 100%);
+      background: linear-gradient(90deg, rgba($primary-color, 0.06) 0%, transparent 100%);
       border-left: 4px solid $primary-color;
+      border-radius: 0 8px 8px 0;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -102,12 +105,11 @@
 
   &__edit-form {
     margin-top: $spacing-xl;
-    padding-top: $spacing-xl;
-    border-top: 1px solid $border-color;
-    background: $bg-light;
     padding: $spacing-lg;
-    border-radius: 2px;
-    border: 1px solid $border-color;
+    background: linear-gradient(135deg, rgba($primary-color, 0.04) 0%, rgba($primary-color, 0.02) 100%);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: none;
 
     h4 {
       margin: 0 0 $spacing-md 0;
@@ -150,16 +152,15 @@
 }
 
 .metric-card {
-  background: $bg-color;
-  border: 1px solid $border-color;
-  border-radius: 2px;
-  padding: $spacing-md;
-  transition: $transition-base;
-  box-shadow: $shadow-sm;
+  background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+  border: 1px solid rgba($primary-color, 0.1);
+  border-radius: 10px;
+  padding: $spacing-lg;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   &:hover {
-    box-shadow: $shadow-md;
-    border-color: rgba($primary-color, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   }
 
   &__label {
@@ -170,7 +171,7 @@
     color: $text-light;
     margin-bottom: $spacing-sm;
     padding-bottom: $spacing-xs;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid rgba($border-color, 0.5);
   }
 
   &__value {
@@ -197,41 +198,39 @@
   &__delta {
     margin-top: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
-    border-radius: 2px;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-weight: $font-weight-medium;
     text-align: center;
+    border: none;
 
     &--ok {
-      background: rgba($success-color, 0.15);
+      background: rgba($success-color, 0.12);
       color: darken($success-color, 12%);
-      border: 1px solid rgba($success-color, 0.3);
     }
 
     &--warn {
       background: rgba($danger-color, 0.08);
       color: darken($danger-color, 5%);
-      border: 1px solid rgba($danger-color, 0.2);
     }
   }
 
   &__status {
     margin-top: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
-    border-radius: 2px;
+    border-radius: 8px;
     font-size: 0.8rem;
     font-weight: $font-weight-medium;
+    border: none;
 
     &--done {
-      background: rgba($success-color, 0.15);
+      background: rgba($success-color, 0.12);
       color: darken($success-color, 12%);
-      border: 1px solid rgba($success-color, 0.3);
     }
 
     &--missing {
-      background: rgba($danger-color, 0.1);
+      background: rgba($danger-color, 0.08);
       color: darken($danger-color, 8%);
-      border: 1px solid rgba($danger-color, 0.25);
     }
   }
 
