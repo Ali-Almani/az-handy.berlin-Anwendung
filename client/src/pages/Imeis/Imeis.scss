@@ -681,6 +681,25 @@
     }
   }
 
+  /* Bestand-Modal: kompakter für weniger Scrollen */
+  .imeis-zustand-modal {
+    .imeis-history-modal-header {
+      padding: $spacing-sm $spacing-md;
+
+      h3 {
+        font-size: 1.1rem;
+      }
+    }
+
+    .imeis-history-modal-body {
+      padding: $spacing-sm $spacing-md;
+    }
+
+    .imeis-history-modal-footer {
+      padding: $spacing-sm $spacing-md;
+    }
+  }
+
   /* Bestätigungsdialog im Verlauf-Modal */
   .imeis-confirmation-overlay {
     position: absolute;

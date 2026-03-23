@@ -3,7 +3,7 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
 
   return (
     <div className="imeis-history-modal-overlay" onClick={onClose}>
-      <div className="imeis-history-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '95vw', width: '95vw' }}>
+      <div className="imeis-history-modal imeis-zustand-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '95vw', width: '95vw' }}>
         <div className="imeis-history-modal-header">
           <h3>Bestand</h3>
           <button
@@ -16,7 +16,7 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
         </div>
         <div className="imeis-history-modal-body">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
               <div style={{ fontSize: '1.2rem', color: '#005d95', marginBottom: '1rem' }}>Lade Daten...</div>
               <div style={{
                 display: 'inline-block',
@@ -35,26 +35,26 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
               `}</style>
             </div>
           ) : !zustandData || zustandData.manufacturers.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>
+            <p style={{ textAlign: 'center', color: '#999', padding: '1.5rem' }}>
               Keine IMEIs gefunden
             </p>
           ) : (
             <div className="imeis-history-list">
-              <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '4px', border: '1px solid #dee2e6' }}>
-                <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 'bold', color: '#005d95' }}>
+              <div style={{ marginBottom: '1rem', padding: '0.6rem', backgroundColor: '#fff', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+                <h4 style={{ marginBottom: '0.5rem', fontSize: '0.95rem', fontWeight: 'bold', color: '#005d95' }}>
                   Verteilung nach Marken
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   {zustandData.manufacturers.map((manufacturerData, mIndex) => {
                     const percentage = zustandData.total > 0 ? (manufacturerData.total / zustandData.total * 100).toFixed(1) : 0;
                     const colors = ['#005d95', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'];
                     const color = colors[mIndex % colors.length];
                     return (
-                      <div key={mIndex} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ minWidth: '120px', fontSize: '0.9rem', fontWeight: '500', color: '#495057' }}>
+                      <div key={mIndex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ minWidth: '100px', fontSize: '0.85rem', fontWeight: '500', color: '#495057' }}>
                           {manufacturerData.manufacturer}
                         </div>
-                        <div style={{ flex: 1, position: 'relative', height: '28px', backgroundColor: '#e9ecef', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, position: 'relative', height: '22px', backgroundColor: '#e9ecef', borderRadius: '4px', overflow: 'hidden' }}>
                           <div
                             style={{
                               height: '100%',
@@ -73,15 +73,15 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                             {percentage > 5 && `${percentage}%`}
                           </div>
                         </div>
-                        <div style={{ minWidth: '80px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 'bold', color: '#495057', fontFamily: "'Courier New', monospace" }}>
+                        <div style={{ minWidth: '60px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 'bold', color: '#495057', fontFamily: "'Courier New', monospace" }}>
                           {manufacturerData.total}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #dee2e6', textAlign: 'right' }}>
-                  <strong style={{ fontSize: '1rem', color: '#005d95' }}>Gesamt: {zustandData.total} IMEIs</strong>
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #dee2e6', textAlign: 'right' }}>
+                  <strong style={{ fontSize: '0.9rem', color: '#005d95' }}>Gesamt: {zustandData.total} IMEIs</strong>
                 </div>
               </div>
               {zustandData.manufacturers.map((manufacturerData, mIndex) => {
@@ -106,30 +106,31 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                 allCards.sort((a, b) => b.count - a.count);
 
                 return (
-                  <div key={mIndex} style={{ marginBottom: '1.5rem' }}>
+                  <div key={mIndex} style={{ marginBottom: '0.75rem' }}>
                     <h4 style={{
-                      marginBottom: '0.5rem',
-                      padding: '0.5rem',
+                      marginBottom: '0.35rem',
+                      padding: '0.35rem 0.5rem',
                       backgroundColor: '#e9ecef',
                       borderRadius: '4px',
                       fontWeight: 'bold',
+                      fontSize: '0.9rem',
                       color: '#005d95'
                     }}>
                       {manufacturerData.manufacturer} ({manufacturerData.total})
                     </h4>
-                    <div style={{ marginLeft: '1rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.75rem', width: 'calc(100% - 1rem)' }}>
+                    <div style={{ marginLeft: '0.75rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.4rem', width: 'calc(100% - 0.75rem)' }}>
                       {allCards.map((card) => (
                         <div
                           key={card.key}
                           style={{
-                            padding: '0.5rem',
+                            padding: '0.35rem',
                             backgroundColor: '#f8f9fa',
                             borderRadius: '4px',
                             border: '1px solid #dee2e6',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
-                            minHeight: '60px',
+                            minHeight: '44px',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                           }}
@@ -149,15 +150,15 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                           <div style={{
                             whiteSpace: 'normal',
                             wordBreak: 'break-word',
-                            fontSize: '0.9rem',
-                            marginBottom: '0.25rem'
+                            fontSize: '0.8rem',
+                            marginBottom: '0.15rem'
                           }}>
                             {card.displayText}
                           </div>
                           <div style={{
                             textAlign: 'right',
                             fontWeight: 'bold',
-                            fontSize: '0.95rem',
+                            fontSize: '0.85rem',
                             color: '#495057',
                             fontFamily: "'Courier New', monospace"
                           }}>
