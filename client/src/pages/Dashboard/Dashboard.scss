@@ -71,6 +71,42 @@
     }
   }
 
+  .dashboard-new-message {
+    .card-header {
+      padding: $spacing-sm $spacing-md;
+    }
+
+    .card-body {
+      padding: $spacing-sm $spacing-md;
+    }
+
+    .text-editor-content {
+      min-height: 120px;
+      max-height: 280px;
+      padding: $spacing-sm $spacing-md;
+      font-size: 0.95rem;
+    }
+
+    .text-editor-display {
+      min-height: 120px;
+      padding: $spacing-sm $spacing-md;
+      font-size: 0.95rem;
+    }
+
+    .text-editor-toolbar {
+      padding: $spacing-xs $spacing-sm;
+    }
+
+    .text-editor-actions {
+      padding: $spacing-sm $spacing-md;
+    }
+
+    .text-editor-display + .btn {
+      margin-top: $spacing-sm !important;
+      margin-bottom: $spacing-sm !important;
+    }
+  }
+
   .excel-upload-section {
     display: flex;
     flex-direction: column;
