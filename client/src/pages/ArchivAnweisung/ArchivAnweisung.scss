@@ -1,0 +1,105 @@
+@import '../../styles/variables';
+
+.archiv-anweisung-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xl;
+}
+
+.archiv-anweisung-card {
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: $border-radius-card;
+  box-shadow: $shadow-card;
+
+  .card-header {
+    background: #ffffff;
+    border: none;
+    border-bottom: 1px solid #e8e8e8;
+    margin: 0;
+    padding: $spacing-md $spacing-lg;
+    border-radius: 0;
+  }
+
+  .card-title {
+    color: #34495e;
+    font-size: 1.125rem;
+    font-weight: $font-weight-bold;
+    margin-bottom: 0;
+  }
+
+  .card-body {
+    padding: $spacing-lg;
+  }
+}
+
+.archiv-anweisung-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archiv-anweisung-item {
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: $border-radius-card;
+  box-shadow: $shadow-card;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.archiv-anweisung-content {
+  flex: 1 1 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: $text-color;
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 1rem 0 0.5rem 0;
+    font-weight: $font-weight-bold;
+  }
+
+  p {
+    margin: 0.5rem 0;
+  }
+
+  ul, ol {
+    margin: 0.5rem 0;
+    padding-left: 2rem;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+}
+
+.archiv-anweisung-date {
+  font-size: 0.85rem;
+  color: $text-light;
+  margin-top: $spacing-xs;
+}
+
+.archiv-anweisung-edited {
+  font-size: 0.85rem;
+  color: $text-light;
+  font-style: italic;
+  margin-top: $spacing-xs;
+}
+
+.archiv-anweisung-empty {
+  color: $text-light;
+  font-style: italic;
+}

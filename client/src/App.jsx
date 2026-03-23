@@ -4,6 +4,7 @@ import Home from './pages/Home/Home';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
+import ArchivAnweisung from './pages/ArchivAnweisung/ArchivAnweisung';
 import Settings from './pages/Settings/Settings';
 import Imeis from './pages/Imeis/Imeis';
 import Documentation from './pages/Documentation/Documentation';
@@ -21,6 +22,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/archiv-anweisung"
+          element={
+            <ProtectedRoute>
+              <ArchivAnweisung />
             </ProtectedRoute>
           }
         />

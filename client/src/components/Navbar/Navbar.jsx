@@ -103,6 +103,13 @@ const Navbar = ({
                   </Link>
                 </li>
               )}
+              {user && !isAdmin(user) && (
+                <li>
+                  <Link to="/archiv-anweisung" className="navbar-link">
+                    Archiv Anweisung
+                  </Link>
+                </li>
+              )}
               <li className="navbar-avatar-container" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}
