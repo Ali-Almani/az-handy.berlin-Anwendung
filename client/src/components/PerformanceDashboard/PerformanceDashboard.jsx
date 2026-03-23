@@ -376,7 +376,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                 className="performance-dashboard__notizen-input"
                 value={editData?.notizen ?? ''}
                 onChange={(e) => updateEdit('notizen', e.target.value)}
-                rows={4}
+                rows={3}
                 placeholder="Notizen zu den Kennzahlen..."
               />
             ) : (

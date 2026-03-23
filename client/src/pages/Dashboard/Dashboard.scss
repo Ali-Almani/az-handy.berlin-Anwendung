@@ -21,7 +21,7 @@
       border: none;
       border-bottom: 1px solid #e8e8e8;
       margin: 0;
-      padding: $spacing-md $spacing-lg;
+      padding: $spacing-sm $spacing-md;
       border-radius: 0;
     }
 
@@ -29,7 +29,7 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: $spacing-lg;
+      gap: $spacing-md;
       width: 100%;
       box-sizing: border-box;
     }
@@ -67,7 +67,7 @@
     }
 
     .card-body {
-      padding-top: $spacing-md;
+      padding-top: $spacing-sm;
     }
   }
 
