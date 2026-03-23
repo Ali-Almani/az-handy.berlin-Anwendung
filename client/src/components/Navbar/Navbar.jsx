@@ -115,11 +115,6 @@ const Navbar = ({
 
   const navLinks = (
     <>
-      {canAccessDashboard(user) && (
-        <li>
-          <Link to="/dashboard" className="navbar-link" onClick={closeMobileMenu}>Dashboard</Link>
-        </li>
-      )}
       {canAccessImeis(user) && (
         <li>
           <Link to="/imeis" className="navbar-link" onClick={closeMobileMenu}>IMEIs</Link>
@@ -128,6 +123,11 @@ const Navbar = ({
       {user && !isAdmin(user) && (
         <li>
           <Link to="/archiv-anweisung" className="navbar-link" onClick={closeMobileMenu}>Archiv Anweisung</Link>
+        </li>
+      )}
+      {canAccessDashboard(user) && (
+        <li>
+          <Link to="/dashboard" className="navbar-link" onClick={closeMobileMenu}>Dashboard</Link>
         </li>
       )}
     </>
