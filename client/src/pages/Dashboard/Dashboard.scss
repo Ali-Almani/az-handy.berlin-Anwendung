@@ -9,6 +9,23 @@
     margin-bottom: $spacing-xl;
   }
 
+  .dashboard-performance {
+    .card-header {
+      background: $bg-light;
+      border: 1px solid $border-color;
+      border-bottom: 2px solid $primary-color;
+      margin: -$spacing-lg -$spacing-lg $spacing-md -$spacing-lg;
+      padding: $spacing-md $spacing-lg;
+      border-radius: 2px 2px 0 0;
+    }
+
+    .card-title {
+      color: $primary-color;
+      font-size: 1.25rem;
+      font-weight: $font-weight-bold;
+    }
+  }
+
   .excel-upload-section {
     display: flex;
     flex-direction: column;

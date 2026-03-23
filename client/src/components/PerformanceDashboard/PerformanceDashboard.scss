@@ -1,11 +1,8 @@
 @import '../../styles/variables';
 
 .performance-dashboard {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 12px;
-  padding: $spacing-xl;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba($primary-color, 0.08);
+  background: $bg-color;
+  padding: 0;
 
   &--loading {
     display: flex;
@@ -36,22 +33,29 @@
     align-items: center;
     justify-content: space-between;
     gap: $spacing-md;
-    margin-bottom: $spacing-xl;
-    padding-bottom: $spacing-lg;
-    border-bottom: 2px solid rgba($primary-color, 0.15);
+    margin-bottom: $spacing-lg;
+    padding: $spacing-md $spacing-lg;
+    background: $bg-light;
+    border: 1px solid $border-color;
+    border-radius: 2px;
   }
 
   &__meta {
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-lg;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: $text-color;
   }
 
   &__meta-item {
+    padding: $spacing-xs $spacing-sm;
+    background: $bg-color;
+    border-radius: 2px;
+    border: 1px solid $border-color;
+
     strong {
-      color: darken($primary-color, 5%);
+      color: $primary-color;
       margin-right: 0.25rem;
     }
   }
@@ -69,23 +73,29 @@
 
   &__section {
     &-title {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: $font-weight-bold;
       color: $primary-color;
-      margin: 0 0 $spacing-lg 0;
-      padding-bottom: $spacing-sm;
-      border-bottom: 2px solid rgba($primary-color, 0.2);
+      margin: 0 0 $spacing-md 0;
+      padding: $spacing-sm $spacing-md;
+      background: linear-gradient(90deg, rgba($primary-color, 0.08) 0%, transparent 100%);
+      border-left: 4px solid $primary-color;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
   }
 
   &__cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: $spacing-lg;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: $spacing-md;
 
-    @media (min-width: 900px) {
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: $spacing-lg;
+    }
+
+    @media (min-width: 1100px) {
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
   }
@@ -94,17 +104,22 @@
     margin-top: $spacing-xl;
     padding-top: $spacing-xl;
     border-top: 1px solid $border-color;
+    background: $bg-light;
+    padding: $spacing-lg;
+    border-radius: 2px;
+    border: 1px solid $border-color;
 
     h4 {
       margin: 0 0 $spacing-md 0;
       font-size: 1rem;
-      color: $text-color;
+      font-weight: $font-weight-bold;
+      color: $primary-color;
     }
   }
 
   &__edit-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: $spacing-md;
     margin-bottom: $spacing-md;
 
@@ -112,14 +127,17 @@
       display: flex;
       flex-direction: column;
       gap: $spacing-xs;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      font-weight: $font-weight-medium;
       color: $text-color;
 
       input {
         padding: $spacing-sm $spacing-md;
         border: 1px solid $border-color;
-        border-radius: 6px;
+        border-radius: 2px;
         font-size: 0.95rem;
+        background: $bg-color;
+        transition: $transition-base;
 
         &:focus {
           outline: none;
@@ -129,38 +147,34 @@
       }
     }
   }
-
-  &__edit-hint {
-    font-size: 0.85rem;
-    color: $text-light;
-    margin: 0;
-  }
 }
 
 .metric-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: $spacing-lg;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: $bg-color;
+  border: 1px solid $border-color;
+  border-radius: 2px;
+  padding: $spacing-md;
+  transition: $transition-base;
+  box-shadow: $shadow-sm;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+    border-color: rgba($primary-color, 0.25);
   }
 
   &__label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: $font-weight-bold;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: $text-light;
     margin-bottom: $spacing-sm;
+    padding-bottom: $spacing-xs;
+    border-bottom: 1px solid $border-color;
   }
 
   &__value {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: $primary-color;
     line-height: 1.2;
@@ -170,9 +184,9 @@
   &__row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: $text-color;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
 
     &--muted {
       color: $text-light;
@@ -183,37 +197,41 @@
   &__delta {
     margin-top: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    border-radius: 2px;
+    font-size: 0.875rem;
     font-weight: $font-weight-medium;
     text-align: center;
 
     &--ok {
       background: rgba($success-color, 0.15);
-      color: darken($success-color, 10%);
+      color: darken($success-color, 12%);
+      border: 1px solid rgba($success-color, 0.3);
     }
 
     &--warn {
       background: rgba($danger-color, 0.08);
       color: darken($danger-color, 5%);
+      border: 1px solid rgba($danger-color, 0.2);
     }
   }
 
   &__status {
     margin-top: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
-    border-radius: 6px;
-    font-size: 0.85rem;
+    border-radius: 2px;
+    font-size: 0.8rem;
     font-weight: $font-weight-medium;
 
     &--done {
       background: rgba($success-color, 0.15);
-      color: darken($success-color, 10%);
+      color: darken($success-color, 12%);
+      border: 1px solid rgba($success-color, 0.3);
     }
 
     &--missing {
       background: rgba($danger-color, 0.1);
       color: darken($danger-color, 8%);
+      border: 1px solid rgba($danger-color, 0.25);
     }
   }
 
