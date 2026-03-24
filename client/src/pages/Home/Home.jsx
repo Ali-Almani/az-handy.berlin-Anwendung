@@ -7,11 +7,16 @@ import { getSocket } from '../../services/socket';
 import Login from '../Auth/Login';
 import './Home.scss';
 
+const siteNewsSeenKey = (userId) => `siteNewsLastSeen:${userId}`;
+
 const Home = () => {
   const { user } = useAuth();
   const [metricsMeta, setMetricsMeta] = useState(null);
   const [siteNewsHtml, setSiteNewsHtml] = useState('');
+  const [siteNewsUpdatedAt, setSiteNewsUpdatedAt] = useState(null);
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
+  /** false = nur Teaser „neue Nachricht“, true = voller Inhalt */
+  const [siteNewsRevealed, setSiteNewsRevealed] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -20,9 +25,23 @@ const Home = () => {
       try {
         setSiteNewsLoading(true);
         const res = await getSiteNews();
-        setSiteNewsHtml(res.data?.content ?? '');
+        const content = res.data?.content ?? '';
+        const updatedAt = res.data?.updatedAt ?? '';
+        setSiteNewsHtml(content);
+        setSiteNewsUpdatedAt(updatedAt || null);
+
+        const plain = String(content).replace(/<[^>]+>/g, '').trim();
+        const hasText = plain.length > 0;
+        if (hasText && updatedAt) {
+          const lastSeen = localStorage.getItem(siteNewsSeenKey(user.id));
+          setSiteNewsRevealed(lastSeen === updatedAt);
+        } else {
+          setSiteNewsRevealed(true);
+        }
       } catch {
         setSiteNewsHtml('');
+        setSiteNewsUpdatedAt(null);
+        setSiteNewsRevealed(true);
       } finally {
         setSiteNewsLoading(false);
       }
@@ -44,6 +63,17 @@ const Home = () => {
   }
 
   const hasNews = siteNewsHtml && String(siteNewsHtml).replace(/<[^>]+>/g, '').trim().length > 0;
+
+  const handleOpenSiteNews = () => {
+    if (user?.id && siteNewsUpdatedAt) {
+      try {
+        localStorage.setItem(siteNewsSeenKey(user.id), siteNewsUpdatedAt);
+      } catch {
+        /* ignore */
+      }
+    }
+    setSiteNewsRevealed(true);
+  };
 
   return (
     <div className="home">
@@ -76,6 +106,15 @@ const Home = () => {
         <div className="card-body home__news-body">
           {siteNewsLoading ? (
             <p className="home__news-loading">Lade NEWS…</p>
+          ) : hasNews && !siteNewsRevealed ? (
+            <button
+              type="button"
+              className="home__news-teaser"
+              onClick={handleOpenSiteNews}
+            >
+              <span className="home__news-teaser-title">Sie haben eine neue Nachricht</span>
+              <span className="home__news-teaser-hint">Hier klicken, um die NEWS zu öffnen.</span>
+            </button>
           ) : hasNews ? (
             <div
               className="home__news-content saved-text-content"
