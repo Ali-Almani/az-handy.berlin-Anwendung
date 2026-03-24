@@ -90,7 +90,7 @@ const TextEditor = ({
     }
   }, [showHeadingMenu, showColorPicker, showBgColorPicker]);
 
-  const handleInput = (e) => setContent(e.target.innerHTML);
+  const handleInput = (e) => setContent(sanitizeRichTextHtml(e.target.innerHTML));
 
   const handleSave = async () => {
     const cleaned = sanitizeRichTextHtml(content);
@@ -191,7 +191,7 @@ const TextEditor = ({
             className="text-editor-content"
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }}
             data-placeholder={placeholder}
             suppressContentEditableWarning={true}
           />

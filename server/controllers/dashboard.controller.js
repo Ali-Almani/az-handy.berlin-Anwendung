@@ -3,6 +3,7 @@ import DashboardNoteHistory from '../models/DashboardNoteHistory.model.js';
 import User from '../models/User.js';
 import * as NewsRead from '../models/NewsRead.memory.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
+import { sanitizeRichTextHtml } from '../utils/sanitizeRichTextHtml.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -64,6 +65,7 @@ export const getNews = async (req, res, next) => {
         }
       }
     }
+    content = sanitizeRichTextHtml(content);
     const contentHash = simpleHash(content);
     const userId = req.user?.userId ?? null;
     const hasRead = contentHash && userId && NewsRead.hasUserRead(userId, contentHash);
@@ -88,7 +90,7 @@ export const getNote = async (req, res, next) => {
       });
       return res.json({
         success: true,
-        content: note?.content ?? '',
+        content: sanitizeRichTextHtml(note?.content ?? ''),
         updatedAt: note?.updated_at ?? null
       });
     }
@@ -100,7 +102,7 @@ export const getNote = async (req, res, next) => {
 
     res.json({
       success: true,
-      content: note.content ?? '',
+      content: sanitizeRichTextHtml(note.content ?? ''),
       updatedAt: note.updated_at ?? null
     });
   } catch (error) {
@@ -116,6 +118,7 @@ export const saveNote = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können Anweisungen schreiben' });
     }
     const { content } = req.body;
+    const safeContent = sanitizeRichTextHtml(content ?? '');
 
     const admin = await getAdminUserForNotes();
     const adminId = admin?.id ?? admin?._id ?? userId;
@@ -125,11 +128,11 @@ export const saveNote = async (req, res, next) => {
         where: { user_id: adminId },
         defaults: { content: '' }
       });
-      if (content && String(content).trim()) {
-        DashboardNote.addHistory(adminId, content ?? '');
+      if (safeContent && String(safeContent).trim()) {
+        DashboardNote.addHistory(adminId, safeContent);
       }
       await note.update({ content: '' });
-      broadcastNewsIfAdmin(req, content, userId);
+      broadcastNewsIfAdmin(req, safeContent, userId);
       return res.json({
         success: true,
         message: 'Notiz gespeichert',
@@ -142,14 +145,14 @@ export const saveNote = async (req, res, next) => {
       defaults: { content: '' }
     });
 
-    if (content && String(content).trim()) {
+    if (safeContent && String(safeContent).trim()) {
       await DashboardNoteHistory.create({
         user_id: adminId,
-        content: content ?? ''
+        content: safeContent
       });
     }
     await note.update({ content: '' });
-    broadcastNewsIfAdmin(req, content, userId);
+    broadcastNewsIfAdmin(req, safeContent, userId);
 
     res.json({
       success: true,
@@ -163,14 +166,15 @@ export const saveNote = async (req, res, next) => {
 
 /** Echtzeit-Broadcast: Wenn Admin eine Anweisung speichert, an alle Benutzer senden */
 async function broadcastNewsIfAdmin(req, content, userId) {
-  if (!content || !String(content).trim()) return;
+  const safe = sanitizeRichTextHtml(String(content ?? ''));
+  if (!safe || !String(safe).trim()) return;
   const io = req.app?.get?.('io');
   if (!io) return;
   try {
     const currentUser = await User.findByPk(userId);
     if (!isAdminUser(currentUser)) return;
     const authorName = (currentUser?.name ?? currentUser?.get?.('name') ?? currentUser?.dataValues?.name ?? 'Administrator').trim();
-    io.emit('news:new', { content: String(content).trim(), authorName });
+    io.emit('news:new', { content: String(safe).trim(), authorName });
   } catch {}
 }
 
@@ -254,7 +258,7 @@ export const getNewsArchive = async (req, res, next) => {
         const readers = NewsRead.getReadsByContentHash ? NewsRead.getReadsByContentHash(hash) : [];
         return {
           id: h.id,
-          content,
+          content: sanitizeRichTextHtml(content),
           createdAt: h.created_at ?? h.createdAt,
           updatedAt: h.updated_at ?? h.updatedAt ?? null,
           updatedBy: h.updated_by ?? null,
@@ -298,7 +302,7 @@ export const updateNewsArchiveEntry = async (req, res, next) => {
 
     const oldContent = (entry.content ?? '').trim();
     const oldHash = simpleHash(oldContent);
-    const newContent = (content ?? '').trim();
+    const newContent = sanitizeRichTextHtml((content ?? '').trim());
     const editorName = (currentUser?.name ?? currentUser?.get?.('name') ?? currentUser?.dataValues?.name ?? 'Administrator').trim();
     if (NewsRead.deleteReadsByContentHash && oldHash) NewsRead.deleteReadsByContentHash(oldHash);
     if (USE_MEMORY_DB && DashboardNote.updateHistoryEntry) {
@@ -394,7 +398,7 @@ export const getSiteNews = async (req, res, next) => {
     const data = loadJson(SITE_NEWS_FILE);
     return res.json({
       success: true,
-      content: data?.content ?? '',
+      content: sanitizeRichTextHtml(data?.content ?? ''),
       updatedAt: data?.updatedAt ?? null
     });
   } catch (error) {
@@ -411,7 +415,7 @@ export const saveSiteNews = async (req, res, next) => {
     }
     const { content } = req.body;
     const payload = {
-      content: typeof content === 'string' ? content : '',
+      content: sanitizeRichTextHtml(typeof content === 'string' ? content : ''),
       updatedAt: new Date().toISOString()
     };
     saveJson(SITE_NEWS_FILE, payload);
@@ -456,7 +460,7 @@ export const getHistory = async (req, res, next) => {
         success: true,
         history: history.map((h) => ({
           id: h.id,
-          content: h.content,
+          content: sanitizeRichTextHtml(h.content),
           createdAt: h.created_at
         }))
       });
@@ -473,7 +477,7 @@ export const getHistory = async (req, res, next) => {
       success: true,
       history: history.map((h) => ({
         id: h.id,
-        content: h.content,
+        content: sanitizeRichTextHtml(h.content),
         createdAt: h.created_at
       }))
     });

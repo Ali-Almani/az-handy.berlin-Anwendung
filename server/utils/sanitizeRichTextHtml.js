@@ -1,12 +1,10 @@
 /**
- * Entfernt iframe/embed/object/script aus Rich-Text-HTML.
- * Verhindert Chrome-Fehler (chrome-error://chromewebdata) und Einbettungen fremder Seiten.
+ * Entfernt iframe/embed/object/script/frame aus Rich-Text-HTML (API + gespeicherte Daten).
  */
 export function sanitizeRichTextHtml(html) {
   if (html == null || typeof html !== 'string') return '';
   let s = html;
 
-  /* [\s\S] statt [^>], damit Tags mit Zeilenumbruch in Attributen erkannt werden */
   s = s.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   s = s.replace(/<iframe\b[\s\S]*?<\/iframe>/gi, '');
   s = s.replace(/<iframe\b[\s\S]*?\/>/gi, '');
