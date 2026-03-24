@@ -28,9 +28,9 @@ router.post('/news/upload', (req, res, next) => {
   newsUpload.single('file')(req, res, (err) => {
     if (err) {
       const code = err.code;
-      const msg =
+        const msg =
         code === 'LIMIT_FILE_SIZE'
-          ? 'Datei zu groß (max. 25 MB)'
+          ? 'Bild zu groß (max. 15 MB)'
           : err.message || 'Upload fehlgeschlagen';
       return res.status(400).json({ message: msg, code: code || undefined });
     }

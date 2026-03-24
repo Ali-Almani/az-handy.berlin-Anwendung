@@ -195,7 +195,7 @@ const Dashboard = () => {
           <div className="card-header">
             <h2 className="card-title">NEWS</h2>
             <p className="dashboard-site-news-hint">
-              Erscheint auf der Startseite für alle Benutzer. Bilder und PDFs über die Buttons einfügen.
+              Erscheint auf der Startseite für alle Benutzer. Bilder über den Button „Bild“ einfügen.
             </p>
           </div>
           <div className="card-body">

@@ -7,7 +7,7 @@ const TextEditor = ({
   initialContent = '',
   onSave,
   placeholder = 'Schreiben Sie hier...',
-  /** Optional: { uploadFile: async (file) => urlString } für Bild/PDF in NEWS */
+  /** Optional: { uploadFile: async (file) => urlString } für Bilder in NEWS */
   mediaUpload = null
 }) => {
   const [content, setContent] = useState(initialContent);
@@ -23,25 +23,16 @@ const TextEditor = ({
   const colorPickerRef = useRef(null);
   const bgColorPickerRef = useRef(null);
   const imageInputRef = useRef(null);
-  const pdfInputRef = useRef(null);
   const [mediaBusy, setMediaBusy] = useState(false);
 
   const { formatText, applyTextColor, applyBackgroundColor } = useTextEditorFormatting(editorRef, setContent);
 
-  const insertMediaFromUrl = (url, file) => {
+  const insertMediaFromUrl = (url) => {
     if (!editorRef.current || !url) return;
     editorRef.current.focus();
     requestAnimationFrame(() => {
       try {
-        const isPdf = file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
-        if (isPdf) {
-          // Kein <embed>/<iframe> für PDF: Chrome zeigt sonst chrome-error:// im Frame (Same-Origin)
-          const safe = String(url).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-          const html = `<p class="news-pdf-block"><a href="${safe}" target="_blank" rel="noopener noreferrer" class="news-pdf-link">PDF in neuem Tab öffnen</a></p>`;
-          document.execCommand('insertHTML', false, html);
-        } else {
-          document.execCommand('insertImage', false, url);
-        }
+        document.execCommand('insertImage', false, url);
         setContent(editorRef.current.innerHTML);
         editorRef.current.focus();
       } catch (err) {
@@ -57,7 +48,7 @@ const TextEditor = ({
     try {
       setMediaBusy(true);
       const url = await mediaUpload.uploadFile(file);
-      if (url) insertMediaFromUrl(url, file);
+      if (url) insertMediaFromUrl(url);
     } catch (err) {
       console.error('Upload:', err);
       alert(err?.response?.data?.message || err?.message || 'Upload fehlgeschlagen');
@@ -177,13 +168,6 @@ const TextEditor = ({
                 className="text-editor-media-input"
                 onChange={handleMediaFile}
               />
-              <input
-                ref={pdfInputRef}
-                type="file"
-                accept="application/pdf"
-                className="text-editor-media-input"
-                onChange={handleMediaFile}
-              />
               <button
                 type="button"
                 className="toolbar-btn"
@@ -193,16 +177,6 @@ const TextEditor = ({
                 title="Bild einfügen (JPEG, PNG, GIF, WebP)"
               >
                 Bild
-              </button>
-              <button
-                type="button"
-                className="toolbar-btn"
-                disabled={mediaBusy}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pdfInputRef.current?.click()}
-                title="PDF einfügen"
-              >
-                PDF
               </button>
               {mediaBusy && <span className="text-editor-media-busy">Lade…</span>}
             </div>
