@@ -8,6 +8,17 @@ import Login from '../Auth/Login';
 import './Home.scss';
 
 const siteNewsSeenKey = (userId) => `siteNewsLastSeen:${userId}`;
+const siteNewsStickyKey = (userId) => `siteNewsStickyPref:${userId}`;
+
+const readStickyPref = (userId) => {
+  try {
+    const v = localStorage.getItem(siteNewsStickyKey(userId));
+    if (v === null) return true;
+    return v === '1' || v === 'true';
+  } catch {
+    return true;
+  }
+};
 
 const Home = () => {
   const { user } = useAuth();
@@ -17,6 +28,8 @@ const Home = () => {
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
   /** false = nur Teaser „neue Nachricht“, true = voller Inhalt */
   const [siteNewsRevealed, setSiteNewsRevealed] = useState(false);
+  /** NEWS-Karte beim Scrollen anheften (nur sinnvoll nach „gelesen“) */
+  const [newsStickyEnabled, setNewsStickyEnabled] = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -57,6 +70,11 @@ const Home = () => {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    setNewsStickyEnabled(readStickyPref(user.id));
+  }, [user?.id]);
+
   // Startseite: Login-Form anzeigen wenn nicht eingeloggt
   if (!user) {
     return <Login />;
@@ -74,6 +92,21 @@ const Home = () => {
     }
     setSiteNewsRevealed(true);
   };
+
+  const handleNewsStickyChange = (e) => {
+    const on = e.target.checked;
+    setNewsStickyEnabled(on);
+    if (user?.id) {
+      try {
+        localStorage.setItem(siteNewsStickyKey(user.id), on ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
+  const showNewsSticky =
+    hasNews && siteNewsRevealed && newsStickyEnabled;
 
   return (
     <div className="home">
@@ -99,9 +132,22 @@ const Home = () => {
         </div>
       </div>
 
-      <div className="card home__news">
+      <div
+        className={`card home__news${showNewsSticky ? ' home__news--sticky' : ''}`}
+      >
         <div className="card-header home__news-header">
           <h2 className="card-title">NEWS</h2>
+          {hasNews && siteNewsRevealed && (
+            <label className="home__news-sticky-label">
+              <input
+                type="checkbox"
+                className="home__news-sticky-checkbox"
+                checked={newsStickyEnabled}
+                onChange={handleNewsStickyChange}
+              />
+              <span>Beim Scrollen anheften</span>
+            </label>
+          )}
         </div>
         <div className="card-body home__news-body">
           {siteNewsLoading ? (
