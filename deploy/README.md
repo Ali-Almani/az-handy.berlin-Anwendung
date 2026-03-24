@@ -6,6 +6,29 @@ Der Client muss mit `VITE_API_URL` gebaut werden, sonst nutzt er den **Mock API 
 
 Das Skript `scripts/prepare-client-env.js` liest `CLIENT_URL` aus `.env` und erstellt `client/.env.production` automatisch.
 
+## Nginx: az-schnelltest.berlin (Datei fehlt / `nano`-Fehler)
+
+Wenn `sudo nano /etc/nginx/sites-enabled/az-schnelltest.berlin` **„Datei nicht gefunden“** meldet oder du unsicher bist: Unter Linux liegt die **echte** Config meist unter **`sites-available`**, in **`sites-enabled`** steckt nur ein **Symlink** darauf.
+
+**Empfohlen:**
+
+```bash
+# 1) Vorlage aus dem Repo auf den Server kopieren (Pfad anpassen), z. B.:
+sudo cp /pfad/zum/repo/deploy/nginx-az-schnelltest.conf /etc/nginx/sites-available/az-schnelltest.berlin
+
+# 2) Aktivieren (Symlink), falls noch nicht da:
+sudo ln -sf /etc/nginx/sites-available/az-schnelltest.berlin /etc/nginx/sites-enabled/az-schnelltest.berlin
+
+# 3) Prüfen und neu laden
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Dann bearbeitest du z. B.:
+
+`sudo nano /etc/nginx/sites-available/az-schnelltest.berlin`
+
+(Hinweis: In `deploy/nginx-az-schnelltest.conf` steht im Kommentar alternativ `az-handy` als Dateiname – wichtig ist nur, dass `root` und `proxy_pass` zu deinem echten Pfad/Port passen.)
+
 ## Nginx: Richtiges Verzeichnis
 
 Die Nginx-Config zeigt auf `/var/www/az-handy/client/dist`. Wenn dein Projekt woanders liegt (z.B. `/root/az-handy.berlin-Anwendung`), musst du:

@@ -10,6 +10,14 @@
   }
 
   .dashboard-site-news {
+    position: relative;
+    z-index: 25;
+    overflow: visible;
+
+    .card-body {
+      overflow: visible;
+    }
+
     .card-header {
       flex-direction: column;
       align-items: flex-start;

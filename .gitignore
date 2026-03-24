@@ -25,12 +25,15 @@ yarn-error.log*
 lerna-debug.log*
 *.log
 
-# IDE
+# IDE / Editoren (nano, vim): keine Backup-/Swap-Dateien versionieren (*~ = nano-Backup)
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.save
+*.bak
+*.backup
 
 # OS
 Thumbs.db
