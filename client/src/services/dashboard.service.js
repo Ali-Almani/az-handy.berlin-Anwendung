@@ -218,3 +218,38 @@ export const savePerformanceMetrics = (metrics) => {
   }
   return api.put('/dashboard/performance', { metrics });
 };
+
+const SITE_NEWS_MOCK_KEY = 'dashboard-site-news-mock';
+
+/** NEWS für die Startseite (alle eingeloggten Benutzer) */
+export const getSiteNews = () => {
+  if (USE_MOCK_API) {
+    try {
+      const raw = localStorage.getItem(SITE_NEWS_MOCK_KEY);
+      const data = raw ? JSON.parse(raw) : { content: '', updatedAt: null };
+      return Promise.resolve({ data: { success: true, content: data.content ?? '', updatedAt: data.updatedAt ?? null } });
+    } catch {
+      return Promise.resolve({ data: { success: true, content: '', updatedAt: null } });
+    }
+  }
+  return api.get('/dashboard/site-news');
+};
+
+export const saveSiteNews = (content) => {
+  if (USE_MOCK_API) {
+    const payload = { content: content || '', updatedAt: new Date().toISOString() };
+    localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(payload));
+    return Promise.resolve({ data: { success: true, message: 'NEWS gespeichert (lokal)', ...payload } });
+  }
+  return api.put('/dashboard/site-news', { content });
+};
+
+/** Bild oder PDF für NEWS-Editor hochladen (nur Admin, echte API) */
+export const uploadNewsMedia = (file) => {
+  if (USE_MOCK_API) {
+    return Promise.reject(new Error('Medien-Upload im Mock-Modus nicht verfügbar. Bitte VITE_API_URL setzen.'));
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/dashboard/news/upload', formData);
+};

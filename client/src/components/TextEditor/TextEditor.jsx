@@ -3,7 +3,13 @@ import TextEditorToolbar from './TextEditorToolbar';
 import { useTextEditorFormatting } from './hooks/useTextEditorFormatting';
 import './TextEditor.scss';
 
-const TextEditor = ({ initialContent = '', onSave, placeholder = 'Schreiben Sie hier...' }) => {
+const TextEditor = ({
+  initialContent = '',
+  onSave,
+  placeholder = 'Schreiben Sie hier...',
+  /** Optional: { uploadFile: async (file) => urlString } für Bild/PDF in NEWS */
+  mediaUpload = null
+}) => {
   const [content, setContent] = useState(initialContent);
   const [lastSavedContent, setLastSavedContent] = useState(initialContent);
   const [isEditing, setIsEditing] = useState(false);
@@ -16,8 +22,48 @@ const TextEditor = ({ initialContent = '', onSave, placeholder = 'Schreiben Sie 
   const headingMenuRef = useRef(null);
   const colorPickerRef = useRef(null);
   const bgColorPickerRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
+  const [mediaBusy, setMediaBusy] = useState(false);
 
   const { formatText, applyTextColor, applyBackgroundColor } = useTextEditorFormatting(editorRef, setContent);
+
+  const insertMediaFromUrl = (url, file) => {
+    if (!editorRef.current || !url) return;
+    editorRef.current.focus();
+    requestAnimationFrame(() => {
+      try {
+        const isPdf = file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
+        if (isPdf) {
+          const safe = String(url).replace(/"/g, '&quot;');
+          const html = `<p><embed src="${safe}" type="application/pdf" class="news-pdf-embed" /></p><p><a href="${safe}" target="_blank" rel="noopener noreferrer">PDF öffnen</a></p>`;
+          document.execCommand('insertHTML', false, html);
+        } else {
+          document.execCommand('insertImage', false, url);
+        }
+        setContent(editorRef.current.innerHTML);
+        editorRef.current.focus();
+      } catch (err) {
+        console.error('Medien einfügen:', err);
+      }
+    });
+  };
+
+  const handleMediaFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !mediaUpload?.uploadFile) return;
+    try {
+      setMediaBusy(true);
+      const url = await mediaUpload.uploadFile(file);
+      if (url) insertMediaFromUrl(url, file);
+    } catch (err) {
+      console.error('Upload:', err);
+      alert(err?.response?.data?.message || err?.message || 'Upload fehlgeschlagen');
+    } finally {
+      setMediaBusy(false);
+    }
+  };
 
   useEffect(() => {
     setContent(initialContent);
@@ -121,6 +167,45 @@ const TextEditor = ({ initialContent = '', onSave, placeholder = 'Schreiben Sie 
             colorPickerRef={colorPickerRef}
             bgColorPickerRef={bgColorPickerRef}
           />
+          {mediaUpload?.uploadFile && (
+            <div className="text-editor-toolbar text-editor-toolbar--media">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="text-editor-media-input"
+                onChange={handleMediaFile}
+              />
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                className="text-editor-media-input"
+                onChange={handleMediaFile}
+              />
+              <button
+                type="button"
+                className="toolbar-btn"
+                disabled={mediaBusy}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => imageInputRef.current?.click()}
+                title="Bild einfügen (JPEG, PNG, GIF, WebP)"
+              >
+                Bild
+              </button>
+              <button
+                type="button"
+                className="toolbar-btn"
+                disabled={mediaBusy}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pdfInputRef.current?.click()}
+                title="PDF einfügen"
+              >
+                PDF
+              </button>
+              {mediaBusy && <span className="text-editor-media-busy">Lade…</span>}
+            </div>
+          )}
           <div
             ref={editorRef}
             contentEditable

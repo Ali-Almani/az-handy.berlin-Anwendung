@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getDashboardNote, saveDashboardNote, getNewsArchive, updateNewsArchiveEntry, deleteNewsArchiveEntry } from '../../services/dashboard.service';
+import { getDashboardNote, saveDashboardNote, getNewsArchive, updateNewsArchiveEntry, deleteNewsArchiveEntry, getSiteNews, saveSiteNews, uploadNewsMedia } from '../../services/dashboard.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
@@ -21,6 +21,10 @@ const Dashboard = () => {
   const [editorKey, setEditorKey] = useState(0);
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
+  const [siteNewsContent, setSiteNewsContent] = useState('');
+  const [siteNewsLoading, setSiteNewsLoading] = useState(true);
+  const [siteNewsError, setSiteNewsError] = useState(null);
+  const [siteNewsEditorKey, setSiteNewsEditorKey] = useState(0);
 
   useEffect(() => {
     if (!user?.id || !canShowDashboardNotes(user)) return;
@@ -64,6 +68,28 @@ const Dashboard = () => {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!isAdmin(user)) {
+      setSiteNewsLoading(false);
+      return;
+    }
+    const loadSiteNews = async () => {
+      try {
+        setSiteNewsLoading(true);
+        setSiteNewsError(null);
+        const res = await getSiteNews();
+        setSiteNewsContent(res.data?.content ?? '');
+      } catch (e) {
+        console.error(e);
+        setSiteNewsError('NEWS konnte nicht geladen werden.');
+      } finally {
+        setSiteNewsLoading(false);
+      }
+    };
+    loadSiteNews();
+  }, [user?.id, user?.role]);
+
   if (!canAccessDashboard(user)) {
     return <Navigate to="/" replace />;
   }
@@ -91,6 +117,21 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error saving note:', error);
     }
+  };
+
+  const handleSaveSiteNews = async (content) => {
+    try {
+      await saveSiteNews(content ?? '');
+      setSiteNewsContent(content ?? '');
+      setSiteNewsEditorKey((k) => k + 1);
+    } catch (error) {
+      console.error('Error saving NEWS:', error);
+    }
+  };
+
+  const uploadNewsFile = async (file) => {
+    const res = await uploadNewsMedia(file);
+    return res.data?.url;
   };
 
   const handleStartEditArchive = (m) => {
@@ -145,6 +186,31 @@ const Dashboard = () => {
               metaInHeader
               onMetricsLoaded={setMetricsMeta}
             />
+          </div>
+        </div>
+      )}
+
+      {isAdmin(user) && canShowDashboardNotes(user) && (
+        <div className="card dashboard-site-news">
+          <div className="card-header">
+            <h2 className="card-title">NEWS</h2>
+            <p className="dashboard-site-news-hint">
+              Erscheint auf der Startseite für alle Benutzer. Bilder und PDFs über die Buttons einfügen.
+            </p>
+          </div>
+          <div className="card-body">
+            {siteNewsError && <p className="text-error">{siteNewsError}</p>}
+            {siteNewsLoading ? (
+              <p>Lade NEWS…</p>
+            ) : (
+              <TextEditor
+                key={siteNewsEditorKey}
+                initialContent={siteNewsContent}
+                onSave={handleSaveSiteNews}
+                placeholder="NEWS für die Startseite verfassen…"
+                mediaUpload={{ uploadFile: uploadNewsFile }}
+              />
+            )}
           </div>
         </div>
       )}

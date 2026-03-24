@@ -1,4 +1,5 @@
 import './loadEnv.js';
+import path from 'path';
 import http from 'http';
 import express from 'express';
 import { Server } from 'socket.io';
@@ -38,6 +39,10 @@ app.get('/api/health', (req, res) => {
 });
 
 const mountRoutes = async () => {
+  const { ensureDataDir, getDataDir } = await import('./utils/filePersistence.js');
+  ensureDataDir();
+  app.use('/uploads', express.static(path.join(getDataDir(), 'uploads')));
+
   const authRoutes = (await import('./routes/auth.routes.js')).default;
   const userRoutes = (await import('./routes/user.routes.js')).default;
   const excelRoutes = (await import('./routes/excel.routes.js')).default;

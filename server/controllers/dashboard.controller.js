@@ -386,6 +386,65 @@ export const savePerformanceMetrics = async (req, res, next) => {
   }
 };
 
+const SITE_NEWS_FILE = 'dashboard-site-news.json';
+
+/** NEWS-Startseiteninhalt (alle eingeloggten Benutzer lesbar, nur Admin schreibt) */
+export const getSiteNews = async (req, res, next) => {
+  try {
+    const data = loadJson(SITE_NEWS_FILE);
+    return res.json({
+      success: true,
+      content: data?.content ?? '',
+      updatedAt: data?.updatedAt ?? null
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const saveSiteNews = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können NEWS bearbeiten' });
+    }
+    const { content } = req.body;
+    const payload = {
+      content: typeof content === 'string' ? content : '',
+      updatedAt: new Date().toISOString()
+    };
+    saveJson(SITE_NEWS_FILE, payload);
+    const io = req.app?.get?.('io');
+    if (io) {
+      io.emit('siteNews:updated', { updatedAt: payload.updatedAt });
+    }
+    return res.json({ success: true, message: 'NEWS gespeichert', updatedAt: payload.updatedAt });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Bild/PDF für NEWS-Editor (nur Admin) */
+export const uploadNewsFile = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Dateien hochladen' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'Keine Datei' });
+    }
+    const publicPath = `/uploads/news/${req.file.filename}`;
+    const base = `${req.protocol}://${req.get('host')}`;
+    const url = `${base}${publicPath}`;
+    return res.json({ success: true, url, path: publicPath });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getHistory = async (req, res, next) => {
   try {
     const userId = req.user.userId;

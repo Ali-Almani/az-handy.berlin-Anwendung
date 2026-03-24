@@ -9,6 +9,23 @@
     margin-bottom: $spacing-xl;
   }
 
+  .dashboard-site-news {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-xs;
+    }
+
+    .dashboard-site-news-hint {
+      margin: 0;
+      font-size: 0.875rem;
+      color: $text-light;
+      font-weight: $font-weight-normal;
+      max-width: 42rem;
+      line-height: 1.45;
+    }
+  }
+
   .dashboard-performance {
     background: #ffffff;
     border: 1px solid #e8e8e8;
