@@ -83,7 +83,9 @@
       display: inline-block;
 
       &.toolbar-dropdown--headings {
-        z-index: 300;
+        /* Eigenes Stacking-Context: Menü unter dem H-Button, aber über dem Editor */
+        z-index: 5000;
+        isolation: isolate;
       }
 
       .toolbar-dropdown-menu {
@@ -94,7 +96,7 @@
         border: 1px solid $border-color;
         border-radius: 2px;
         box-shadow: $shadow-lg;
-        /* Über Nachbar-Karten / Cards (Dashboard NEWS) liegen */
+        /* Über Toolbar-Zeile und über .text-editor-content */
         z-index: 10050;
         min-width: 240px;
         width: max-content;
@@ -162,12 +164,6 @@
           }
         }
       }
-
-      /* Nach der allgemeinen .toolbar-dropdown-menu-Regel: Überschriften nach oben */
-      &.toolbar-dropdown--headings > .toolbar-dropdown-menu {
-        top: auto;
-        bottom: calc(100% + 0.25rem);
-      }
       
       .toolbar-color-picker {
         position: absolute;
@@ -215,7 +211,7 @@
 
   .text-editor-content {
     position: relative;
-    z-index: 1;
+    z-index: 0;
     min-height: 300px;
     padding: 1.5rem;
     font-size: 1rem;
@@ -378,7 +374,7 @@
 
   .text-editor-display {
     position: relative;
-    z-index: 1;
+    z-index: 0;
     padding: 1.5rem;
     min-height: 200px;
     font-size: 1rem;
