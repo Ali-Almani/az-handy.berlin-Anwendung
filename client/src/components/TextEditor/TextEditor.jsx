@@ -35,8 +35,9 @@ const TextEditor = ({
       try {
         const isPdf = file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
         if (isPdf) {
-          const safe = String(url).replace(/"/g, '&quot;');
-          const html = `<p><embed src="${safe}" type="application/pdf" class="news-pdf-embed" /></p><p><a href="${safe}" target="_blank" rel="noopener noreferrer">PDF öffnen</a></p>`;
+          // Kein <embed>/<iframe> für PDF: Chrome zeigt sonst chrome-error:// im Frame (Same-Origin)
+          const safe = String(url).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+          const html = `<p class="news-pdf-block"><a href="${safe}" target="_blank" rel="noopener noreferrer" class="news-pdf-link">PDF in neuem Tab öffnen</a></p>`;
           document.execCommand('insertHTML', false, html);
         } else {
           document.execCommand('insertImage', false, url);

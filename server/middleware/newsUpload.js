@@ -47,7 +47,7 @@ function isAllowedNewsFile(file) {
 
 export const newsUpload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 80 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (isAllowedNewsFile(file)) {
       cb(null, true);
