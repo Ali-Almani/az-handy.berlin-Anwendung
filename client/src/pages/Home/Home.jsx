@@ -5,6 +5,7 @@ import { isAdmin } from '../../utils/roles';
 import { getSiteNews } from '../../services/dashboard.service';
 import { getSocket } from '../../services/socket';
 import Login from '../Auth/Login';
+import { sanitizeRichTextHtml } from '../../utils/sanitizeRichTextHtml';
 import './Home.scss';
 
 const Home = () => {
@@ -43,7 +44,8 @@ const Home = () => {
     return <Login />;
   }
 
-  const hasNews = siteNewsHtml && String(siteNewsHtml).replace(/<[^>]+>/g, '').trim().length > 0;
+  const newsSafe = sanitizeRichTextHtml(siteNewsHtml);
+  const hasNews = newsSafe && String(newsSafe).replace(/<[^>]+>/g, '').trim().length > 0;
 
   return (
     <div className="home">
@@ -79,7 +81,7 @@ const Home = () => {
           ) : hasNews ? (
             <div
               className="home__news-content saved-text-content"
-              dangerouslySetInnerHTML={{ __html: siteNewsHtml }}
+              dangerouslySetInnerHTML={{ __html: newsSafe }}
             />
           ) : (
             <p className="home__news-empty text-muted">Aktuell keine NEWS.</p>

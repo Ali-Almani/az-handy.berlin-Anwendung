@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import TextEditorToolbar from './TextEditorToolbar';
 import { useTextEditorFormatting } from './hooks/useTextEditorFormatting';
+import { sanitizeRichTextHtml } from '../../utils/sanitizeRichTextHtml';
 import './TextEditor.scss';
 
 const TextEditor = ({
@@ -58,8 +59,9 @@ const TextEditor = ({
   };
 
   useEffect(() => {
-    setContent(initialContent);
-    setLastSavedContent(initialContent);
+    const cleaned = sanitizeRichTextHtml(initialContent);
+    setContent(cleaned);
+    setLastSavedContent(cleaned);
   }, [initialContent]);
 
   useEffect(() => {
@@ -91,8 +93,10 @@ const TextEditor = ({
   const handleInput = (e) => setContent(e.target.innerHTML);
 
   const handleSave = async () => {
-    await onSave?.(content);
-    setLastSavedContent(content);
+    const cleaned = sanitizeRichTextHtml(content);
+    await onSave?.(cleaned);
+    setContent(cleaned);
+    setLastSavedContent(cleaned);
     setIsEditing(false);
   };
 
@@ -201,7 +205,11 @@ const TextEditor = ({
           <div
             className="text-editor-display"
             onClick={() => setIsEditing(true)}
-            dangerouslySetInnerHTML={{ __html: content || `<p style="color: #999; font-style: italic;">${placeholder}</p>` }}
+            dangerouslySetInnerHTML={{
+              __html:
+                sanitizeRichTextHtml(content) ||
+                `<p style="color: #999; font-style: italic;">${placeholder}</p>`
+            }}
           />
           <button onClick={() => setIsEditing(true)} className="btn btn--outline btn--small" style={{ marginTop: '20px', marginBottom: '20px', marginLeft: '20px' }}>
             Bearbeiten

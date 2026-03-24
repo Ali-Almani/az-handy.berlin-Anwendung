@@ -8,6 +8,7 @@ import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
+import { sanitizeRichTextHtml } from '../../utils/sanitizeRichTextHtml';
 import './Dashboard.scss';
 
 const Dashboard = () => {
@@ -282,7 +283,7 @@ const Dashboard = () => {
                       <>
                         <div
                           className="dashboard-archive-content"
-                          dangerouslySetInnerHTML={{ __html: m.content || '' }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(m.content || '') }}
                         />
                         {m.createdAt && (
                           <div className="dashboard-archive-date">
