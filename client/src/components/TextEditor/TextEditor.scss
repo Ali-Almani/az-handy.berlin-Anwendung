@@ -4,9 +4,12 @@
   background: white;
   border-radius: $border-radius-md;
   box-shadow: $shadow-sm;
-  overflow: hidden;
+  overflow: visible;
+  isolation: isolate;
 
   .text-editor-toolbar {
+    position: relative;
+    z-index: 20;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -60,6 +63,7 @@
 
     .toolbar-dropdown {
       position: relative;
+      z-index: 30;
       display: inline-block;
 
       .toolbar-dropdown-menu {
@@ -69,9 +73,9 @@
         background: white;
         border: 1px solid $border-color;
         border-radius: 2px;
-        box-shadow: $shadow-md;
-        z-index: 100;
-        min-width: 200px;
+        box-shadow: $shadow-lg;
+        z-index: 5000;
+        min-width: 220px;
         width: max-content;
         overflow: hidden;
 
@@ -85,6 +89,7 @@
           cursor: pointer;
           color: $text-color;
           font-size: 0.9rem;
+          font-weight: $font-weight-medium;
           transition: background 0.2s ease;
           direction: ltr;
           text-align: left;
@@ -92,21 +97,6 @@
 
           &:hover {
             background: $bg-light;
-          }
-
-          &:first-child {
-            font-weight: $font-weight-bold;
-            font-size: 1.2rem;
-          }
-
-          &:nth-child(2) {
-            font-weight: $font-weight-bold;
-            font-size: 1.1rem;
-          }
-
-          &:nth-child(3) {
-            font-weight: $font-weight-bold;
-            font-size: 1rem;
           }
         }
       }
@@ -119,7 +109,7 @@
         border: 1px solid $border-color;
         border-radius: 2px;
         box-shadow: $shadow-md;
-        z-index: 100;
+        z-index: 5000;
         padding: 0.75rem;
         min-width: 200px;
         
@@ -156,6 +146,8 @@
   }
 
   .text-editor-content {
+    position: relative;
+    z-index: 1;
     min-height: 300px;
     padding: 1.5rem;
     font-size: 1rem;
@@ -164,6 +156,7 @@
     outline: none;
     overflow-y: auto;
     max-height: 600px;
+    background: $bg-color;
     direction: ltr !important;
     text-align: left !important;
     unicode-bidi: embed;
@@ -191,12 +184,12 @@
       line-height: 1.25;
     }
 
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
-    h3 { font-size: 1.35rem; }
-    h4 { font-size: 1.2rem; }
+    h1 { font-size: 2.25rem; }
+    h2 { font-size: 1.875rem; }
+    h3 { font-size: 1.5rem; }
+    h4 { font-size: 1.25rem; }
     h5 { font-size: 1.1rem; }
-    h6 { font-size: 1rem; }
+    h6 { font-size: 1rem; font-weight: $font-weight-medium; }
 
     p {
       margin: 0.5rem 0;
@@ -296,6 +289,8 @@
   }
 
   .text-editor-display {
+    position: relative;
+    z-index: 1;
     padding: 1.5rem;
     min-height: 200px;
     font-size: 1rem;
@@ -306,6 +301,7 @@
     transition: border-color 0.2s ease;
     direction: ltr;
     text-align: left;
+    background: $bg-color;
 
     &:hover {
       border-color: $border-color;
@@ -317,12 +313,12 @@
       line-height: 1.25;
     }
 
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
-    h3 { font-size: 1.35rem; }
-    h4 { font-size: 1.2rem; }
+    h1 { font-size: 2.25rem; }
+    h2 { font-size: 1.875rem; }
+    h3 { font-size: 1.5rem; }
+    h4 { font-size: 1.25rem; }
     h5 { font-size: 1.1rem; }
-    h6 { font-size: 1rem; }
+    h6 { font-size: 1rem; font-weight: $font-weight-medium; }
 
     p {
       margin: 0.5rem 0;
