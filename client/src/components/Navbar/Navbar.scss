@@ -15,6 +15,13 @@
   margin-left: 1rem;
 }
 
+.navbar-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
 .navbar-avatar-badge {
   position: absolute;
   top: -4px;
@@ -65,6 +72,40 @@
     outline-offset: 2px;
     border-radius: 50%;
   }
+
+  &--with-greeting {
+    gap: 0.45rem;
+    padding: 2px 6px 2px 2px;
+    border-radius: 999px;
+    justify-content: flex-start;
+    max-width: min(100%, 280px);
+
+    &:hover {
+      transform: none;
+      opacity: 0.92;
+    }
+
+    &:focus {
+      border-radius: 999px;
+    }
+  }
+}
+
+.navbar-greeting {
+  color: $text-light;
+  font-size: 0.9rem;
+  font-weight: $font-weight-normal;
+  flex-shrink: 0;
+}
+
+.navbar-username-inline {
+  color: $text-color;
+  font-size: 0.9rem;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .navbar-avatar-image,

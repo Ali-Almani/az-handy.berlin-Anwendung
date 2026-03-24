@@ -136,12 +136,6 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <div className="card dashboard-welcome">
-        <div className="card-header">
-          <h2 className="card-title">Willkommen, {user?.name}</h2>
-        </div>
-      </div>
-
       {isAdmin(user) && (
         <div className="card dashboard-performance">
           <div className="card-header card-header--kennzahlen">

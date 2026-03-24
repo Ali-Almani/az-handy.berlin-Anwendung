@@ -146,20 +146,21 @@ const Navbar = ({
               <li className="navbar-avatar-container" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}
-                  className="navbar-avatar-btn"
+                  className="navbar-avatar-btn navbar-avatar-btn--with-greeting"
                   aria-label="Benutzermenü"
                 >
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="navbar-avatar-image"
-                    />
-                  ) : (
-                    <div className="navbar-avatar-placeholder">
-                      {getInitials(user.name)}
-                    </div>
-                  )}
+                  <span className="navbar-avatar-wrap">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="navbar-avatar-image"
+                      />
+                    ) : (
+                      <div className="navbar-avatar-placeholder">
+                        {getInitials(user.name)}
+                      </div>
+                    )}
                   {hasReminderBadge && (
                     <span
                       className="navbar-avatar-badge"
@@ -208,6 +209,9 @@ const Navbar = ({
                       {reminderResponseCount > 9 ? '9+' : reminderResponseCount}
                     </span>
                   )}
+                  </span>
+                  <span className="navbar-greeting">Hey</span>
+                  <span className="navbar-username-inline">{user.name}</span>
                 </button>
                 {dropdownOpen && (
                   <div className="navbar-dropdown">
@@ -312,12 +316,13 @@ const Navbar = ({
         <div className="navbar-mobile-right">
           {user ? (
             <div className="navbar-avatar-container" ref={mobileHeaderDropdownRef}>
-              <button onClick={toggleDropdown} className="navbar-avatar-btn" aria-label="Benutzermenü">
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="navbar-avatar-image" />
-                ) : (
-                  <div className="navbar-avatar-placeholder">{getInitials(user.name)}</div>
-                )}
+              <button onClick={toggleDropdown} className="navbar-avatar-btn navbar-avatar-btn--with-greeting" aria-label="Benutzermenü">
+                <span className="navbar-avatar-wrap">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="navbar-avatar-image" />
+                  ) : (
+                    <div className="navbar-avatar-placeholder">{getInitials(user.name)}</div>
+                  )}
                 {hasReminderBadge && (
                   <span className="navbar-avatar-badge" title="Erinnerung: Verlauf prüfen" onClick={(e) => { e.stopPropagation(); handleOpenVerlauf(); }} role="button" tabIndex={0}>
                     {reminderCount > 9 ? '9+' : reminderCount}
@@ -338,6 +343,9 @@ const Navbar = ({
                     {reminderResponseCount > 9 ? '9+' : reminderResponseCount}
                   </span>
                 )}
+                </span>
+                <span className="navbar-greeting">Hey</span>
+                <span className="navbar-username-inline">{user.name}</span>
               </button>
               {dropdownOpen && (
                 <div className="navbar-dropdown navbar-dropdown--header">
