@@ -61,10 +61,6 @@
       margin: 0 0.25rem;
     }
 
-    &--media {
-      border-top: 1px solid rgba(0, 0, 0, 0.06);
-    }
-
     .text-editor-media-input {
       position: absolute;
       width: 0;
@@ -77,12 +73,18 @@
       font-size: 0.85rem;
       color: $text-light;
       margin-left: 0.25rem;
+      white-space: nowrap;
+      align-self: center;
     }
 
     .toolbar-dropdown {
       position: relative;
       z-index: 200;
       display: inline-block;
+
+      &.toolbar-dropdown--headings {
+        z-index: 300;
+      }
 
       .toolbar-dropdown-menu {
         position: absolute;
@@ -159,6 +161,12 @@
             font-weight: $font-weight-medium;
           }
         }
+      }
+
+      /* Nach der allgemeinen .toolbar-dropdown-menu-Regel: Überschriften nach oben */
+      &.toolbar-dropdown--headings > .toolbar-dropdown-menu {
+        top: auto;
+        bottom: calc(100% + 0.25rem);
       }
       
       .toolbar-color-picker {

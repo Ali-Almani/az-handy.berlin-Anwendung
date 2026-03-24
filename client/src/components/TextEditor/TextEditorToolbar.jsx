@@ -36,7 +36,12 @@ const TextEditorToolbar = ({
   setCurrentBgColor,
   headingMenuRef,
   colorPickerRef,
-  bgColorPickerRef
+  bgColorPickerRef,
+  /** Optional: Bild-Upload in derselben Zeile wie Ausrichtung */
+  imageInputRef = null,
+  onMediaFileChange = null,
+  mediaBusy = false,
+  showMediaUpload = false
 }) => {
   const preventAndFocus = (e) => {
     e.preventDefault();
@@ -57,7 +62,7 @@ const TextEditorToolbar = ({
       </ToolbarButton>
       <div className="toolbar-divider" />
 
-      <div className="toolbar-dropdown" ref={headingMenuRef}>
+      <div className="toolbar-dropdown toolbar-dropdown--headings" ref={headingMenuRef}>
         <ToolbarButton onClick={() => setShowHeadingMenu(!showHeadingMenu)} title="Formatvorlagen: Absatz, Überschrift 1–6 (wie Word)" onMouseDown={(e) => e.preventDefault()}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text x="4" y="11" fontSize="11" fontWeight="700" fill="currentColor" fontFamily="'Segoe UI', Arial, sans-serif">H</text><path d="M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
         </ToolbarButton>
@@ -145,6 +150,30 @@ const TextEditorToolbar = ({
       <ToolbarButton onClick={(e) => { preventAndFocus(e); formatText('justifyRight'); }} title="Rechtsbündig">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 2.5h9M7 6.5h9M5 10.5h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
       </ToolbarButton>
+
+      {showMediaUpload && imageInputRef && (
+        <>
+          <div className="toolbar-divider" />
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            className="text-editor-media-input"
+            onChange={onMediaFileChange}
+          />
+          <button
+            type="button"
+            className="toolbar-btn"
+            disabled={mediaBusy}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => imageInputRef.current?.click()}
+            title="Bild einfügen (JPEG, PNG, GIF, WebP)"
+          >
+            Bild
+          </button>
+          {mediaBusy && <span className="text-editor-media-busy">Lade…</span>}
+        </>
+      )}
     </div>
   );
 };

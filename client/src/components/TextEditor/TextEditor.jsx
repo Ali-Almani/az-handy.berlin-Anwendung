@@ -158,29 +158,11 @@ const TextEditor = ({
             headingMenuRef={headingMenuRef}
             colorPickerRef={colorPickerRef}
             bgColorPickerRef={bgColorPickerRef}
+            imageInputRef={imageInputRef}
+            onMediaFileChange={handleMediaFile}
+            mediaBusy={mediaBusy}
+            showMediaUpload={!!mediaUpload?.uploadFile}
           />
-          {mediaUpload?.uploadFile && (
-            <div className="text-editor-toolbar text-editor-toolbar--media">
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                className="text-editor-media-input"
-                onChange={handleMediaFile}
-              />
-              <button
-                type="button"
-                className="toolbar-btn"
-                disabled={mediaBusy}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => imageInputRef.current?.click()}
-                title="Bild einfügen (JPEG, PNG, GIF, WebP)"
-              >
-                Bild
-              </button>
-              {mediaBusy && <span className="text-editor-media-busy">Lade…</span>}
-            </div>
-          )}
           <div
             ref={editorRef}
             contentEditable
