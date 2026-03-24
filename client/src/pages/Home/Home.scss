@@ -24,11 +24,20 @@
     }
   }
 
+  /* Innere Karte: NEWS-Accordion optisch abgesetzt */
+  .home__news-card {
+    margin: $spacing-md;
+    border: 1px solid #e8e8e8;
+    border-radius: $border-radius-card;
+    background: #fafbfc;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
   &__news-accordion-trigger {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
     gap: $spacing-sm $spacing-md;
     width: 100%;
     margin: 0;
@@ -60,6 +69,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: $spacing-sm;
+    flex: 1;
     min-width: 0;
   }
 
@@ -81,24 +91,21 @@
     border-radius: 999px;
   }
 
+  /* Zuerst: Einklappen / Aufklappen-Hinweis */
   &__news-accordion-sub {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     font-size: 0.875rem;
+    font-weight: $font-weight-medium;
     color: $text-light;
-    text-align: right;
-    min-width: 8rem;
-
-    @media (max-width: 520px) {
-      flex-basis: 100%;
-      text-align: left;
-    }
+    text-align: left;
+    min-width: 0;
   }
 
   &__news-accordion-chevron {
     flex-shrink: 0;
     width: 1.5rem;
     height: 1.5rem;
-    margin-left: $spacing-xs;
+    margin-left: auto;
     background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2334495e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     transition: transform 0.2s ease;
   }
@@ -111,6 +118,7 @@
     display: none;
     padding: 0;
     border-top: none;
+    background: #ffffff;
 
     &.is-open {
       display: block;
