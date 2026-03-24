@@ -82,7 +82,7 @@
         .toolbar-dropdown-item {
           display: block;
           width: 100%;
-          padding: 0.5rem 1rem;
+          padding: 0.45rem 1rem;
           text-align: left;
           background: none;
           border: none;
@@ -90,6 +90,7 @@
           color: $text-color;
           font-size: 0.9rem;
           font-weight: $font-weight-medium;
+          line-height: 1.25;
           transition: background 0.2s ease;
           direction: ltr;
           text-align: left;
@@ -97,6 +98,42 @@
 
           &:hover {
             background: $bg-light;
+          }
+
+          /* Vorschau-Größen wie im Editor (H1 größte … H6 kleinste) */
+          &--paragraph {
+            font-size: 0.875rem;
+            font-weight: $font-weight-normal;
+          }
+
+          &--h1 {
+            font-size: 1.5rem;
+            font-weight: $font-weight-bold;
+          }
+
+          &--h2 {
+            font-size: 1.3rem;
+            font-weight: $font-weight-bold;
+          }
+
+          &--h3 {
+            font-size: 1.15rem;
+            font-weight: $font-weight-bold;
+          }
+
+          &--h4 {
+            font-size: 1.05rem;
+            font-weight: $font-weight-bold;
+          }
+
+          &--h5 {
+            font-size: 0.98rem;
+            font-weight: $font-weight-bold;
+          }
+
+          &--h6 {
+            font-size: 0.9rem;
+            font-weight: $font-weight-medium;
           }
         }
       }

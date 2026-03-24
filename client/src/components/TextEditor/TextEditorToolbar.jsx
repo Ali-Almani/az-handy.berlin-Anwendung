@@ -65,7 +65,7 @@ const TextEditorToolbar = ({
           <div className="toolbar-dropdown-menu">
             <button
               type="button"
-              className="toolbar-dropdown-item"
+              className="toolbar-dropdown-item toolbar-dropdown-item--paragraph"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertHeading(0)}
             >
@@ -75,7 +75,7 @@ const TextEditorToolbar = ({
               <button
                 key={level}
                 type="button"
-                className="toolbar-dropdown-item"
+                className={`toolbar-dropdown-item toolbar-dropdown-item--h${level}`}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insertHeading(level)}
                 title={`Strg+Alt+${level}`}
