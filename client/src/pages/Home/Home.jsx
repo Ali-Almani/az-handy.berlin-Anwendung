@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import { isAdmin } from '../../utils/roles';
@@ -8,28 +8,18 @@ import Login from '../Auth/Login';
 import './Home.scss';
 
 const siteNewsSeenKey = (userId) => `siteNewsLastSeen:${userId}`;
-const siteNewsStickyKey = (userId) => `siteNewsStickyPref:${userId}`;
-
-const readStickyPref = (userId) => {
-  try {
-    const v = localStorage.getItem(siteNewsStickyKey(userId));
-    if (v === null) return true;
-    return v === '1' || v === 'true';
-  } catch {
-    return true;
-  }
-};
 
 const Home = () => {
   const { user } = useAuth();
+  const panelId = useId();
   const [metricsMeta, setMetricsMeta] = useState(null);
   const [siteNewsHtml, setSiteNewsHtml] = useState('');
   const [siteNewsUpdatedAt, setSiteNewsUpdatedAt] = useState(null);
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
-  /** false = nur Teaser „neue Nachricht“, true = voller Inhalt */
-  const [siteNewsRevealed, setSiteNewsRevealed] = useState(false);
-  /** NEWS-Karte beim Scrollen anheften (nur sinnvoll nach „gelesen“) */
-  const [newsStickyEnabled, setNewsStickyEnabled] = useState(true);
+  /** Accordion: true = Panel geöffnet */
+  const [newsOpen, setNewsOpen] = useState(false);
+  /** Server-News ist für diesen Nutzer noch „ungelesen“ (anderes updatedAt als zuletzt gesehen) */
+  const [newsIsUnread, setNewsIsUnread] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -47,14 +37,18 @@ const Home = () => {
         const hasText = plain.length > 0;
         if (hasText && updatedAt) {
           const lastSeen = localStorage.getItem(siteNewsSeenKey(user.id));
-          setSiteNewsRevealed(lastSeen === updatedAt);
+          const read = lastSeen === updatedAt;
+          setNewsIsUnread(!read);
+          setNewsOpen(read);
         } else {
-          setSiteNewsRevealed(true);
+          setNewsIsUnread(false);
+          setNewsOpen(true);
         }
       } catch {
         setSiteNewsHtml('');
         setSiteNewsUpdatedAt(null);
-        setSiteNewsRevealed(true);
+        setNewsIsUnread(false);
+        setNewsOpen(true);
       } finally {
         setSiteNewsLoading(false);
       }
@@ -70,43 +64,24 @@ const Home = () => {
     };
   }, [user?.id]);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    setNewsStickyEnabled(readStickyPref(user.id));
-  }, [user?.id]);
-
-  // Startseite: Login-Form anzeigen wenn nicht eingeloggt
   if (!user) {
     return <Login />;
   }
 
   const hasNews = siteNewsHtml && String(siteNewsHtml).replace(/<[^>]+>/g, '').trim().length > 0;
 
-  const handleOpenSiteNews = () => {
-    if (user?.id && siteNewsUpdatedAt) {
+  const handleNewsAccordionToggle = () => {
+    const next = !newsOpen;
+    if (next && user?.id && siteNewsUpdatedAt && newsIsUnread) {
       try {
         localStorage.setItem(siteNewsSeenKey(user.id), siteNewsUpdatedAt);
+        setNewsIsUnread(false);
       } catch {
         /* ignore */
       }
     }
-    setSiteNewsRevealed(true);
+    setNewsOpen(next);
   };
-
-  const handleNewsStickyChange = (e) => {
-    const on = e.target.checked;
-    setNewsStickyEnabled(on);
-    if (user?.id) {
-      try {
-        localStorage.setItem(siteNewsStickyKey(user.id), on ? '1' : '0');
-      } catch {
-        /* ignore */
-      }
-    }
-  };
-
-  const showNewsSticky =
-    hasNews && siteNewsRevealed && newsStickyEnabled;
 
   return (
     <div className="home">
@@ -132,44 +107,51 @@ const Home = () => {
         </div>
       </div>
 
-      <div
-        className={`card home__news${showNewsSticky ? ' home__news--sticky' : ''}`}
-      >
-        <div className="card-header home__news-header">
-          <h2 className="card-title">NEWS</h2>
-          {hasNews && siteNewsRevealed && (
-            <label className="home__news-sticky-label">
-              <input
-                type="checkbox"
-                className="home__news-sticky-checkbox"
-                checked={newsStickyEnabled}
-                onChange={handleNewsStickyChange}
-              />
-              <span>Beim Scrollen anheften</span>
-            </label>
-          )}
-        </div>
-        <div className="card-body home__news-body">
-          {siteNewsLoading ? (
+      <div className="card home__news home__news-accordion">
+        {siteNewsLoading ? (
+          <div className="home__news-loading-wrap">
             <p className="home__news-loading">Lade NEWS…</p>
-          ) : hasNews && !siteNewsRevealed ? (
+          </div>
+        ) : !hasNews ? (
+          <div className="home__news-empty-wrap">
+            <p className="home__news-empty text-muted">Aktuell keine NEWS.</p>
+          </div>
+        ) : (
+          <>
             <button
               type="button"
-              className="home__news-teaser"
-              onClick={handleOpenSiteNews}
+              id="home-news-accordion-trigger"
+              className={`home__news-accordion-trigger${newsOpen ? ' is-open' : ''}`}
+              aria-expanded={newsOpen}
+              aria-controls={panelId}
+              onClick={handleNewsAccordionToggle}
             >
-              <span className="home__news-teaser-title">Sie haben eine neue Nachricht</span>
-              <span className="home__news-teaser-hint">Hier klicken, um die NEWS zu öffnen.</span>
+              <span className="home__news-accordion-trigger-main">
+                <span className="home__news-accordion-title">NEWS</span>
+                {newsIsUnread && (
+                  <span className="home__news-accordion-badge">Neue Nachricht</span>
+                )}
+              </span>
+              <span className="home__news-accordion-sub">
+                {newsOpen ? 'Einklappen' : newsIsUnread ? 'Zum Lesen aufklappen' : 'Aufklappen'}
+              </span>
+              <span className="home__news-accordion-chevron" aria-hidden />
             </button>
-          ) : hasNews ? (
+
             <div
-              className="home__news-content saved-text-content"
-              dangerouslySetInnerHTML={{ __html: siteNewsHtml }}
-            />
-          ) : (
-            <p className="home__news-empty text-muted">Aktuell keine NEWS.</p>
-          )}
-        </div>
+              id={panelId}
+              role="region"
+              aria-labelledby="home-news-accordion-trigger"
+              className={`home__news-accordion-panel${newsOpen ? ' is-open' : ''}`}
+              aria-hidden={!newsOpen}
+            >
+              <div
+                className="home__news-content home__news-body saved-text-content"
+                dangerouslySetInnerHTML={{ __html: siteNewsHtml }}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
