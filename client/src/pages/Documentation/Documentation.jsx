@@ -9,10 +9,14 @@ const Documentation = () => {
 
   return (
     <div className="documentation">
-      <div className="documentation-header">
-        <h1>Benutzerhandbuch</h1>
-        <p>Anleitung für az-handy.berlin – IMEI-Verwaltung und Mitarbeiter-System</p>
-      </div>
+      <div className="card documentation__card">
+        <div className="card-header documentation__card-header">
+          <h1 className="card-title documentation__title">Benutzerhandbuch</h1>
+          <p className="documentation__lead">
+            Anleitung für az-handy.berlin – IMEI-Verwaltung und Mitarbeiter-System
+          </p>
+        </div>
+        <div className="card-body documentation__card-body">
 
       <section className="doc-section">
         <h2>Was ist az-handy.berlin?</h2>
@@ -127,6 +131,9 @@ const Documentation = () => {
           Bei Fragen kontaktieren Sie <a href="mailto:a.almani@az-handy.berlin">a.almani@az-handy.berlin</a>.
         </p>
       </section>
+
+        </div>
+      </div>
     </div>
   );
 };
