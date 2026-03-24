@@ -76,6 +76,24 @@ const TextEditor = ({ initialContent = '', onSave, placeholder = 'Schreiben Sie 
       else if (e.key === 'i') { e.preventDefault(); formatText('italic'); }
       else if (e.key === 'u') { e.preventDefault(); formatText('underline'); }
     }
+    // Wie Microsoft Word: Strg+Alt+1 … Strg+Alt+6 = Überschrift 1–6, Strg+Alt+0 = Absatz
+    if ((e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey) {
+      if (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0') {
+        e.preventDefault();
+        formatText('formatBlock', 'p');
+        return;
+      }
+      const codeMatch = /^(?:Digit|Numpad)([1-6])$/.exec(e.code);
+      if (codeMatch) {
+        e.preventDefault();
+        formatText('formatBlock', `h${codeMatch[1]}`);
+        return;
+      }
+      if (/^[1-6]$/.test(e.key)) {
+        e.preventDefault();
+        formatText('formatBlock', `h${e.key}`);
+      }
+    }
     if (e.key === 'Escape' && isEditing) handleCancel();
   };
 

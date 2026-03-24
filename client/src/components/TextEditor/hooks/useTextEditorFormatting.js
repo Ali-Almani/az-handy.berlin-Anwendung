@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import {
   executeListCommand,
   executeJustifyCommand,
-  ensureSelectionRange
+  ensureSelectionRange,
+  executeFormatBlock
 } from '../utils/textEditorFormatting';
 
 export const useTextEditorFormatting = (editorRef, setContent) => {
@@ -22,7 +23,7 @@ export const useTextEditorFormatting = (editorRef, setContent) => {
           success = executeJustifyCommand(editorRef, selection, range, command, setContent);
         } else if (command === 'formatBlock' && value != null) {
           const tag = String(value).replace(/[<>]/g, '').toLowerCase();
-          success = document.execCommand('formatBlock', false, tag);
+          success = executeFormatBlock(editorRef, selection, range, tag);
         } else {
           success = document.execCommand(command, false, value);
         }

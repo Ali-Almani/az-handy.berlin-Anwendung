@@ -122,6 +122,71 @@ export const executeJustifyCommand = (editorRef, selection, range, command, setC
   return success;
 };
 
+const FORMAT_BLOCK_TAGS = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+
+/**
+ * Absatz / Überschrift wie in Word: formatBlock (h1–h6, p), mit DOM-Fallback wenn der Browser nichts tut.
+ */
+export const executeFormatBlock = (editorRef, selection, range, tagName) => {
+  const tag = String(tagName).replace(/[<>]/g, '').toLowerCase();
+  if (!FORMAT_BLOCK_TAGS.includes(tag)) return false;
+
+  const tryFormatBlock = (t) => {
+    try {
+      return document.execCommand('formatBlock', false, t);
+    } catch {
+      return false;
+    }
+  };
+
+  let success = tryFormatBlock(tag);
+  if (!success && /^h[1-6]$/.test(tag)) {
+    success = tryFormatBlock(`<${tag}>`);
+  }
+  if (!success && (tag === 'p' || tag === 'div')) {
+    success = tryFormatBlock(`<${tag}>`);
+  }
+
+  if (success) return true;
+
+  const container = range.commonAncestorContainer;
+  let blockElement = findBlockElement(container, editorRef);
+
+  if (blockElement && blockElement !== editorRef.current) {
+    const el = document.createElement(tag);
+    el.innerHTML = blockElement.innerHTML || '\u200B';
+    blockElement.parentNode.replaceChild(el, blockElement);
+    try {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(r);
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+
+  if (editorRef.current) {
+    const el = document.createElement(tag);
+    el.innerHTML = '\u200B';
+    editorRef.current.appendChild(el);
+    try {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(r);
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+
+  return false;
+};
+
 export const ensureSelectionRange = (editorRef, selection) => {
   let range;
   if (selection.rangeCount > 0) {

@@ -58,7 +58,7 @@ const TextEditorToolbar = ({
       <div className="toolbar-divider" />
 
       <div className="toolbar-dropdown" ref={headingMenuRef}>
-        <ToolbarButton onClick={() => setShowHeadingMenu(!showHeadingMenu)} title="Überschrift" onMouseDown={(e) => e.preventDefault()}>
+        <ToolbarButton onClick={() => setShowHeadingMenu(!showHeadingMenu)} title="Formatvorlagen: Absatz, Überschrift 1–6 (wie Word)" onMouseDown={(e) => e.preventDefault()}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><text x="4" y="11" fontSize="11" fontWeight="700" fill="currentColor" fontFamily="'Segoe UI', Arial, sans-serif">H</text><path d="M2 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
         </ToolbarButton>
         {showHeadingMenu && (
@@ -69,7 +69,7 @@ const TextEditorToolbar = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertHeading(0)}
             >
-              Absatz
+              Absatz (Normal)
             </button>
             {[1, 2, 3, 4, 5, 6].map((level) => (
               <button
@@ -78,8 +78,9 @@ const TextEditorToolbar = ({
                 className="toolbar-dropdown-item"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insertHeading(level)}
+                title={`Strg+Alt+${level}`}
               >
-                Überschrift H{level}
+                Überschrift {level}
               </button>
             ))}
           </div>
