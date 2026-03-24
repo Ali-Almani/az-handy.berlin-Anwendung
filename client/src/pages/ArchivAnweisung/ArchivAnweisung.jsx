@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getNewsArchive } from '../../services/dashboard.service';
 import { getSocket } from '../../services/socket';
-import { sanitizeRichTextHtml } from '../../utils/sanitizeRichTextHtml';
 import './ArchivAnweisung.scss';
 
 const ArchivAnweisung = () => {
@@ -51,7 +50,7 @@ const ArchivAnweisung = () => {
                 <li key={m.id} className="archiv-anweisung-item">
                   <div
                     className="archiv-anweisung-content"
-                    dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(m.content || '') }}
+                    dangerouslySetInnerHTML={{ __html: m.content || '' }}
                   />
                   {m.createdAt && (
                     <div className="archiv-anweisung-date">

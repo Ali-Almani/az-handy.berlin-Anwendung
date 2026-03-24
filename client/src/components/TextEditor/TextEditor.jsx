@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import TextEditorToolbar from './TextEditorToolbar';
 import { useTextEditorFormatting } from './hooks/useTextEditorFormatting';
-import { sanitizeRichTextHtml } from '../../utils/sanitizeRichTextHtml';
 import './TextEditor.scss';
 
 const TextEditor = ({
@@ -59,9 +58,8 @@ const TextEditor = ({
   };
 
   useEffect(() => {
-    const cleaned = sanitizeRichTextHtml(initialContent);
-    setContent(cleaned);
-    setLastSavedContent(cleaned);
+    setContent(initialContent);
+    setLastSavedContent(initialContent);
   }, [initialContent]);
 
   useEffect(() => {
@@ -90,13 +88,11 @@ const TextEditor = ({
     }
   }, [showHeadingMenu, showColorPicker, showBgColorPicker]);
 
-  const handleInput = (e) => setContent(sanitizeRichTextHtml(e.target.innerHTML));
+  const handleInput = (e) => setContent(e.target.innerHTML);
 
   const handleSave = async () => {
-    const cleaned = sanitizeRichTextHtml(content);
-    await onSave?.(cleaned);
-    setContent(cleaned);
-    setLastSavedContent(cleaned);
+    await onSave?.(content);
+    setLastSavedContent(content);
     setIsEditing(false);
   };
 
@@ -191,7 +187,7 @@ const TextEditor = ({
             className="text-editor-content"
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }}
+            dangerouslySetInnerHTML={{ __html: content }}
             data-placeholder={placeholder}
             suppressContentEditableWarning={true}
           />
@@ -205,11 +201,7 @@ const TextEditor = ({
           <div
             className="text-editor-display"
             onClick={() => setIsEditing(true)}
-            dangerouslySetInnerHTML={{
-              __html:
-                sanitizeRichTextHtml(content) ||
-                `<p style="color: #999; font-style: italic;">${placeholder}</p>`
-            }}
+            dangerouslySetInnerHTML={{ __html: content || `<p style="color: #999; font-style: italic;">${placeholder}</p>` }}
           />
           <button onClick={() => setIsEditing(true)} className="btn btn--outline btn--small" style={{ marginTop: '20px', marginBottom: '20px', marginLeft: '20px' }}>
             Bearbeiten
