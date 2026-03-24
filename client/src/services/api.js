@@ -115,6 +115,10 @@ const createRealApi = () => {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // FormData braucht multipart boundary – kein application/json
+      if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+      }
       return config;
     },
     (error) => {

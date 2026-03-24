@@ -27,7 +27,12 @@ router.put('/site-news', saveSiteNews);
 router.post('/news/upload', (req, res, next) => {
   newsUpload.single('file')(req, res, (err) => {
     if (err) {
-      return res.status(400).json({ message: err.message || 'Upload fehlgeschlagen' });
+      const code = err.code;
+      const msg =
+        code === 'LIMIT_FILE_SIZE'
+          ? 'Datei zu groß (max. 25 MB)'
+          : err.message || 'Upload fehlgeschlagen';
+      return res.status(400).json({ message: msg, code: code || undefined });
     }
     next();
   });

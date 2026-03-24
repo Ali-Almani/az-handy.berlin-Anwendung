@@ -47,24 +47,6 @@ const Home = () => {
 
   return (
     <div className="home">
-      <div className="card home__news">
-        <div className="card-header home__news-header">
-          <h2 className="card-title">NEWS</h2>
-        </div>
-        <div className="card-body home__news-body">
-          {siteNewsLoading ? (
-            <p className="home__news-loading">Lade NEWS…</p>
-          ) : hasNews ? (
-            <div
-              className="home__news-content saved-text-content"
-              dangerouslySetInnerHTML={{ __html: siteNewsHtml }}
-            />
-          ) : (
-            <p className="home__news-empty text-muted">Aktuell keine NEWS.</p>
-          )}
-        </div>
-      </div>
-
       <div className="card home__kennzahlen">
         <div className="card-header card-header--kennzahlen">
           <h2 className="card-title">Kennzahlen</h2>
@@ -84,6 +66,24 @@ const Home = () => {
             metaInHeader
             onMetricsLoaded={setMetricsMeta}
           />
+        </div>
+      </div>
+
+      <div className="card home__news">
+        <div className="card-header home__news-header">
+          <h2 className="card-title">NEWS</h2>
+        </div>
+        <div className="card-body home__news-body">
+          {siteNewsLoading ? (
+            <p className="home__news-loading">Lade NEWS…</p>
+          ) : hasNews ? (
+            <div
+              className="home__news-content saved-text-content"
+              dangerouslySetInnerHTML={{ __html: siteNewsHtml }}
+            />
+          ) : (
+            <p className="home__news-empty text-muted">Aktuell keine NEWS.</p>
+          )}
         </div>
       </div>
     </div>
