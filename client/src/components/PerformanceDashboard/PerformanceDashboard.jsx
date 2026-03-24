@@ -5,7 +5,8 @@ import './PerformanceDashboard.scss';
 const DEFAULT_METRICS = {
   dataStatus: '19.03.2024',
   resttage: 10,
-  notizen: '',
+  notizenDe: '',
+  notizenAr: '',
   monatsziel: {
     postpaid: { deltaZuGestern: 107, aktuell: 931, hochrechnung: 1729, ziel: 2000 },
     vvl: { deltaZuGestern: 107, aktuell: 908, hochrechnung: 1574, ziel: 1400 },
@@ -38,7 +39,11 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
         if (m?.dataStatus) merged.dataStatus = m.dataStatus;
         if (m?.resttage != null) merged.resttage = m.resttage;
         if (m?.workingDays != null) merged.resttage = m.workingDays;
-        if (m?.notizen != null) merged.notizen = m.notizen || '';
+        if (m?.notizenDe != null) merged.notizenDe = m.notizenDe || '';
+        if (m?.notizenAr != null) merged.notizenAr = m.notizenAr || '';
+        if (m?.notizen != null && String(m.notizen).trim() && !String(merged.notizenDe || '').trim()) {
+          merged.notizenDe = m.notizen || '';
+        }
         if (m?.monatsziel) merged.monatsziel = { ...merged.monatsziel, ...m.monatsziel };
         if (m?.quartalsziel) merged.quartalsziel = { ...merged.quartalsziel, ...m.quartalsziel };
         setMetrics(merged);
@@ -58,7 +63,12 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
   }, [fetchMetrics, readOnly]);
 
   const handleStartEdit = () => {
-    setEditData(JSON.parse(JSON.stringify(metrics)));
+    const base = JSON.parse(JSON.stringify(metrics));
+    if (!String(base.notizenDe ?? '').trim() && String(base.notizen ?? '').trim()) {
+      base.notizenDe = base.notizen;
+    }
+    if (base.notizenAr == null) base.notizenAr = '';
+    setEditData(base);
     setEditing(true);
   };
 
@@ -168,6 +178,9 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
     { key: 'dsl', label: 'DSL' },
     { key: 'o2tv', label: 'o2 TV' }
   ];
+
+  const notizenDeAnzeige = String(m?.notizenDe ?? '').trim() || String(m?.notizen ?? '').trim();
+  const notizenArAnzeige = String(m?.notizenAr ?? '').trim();
 
   const headerMetaAndActions = metaInHeader && !readOnly && (
     <div className="card-header__meta performance-dashboard__header-meta">
@@ -368,22 +381,45 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
           </div>
         </section>
 
-        {((m?.notizen && String(m.notizen).trim()) || (!readOnly && isAdmin)) && (
+        {((notizenDeAnzeige || notizenArAnzeige) || (!readOnly && isAdmin)) && (
           <div className="performance-dashboard__notizen">
-            <label className="performance-dashboard__notizen-label">Notizen</label>
-            {!readOnly && isAdmin && editing ? (
-              <textarea
-                className="performance-dashboard__notizen-input"
-                value={editData?.notizen ?? ''}
-                onChange={(e) => updateEdit('notizen', e.target.value)}
-                rows={3}
-                placeholder="Notizen zu den Kennzahlen..."
-              />
-            ) : (
-              <div className="performance-dashboard__notizen-text">
-                {m?.notizen ? String(m.notizen) : <span className="performance-dashboard__notizen-placeholder">Keine Notizen.</span>}
-              </div>
-            )}
+            <div className="performance-dashboard__notizen-block performance-dashboard__notizen-block--de">
+              <label className="performance-dashboard__notizen-label" htmlFor="perf-notizen-de">Notizen (DE)</label>
+              {!readOnly && isAdmin && editing ? (
+                <textarea
+                  id="perf-notizen-de"
+                  className="performance-dashboard__notizen-input"
+                  value={editData?.notizenDe ?? ''}
+                  onChange={(e) => updateEdit('notizenDe', e.target.value)}
+                  rows={3}
+                  placeholder="Notizen zu den Kennzahlen (Deutsch)..."
+                  lang="de"
+                />
+              ) : (
+                <div className="performance-dashboard__notizen-text" lang="de">
+                  {notizenDeAnzeige || <span className="performance-dashboard__notizen-placeholder">Keine Notizen.</span>}
+                </div>
+              )}
+            </div>
+            <div className="performance-dashboard__notizen-block performance-dashboard__notizen-block--ar">
+              <label className="performance-dashboard__notizen-label" htmlFor="perf-notizen-ar">Notizen (AR)</label>
+              {!readOnly && isAdmin && editing ? (
+                <textarea
+                  id="perf-notizen-ar"
+                  className="performance-dashboard__notizen-input performance-dashboard__notizen-input--rtl"
+                  value={editData?.notizenAr ?? ''}
+                  onChange={(e) => updateEdit('notizenAr', e.target.value)}
+                  rows={3}
+                  placeholder="ملاحظات حول المؤشرات..."
+                  dir="rtl"
+                  lang="ar"
+                />
+              ) : (
+                <div className="performance-dashboard__notizen-text performance-dashboard__notizen-text--rtl" dir="rtl" lang="ar">
+                  {notizenArAnzeige || <span className="performance-dashboard__notizen-placeholder">Keine Notizen.</span>}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
