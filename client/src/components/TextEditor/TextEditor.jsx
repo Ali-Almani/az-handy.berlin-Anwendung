@@ -64,7 +64,9 @@ const TextEditor = ({ initialContent = '', onSave, placeholder = 'Schreiben Sie 
   };
 
   const insertHeading = (level) => {
-    formatText('formatBlock', `<h${level}>`);
+    // formatBlock erwartet Tag-Namen (z. B. h1), keine spitzen Klammern
+    const tag = level === 0 ? 'p' : `h${level}`;
+    formatText('formatBlock', tag);
     setShowHeadingMenu(false);
   };
 

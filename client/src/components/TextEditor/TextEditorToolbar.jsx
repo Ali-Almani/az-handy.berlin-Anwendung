@@ -63,9 +63,23 @@ const TextEditorToolbar = ({
         </ToolbarButton>
         {showHeadingMenu && (
           <div className="toolbar-dropdown-menu">
-            {[1, 2, 3, 4, 5, 6].map(level => (
-              <button key={level} type="button" onClick={() => insertHeading(level)} className="toolbar-dropdown-item">
-                Überschrift {level}
+            <button
+              type="button"
+              className="toolbar-dropdown-item"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertHeading(0)}
+            >
+              Absatz
+            </button>
+            {[1, 2, 3, 4, 5, 6].map((level) => (
+              <button
+                key={level}
+                type="button"
+                className="toolbar-dropdown-item"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => insertHeading(level)}
+              >
+                Überschrift H{level}
               </button>
             ))}
           </div>

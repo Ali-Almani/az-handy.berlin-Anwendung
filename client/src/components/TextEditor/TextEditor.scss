@@ -188,7 +188,15 @@
     h1, h2, h3, h4, h5, h6 {
       margin: 1rem 0 0.5rem 0;
       font-weight: $font-weight-bold;
+      line-height: 1.25;
     }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.35rem; }
+    h4 { font-size: 1.2rem; }
+    h5 { font-size: 1.1rem; }
+    h6 { font-size: 1rem; }
 
     p {
       margin: 0.5rem 0;
@@ -306,7 +314,15 @@
     h1, h2, h3, h4, h5, h6 {
       margin: 1rem 0 0.5rem 0;
       font-weight: $font-weight-bold;
+      line-height: 1.25;
     }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.35rem; }
+    h4 { font-size: 1.2rem; }
+    h5 { font-size: 1.1rem; }
+    h6 { font-size: 1rem; }
 
     p {
       margin: 0.5rem 0;

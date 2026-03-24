@@ -20,6 +20,9 @@ export const useTextEditorFormatting = (editorRef, setContent) => {
           success = executeListCommand(editorRef, selection, range, command, setContent);
         } else if (command.startsWith('justify')) {
           success = executeJustifyCommand(editorRef, selection, range, command, setContent);
+        } else if (command === 'formatBlock' && value != null) {
+          const tag = String(value).replace(/[<>]/g, '').toLowerCase();
+          success = document.execCommand('formatBlock', false, tag);
         } else {
           success = document.execCommand(command, false, value);
         }
