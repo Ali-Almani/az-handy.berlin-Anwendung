@@ -75,14 +75,16 @@
 
   &--with-greeting {
     gap: 0.45rem;
-    padding: 2px 6px 2px 2px;
+    padding: 2px 10px 2px 4px;
     border-radius: 999px;
     justify-content: flex-start;
     max-width: min(100%, 280px);
+    border: 1px solid #e5e5e5;
 
     &:hover {
       transform: none;
       opacity: 0.92;
+      border-color: #dcdcdc;
     }
 
     &:focus {
