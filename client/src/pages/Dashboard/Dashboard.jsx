@@ -1,7 +1,19 @@
 import { useEffect, useState, useId } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getDashboardNote, saveDashboardNote, getNewsArchive, updateNewsArchiveEntry, deleteNewsArchiveEntry, getSiteNews, saveSiteNews, uploadNewsMedia } from '../../services/dashboard.service';
+import {
+  getDashboardNote,
+  saveDashboardNote,
+  getNewsArchive,
+  updateNewsArchiveEntry,
+  deleteNewsArchiveEntry,
+  getSiteNews,
+  saveSiteNews,
+  getSiteNewsHistory,
+  updateSiteNewsHistoryEntry,
+  deleteSiteNewsHistoryEntry,
+  uploadNewsMedia
+} from '../../services/dashboard.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
@@ -32,6 +44,10 @@ const Dashboard = () => {
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
   const [siteNewsError, setSiteNewsError] = useState(null);
   const [siteNewsEditorKey, setSiteNewsEditorKey] = useState(0);
+  const [siteNewsHistory, setSiteNewsHistory] = useState([]);
+  const [siteNewsHistoryLoading, setSiteNewsHistoryLoading] = useState(false);
+  const [siteNewsHistEditingId, setSiteNewsHistEditingId] = useState(null);
+  const [siteNewsHistEditingContent, setSiteNewsHistEditingContent] = useState('');
   const [openAdminAccordion, setOpenAdminAccordion] = useState(null);
   const kennzahlenPanelId = useId();
   const newsPanelId = useId();
@@ -99,7 +115,27 @@ const Dashboard = () => {
         setSiteNewsLoading(false);
       }
     };
+    const loadSiteNewsHistory = async () => {
+      try {
+        setSiteNewsHistoryLoading(true);
+        const res = await getSiteNewsHistory();
+        setSiteNewsHistory(res.data?.entries ?? []);
+      } catch {
+        setSiteNewsHistory([]);
+      } finally {
+        setSiteNewsHistoryLoading(false);
+      }
+    };
     loadSiteNews();
+    loadSiteNewsHistory();
+    const socket = getSocket();
+    const onSiteNewsUpdated = () => {
+      loadSiteNewsHistory();
+    };
+    if (socket) socket.on('siteNews:updated', onSiteNewsUpdated);
+    return () => {
+      if (socket) socket.off('siteNews:updated', onSiteNewsUpdated);
+    };
   }, [user?.id, user?.role]);
 
   if (!canAccessDashboard(user)) {
@@ -136,8 +172,55 @@ const Dashboard = () => {
       await saveSiteNews(content ?? '');
       setSiteNewsContent(content ?? '');
       setSiteNewsEditorKey((k) => k + 1);
+      try {
+        const res = await getSiteNewsHistory();
+        setSiteNewsHistory(res.data?.entries ?? []);
+      } catch {
+        /* Archivliste bleibt unverändert */
+      }
     } catch (error) {
       console.error('Error saving NEWS:', error);
+    }
+  };
+
+  const handleStartEditSiteNewsHist = (entry) => {
+    setSiteNewsHistEditingId(entry.id);
+    setSiteNewsHistEditingContent(entry.content || '');
+  };
+
+  const handleSaveEditSiteNewsHist = async (id) => {
+    try {
+      await updateSiteNewsHistoryEntry(id, siteNewsHistEditingContent);
+      const now = new Date().toISOString();
+      setSiteNewsHistory((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, content: siteNewsHistEditingContent, updatedAt: now }
+            : item
+        )
+      );
+      setSiteNewsHistEditingId(null);
+      setSiteNewsHistEditingContent('');
+    } catch (error) {
+      console.error('Error updating NEWS archive:', error);
+    }
+  };
+
+  const handleCancelEditSiteNewsHist = () => {
+    setSiteNewsHistEditingId(null);
+    setSiteNewsHistEditingContent('');
+  };
+
+  const handleDeleteSiteNewsHist = async (id) => {
+    try {
+      await deleteSiteNewsHistoryEntry(id);
+      setSiteNewsHistory((prev) => prev.filter((e) => e.id !== id));
+      if (siteNewsHistEditingId === id) {
+        setSiteNewsHistEditingId(null);
+        setSiteNewsHistEditingContent('');
+      }
+    } catch (error) {
+      console.error('Error deleting NEWS archive entry:', error);
     }
   };
 
@@ -273,6 +356,85 @@ const Dashboard = () => {
                   mediaUpload={{ uploadFile: uploadNewsFile }}
                 />
               )}
+              <div className="dashboard-site-news-history dashboard-archive">
+                <h3 className="dashboard-site-news-history-title">Frühere NEWS</h3>
+                <div className="dashboard-site-news-history-body">
+                  {siteNewsHistoryLoading ? (
+                    <p>Lade Archiv…</p>
+                  ) : siteNewsHistory.length === 0 ? (
+                    <p className="text-muted">Keine älteren Versionen. Beim nächsten Speichern wird die bisherige NEWS hier abgelegt.</p>
+                  ) : (
+                    <ul className="dashboard-archive-list">
+                      {siteNewsHistory.map((entry) => (
+                        <li key={entry.id} className="dashboard-archive-item">
+                          {siteNewsHistEditingId === entry.id ? (
+                            <>
+                              <textarea
+                                className="dashboard-archive-edit-input"
+                                value={siteNewsHistEditingContent}
+                                onChange={(e) => setSiteNewsHistEditingContent(e.target.value)}
+                                rows={4}
+                                placeholder="Archiv-Eintrag bearbeiten…"
+                              />
+                              <div className="dashboard-archive-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn--primary btn--small"
+                                  onClick={() => handleSaveEditSiteNewsHist(entry.id)}
+                                >
+                                  Speichern
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--outline btn--small"
+                                  onClick={handleCancelEditSiteNewsHist}
+                                >
+                                  Abbrechen
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div
+                                className="dashboard-archive-content"
+                                dangerouslySetInnerHTML={{ __html: entry.content || '' }}
+                              />
+                              {entry.updatedAt && (
+                                <div className="dashboard-archive-date">
+                                  Stand:{' '}
+                                  {new Date(entry.updatedAt).toLocaleString('de-DE', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )}
+                              <div className="dashboard-archive-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn--outline btn--small"
+                                  onClick={() => handleStartEditSiteNewsHist(entry)}
+                                >
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--danger btn--small"
+                                  onClick={() => handleDeleteSiteNewsHist(entry.id)}
+                                >
+                                  Löschen
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

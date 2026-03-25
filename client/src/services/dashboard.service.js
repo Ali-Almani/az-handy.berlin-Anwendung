@@ -237,11 +237,94 @@ export const getSiteNews = () => {
 
 export const saveSiteNews = (content) => {
   if (USE_MOCK_API) {
-    const payload = { content: content || '', updatedAt: new Date().toISOString() };
-    localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(payload));
-    return Promise.resolve({ data: { success: true, message: 'NEWS gespeichert (lokal)', ...payload } });
+    try {
+      const raw = localStorage.getItem(SITE_NEWS_MOCK_KEY);
+      const data = raw ? JSON.parse(raw) : { content: '', updatedAt: null, history: [] };
+      const prevContent = typeof data.content === 'string' ? data.content : '';
+      const prevAt = data.updatedAt ?? null;
+      const newContent = typeof content === 'string' ? content : '';
+      if (prevContent.trim() && prevContent !== newContent) {
+        const history = Array.isArray(data.history) ? [...data.history] : [];
+        history.unshift({
+          id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          content: prevContent,
+          updatedAt: prevAt || new Date().toISOString()
+        });
+        data.history = history.slice(0, 100);
+      }
+      data.content = newContent;
+      data.updatedAt = new Date().toISOString();
+      localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(data));
+      return Promise.resolve({
+        data: { success: true, message: 'NEWS gespeichert (lokal)', updatedAt: data.updatedAt }
+      });
+    } catch {
+      const payload = { content: content || '', updatedAt: new Date().toISOString(), history: [] };
+      localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(payload));
+      return Promise.resolve({
+        data: { success: true, message: 'NEWS gespeichert (lokal)', updatedAt: payload.updatedAt }
+      });
+    }
   }
   return api.put('/dashboard/site-news', { content });
+};
+
+/** Frühere Startseiten-NEWS (nur Admin) */
+export const getSiteNewsHistory = () => {
+  if (USE_MOCK_API) {
+    try {
+      const raw = localStorage.getItem(SITE_NEWS_MOCK_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      return Promise.resolve({
+        data: { success: true, entries: Array.isArray(data.history) ? data.history : [] }
+      });
+    } catch {
+      return Promise.resolve({ data: { success: true, entries: [] } });
+    }
+  }
+  return api.get('/dashboard/site-news/history');
+};
+
+export const updateSiteNewsHistoryEntry = (id, content) => {
+  if (USE_MOCK_API) {
+    try {
+      const raw = localStorage.getItem(SITE_NEWS_MOCK_KEY);
+      const data = raw ? JSON.parse(raw) : { content: '', updatedAt: null, history: [] };
+      const history = Array.isArray(data.history) ? [...data.history] : [];
+      const idx = history.findIndex((h) => h && h.id === id);
+      if (idx === -1) {
+        return Promise.reject(new Error('Eintrag nicht gefunden'));
+      }
+      history[idx] = {
+        ...history[idx],
+        content: typeof content === 'string' ? content : '',
+        updatedAt: new Date().toISOString()
+      };
+      data.history = history;
+      localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(data));
+      return Promise.resolve({ data: { success: true, entry: history[idx] } });
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+  return api.put(`/dashboard/site-news/history/${id}`, { content });
+};
+
+export const deleteSiteNewsHistoryEntry = (id) => {
+  if (USE_MOCK_API) {
+    try {
+      const raw = localStorage.getItem(SITE_NEWS_MOCK_KEY);
+      if (!raw) return Promise.resolve({ data: { success: true } });
+      const data = JSON.parse(raw);
+      const history = Array.isArray(data.history) ? data.history : [];
+      data.history = history.filter((h) => h && h.id !== id);
+      localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(data));
+      return Promise.resolve({ data: { success: true } });
+    } catch {
+      return Promise.resolve({ data: { success: true } });
+    }
+  }
+  return api.delete(`/dashboard/site-news/history/${id}`);
 };
 
 /** Bild oder PDF für NEWS-Editor hochladen (nur Admin, echte API) */

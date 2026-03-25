@@ -410,16 +410,88 @@ export const saveSiteNews = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können NEWS bearbeiten' });
     }
     const { content } = req.body;
-    const payload = {
+    let data = {};
+    try {
+      data = loadJson(SITE_NEWS_FILE) || {};
+    } catch {
+      data = {};
+    }
+    const prevContent = typeof data.content === 'string' ? data.content : '';
+    const prevAt = data.updatedAt ?? null;
+    const newContent = typeof content === 'string' ? content : '';
+    if (prevContent.trim() && prevContent !== newContent) {
+      const history = Array.isArray(data.history) ? [...data.history] : [];
+      history.unshift({
+        id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+        content: prevContent,
+        updatedAt: prevAt || new Date().toISOString()
+      });
+      data.history = history.slice(0, 100);
+    }
+    data.content = newContent;
+    data.updatedAt = new Date().toISOString();
+    saveJson(SITE_NEWS_FILE, data);
+    const io = req.app?.get?.('io');
+    if (io) {
+      io.emit('siteNews:updated', { updatedAt: data.updatedAt });
+    }
+    return res.json({ success: true, message: 'NEWS gespeichert', updatedAt: data.updatedAt });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** ältere Startseiten-NEWS (Lesen: alle eingeloggten Benutzer; Bearbeiten/Löschen: nur Admin) */
+export const getSiteNewsHistory = async (req, res, next) => {
+  try {
+    const data = loadJson(SITE_NEWS_FILE) || {};
+    return res.json({ success: true, entries: Array.isArray(data.history) ? data.history : [] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSiteNewsHistoryEntry = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren' });
+    }
+    const { id } = req.params;
+    const { content } = req.body;
+    const data = loadJson(SITE_NEWS_FILE) || {};
+    const history = Array.isArray(data.history) ? [...data.history] : [];
+    const idx = history.findIndex((h) => h && h.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ message: 'Eintrag nicht gefunden' });
+    }
+    history[idx] = {
+      ...history[idx],
       content: typeof content === 'string' ? content : '',
       updatedAt: new Date().toISOString()
     };
-    saveJson(SITE_NEWS_FILE, payload);
-    const io = req.app?.get?.('io');
-    if (io) {
-      io.emit('siteNews:updated', { updatedAt: payload.updatedAt });
+    data.history = history;
+    saveJson(SITE_NEWS_FILE, data);
+    return res.json({ success: true, entry: history[idx] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSiteNewsHistoryEntry = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren' });
     }
-    return res.json({ success: true, message: 'NEWS gespeichert', updatedAt: payload.updatedAt });
+    const { id } = req.params;
+    const data = loadJson(SITE_NEWS_FILE) || {};
+    const history = Array.isArray(data.history) ? data.history : [];
+    data.history = history.filter((h) => h && h.id !== id);
+    saveJson(SITE_NEWS_FILE, data);
+    return res.json({ success: true });
   } catch (error) {
     next(error);
   }

@@ -5,6 +5,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
 import ArchivAnweisung from './pages/ArchivAnweisung/ArchivAnweisung';
+import ArchivNews from './pages/ArchivNews/ArchivNews';
 import Settings from './pages/Settings/Settings';
 import Imeis from './pages/Imeis/Imeis';
 import Documentation from './pages/Documentation/Documentation';
@@ -30,6 +31,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ArchivAnweisung />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/archiv-news"
+          element={
+            <ProtectedRoute>
+              <ArchivNews />
             </ProtectedRoute>
           }
         />

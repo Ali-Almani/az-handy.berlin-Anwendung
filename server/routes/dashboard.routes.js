@@ -15,6 +15,9 @@ import {
   savePerformanceMetrics,
   getSiteNews,
   saveSiteNews,
+  getSiteNewsHistory,
+  updateSiteNewsHistoryEntry,
+  deleteSiteNewsHistoryEntry,
   uploadNewsFile
 } from '../controllers/dashboard.controller.js';
 
@@ -24,6 +27,9 @@ router.use(authenticateToken);
 
 router.get('/site-news', getSiteNews);
 router.put('/site-news', saveSiteNews);
+router.get('/site-news/history', getSiteNewsHistory);
+router.put('/site-news/history/:id', updateSiteNewsHistoryEntry);
+router.delete('/site-news/history/:id', deleteSiteNewsHistoryEntry);
 router.post('/news/upload', (req, res, next) => {
   newsUpload.single('file')(req, res, (err) => {
     if (err) {

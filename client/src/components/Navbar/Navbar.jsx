@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useId } from 'react';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { canAccessImeis, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
@@ -24,29 +24,59 @@ const Navbar = ({
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [archivOpen, setArchivOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
   const mobileHeaderDropdownRef = useRef(null);
+  const archivDesktopRef = useRef(null);
+  const archivMobileRef = useRef(null);
+  const archivDesktopTriggerId = useId();
+  const archivDesktopSubmenuId = useId();
+  const archivMobileTriggerId = useId();
+  const archivMobileSubmenuId = useId();
+
+  const archivPathActive =
+    location.pathname === '/archiv-news' || location.pathname === '/archiv-anweisung';
 
   // Schließe Dropdown beim Klick außerhalb
   useEffect(() => {
     const handleClickOutside = (event) => {
       const outsideDesktop = !dropdownRef.current?.contains(event.target);
       const outsideMobileHeader = !mobileHeaderDropdownRef.current?.contains(event.target);
+      const outsideArchiv =
+        !archivDesktopRef.current?.contains(event.target) &&
+        !archivMobileRef.current?.contains(event.target);
       if (outsideDesktop && outsideMobileHeader) {
         setDropdownOpen(false);
       }
+      if (outsideArchiv) {
+        setArchivOpen(false);
+      }
     };
 
-    if (dropdownOpen) {
+    if (dropdownOpen || archivOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [dropdownOpen]);
+  }, [dropdownOpen, archivOpen]);
+
+  useEffect(() => {
+    setArchivOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!archivOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setArchivOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [archivOpen]);
 
   // Schließe Mobile-Menü bei Resize zu Desktop
   useEffect(() => {
@@ -71,20 +101,24 @@ const Navbar = ({
     logout();
     navigate('/', { replace: true });
     setDropdownOpen(false);
+    setArchivOpen(false);
     setMobileMenuOpen(false);
   };
 
   const toggleDropdown = () => {
+    setArchivOpen(false);
     setDropdownOpen(!dropdownOpen);
   };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen((prev) => !prev);
     setDropdownOpen(false);
+    setArchivOpen(false);
   };
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
+    setArchivOpen(false);
   };
 
   const handleOpenVerlauf = () => {
@@ -116,29 +150,88 @@ const Navbar = ({
     return name.charAt(0).toUpperCase();
   };
 
-  const navLinks = (
+  const renderArchivItem = (containerRef, triggerId, submenuId) => {
+    if (!user || isAdmin(user)) return null;
+    return (
+      <li className="navbar-nav-archiv" ref={containerRef}>
+        <button
+          type="button"
+          className={`navbar-link navbar-archiv-trigger${archivPathActive ? ' navbar-link--active' : ''}${archivOpen ? ' navbar-archiv-trigger--open' : ''}`}
+          aria-expanded={archivOpen}
+          aria-haspopup="true"
+          aria-controls={submenuId}
+          id={triggerId}
+          onClick={() => {
+            setDropdownOpen(false);
+            setArchivOpen((o) => !o);
+          }}
+        >
+          Archiv
+          <span className="navbar-archiv-chevron" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+        {archivOpen && (
+          <ul id={submenuId} className="navbar-archiv-submenu" role="list" aria-labelledby={triggerId}>
+            <li role="none">
+              <NavLink
+                to="/archiv-news"
+                className={navLinkClassName}
+                onClick={closeMobileMenu}
+                end
+              >
+                Archiv NEWS
+              </NavLink>
+            </li>
+            <li role="none">
+              <NavLink
+                to="/archiv-anweisung"
+                className={navLinkClassName}
+                onClick={closeMobileMenu}
+                end
+              >
+                Archiv Anweisung
+              </NavLink>
+            </li>
+          </ul>
+        )}
+      </li>
+    );
+  };
+
+  const renderImeisItem = () =>
+    canAccessImeis(user) ? (
+      <li>
+        <NavLink to="/imeis" className={navLinkClassName} onClick={closeMobileMenu} end>
+          IMEIs
+        </NavLink>
+      </li>
+    ) : null;
+
+  const renderDashboardItem = () =>
+    canAccessDashboard(user) ? (
+      <li>
+        <NavLink to="/dashboard" className={navLinkClassName} onClick={closeMobileMenu} end>
+          Dashboard
+        </NavLink>
+      </li>
+    ) : null;
+
+  const navLinksDesktop = (
     <>
-      {canAccessImeis(user) && (
-        <li>
-          <NavLink to="/imeis" className={navLinkClassName} onClick={closeMobileMenu} end>
-            IMEIs
-          </NavLink>
-        </li>
-      )}
-      {user && !isAdmin(user) && (
-        <li>
-          <NavLink to="/archiv-anweisung" className={navLinkClassName} onClick={closeMobileMenu} end>
-            Archiv Anweisung
-          </NavLink>
-        </li>
-      )}
-      {canAccessDashboard(user) && (
-        <li>
-          <NavLink to="/dashboard" className={navLinkClassName} onClick={closeMobileMenu} end>
-            Dashboard
-          </NavLink>
-        </li>
-      )}
+      {renderImeisItem()}
+      {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId)}
+      {renderDashboardItem()}
+    </>
+  );
+
+  const navLinksMobile = (
+    <>
+      {renderImeisItem()}
+      {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
+      {renderDashboardItem()}
     </>
   );
 
@@ -151,7 +244,7 @@ const Navbar = ({
         <ul className="navbar-nav">
           {user ? (
             <>
-              {navLinks}
+              {navLinksDesktop}
               <li className="navbar-avatar-container" ref={dropdownRef}>
                 <button
                   onClick={toggleDropdown}
@@ -467,7 +560,7 @@ const Navbar = ({
             </button>
           </div>
           <ul className="navbar-mobile-nav">
-            {navLinks}
+            {navLinksMobile}
             {!user && (
               <li>
                 <Link to="/login" className="btn btn--primary btn--small" onClick={closeMobileMenu}>Anmelden</Link>

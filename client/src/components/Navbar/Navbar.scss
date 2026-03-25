@@ -231,6 +231,75 @@
   }
 }
 
+/* Archiv-Hauptmenü (Nicht-Admins): Untermenü Desktop */
+.navbar-nav-archiv {
+  position: relative;
+  list-style: none;
+}
+
+.navbar-archiv-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: $font-weight-medium;
+  color: $text-color;
+  padding: 0;
+  transition: $transition-base;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+
+  .navbar-archiv-chevron {
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+    color: $text-light;
+
+    svg {
+      display: block;
+    }
+  }
+
+  &.navbar-archiv-trigger--open .navbar-archiv-chevron {
+    transform: rotate(180deg);
+  }
+}
+
+.navbar-archiv-submenu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  min-width: 220px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: $shadow-lg;
+  z-index: 998;
+
+  li {
+    margin: 0;
+  }
+
+  .navbar-link {
+    display: block;
+    padding: 0.65rem 1rem;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+}
+
 .navbar-dropdown-icon {
   width: 20px;
   height: 20px;
@@ -374,7 +443,7 @@
   list-style: none;
   margin: 0;
 
-  li {
+  > li {
     display: block;
     border-bottom: 1px solid $border-color;
 
@@ -387,6 +456,36 @@
     display: block;
     padding: 1rem 1.25rem;
     font-size: 1rem;
+  }
+
+  .navbar-archiv-trigger {
+    width: 100%;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    box-sizing: border-box;
+    text-align: left;
+    border-bottom: none;
+  }
+
+  .navbar-archiv-submenu {
+    position: static;
+    box-shadow: none;
+    border-top: 1px solid $border-color;
+    background: $bg-light;
+    min-width: unset;
+    padding: 0;
+
+    li {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .navbar-link {
+      padding: 0.85rem 1.25rem 0.85rem 2rem;
+    }
   }
 
   .navbar-avatar-container--mobile {

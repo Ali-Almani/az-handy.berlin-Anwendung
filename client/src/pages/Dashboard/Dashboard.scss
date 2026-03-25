@@ -45,13 +45,13 @@
 
       .card-title {
         margin: 0;
-        color: #95a1b0;
+        color: #495057;
         font-size: 1.125rem;
         font-weight: $font-weight-bold;
       }
 
       &:hover .card-title {
-        color: #6c7787;
+        color: #3d444c;
       }
     }
 
@@ -59,7 +59,7 @@
       flex-shrink: 0;
       display: flex;
       align-items: center;
-      color: #95a1b0;
+      color: #495057;
       transition: transform 0.2s ease;
 
       svg {
@@ -68,7 +68,7 @@
     }
 
     .dashboard-accordion-trigger:hover .dashboard-accordion-chevron {
-      color: #6c7787;
+      color: #3d444c;
     }
 
     .dashboard-accordion-trigger[aria-expanded='true'] .dashboard-accordion-chevron {
@@ -118,6 +118,24 @@
       font-weight: $font-weight-normal;
       max-width: 42rem;
       line-height: 1.45;
+    }
+
+    .dashboard-site-news-history {
+      margin-top: $spacing-lg;
+      padding: 0 $spacing-md $spacing-md;
+
+      .dashboard-site-news-history-title {
+        font-size: 1rem;
+        font-weight: $font-weight-bold;
+        color: #34495e;
+        margin: 0 0 $spacing-sm;
+        padding-top: $spacing-md;
+        border-top: 1px solid #e8e8e8;
+      }
+
+      .dashboard-site-news-history-body {
+        margin-top: $spacing-sm;
+      }
     }
   }
 
