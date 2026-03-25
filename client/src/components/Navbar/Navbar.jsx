@@ -182,7 +182,7 @@ const Navbar = ({
                 onClick={closeMobileMenu}
                 end
               >
-                Archiv NEWS
+                  Alte NEWS
               </NavLink>
             </li>
             <li role="none">

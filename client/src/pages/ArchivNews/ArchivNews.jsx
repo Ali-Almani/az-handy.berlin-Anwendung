@@ -50,10 +50,7 @@ const ArchivNews = () => {
     <div className="archiv-news-page">
       <div className="card archiv-news-card">
         <div className="card-header">
-          <h2 className="card-title">Archiv NEWS</h2>
-          <p className="archiv-news-intro">
-            Frühere Startseiten-NEWS zur Einsicht (nur Lesen).
-          </p>
+          <h2 className="card-title">Alte NEWS</h2>
         </div>
         <div className="card-body">
           {loading ? (

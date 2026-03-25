@@ -28,20 +28,12 @@
     color: #34495e;
     font-size: 1.125rem;
     font-weight: $font-weight-bold;
-    margin-bottom: $spacing-xs;
+    margin-bottom: 0;
   }
 
   .card-body {
     padding: $spacing-lg;
   }
-}
-
-.archiv-news-intro {
-  margin: 0;
-  font-size: 0.875rem;
-  color: $text-light;
-  line-height: 1.45;
-  max-width: 42rem;
 }
 
 .archiv-news-list {
