@@ -85,29 +85,30 @@ const Home = () => {
 
   return (
     <div className="home">
-      <div className="card home__kennzahlen">
-        <div className="card-header card-header--kennzahlen">
-          <h2 className="card-title">Kennzahlen</h2>
-          <div className="card-header__meta">
-            <span className="card-header__meta-item">
-              <strong>Stand der Daten</strong> {metricsMeta?.dataStatus ?? '–'}
-            </span>
-            <span className="card-header__meta-item">
-              <strong>Resttage im Monat</strong> {metricsMeta?.resttage ?? metricsMeta?.workingDays ?? '–'}
-            </span>
+      <div className="home__dashboard-row">
+        <div className="card home__kennzahlen">
+          <div className="card-header card-header--kennzahlen">
+            <h2 className="card-title">Kennzahlen</h2>
+            <div className="card-header__meta">
+              <span className="card-header__meta-item">
+                <strong>Stand der Daten</strong> {metricsMeta?.dataStatus ?? '–'}
+              </span>
+              <span className="card-header__meta-item">
+                <strong>Resttage im Monat</strong> {metricsMeta?.resttage ?? metricsMeta?.workingDays ?? '–'}
+              </span>
+            </div>
+          </div>
+          <div className="card-body">
+            <PerformanceDashboard
+              isAdmin={isAdmin(user)}
+              readOnly
+              metaInHeader
+              onMetricsLoaded={setMetricsMeta}
+            />
           </div>
         </div>
-        <div className="card-body">
-          <PerformanceDashboard
-            isAdmin={isAdmin(user)}
-            readOnly
-            metaInHeader
-            onMetricsLoaded={setMetricsMeta}
-          />
-        </div>
-      </div>
 
-      <div className="card home__news home__news-accordion">
+        <div className="card home__news home__news-accordion">
         {siteNewsLoading ? (
           <div className="home__news-loading-wrap">
             <p className="home__news-loading">Lade NEWS…</p>
@@ -181,6 +182,7 @@ const Home = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

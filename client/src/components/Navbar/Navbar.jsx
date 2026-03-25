@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { canAccessImeis, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
+
+const navLinkClassName = ({ isActive }) =>
+  `navbar-link${isActive ? ' navbar-link--active' : ''}`;
 
 const Navbar = ({
   hasReminderBadge = false,
@@ -117,17 +120,23 @@ const Navbar = ({
     <>
       {canAccessImeis(user) && (
         <li>
-          <Link to="/imeis" className="navbar-link" onClick={closeMobileMenu}>IMEIs</Link>
+          <NavLink to="/imeis" className={navLinkClassName} onClick={closeMobileMenu} end>
+            IMEIs
+          </NavLink>
         </li>
       )}
       {user && !isAdmin(user) && (
         <li>
-          <Link to="/archiv-anweisung" className="navbar-link" onClick={closeMobileMenu}>Archiv Anweisung</Link>
+          <NavLink to="/archiv-anweisung" className={navLinkClassName} onClick={closeMobileMenu} end>
+            Archiv Anweisung
+          </NavLink>
         </li>
       )}
       {canAccessDashboard(user) && (
         <li>
-          <Link to="/dashboard" className="navbar-link" onClick={closeMobileMenu}>Dashboard</Link>
+          <NavLink to="/dashboard" className={navLinkClassName} onClick={closeMobileMenu} end>
+            Dashboard
+          </NavLink>
         </li>
       )}
     </>
