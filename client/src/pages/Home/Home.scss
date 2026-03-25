@@ -1,14 +1,14 @@
 @import '../../styles/variables';
 
 .home {
-  max-width: 1500px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: $spacing-xl;
 
-  /* Kennzahlen (60 %) und NEWS (40 %) nebeneinander ab Tablet */
+  /* Kennzahlen (65 %) und NEWS (35 %) nebeneinander ab Tablet */
   &__dashboard-row {
     display: grid;
     gap: $spacing-xl;
@@ -16,8 +16,8 @@
     align-items: start;
 
     @media (min-width: $breakpoint-md) {
-      /* minmax(0, …): breite Tabellen (min-width: 1000px) dürfen die Spalte nicht über 60/40 hinaus aufblasen */
-      grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+      /* minmax(0, …): Tabellen mit min-width dürfen die Spalten nicht über 65/35 hinaus aufblasen */
+      grid-template-columns: minmax(0, 13fr) minmax(0, 7fr);
       gap: $spacing-lg;
 
       > .home__kennzahlen,
@@ -27,13 +27,9 @@
     }
   }
 
+  /* Spalte ohne eigene „Haupt“-Card; sichtbare Card nur an .home__news-card (.card) */
   &__news {
-    background: #ffffff;
-    border: 1px solid #e8e8e8;
-    border-radius: $border-radius-card;
-    box-shadow: $shadow-card;
-    overflow: hidden;
-    padding: 0;
+    min-width: 0;
   }
 
   &__news-accordion {
@@ -43,14 +39,16 @@
     }
   }
 
-  /* Innere Karte: NEWS-Accordion optisch abgesetzt */
-  .home__news-card {
-    margin: $spacing-md;
-    border: 1px solid #e8e8e8;
-    border-radius: $border-radius-card;
-    background: #fafbfc;
+  /* Eine Card: globales .card (Rahmen/Schatten) + Inhalt bündig */
+  .home__news-card.card {
+    padding: 0;
+    margin: 0;
     overflow: hidden;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    background: #ffffff;
+
+    &:hover {
+      box-shadow: $shadow-card;
+    }
   }
 
   &__news-accordion-trigger {

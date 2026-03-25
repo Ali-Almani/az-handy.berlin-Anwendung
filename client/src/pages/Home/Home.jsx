@@ -108,7 +108,7 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="card home__news home__news-accordion">
+        <div className="home__news home__news-accordion">
         {siteNewsLoading ? (
           <div className="home__news-loading-wrap">
             <p className="home__news-loading">Lade NEWS…</p>
@@ -118,7 +118,7 @@ const Home = () => {
             <p className="home__news-empty text-muted">Aktuell keine NEWS.</p>
           </div>
         ) : (
-          <div className="home__news-card">
+          <div className="card home__news-card">
             <button
               type="button"
               id="home-news-accordion-trigger"
