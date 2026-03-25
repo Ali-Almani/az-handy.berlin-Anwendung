@@ -126,16 +126,45 @@ const Home = () => {
               aria-controls={panelId}
               onClick={handleNewsAccordionToggle}
             >
+              <span className="home__news-accordion-row-primary">
+                <span className="home__news-accordion-icon-news" aria-hidden>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M8 8h8M8 12h6M8 16h4"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                <span className="home__news-accordion-trigger-main">
+                  <span className="home__news-accordion-title">NEWS</span>
+                  {newsIsUnread && (
+                    <span className="home__news-accordion-badge">Neue Nachricht</span>
+                  )}
+                </span>
+                <span className="home__news-accordion-chevron" aria-hidden>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </span>
               <span className="home__news-accordion-sub">
-                {newsOpen ? 'Einklappen' : newsIsUnread ? 'Zum Lesen aufklappen' : 'Aufklappen'}
+                <span className="home__news-accordion-sub-icon" aria-hidden>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="home__news-accordion-sub-label">
+                  {newsOpen ? 'Einklappen' : newsIsUnread ? 'Zum Lesen aufklappen' : 'Aufklappen'}
+                </span>
               </span>
-              {newsIsUnread && (
-                <span className="home__news-accordion-badge">Neue Nachricht</span>
-              )}
-              <span className="home__news-accordion-trigger-main">
-                <span className="home__news-accordion-title">NEWS</span>
-              </span>
-              <span className="home__news-accordion-chevron" aria-hidden />
             </button>
 
             <div

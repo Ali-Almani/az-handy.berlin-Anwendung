@@ -36,12 +36,13 @@
 
   &__news-accordion-trigger {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: $spacing-sm $spacing-md;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
     width: 100%;
     margin: 0;
     padding: $spacing-md $spacing-lg;
+    padding-bottom: max(#{$spacing-md}, 0.75rem);
     text-align: left;
     cursor: pointer;
     font-family: inherit;
@@ -49,6 +50,14 @@
     border: none;
     border-bottom: 1px solid #e8e8e8;
     transition: background 0.2s ease;
+
+    @media (min-width: $breakpoint-md) {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: $spacing-sm $spacing-md;
+      padding-bottom: $spacing-md;
+    }
 
     &:hover {
       background: #f8f9fa;
@@ -61,6 +70,31 @@
 
     &.is-open {
       border-bottom: 1px solid #e8e8e8;
+    }
+  }
+
+  &__news-accordion-row-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    min-width: 0;
+
+    @media (min-width: $breakpoint-md) {
+      flex: 1 1 auto;
+      width: auto;
+    }
+  }
+
+  &__news-accordion-icon-news {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $primary-color;
+
+    svg {
+      display: block;
     }
   }
 
@@ -91,26 +125,65 @@
     border-radius: 999px;
   }
 
-  /* Zuerst: Einklappen / Aufklappen-Hinweis */
+  /* Hinweiszeile: Icon + Aufklappen / Einklappen (besonders auf schmalen Viewports klar) */
   &__news-accordion-sub {
-    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding-left: calc(22px + 0.625rem);
     font-size: 0.875rem;
     font-weight: $font-weight-medium;
     color: $text-light;
     text-align: left;
     min-width: 0;
+    line-height: 1.35;
+
+    @media (min-width: $breakpoint-md) {
+      flex: 0 1 auto;
+      width: auto;
+      padding-left: 0;
+      flex-basis: 100%;
+      margin-top: 0.125rem;
+    }
+  }
+
+  &__news-accordion-sub-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    color: rgba($primary-color, 0.85);
+    transition: transform 0.2s ease;
+
+    svg {
+      display: block;
+    }
+
+    @media (min-width: $breakpoint-md) {
+      display: none;
+    }
+  }
+
+  &__news-accordion-sub-label {
+    min-width: 0;
   }
 
   &__news-accordion-chevron {
     flex-shrink: 0;
-    width: 1.5rem;
-    height: 1.5rem;
     margin-left: auto;
-    background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2334495e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #34495e;
     transition: transform 0.2s ease;
+
+    svg {
+      display: block;
+    }
   }
 
-  &__news-accordion-trigger.is-open .home__news-accordion-chevron {
+  &__news-accordion-trigger.is-open .home__news-accordion-chevron,
+  &__news-accordion-trigger.is-open .home__news-accordion-sub-icon {
     transform: rotate(180deg);
   }
 

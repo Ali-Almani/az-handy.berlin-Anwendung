@@ -280,9 +280,8 @@ const Navbar = ({
                       onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
                     >
                       <span className="navbar-dropdown-icon">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M8 1.5V3M8 13V14.5M14.5 8H13M3 8H1.5M12.8995 3.10051L11.8995 4.10051M4.10051 11.8995L3.10051 12.8995M12.8995 12.8995L11.8995 11.8995M4.10051 4.10051L3.10051 3.10051" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.444c-.84.076-1.647.272-2.42.568l-.833-.946a1.125 1.125 0 0 0-1.667-.177l-1.25 1.25a1.125 1.125 0 0 0-.149 1.37l.833 1.33c-.384.696-.665 1.476-.822 2.323l-1.065.61a1.125 1.125 0 0 0-.52 1.213l.25 1.75a1.125 1.125 0 0 0 1.177.99l1.268-.17c.329.22.675.414 1.036.583l.394 1.234a1.125 1.125 0 0 0 1.074.689h1.75a1.125 1.125 0 0 0 1.074-.69l.394-1.234c.36-.169.707-.363 1.036-.583l1.268.17a1.125 1.125 0 0 0 1.177-.99l.25-1.75a1.125 1.125 0 0 0-.52-1.213l-1.065-.61a6.38 6.38 0 0 0-.822-2.323l.833-1.33c.28-.447.215-1.035-.15-1.37l-1.25-1.25a1.125 1.125 0 0 0-1.667-.177l-.833.946a6.38 6.38 0 0 0-2.42-.568l-.11-1.627C12.782 2.913 11.98 2.25 11.078 2.25Zm.25 7.5a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
                         </svg>
                       </span>
                       Einstellungen
@@ -384,7 +383,7 @@ const Navbar = ({
                     Dokumentation
                   </Link>
                   <Link to="/settings" className="navbar-dropdown-item" onClick={() => setDropdownOpen(false)}>
-                    <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1.5V3M8 13V14.5M14.5 8H13M3 8H1.5" stroke="currentColor" strokeWidth="1.5"/></svg></span>
+                    <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path fillRule="evenodd" clipRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.444c-.84.076-1.647.272-2.42.568l-.833-.946a1.125 1.125 0 0 0-1.667-.177l-1.25 1.25a1.125 1.125 0 0 0-.149 1.37l.833 1.33c-.384.696-.665 1.476-.822 2.323l-1.065.61a1.125 1.125 0 0 0-.52 1.213l.25 1.75a1.125 1.125 0 0 0 1.177.99l1.268-.17c.329.22.675.414 1.036.583l.394 1.234a1.125 1.125 0 0 0 1.074.689h1.75a1.125 1.125 0 0 0 1.074-.69l.394-1.234c.36-.169.707-.363 1.036-.583l1.268.17a1.125 1.125 0 0 0 1.177-.99l.25-1.75a1.125 1.125 0 0 0-.52-1.213l-1.065-.61a6.38 6.38 0 0 0-.822-2.323l.833-1.33c.28-.447.215-1.035-.15-1.37l-1.25-1.25a1.125 1.125 0 0 0-1.667-.177l-.833.946a6.38 6.38 0 0 0-2.42-.568l-.11-1.627C12.782 2.913 11.98 2.25 11.078 2.25Zm.25 7.5a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" /></svg></span>
                     Einstellungen
                   </Link>
                   <div className="navbar-dropdown-divider" />
