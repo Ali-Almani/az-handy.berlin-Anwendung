@@ -8,7 +8,7 @@
   flex-direction: column;
   gap: $spacing-xl;
 
-  /* Kennzahlen (70 %) und NEWS (30 %) nebeneinander ab Tablet */
+  /* Kennzahlen (60 %) und NEWS (40 %) nebeneinander ab Tablet */
   &__dashboard-row {
     display: grid;
     gap: $spacing-xl;
@@ -16,7 +16,7 @@
     align-items: start;
 
     @media (min-width: $breakpoint-md) {
-      grid-template-columns: 7fr 3fr;
+      grid-template-columns: 6fr 4fr;
       gap: $spacing-lg;
     }
   }
