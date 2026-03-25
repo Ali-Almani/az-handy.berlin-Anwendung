@@ -16,8 +16,14 @@
     align-items: start;
 
     @media (min-width: $breakpoint-md) {
-      grid-template-columns: 6fr 4fr;
+      /* minmax(0, …): breite Tabellen (min-width: 1000px) dürfen die Spalte nicht über 60/40 hinaus aufblasen */
+      grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
       gap: $spacing-lg;
+
+      > .home__kennzahlen,
+      > .home__news {
+        min-width: 0;
+      }
     }
   }
 
@@ -295,6 +301,14 @@
     border-radius: $border-radius-card;
     box-shadow: $shadow-card;
     overflow: visible;
+
+    @media (min-width: $breakpoint-md) {
+      min-width: 0;
+
+      .card-body {
+        min-width: 0;
+      }
+    }
 
     .card-header {
       background: #ffffff;
