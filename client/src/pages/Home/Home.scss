@@ -8,15 +8,14 @@
   flex-direction: column;
   gap: $spacing-xl;
 
-  /* Kennzahlen (65 %) und NEWS (35 %) nebeneinander ab Tablet */
+  /* Kennzahlen / NEWS: untereinander bis Desktop; ab lg nebeneinander 65 % / 35 % */
   &__dashboard-row {
     display: grid;
     gap: $spacing-xl;
     width: 100%;
     align-items: start;
 
-    @media (min-width: $breakpoint-md) {
-      /* minmax(0, …): Tabellen mit min-width dürfen die Spalten nicht über 65/35 hinaus aufblasen */
+    @media (min-width: $breakpoint-lg) {
       grid-template-columns: minmax(0, 13fr) minmax(0, 7fr);
       gap: $spacing-lg;
 
@@ -300,7 +299,7 @@
     box-shadow: $shadow-card;
     overflow: visible;
 
-    @media (min-width: $breakpoint-md) {
+    @media (min-width: $breakpoint-lg) {
       min-width: 0;
 
       .card-body {
