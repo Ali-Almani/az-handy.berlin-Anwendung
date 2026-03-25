@@ -105,4 +105,4 @@ export const canShowDashboardNotes = (user) => {
   return isAdmin(user);
 };
 
-// Einstellungen: Alle dürfen zugreifen (nur Benutzerverwaltung ist Admin-only)
+// Einstellungen: Alle eingeloggten Benutzer (Profil/Passwort); Benutzerverwaltung liegt im Dashboard (Admin)

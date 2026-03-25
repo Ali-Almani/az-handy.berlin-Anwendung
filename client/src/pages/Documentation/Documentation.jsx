@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { isBüroMitarbeiter } from '../../utils/roles';
+import { isBüroMitarbeiter, isAdmin } from '../../utils/roles';
 import './Documentation.scss';
 
 const Documentation = () => {
@@ -103,6 +103,16 @@ const Documentation = () => {
         )}
       </section>
 
+      {user && isAdmin(user) && (
+        <section className="doc-section">
+          <h2>Dashboard (Administrator)</h2>
+          <p>
+            Im <Link to="/dashboard">Dashboard</Link> finden Sie u. a. die{' '}
+            <strong>Benutzerverwaltung</strong> – dort legen Sie Benutzer an, bearbeiten oder löschen sie.
+          </p>
+        </section>
+      )}
+
       <section className="doc-section">
         <h2>Einstellungen</h2>
         <p>
@@ -111,9 +121,6 @@ const Documentation = () => {
         <ul>
           <li><strong>Profil bearbeiten</strong> – Profilbild ändern oder entfernen</li>
           <li><strong>Passwort ändern</strong> – siehe oben</li>
-          {user && (user.role === 'Administrator' || user.role?.toLowerCase?.().includes('admin')) && (
-            <li><strong>Benutzerverwaltung</strong> – Benutzer anlegen, bearbeiten, löschen (nur Administrator)</li>
-          )}
         </ul>
       </section>
 

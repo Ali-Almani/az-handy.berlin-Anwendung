@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getUserProfile, updateUserProfile, updatePassword, restoreAdmin } from '../../services/user.service';
 import { isAdmin } from '../../utils/roles';
-import UserManagement from '../../components/UserManagement/UserManagement';
 import ProfileForm from './components/ProfileForm';
 import PasswordForm from './components/PasswordForm';
 import './Settings.scss';
@@ -157,11 +156,6 @@ const Settings = () => {
           </div>
           <PasswordForm passwordData={passwordData} loading={loading} onChange={handlePasswordChange} onSubmit={handlePasswordSubmit} />
         </div>
-        {isAdmin(user) && (
-          <div className="settings-section">
-            <UserManagement />
-          </div>
-        )}
       </div>
     </div>
   );

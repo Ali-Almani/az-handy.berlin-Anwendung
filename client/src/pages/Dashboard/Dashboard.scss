@@ -86,6 +86,21 @@
     margin: 0;
   }
 
+  .dashboard-user-management {
+    overflow: visible;
+    position: relative;
+    z-index: 20;
+
+    .dashboard-accordion-trigger {
+      border-radius: $border-radius-card $border-radius-card 0 0;
+    }
+  }
+
+  .dashboard-user-management-panel {
+    padding: 0 $spacing-md $spacing-md;
+    overflow: visible;
+  }
+
   .dashboard-site-news {
     position: relative;
     z-index: 25;

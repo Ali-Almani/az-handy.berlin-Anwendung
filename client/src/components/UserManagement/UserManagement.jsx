@@ -18,7 +18,7 @@ const sortUsersByEinsatzOrt = (users) => {
   });
 };
 
-const UserManagement = () => {
+const UserManagement = ({ compact = false }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -132,12 +132,14 @@ const UserManagement = () => {
 
   return (
     <div className="user-management">
-      <div className="user-management-header">
-        <div>
-          <h2>Benutzerverwaltung</h2>
-          <p>Erstellen und verwalten Sie Benutzer</p>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn btn--primary">
+      <div className={`user-management-header${compact ? ' user-management-header--compact' : ''}`}>
+        {!compact && (
+          <div>
+            <h2>Benutzerverwaltung</h2>
+            <p>Erstellen und verwalten Sie Benutzer</p>
+          </div>
+        )}
+        <button type="button" onClick={() => setShowForm(!showForm)} className="btn btn--primary">
           {showForm ? 'Abbrechen' : '+ Neuer Benutzer'}
         </button>
       </div>

@@ -8,12 +8,14 @@ import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
+import UserManagement from '../../components/UserManagement/UserManagement';
 import './Dashboard.scss';
 
 /** Nur ein Admin-Accordion gleichzeitig offen */
 const ACC_KENNZAHLEN = 'kennzahlen';
 const ACC_NEWS = 'news';
 const ACC_ANWEISUNG = 'anweisung';
+const ACC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -34,6 +36,7 @@ const Dashboard = () => {
   const kennzahlenPanelId = useId();
   const newsPanelId = useId();
   const anweisungPanelId = useId();
+  const benutzerverwaltungPanelId = useId();
 
   useEffect(() => {
     if (!user?.id || !canShowDashboardNotes(user)) return;
@@ -191,6 +194,7 @@ const Dashboard = () => {
   const accordionKennzahlen = openAdminAccordion === ACC_KENNZAHLEN;
   const accordionNews = openAdminAccordion === ACC_NEWS;
   const accordionAnweisung = openAdminAccordion === ACC_ANWEISUNG;
+  const accordionBenutzerverwaltung = openAdminAccordion === ACC_BENUTZERVERWALTUNG;
 
   return (
     <div className="dashboard">
@@ -413,6 +417,37 @@ const Dashboard = () => {
                   </ul>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAdmin(user) && (
+        <div className="card dashboard-user-management dashboard-accordion">
+          <button
+            type="button"
+            className="dashboard-accordion-trigger"
+            aria-expanded={accordionBenutzerverwaltung}
+            aria-controls={benutzerverwaltungPanelId}
+            id={`${benutzerverwaltungPanelId}-trigger`}
+            onClick={() => toggleAdminAccordion(ACC_BENUTZERVERWALTUNG)}
+          >
+            <h2 className="card-title">Benutzerverwaltung</h2>
+            <span className="dashboard-accordion-chevron" aria-hidden>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+          <div
+            id={benutzerverwaltungPanelId}
+            className="dashboard-accordion-panel"
+            role="region"
+            aria-labelledby={`${benutzerverwaltungPanelId}-trigger`}
+            hidden={!accordionBenutzerverwaltung}
+          >
+            <div className="dashboard-user-management-panel">
+              <UserManagement compact />
             </div>
           </div>
         </div>
