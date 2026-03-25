@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getDashboardNote, saveDashboardNote, getNewsArchive, updateNewsArchiveEntry, deleteNewsArchiveEntry, getSiteNews, saveSiteNews, uploadNewsMedia } from '../../services/dashboard.service';
@@ -25,6 +25,12 @@ const Dashboard = () => {
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
   const [siteNewsError, setSiteNewsError] = useState(null);
   const [siteNewsEditorKey, setSiteNewsEditorKey] = useState(0);
+  const [accordionKennzahlen, setAccordionKennzahlen] = useState(true);
+  const [accordionNews, setAccordionNews] = useState(true);
+  const [accordionAnweisung, setAccordionAnweisung] = useState(true);
+  const kennzahlenPanelId = useId();
+  const newsPanelId = useId();
+  const anweisungPanelId = useId();
 
   useEffect(() => {
     if (!user?.id || !canShowDashboardNotes(user)) return;
@@ -178,60 +184,122 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       {isAdmin(user) && (
-        <div className="card dashboard-performance">
-          <div className="card-header card-header--kennzahlen">
+        <div className="card dashboard-performance dashboard-accordion">
+          <button
+            type="button"
+            className="dashboard-accordion-trigger"
+            aria-expanded={accordionKennzahlen}
+            aria-controls={kennzahlenPanelId}
+            id={`${kennzahlenPanelId}-trigger`}
+            onClick={() => setAccordionKennzahlen((o) => !o)}
+          >
             <h2 className="card-title">Kennzahlen</h2>
-            <PerformanceDashboard
-              isAdmin={isAdmin(user)}
-              metaInHeader
-              onMetricsLoaded={setMetricsMeta}
-            />
+            <span className="dashboard-accordion-chevron" aria-hidden>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+          <div
+            id={kennzahlenPanelId}
+            className="dashboard-accordion-panel"
+            role="region"
+            aria-labelledby={`${kennzahlenPanelId}-trigger`}
+            hidden={!accordionKennzahlen}
+          >
+            <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
+              <PerformanceDashboard
+                isAdmin={isAdmin(user)}
+                metaInHeader
+                onMetricsLoaded={setMetricsMeta}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {isAdmin(user) && canShowDashboardNotes(user) && (
-        <div className="card dashboard-site-news">
-          <div className="card-header">
+        <div className="card dashboard-site-news dashboard-accordion">
+          <button
+            type="button"
+            className="dashboard-accordion-trigger"
+            aria-expanded={accordionNews}
+            aria-controls={newsPanelId}
+            id={`${newsPanelId}-trigger`}
+            onClick={() => setAccordionNews((o) => !o)}
+          >
             <h2 className="card-title">NEWS</h2>
-            <p className="dashboard-site-news-hint">
+            <span className="dashboard-accordion-chevron" aria-hidden>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+          <div
+            id={newsPanelId}
+            className="dashboard-accordion-panel"
+            role="region"
+            aria-labelledby={`${newsPanelId}-trigger`}
+            hidden={!accordionNews}
+          >
+            <p className="dashboard-site-news-hint dashboard-site-news-hint--in-panel">
               Erscheint auf der Startseite für alle Benutzer. Bilder über den Button „Bild“ einfügen.
             </p>
-          </div>
-          <div className="card-body">
-            {siteNewsError && <p className="text-error">{siteNewsError}</p>}
-            {siteNewsLoading ? (
-              <p>Lade NEWS…</p>
-            ) : (
-              <TextEditor
-                key={siteNewsEditorKey}
-                initialContent={siteNewsContent}
-                onSave={handleSaveSiteNews}
-                placeholder="NEWS für die Startseite verfassen…"
-                mediaUpload={{ uploadFile: uploadNewsFile }}
-              />
-            )}
+            <div className="card-body">
+              {siteNewsError && <p className="text-error">{siteNewsError}</p>}
+              {siteNewsLoading ? (
+                <p>Lade NEWS…</p>
+              ) : (
+                <TextEditor
+                  key={siteNewsEditorKey}
+                  initialContent={siteNewsContent}
+                  onSave={handleSaveSiteNews}
+                  placeholder="NEWS für die Startseite verfassen…"
+                  mediaUpload={{ uploadFile: uploadNewsFile }}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {isAdmin(user) && canShowDashboardNotes(user) && (
-        <div className="card dashboard-new-message">
-          <div className="card-header">
+        <div className="card dashboard-new-message dashboard-accordion">
+          <button
+            type="button"
+            className="dashboard-accordion-trigger"
+            aria-expanded={accordionAnweisung}
+            aria-controls={anweisungPanelId}
+            id={`${anweisungPanelId}-trigger`}
+            onClick={() => setAccordionAnweisung((o) => !o)}
+          >
             <h2 className="card-title">Anweisung schreiben</h2>
-          </div>
-          <div className="card-body">
-            {noteError && <p className="text-error">{noteError}</p>}
-            {noteLoading ? (
-              <p>Lade...</p>
-            ) : (
-              <TextEditor
-                key={editorKey}
-                initialContent={noteContent}
-                onSave={handleSave}
-                placeholder="schreiben Sie hier Ihre Anweisung ."
-              />
-            )}
+            <span className="dashboard-accordion-chevron" aria-hidden>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+          <div
+            id={anweisungPanelId}
+            className="dashboard-accordion-panel"
+            role="region"
+            aria-labelledby={`${anweisungPanelId}-trigger`}
+            hidden={!accordionAnweisung}
+          >
+            <div className="card-body">
+              {noteError && <p className="text-error">{noteError}</p>}
+              {noteLoading ? (
+                <p>Lade...</p>
+              ) : (
+                <TextEditor
+                  key={editorKey}
+                  initialContent={noteContent}
+                  onSave={handleSave}
+                  placeholder="schreiben Sie hier Ihre Anweisung ."
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
