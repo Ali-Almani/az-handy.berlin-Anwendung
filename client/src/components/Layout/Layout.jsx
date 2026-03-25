@@ -23,6 +23,19 @@ const Layout = ({ children }) => {
   useEffect(() => {
     if (user?.id) getSocket();
   }, [user?.id]);
+
+  useEffect(() => {
+    const host = window.location.hostname.toLowerCase();
+    const isSchnelltest =
+      host === 'az-schnelltest.berlin' || host === 'www.az-schnelltest.berlin';
+    const cls = 'layout-host--schnelltest';
+    if (isSchnelltest) {
+      document.body.classList.add(cls);
+    }
+    return () => {
+      document.body.classList.remove(cls);
+    };
+  }, []);
   const [showExtraCopyModal, setShowExtraCopyModal] = useState(false);
   const [showExtraCopyNotificationModal, setShowExtraCopyNotificationModal] = useState(false);
   const [showReminderResponseModal, setShowReminderResponseModal] = useState(false);

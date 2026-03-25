@@ -16,3 +16,14 @@
   color: $text-light;
   margin-top: auto;
 }
+
+/* Nur Host az-schnelltest.berlin: Hauptbereich max. 1600px. Navbar nutzt eigenes .container und bleibt 1500px. */
+body.layout-host--schnelltest .main > .container {
+  max-width: 1600px;
+}
+
+body.layout-host--schnelltest .main .home,
+body.layout-host--schnelltest .main .archiv-anweisung-page,
+body.layout-host--schnelltest .main .settings {
+  max-width: 1600px;
+}
