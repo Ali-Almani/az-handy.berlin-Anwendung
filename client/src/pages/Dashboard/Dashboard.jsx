@@ -46,11 +46,13 @@ const Dashboard = () => {
   const [siteNewsEditorKey, setSiteNewsEditorKey] = useState(0);
   const [siteNewsHistory, setSiteNewsHistory] = useState([]);
   const [siteNewsHistoryLoading, setSiteNewsHistoryLoading] = useState(false);
-  const [siteNewsHistEditingId, setSiteNewsHistEditingId] = useState(null);
-  const [siteNewsHistEditingContent, setSiteNewsHistEditingContent] = useState('');
+  /** Wenn gesetzt: Editor speichert in diesen Archiv-Eintrag (updateSiteNewsHistoryEntry), nicht in die Live-NEWS */
+  const [siteNewsHistoryEditId, setSiteNewsHistoryEditId] = useState(null);
+  const [siteNewsAlteOpen, setSiteNewsAlteOpen] = useState(false);
   const [openAdminAccordion, setOpenAdminAccordion] = useState(null);
   const kennzahlenPanelId = useId();
   const newsPanelId = useId();
+  const alteNewsPanelId = useId();
   const anweisungPanelId = useId();
   const benutzerverwaltungPanelId = useId();
 
@@ -167,57 +169,64 @@ const Dashboard = () => {
     }
   };
 
+  const reloadSiteNewsHistory = async () => {
+    try {
+      const res = await getSiteNewsHistory();
+      setSiteNewsHistory(res.data?.entries ?? []);
+    } catch {
+      /* Archivliste bleibt unverändert */
+    }
+  };
+
   const handleSaveSiteNews = async (content) => {
     try {
-      await saveSiteNews(content ?? '');
-      setSiteNewsContent(content ?? '');
-      setSiteNewsEditorKey((k) => k + 1);
-      try {
-        const res = await getSiteNewsHistory();
-        setSiteNewsHistory(res.data?.entries ?? []);
-      } catch {
-        /* Archivliste bleibt unverändert */
+      if (siteNewsHistoryEditId) {
+        await updateSiteNewsHistoryEntry(siteNewsHistoryEditId, content ?? '');
+        setSiteNewsHistoryEditId(null);
+        setSiteNewsContent('');
+        setSiteNewsEditorKey((k) => k + 1);
+        await reloadSiteNewsHistory();
+        return;
       }
+      await saveSiteNews(content ?? '');
+      setSiteNewsContent('');
+      setSiteNewsEditorKey((k) => k + 1);
+      await reloadSiteNewsHistory();
     } catch (error) {
       console.error('Error saving NEWS:', error);
     }
   };
 
   const handleStartEditSiteNewsHist = (entry) => {
-    setSiteNewsHistEditingId(entry.id);
-    setSiteNewsHistEditingContent(entry.content || '');
+    setSiteNewsHistoryEditId(entry.id);
+    setSiteNewsContent(entry.content || '');
+    setSiteNewsEditorKey((k) => k + 1);
   };
 
-  const handleSaveEditSiteNewsHist = async (id) => {
+  const handleCancelSiteNewsHistoryEdit = async () => {
+    setSiteNewsHistoryEditId(null);
     try {
-      await updateSiteNewsHistoryEntry(id, siteNewsHistEditingContent);
-      const now = new Date().toISOString();
-      setSiteNewsHistory((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? { ...item, content: siteNewsHistEditingContent, updatedAt: now }
-            : item
-        )
-      );
-      setSiteNewsHistEditingId(null);
-      setSiteNewsHistEditingContent('');
-    } catch (error) {
-      console.error('Error updating NEWS archive:', error);
+      const res = await getSiteNews();
+      setSiteNewsContent(res.data?.content ?? '');
+    } catch {
+      setSiteNewsContent('');
     }
-  };
-
-  const handleCancelEditSiteNewsHist = () => {
-    setSiteNewsHistEditingId(null);
-    setSiteNewsHistEditingContent('');
+    setSiteNewsEditorKey((k) => k + 1);
   };
 
   const handleDeleteSiteNewsHist = async (id) => {
     try {
       await deleteSiteNewsHistoryEntry(id);
       setSiteNewsHistory((prev) => prev.filter((e) => e.id !== id));
-      if (siteNewsHistEditingId === id) {
-        setSiteNewsHistEditingId(null);
-        setSiteNewsHistEditingContent('');
+      if (siteNewsHistoryEditId === id) {
+        setSiteNewsHistoryEditId(null);
+        try {
+          const res = await getSiteNews();
+          setSiteNewsContent(res.data?.content ?? '');
+        } catch {
+          setSiteNewsContent('');
+        }
+        setSiteNewsEditorKey((k) => k + 1);
       }
     } catch (error) {
       console.error('Error deleting NEWS archive entry:', error);
@@ -348,87 +357,103 @@ const Dashboard = () => {
               {siteNewsLoading ? (
                 <p>Lade NEWS…</p>
               ) : (
-                <TextEditor
-                  key={siteNewsEditorKey}
-                  initialContent={siteNewsContent}
-                  onSave={handleSaveSiteNews}
-                  placeholder="NEWS für die Startseite verfassen…"
-                  mediaUpload={{ uploadFile: uploadNewsFile }}
-                />
+                <>
+                  {siteNewsHistoryEditId && (
+                    <div className="dashboard-site-news-archive-hint">
+                      <p>
+                        Sie bearbeiten einen Eintrag aus „Alte NEWS“ im Editor oben. Speichern übernimmt nur
+                        diesen Archiv-Eintrag, nicht die aktuelle Startseiten-NEWS.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--small"
+                        onClick={handleCancelSiteNewsHistoryEdit}
+                      >
+                        Archiv-Bearbeitung abbrechen
+                      </button>
+                    </div>
+                  )}
+                  <TextEditor
+                    key={siteNewsEditorKey}
+                    initialContent={siteNewsContent}
+                    onSave={handleSaveSiteNews}
+                    placeholder="NEWS für die Startseite verfassen…"
+                    mediaUpload={{ uploadFile: uploadNewsFile }}
+                  />
+                </>
               )}
-              <div className="dashboard-site-news-history dashboard-archive">
-                <h3 className="dashboard-site-news-history-title">Frühere NEWS</h3>
-                <div className="dashboard-site-news-history-body">
+              <div className="dashboard-site-news-history dashboard-site-news-history--collapsible dashboard-accordion dashboard-archive">
+                <button
+                  type="button"
+                  className="dashboard-accordion-trigger dashboard-site-news-alte-trigger"
+                  aria-expanded={siteNewsAlteOpen}
+                  aria-controls={alteNewsPanelId}
+                  id={`${alteNewsPanelId}-trigger`}
+                  onClick={() => setSiteNewsAlteOpen((o) => !o)}
+                >
+                  <h3 className="card-title">Alte NEWS</h3>
+                  <span className="dashboard-accordion-chevron" aria-hidden>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </button>
+                <div
+                  id={alteNewsPanelId}
+                  className="dashboard-accordion-panel dashboard-site-news-history-body"
+                  role="region"
+                  aria-labelledby={`${alteNewsPanelId}-trigger`}
+                  hidden={!siteNewsAlteOpen}
+                >
                   {siteNewsHistoryLoading ? (
                     <p>Lade Archiv…</p>
                   ) : siteNewsHistory.length === 0 ? (
-                    <p className="text-muted">Keine älteren Versionen. Beim nächsten Speichern wird die bisherige NEWS hier abgelegt.</p>
+                    <p className="text-muted">
+                      Keine archivierten NEWS. Beim nächsten Speichern wird die bisherige Startseiten-NEWS hier
+                      abgelegt.
+                    </p>
                   ) : (
                     <ul className="dashboard-archive-list">
                       {siteNewsHistory.map((entry) => (
-                        <li key={entry.id} className="dashboard-archive-item">
-                          {siteNewsHistEditingId === entry.id ? (
-                            <>
-                              <textarea
-                                className="dashboard-archive-edit-input"
-                                value={siteNewsHistEditingContent}
-                                onChange={(e) => setSiteNewsHistEditingContent(e.target.value)}
-                                rows={4}
-                                placeholder="Archiv-Eintrag bearbeiten…"
-                              />
-                              <div className="dashboard-archive-actions">
-                                <button
-                                  type="button"
-                                  className="btn btn--primary btn--small"
-                                  onClick={() => handleSaveEditSiteNewsHist(entry.id)}
-                                >
-                                  Speichern
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn--outline btn--small"
-                                  onClick={handleCancelEditSiteNewsHist}
-                                >
-                                  Abbrechen
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div
-                                className="dashboard-archive-content"
-                                dangerouslySetInnerHTML={{ __html: entry.content || '' }}
-                              />
-                              {entry.updatedAt && (
-                                <div className="dashboard-archive-date">
-                                  Stand:{' '}
-                                  {new Date(entry.updatedAt).toLocaleString('de-DE', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </div>
-                              )}
-                              <div className="dashboard-archive-actions">
-                                <button
-                                  type="button"
-                                  className="btn btn--outline btn--small"
-                                  onClick={() => handleStartEditSiteNewsHist(entry)}
-                                >
-                                  Bearbeiten
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn--danger btn--small"
-                                  onClick={() => handleDeleteSiteNewsHist(entry.id)}
-                                >
-                                  Löschen
-                                </button>
-                              </div>
-                            </>
+                        <li
+                          key={entry.id}
+                          className={`dashboard-archive-item${siteNewsHistoryEditId === entry.id ? ' dashboard-archive-item--active-in-editor' : ''}`}
+                        >
+                          <div
+                            className="dashboard-archive-content"
+                            dangerouslySetInnerHTML={{ __html: entry.content || '' }}
+                          />
+                          {entry.updatedAt && (
+                            <div className="dashboard-archive-date">
+                              Stand:{' '}
+                              {new Date(entry.updatedAt).toLocaleString('de-DE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
                           )}
+                          <div className="dashboard-archive-actions">
+                            <button
+                              type="button"
+                              className="btn btn--outline btn--small"
+                              onClick={() => {
+                                setSiteNewsAlteOpen(true);
+                                handleStartEditSiteNewsHist(entry);
+                              }}
+                            >
+                              Bearbeiten
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn--danger btn--small"
+                              onClick={() => handleDeleteSiteNewsHist(entry.id)}
+                            >
+                              Löschen
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
