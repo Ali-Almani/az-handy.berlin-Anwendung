@@ -28,10 +28,16 @@ const ArchivNews = () => {
     const id = setInterval(() => fetchHistory(false), 30000);
     const socket = getSocket();
     const onUpdated = () => fetchHistory(false);
-    if (socket) socket.on('siteNews:updated', onUpdated);
+    if (socket) {
+      socket.on('siteNews:updated', onUpdated);
+      socket.on('siteNewsHistory:updated', onUpdated);
+    }
     return () => {
       clearInterval(id);
-      if (socket) socket.off('siteNews:updated', onUpdated);
+      if (socket) {
+        socket.off('siteNews:updated', onUpdated);
+        socket.off('siteNewsHistory:updated', onUpdated);
+      }
     };
   }, [user?.id, user?.role]);
 

@@ -119,26 +119,30 @@ const Dashboard = () => {
         setSiteNewsLoading(false);
       }
     };
-    const loadSiteNewsHistory = async () => {
+    const loadSiteNewsHistory = async (withLoading = true) => {
       try {
-        setSiteNewsHistoryLoading(true);
+        if (withLoading) setSiteNewsHistoryLoading(true);
         const res = await getSiteNewsHistory();
         setSiteNewsHistory(res.data?.entries ?? []);
       } catch {
         setSiteNewsHistory([]);
       } finally {
-        setSiteNewsHistoryLoading(false);
+        if (withLoading) setSiteNewsHistoryLoading(false);
       }
     };
     loadSiteNews();
-    loadSiteNewsHistory();
+    loadSiteNewsHistory(true);
     const socket = getSocket();
-    const onSiteNewsUpdated = () => {
-      loadSiteNewsHistory();
-    };
-    if (socket) socket.on('siteNews:updated', onSiteNewsUpdated);
+    const refreshAlteNewsQuiet = () => loadSiteNewsHistory(false);
+    if (socket) {
+      socket.on('siteNews:updated', refreshAlteNewsQuiet);
+      socket.on('siteNewsHistory:updated', refreshAlteNewsQuiet);
+    }
     return () => {
-      if (socket) socket.off('siteNews:updated', onSiteNewsUpdated);
+      if (socket) {
+        socket.off('siteNews:updated', refreshAlteNewsQuiet);
+        socket.off('siteNewsHistory:updated', refreshAlteNewsQuiet);
+      }
     };
   }, [user?.id, user?.role]);
 

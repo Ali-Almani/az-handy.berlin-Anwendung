@@ -473,6 +473,10 @@ export const updateSiteNewsHistoryEntry = async (req, res, next) => {
     };
     data.history = history;
     saveJson(SITE_NEWS_FILE, data);
+    const io = req.app?.get?.('io');
+    if (io) {
+      io.emit('siteNewsHistory:updated', { id, action: 'update', updatedAt: history[idx].updatedAt });
+    }
     return res.json({ success: true, entry: history[idx] });
   } catch (error) {
     next(error);
@@ -491,6 +495,10 @@ export const deleteSiteNewsHistoryEntry = async (req, res, next) => {
     const history = Array.isArray(data.history) ? data.history : [];
     data.history = history.filter((h) => h && h.id !== id);
     saveJson(SITE_NEWS_FILE, data);
+    const io = req.app?.get?.('io');
+    if (io) {
+      io.emit('siteNewsHistory:updated', { id, action: 'delete' });
+    }
     return res.json({ success: true });
   } catch (error) {
     next(error);
