@@ -407,6 +407,35 @@
     }
   }
 
+  .dashboard-accordion-panel > .dashboard-archive--in-anweisung:first-child {
+    border-top: none;
+  }
+
+  .dashboard-archive--in-anweisung {
+    border-top: 1px solid $border-color;
+    padding: 0 $spacing-md $spacing-md;
+
+    .dashboard-archive-in-anweisung-title {
+      margin: 0;
+      padding: $spacing-md 0 $spacing-sm;
+      font-size: 1rem;
+      font-weight: $font-weight-bold;
+      color: #34495e;
+    }
+
+    .dashboard-archive-in-anweisung-body {
+      padding: 0;
+    }
+  }
+
+  .dashboard-anweisung-editor {
+    border-bottom: none;
+  }
+
+  .dashboard-new-message .dashboard-archive--in-anweisung {
+    border-top-color: #e8e8e8;
+  }
+
   .dashboard-archive {
     .dashboard-archive-list {
       margin: 0;

@@ -25,9 +25,9 @@ const Dashboard = () => {
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
   const [siteNewsError, setSiteNewsError] = useState(null);
   const [siteNewsEditorKey, setSiteNewsEditorKey] = useState(0);
-  const [accordionKennzahlen, setAccordionKennzahlen] = useState(true);
-  const [accordionNews, setAccordionNews] = useState(true);
-  const [accordionAnweisung, setAccordionAnweisung] = useState(true);
+  const [accordionKennzahlen, setAccordionKennzahlen] = useState(false);
+  const [accordionNews, setAccordionNews] = useState(false);
+  const [accordionAnweisung, setAccordionAnweisung] = useState(false);
   const kennzahlenPanelId = useId();
   const newsPanelId = useId();
   const anweisungPanelId = useId();
@@ -263,7 +263,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {isAdmin(user) && canShowDashboardNotes(user) && (
+      {isAdmin(user) && (
         <div className="card dashboard-new-message dashboard-accordion">
           <button
             type="button"
@@ -287,125 +287,122 @@ const Dashboard = () => {
             aria-labelledby={`${anweisungPanelId}-trigger`}
             hidden={!accordionAnweisung}
           >
-            <div className="card-body">
-              {noteError && <p className="text-error">{noteError}</p>}
-              {noteLoading ? (
-                <p>Lade...</p>
-              ) : (
-                <TextEditor
-                  key={editorKey}
-                  initialContent={noteContent}
-                  onSave={handleSave}
-                  placeholder="schreiben Sie hier Ihre Anweisung ."
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isAdmin(user) && (
-        <div className="card dashboard-archive">
-          <div className="card-header">
-            <h2 className="card-title">Alte Anweisung</h2>
-          </div>
-          <div className="card-body">
-            {archiveLoading ? (
-              <p>Lade Archiv...</p>
-            ) : archive.length === 0 ? (
-              <p className="text-muted">Keine vergangenen Nachrichten.</p>
-            ) : (
-              <ul className="dashboard-archive-list">
-                {archive.map((m) => (
-                  <li key={m.id} className="dashboard-archive-item">
-                    {editingId === m.id ? (
-                      <>
-                        <textarea
-                          className="dashboard-archive-edit-input"
-                          value={editingContent}
-                          onChange={(e) => setEditingContent(e.target.value)}
-                          rows={4}
-                          placeholder="Nachricht bearbeiten..."
-                        />
-                        <div className="dashboard-archive-actions">
-                          <button
-                            type="button"
-                            className="btn btn--primary btn--small"
-                            onClick={() => handleSaveEditArchive(m.id)}
-                            aria-label="Änderungen speichern"
-                          >
-                            Speichern
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--outline btn--small"
-                            onClick={handleCancelEditArchive}
-                            aria-label="Abbrechen"
-                          >
-                            Abbrechen
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className="dashboard-archive-content"
-                          dangerouslySetInnerHTML={{ __html: m.content || '' }}
-                        />
-                        {m.createdAt && (
-                          <div className="dashboard-archive-date">
-                            Erstellt: {new Date(m.createdAt).toLocaleString('de-DE', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        )}
-                        {m.updatedAt && (
-                          <div className="dashboard-archive-edited">
-                            Bearbeitet am {new Date(m.updatedAt).toLocaleString('de-DE', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                            {m.updatedBy && ` von ${m.updatedBy}`}
-                          </div>
-                        )}
-                        {m.readers?.length > 0 ? (
-                          <div className="dashboard-archive-readers">
-                            Gelesen von: {m.readers.map((r) => r.userName).join(', ')}
-                          </div>
-                        ) : (
-                          <div className="dashboard-archive-readers">Noch von niemandem gelesen.</div>
-                        )}
-                        <div className="dashboard-archive-actions">
-                          <button
-                            type="button"
-                            className="btn btn--outline btn--small"
-                            onClick={() => handleStartEditArchive(m)}
-                            aria-label="Nachricht bearbeiten"
-                          >
-                            Bearbeiten
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--danger btn--small"
-                            onClick={() => handleDeleteArchive(m.id)}
-                            aria-label="Nachricht löschen"
-                          >
-                            Löschen
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
+            {canShowDashboardNotes(user) && (
+              <div className="card-body dashboard-anweisung-editor">
+                {noteError && <p className="text-error">{noteError}</p>}
+                {noteLoading ? (
+                  <p>Lade...</p>
+                ) : (
+                  <TextEditor
+                    key={editorKey}
+                    initialContent={noteContent}
+                    onSave={handleSave}
+                    placeholder="schreiben Sie hier Ihre Anweisung ."
+                  />
+                )}
+              </div>
             )}
+            <div className="dashboard-archive dashboard-archive--in-anweisung">
+              <h3 className="dashboard-archive-in-anweisung-title">Alte Anweisung</h3>
+              <div className="dashboard-archive-in-anweisung-body">
+                {archiveLoading ? (
+                  <p>Lade Archiv…</p>
+                ) : archive.length === 0 ? (
+                  <p className="text-muted">Keine vergangenen Nachrichten.</p>
+                ) : (
+                  <ul className="dashboard-archive-list">
+                    {archive.map((m) => (
+                      <li key={m.id} className="dashboard-archive-item">
+                        {editingId === m.id ? (
+                          <>
+                            <textarea
+                              className="dashboard-archive-edit-input"
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              rows={4}
+                              placeholder="Nachricht bearbeiten..."
+                            />
+                            <div className="dashboard-archive-actions">
+                              <button
+                                type="button"
+                                className="btn btn--primary btn--small"
+                                onClick={() => handleSaveEditArchive(m.id)}
+                                aria-label="Änderungen speichern"
+                              >
+                                Speichern
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn--outline btn--small"
+                                onClick={handleCancelEditArchive}
+                                aria-label="Abbrechen"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div
+                              className="dashboard-archive-content"
+                              dangerouslySetInnerHTML={{ __html: m.content || '' }}
+                            />
+                            {m.createdAt && (
+                              <div className="dashboard-archive-date">
+                                Erstellt: {new Date(m.createdAt).toLocaleString('de-DE', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            )}
+                            {m.updatedAt && (
+                              <div className="dashboard-archive-edited">
+                                Bearbeitet am {new Date(m.updatedAt).toLocaleString('de-DE', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                                {m.updatedBy && ` von ${m.updatedBy}`}
+                              </div>
+                            )}
+                            {m.readers?.length > 0 ? (
+                              <div className="dashboard-archive-readers">
+                                Gelesen von: {m.readers.map((r) => r.userName).join(', ')}
+                              </div>
+                            ) : (
+                              <div className="dashboard-archive-readers">Noch von niemandem gelesen.</div>
+                            )}
+                            <div className="dashboard-archive-actions">
+                              <button
+                                type="button"
+                                className="btn btn--outline btn--small"
+                                onClick={() => handleStartEditArchive(m)}
+                                aria-label="Nachricht bearbeiten"
+                              >
+                                Bearbeiten
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn--danger btn--small"
+                                onClick={() => handleDeleteArchive(m.id)}
+                                aria-label="Nachricht löschen"
+                              >
+                                Löschen
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
