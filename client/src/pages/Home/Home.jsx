@@ -147,7 +147,7 @@ const Home = () => {
                 <span className="home__news-accordion-trigger-main">
                   <span className="home__news-accordion-title">NEWS</span>
                   {newsIsUnread && (
-                    <span className="home__news-accordion-badge">Neue Nachricht</span>
+                    <span className="home__news-accordion-badge">NEUE Nachricht</span>
                   )}
                 </span>
                 <span className="home__news-accordion-chevron" aria-hidden>
