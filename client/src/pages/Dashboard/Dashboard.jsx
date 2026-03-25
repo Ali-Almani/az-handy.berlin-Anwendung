@@ -10,6 +10,11 @@ import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import './Dashboard.scss';
 
+/** Nur ein Admin-Accordion gleichzeitig offen */
+const ACC_KENNZAHLEN = 'kennzahlen';
+const ACC_NEWS = 'news';
+const ACC_ANWEISUNG = 'anweisung';
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [metricsMeta, setMetricsMeta] = useState(null);
@@ -25,9 +30,7 @@ const Dashboard = () => {
   const [siteNewsLoading, setSiteNewsLoading] = useState(true);
   const [siteNewsError, setSiteNewsError] = useState(null);
   const [siteNewsEditorKey, setSiteNewsEditorKey] = useState(0);
-  const [accordionKennzahlen, setAccordionKennzahlen] = useState(false);
-  const [accordionNews, setAccordionNews] = useState(false);
-  const [accordionAnweisung, setAccordionAnweisung] = useState(false);
+  const [openAdminAccordion, setOpenAdminAccordion] = useState(null);
   const kennzahlenPanelId = useId();
   const newsPanelId = useId();
   const anweisungPanelId = useId();
@@ -181,6 +184,14 @@ const Dashboard = () => {
     }
   };
 
+  const toggleAdminAccordion = (section) => {
+    setOpenAdminAccordion((prev) => (prev === section ? null : section));
+  };
+
+  const accordionKennzahlen = openAdminAccordion === ACC_KENNZAHLEN;
+  const accordionNews = openAdminAccordion === ACC_NEWS;
+  const accordionAnweisung = openAdminAccordion === ACC_ANWEISUNG;
+
   return (
     <div className="dashboard">
       {isAdmin(user) && (
@@ -191,7 +202,7 @@ const Dashboard = () => {
             aria-expanded={accordionKennzahlen}
             aria-controls={kennzahlenPanelId}
             id={`${kennzahlenPanelId}-trigger`}
-            onClick={() => setAccordionKennzahlen((o) => !o)}
+            onClick={() => toggleAdminAccordion(ACC_KENNZAHLEN)}
           >
             <h2 className="card-title">Kennzahlen</h2>
             <span className="dashboard-accordion-chevron" aria-hidden>
@@ -226,7 +237,7 @@ const Dashboard = () => {
             aria-expanded={accordionNews}
             aria-controls={newsPanelId}
             id={`${newsPanelId}-trigger`}
-            onClick={() => setAccordionNews((o) => !o)}
+            onClick={() => toggleAdminAccordion(ACC_NEWS)}
           >
             <h2 className="card-title">NEWS</h2>
             <span className="dashboard-accordion-chevron" aria-hidden>
@@ -271,7 +282,7 @@ const Dashboard = () => {
             aria-expanded={accordionAnweisung}
             aria-controls={anweisungPanelId}
             id={`${anweisungPanelId}-trigger`}
-            onClick={() => setAccordionAnweisung((o) => !o)}
+            onClick={() => toggleAdminAccordion(ACC_ANWEISUNG)}
           >
             <h2 className="card-title">Anweisung schreiben</h2>
             <span className="dashboard-accordion-chevron" aria-hidden>
