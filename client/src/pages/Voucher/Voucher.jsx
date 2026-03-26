@@ -9,7 +9,7 @@ import VoucherHistoryModal from './components/VoucherHistoryModal';
 import { useVoucherCopyHandlers } from './hooks/useVoucherCopyHandlers';
 import {
   findVoucherArtKey,
-  findNummerKey,
+  resolveNummerKey,
   buildVoucherDisplayColumns,
   getRowNummer,
   VOUCHER_FIXED_TABS,
@@ -39,7 +39,7 @@ const Voucher = () => {
   }, [uploaded]);
 
   const voucherArtKey = useMemo(() => findVoucherArtKey(columnOrderFirst), [columnOrderFirst]);
-  const nummerKey = useMemo(() => findNummerKey(columnOrderFirst), [columnOrderFirst]);
+  const nummerKey = useMemo(() => resolveNummerKey(columnOrderFirst, uploaded), [columnOrderFirst, uploaded]);
   const displayCols = useMemo(
     () => buildVoucherDisplayColumns(columnOrderFirst, nummerKey),
     [columnOrderFirst, nummerKey]
