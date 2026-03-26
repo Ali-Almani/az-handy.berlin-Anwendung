@@ -99,27 +99,39 @@ function rowSearchBlob(row) {
     .join('\n');
 }
 
-/** Drei feste Tabs – Zuordnung über Zeileninhalte (wie frühere Demo-Kategorien). */
+/**
+ * „Alle“ zeigt jede importierte Zeile (wichtig für Excel ohne o2-/Yildiz-Text in Zellen).
+ * Die anderen Tabs filtern nach typischen Begriffen – Varianten ohne Leerzeichen (z. B. 5euro) auch erkannt.
+ */
 export const VOUCHER_FIXED_TABS = [
+  { id: 'all', label: 'Alle' },
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
   { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
   { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' }
 ];
 
 export function rowMatchesVoucherTab(row, tabId) {
+  if (tabId === 'all') return true;
   const s = rowSearchBlob(row);
+  const compact = s.replace(/\s+/g, '');
+  const hasYildiz =
+    s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
   switch (tabId) {
     case 'o2_ff':
       return (
-        s.includes('o2') &&
-        (s.includes('family') || s.includes('friends') || s.includes('f&f') || s.includes('f & f'))
+        (s.includes('o2') || s.includes('telefónica') || s.includes('telefonica')) &&
+        (s.includes('family') ||
+          s.includes('friends') ||
+          s.includes('f&f') ||
+          s.includes('f & f') ||
+          compact.includes('f&f'))
       );
     case 'ay_ag0':
-      return (s.includes('yildiz') || s.includes('ay yildiz')) && s.includes('ag0');
+      return hasYildiz && (s.includes('ag0') || s.includes('ag 0'));
     case 'ay_5eur':
       return (
-        (s.includes('yildiz') || s.includes('ay yildiz')) &&
-        (s.includes('rabatt') || s.includes('5 euro') || s.includes('5€'))
+        hasYildiz &&
+        (s.includes('rabatt') || s.includes('5 euro') || s.includes('5€') || compact.includes('5euro'))
       );
     default:
       return false;
