@@ -319,12 +319,34 @@
   }
 
   .imeis-table-wrapper {
+    width: 100%;
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 600px;
+    max-height: min(70vh, 560px);
+    max-height: min(70dvh, 560px);
+    -webkit-overflow-scrolling: touch;
     border: 1px solid $border-color;
     border-radius: 2px;
     position: relative;
+    min-height: 0;
+  }
+
+  /* Tablet und größer: Höhe ans Viewport koppeln, klarer eigener Scrollbereich (Y + ggf. X) */
+  @media (min-width: $breakpoint-md) {
+    .imeis > .card > .card-body {
+      min-width: 0;
+    }
+
+    .imeis-table-wrapper {
+      max-height: min(74dvh, 820px);
+      overscroll-behavior: contain;
+    }
+  }
+
+  @media (min-width: $breakpoint-lg) {
+    .imeis-table-wrapper {
+      max-height: min(78dvh, 880px);
+    }
   }
 
   .imeis-table {
@@ -681,9 +703,15 @@
     }
   }
 
-  /* Bestand-Modal: kompakter für weniger Scrollen */
+  /* Bestand-Modal: max. 700px Höhe, Chart + Tabelle */
   .imeis-zustand-modal {
-    .imeis-history-modal-header {
+    max-height: 700px;
+    max-width: min(960px, 96vw);
+    width: 100%;
+
+    .imeis-history-modal-header,
+    .imeis-zustand-modal__header {
+      flex-shrink: 0;
       padding: $spacing-sm $spacing-md;
 
       h3 {
@@ -691,12 +719,208 @@
       }
     }
 
-    .imeis-history-modal-body {
+    .imeis-history-modal-body,
+    .imeis-zustand-modal__body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       padding: $spacing-sm $spacing-md;
     }
 
-    .imeis-history-modal-footer {
+    .imeis-history-modal-footer,
+    .imeis-zustand-modal__footer {
+      flex-shrink: 0;
       padding: $spacing-sm $spacing-md;
+    }
+  }
+
+  .imeis-zustand-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-xl;
+    gap: $spacing-md;
+
+    &__text {
+      margin: 0;
+      font-size: 1rem;
+      color: $primary-color;
+    }
+
+    &__spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid $bg-light;
+      border-top-color: $primary-color;
+      border-radius: 50%;
+      animation: imeis-zustand-spin 0.9s linear infinite;
+    }
+  }
+
+  @keyframes imeis-zustand-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .imeis-zustand-empty {
+    text-align: center;
+    color: $text-light;
+    padding: $spacing-lg;
+    margin: 0;
+  }
+
+  .imeis-zustand-chart-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: $spacing-md;
+    flex-shrink: 0;
+    margin-bottom: $spacing-sm;
+    padding-bottom: $spacing-sm;
+    border-bottom: 1px solid $border-color;
+  }
+
+  .imeis-zustand-chart {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    min-width: 0;
+
+    &__svg {
+      width: 140px;
+      height: 140px;
+      flex-shrink: 0;
+    }
+
+    &__meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    &__total-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: $text-light;
+    }
+
+    &__total-value {
+      font-size: 1.25rem;
+      color: $primary-color;
+      font-weight: $font-weight-bold;
+    }
+
+    &__hint {
+      font-size: 0.8rem;
+      color: $text-light;
+    }
+  }
+
+  .imeis-zustand-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    min-width: 180px;
+    max-height: 140px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+
+    &__item {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+      padding: 0.2rem 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    &__swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    &__name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: $text-color;
+    }
+
+    &__stats {
+      font-family: $font-family-base;
+      font-variant-numeric: tabular-nums;
+      color: $text-light;
+      flex-shrink: 0;
+    }
+  }
+
+  .imeis-zustand-table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid $border-color;
+    border-radius: 2px;
+  }
+
+  .imeis-zustand-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: $bg-light;
+      box-shadow: 0 1px 0 $border-color;
+    }
+
+    th,
+    td {
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid $border-color;
+      vertical-align: top;
+    }
+
+    th {
+      font-weight: $font-weight-bold;
+      color: $text-color;
+    }
+
+    tbody tr {
+      &:nth-child(even) {
+        background: $bg-light;
+      }
+
+      &:hover {
+        background: #e9ecef;
+      }
+    }
+
+    &__model {
+      word-break: break-word;
+    }
+
+    &__num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      width: 5rem;
     }
   }
 

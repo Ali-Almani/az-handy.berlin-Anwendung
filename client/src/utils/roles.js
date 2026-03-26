@@ -94,10 +94,10 @@ export const canAccessDashboard = (user) => {
   return !isMitarbeiterShop(user);
 };
 
-// Prüfe ob Benutzer Excel-Upload sehen darf (nur Büro Mitarbeiter, nicht Administrator)
+// Prüfe ob Benutzer Excel-Upload sehen darf (Büro Mitarbeiter und Administrator)
 export const canShowExcelUpload = (user) => {
   if (!user) return false;
-  return user.role === ROLES.BUERO_MITARBEITER;
+  return user.role === ROLES.BUERO_MITARBEITER || isAdmin(user);
 };
 
 // Prüfe ob Benutzer Dashboard-Notizen (TextEditor) sehen darf (nur Admin)

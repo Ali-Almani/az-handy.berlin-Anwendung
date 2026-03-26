@@ -1,183 +1,189 @@
+import { useMemo } from 'react';
+
+const CHART_COLORS = ['#005d95', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'];
+
+const flattenZustandRows = (zustandData) => {
+  const rows = [];
+  if (!zustandData?.manufacturers?.length) return rows;
+  const total = zustandData.total || 0;
+  for (const m of zustandData.manufacturers) {
+    for (const v of m.versions) {
+      for (const vr of v.variants) {
+        for (const g of vr.gbs) {
+          let model = v.version;
+          if (vr.variant && vr.variant !== 'Standard') model += ` ${vr.variant}`;
+          if (g.gb && g.gb !== 'Unbekannt') model += ` ${g.gb}`;
+          rows.push({
+            manufacturer: m.manufacturer,
+            model: model.trim(),
+            count: g.count,
+            key: `${m.manufacturer}-${v.version}-${vr.variant}-${g.gb}`
+          });
+        }
+      }
+    }
+  }
+  rows.sort((a, b) => b.count - a.count);
+  return rows.map((r) => ({
+    ...r,
+    pct: total > 0 ? ((r.count / total) * 100).toFixed(1) : '0.0'
+  }));
+};
+
+/** Donut-Segment im SVG (Winkel von oben im Uhrzeigersinn) */
+const describeDonutSlice = (cx, cy, rOuter, rInner, a0, a1) => {
+  const xo0 = cx + rOuter * Math.cos(a0);
+  const yo0 = cy + rOuter * Math.sin(a0);
+  const xo1 = cx + rOuter * Math.cos(a1);
+  const yo1 = cy + rOuter * Math.sin(a1);
+  const xi0 = cx + rInner * Math.cos(a0);
+  const yi0 = cy + rInner * Math.sin(a0);
+  const xi1 = cx + rInner * Math.cos(a1);
+  const yi1 = cy + rInner * Math.sin(a1);
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  return [
+    'M', xo0, yo0,
+    'A', rOuter, rOuter, 0, large, 1, xo1, yo1,
+    'L', xi1, yi1,
+    'A', rInner, rInner, 0, large, 0, xi0, yi0,
+    'Z'
+  ].join(' ');
+};
+
+const ZustandDistributionChart = ({ manufacturers, total }) => {
+  const cx = 50;
+  const cy = 50;
+  const rOuter = 38;
+  const rInner = 23;
+
+  if (!total || !manufacturers?.length) return null;
+
+  if (manufacturers.length === 1) {
+    const color = CHART_COLORS[0];
+    return (
+      <svg className="imeis-zustand-chart__svg" viewBox="0 0 100 100" aria-hidden>
+        <circle cx={cx} cy={cy} r={rOuter} fill={color} />
+        <circle cx={cx} cy={cy} r={rInner} fill="#fff" />
+      </svg>
+    );
+  }
+
+  let cumulative = 0;
+  const paths = manufacturers.map((m, i) => {
+    const frac = m.total / total;
+    const a0 = -Math.PI / 2 + cumulative * 2 * Math.PI;
+    cumulative += frac;
+    const a1 = -Math.PI / 2 + cumulative * 2 * Math.PI;
+    if (frac <= 0) return null;
+    const d = describeDonutSlice(cx, cy, rOuter, rInner, a0, a1);
+    return (
+      <path
+        key={m.manufacturer}
+        d={d}
+        fill={CHART_COLORS[i % CHART_COLORS.length]}
+        stroke="#fff"
+        strokeWidth="0.5"
+      />
+    );
+  });
+
+  return (
+    <svg className="imeis-zustand-chart__svg" viewBox="0 0 100 100" aria-hidden>
+      {paths}
+    </svg>
+  );
+};
+
 const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
+  const tableRows = useMemo(() => flattenZustandRows(zustandData), [zustandData]);
+  const chartTotal = zustandData?.total ?? 0;
+  const manufacturers = zustandData?.manufacturers ?? [];
+
   if (!isOpen) return null;
 
   return (
-    <div className="imeis-history-modal-overlay" onClick={onClose}>
-      <div className="imeis-history-modal imeis-zustand-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '95vw', width: '95vw' }}>
-        <div className="imeis-history-modal-header">
-          <h3>Bestand</h3>
-          <button
-            onClick={onClose}
-            className="imeis-history-modal-close"
-            aria-label="Schließen"
-          >
+    <div className="imeis-history-modal-overlay" onClick={onClose} role="presentation">
+      <div
+        className="imeis-history-modal imeis-zustand-modal"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="imeis-zustand-title"
+        aria-modal="true"
+      >
+        <div className="imeis-history-modal-header imeis-zustand-modal__header">
+          <h3 id="imeis-zustand-title">Bestand</h3>
+          <button type="button" onClick={onClose} className="imeis-history-modal-close" aria-label="Schließen">
             ×
           </button>
         </div>
-        <div className="imeis-history-modal-body">
+        <div className="imeis-history-modal-body imeis-zustand-modal__body">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div style={{ fontSize: '1.2rem', color: '#005d95', marginBottom: '1rem' }}>Lade Daten...</div>
-              <div style={{
-                display: 'inline-block',
-                width: '40px',
-                height: '40px',
-                border: '4px solid #f3f3f3',
-                borderTop: '4px solid #005d95',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-              <style>{`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `}</style>
+            <div className="imeis-zustand-loading">
+              <p className="imeis-zustand-loading__text">Lade Daten…</p>
+              <div className="imeis-zustand-loading__spinner" aria-hidden />
             </div>
-          ) : !zustandData || zustandData.manufacturers.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#999', padding: '1.5rem' }}>
-              Keine IMEIs gefunden
-            </p>
+          ) : !zustandData || manufacturers.length === 0 ? (
+            <p className="imeis-zustand-empty">Keine IMEIs gefunden</p>
           ) : (
-            <div className="imeis-history-list">
-              <div style={{ marginBottom: '1rem', padding: '0.6rem', backgroundColor: '#fff', borderRadius: '4px', border: '1px solid #dee2e6' }}>
-                <h4 style={{ marginBottom: '0.5rem', fontSize: '0.95rem', fontWeight: 'bold', color: '#005d95' }}>
-                  Verteilung nach Marken
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {zustandData.manufacturers.map((manufacturerData, mIndex) => {
-                    const percentage = zustandData.total > 0 ? (manufacturerData.total / zustandData.total * 100).toFixed(1) : 0;
-                    const colors = ['#005d95', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'];
-                    const color = colors[mIndex % colors.length];
+            <>
+              <div className="imeis-zustand-chart-panel">
+                <div className="imeis-zustand-chart">
+                  <ZustandDistributionChart manufacturers={manufacturers} total={chartTotal} />
+                  <div className="imeis-zustand-chart__meta">
+                    <span className="imeis-zustand-chart__total-label">Gesamt</span>
+                    <strong className="imeis-zustand-chart__total-value">{chartTotal} IMEIs</strong>
+                    <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
+                  </div>
+                </div>
+                <ul className="imeis-zustand-legend">
+                  {manufacturers.map((m, i) => {
+                    const pct = chartTotal > 0 ? ((m.total / chartTotal) * 100).toFixed(1) : '0.0';
                     return (
-                      <div key={mIndex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ minWidth: '100px', fontSize: '0.85rem', fontWeight: '500', color: '#495057' }}>
-                          {manufacturerData.manufacturer}
-                        </div>
-                        <div style={{ flex: 1, position: 'relative', height: '22px', backgroundColor: '#e9ecef', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              width: `${percentage}%`,
-                              backgroundColor: color,
-                              transition: 'width 0.3s ease',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'flex-end',
-                              paddingRight: '0.5rem',
-                              color: '#fff',
-                              fontSize: '0.85rem',
-                              fontWeight: '500'
-                            }}
-                          >
-                            {percentage > 5 && `${percentage}%`}
-                          </div>
-                        </div>
-                        <div style={{ minWidth: '60px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 'bold', color: '#495057', fontFamily: "'Courier New', monospace" }}>
-                          {manufacturerData.total}
-                        </div>
-                      </div>
+                      <li key={m.manufacturer} className="imeis-zustand-legend__item">
+                        <span
+                          className="imeis-zustand-legend__swatch"
+                          style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                        />
+                        <span className="imeis-zustand-legend__name">{m.manufacturer}</span>
+                        <span className="imeis-zustand-legend__stats">
+                          {m.total} ({pct}%)
+                        </span>
+                      </li>
                     );
                   })}
-                </div>
-                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #dee2e6', textAlign: 'right' }}>
-                  <strong style={{ fontSize: '0.9rem', color: '#005d95' }}>Gesamt: {zustandData.total} IMEIs</strong>
-                </div>
+                </ul>
               </div>
-              {zustandData.manufacturers.map((manufacturerData, mIndex) => {
-                const allCards = manufacturerData.versions.flatMap((versionData) =>
-                  versionData.variants.flatMap((variantData) =>
-                    variantData.gbs.map((gbData) => {
-                      let displayText = versionData.version;
-                      if (variantData.variant && variantData.variant !== 'Standard') {
-                        displayText += ` ${variantData.variant}`;
-                      }
-                      if (gbData.gb && gbData.gb !== 'Unbekannt') {
-                        displayText += ` ${gbData.gb}`;
-                      }
-                      return {
-                        displayText,
-                        count: gbData.count,
-                        key: `${mIndex}-${versionData.version}-${variantData.variant}-${gbData.gb}`
-                      };
-                    })
-                  )
-                );
-                allCards.sort((a, b) => b.count - a.count);
-
-                return (
-                  <div key={mIndex} style={{ marginBottom: '0.75rem' }}>
-                    <h4 style={{
-                      marginBottom: '0.35rem',
-                      padding: '0.35rem 0.5rem',
-                      backgroundColor: '#e9ecef',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                      fontSize: '0.9rem',
-                      color: '#005d95'
-                    }}>
-                      {manufacturerData.manufacturer} ({manufacturerData.total})
-                    </h4>
-                    <div style={{ marginLeft: '0.75rem', display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.4rem', width: 'calc(100% - 0.75rem)' }}>
-                      {allCards.map((card) => (
-                        <div
-                          key={card.key}
-                          style={{
-                            padding: '0.35rem',
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '4px',
-                            border: '1px solid #dee2e6',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            minHeight: '44px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#e9ecef';
-                            e.currentTarget.style.borderColor = '#adb5bd';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f8f9fa';
-                            e.currentTarget.style.borderColor = '#dee2e6';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          <div style={{
-                            whiteSpace: 'normal',
-                            wordBreak: 'break-word',
-                            fontSize: '0.8rem',
-                            marginBottom: '0.15rem'
-                          }}>
-                            {card.displayText}
-                          </div>
-                          <div style={{
-                            textAlign: 'right',
-                            fontWeight: 'bold',
-                            fontSize: '0.85rem',
-                            color: '#495057',
-                            fontFamily: "'Courier New', monospace"
-                          }}>
-                            {card.count}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+              <div className="imeis-zustand-table-wrap">
+                <table className="imeis-zustand-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Hersteller</th>
+                      <th scope="col">Modell</th>
+                      <th scope="col" className="imeis-zustand-table__num">
+                        Anzahl
+                      </th>
+                      <th scope="col" className="imeis-zustand-table__num">
+                        Anteil %
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((row) => (
+                      <tr key={row.key}>
+                        <td>{row.manufacturer}</td>
+                        <td className="imeis-zustand-table__model">{row.model || '–'}</td>
+                        <td className="imeis-zustand-table__num">{row.count}</td>
+                        <td className="imeis-zustand-table__num">{row.pct}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
-        <div className="imeis-history-modal-footer">
-          <button
-            onClick={onClose}
-            className="btn btn--secondary btn--small"
-          >
+        <div className="imeis-history-modal-footer imeis-zustand-modal__footer">
+          <button type="button" onClick={onClose} className="btn btn--secondary btn--small">
             Schließen
           </button>
         </div>

@@ -26,15 +26,19 @@
   }
 
   &-link {
-    color: $text-color;
+    color: $text-light;
     font-weight: $font-weight-medium;
     transition: $transition-base;
 
     &:hover {
-      color: $primary-color;
+      color: $text-color;
     }
 
     &--active {
+      color: $primary-color;
+    }
+
+    &--active:hover {
       color: $primary-color;
     }
   }

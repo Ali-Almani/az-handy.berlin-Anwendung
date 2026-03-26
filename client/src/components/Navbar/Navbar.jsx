@@ -411,15 +411,7 @@ const Navbar = ({
                 )}
               </li>
             </>
-          ) : (
-            <>
-              <li>
-                <Link to="/login" className="btn btn--primary btn--small">
-                  Anmelden
-                </Link>
-              </li>
-            </>
-          )}
+          ) : null}
         </ul>
         <div className="navbar-mobile-right">
           {user ? (
@@ -514,11 +506,7 @@ const Navbar = ({
                 </div>
               )}
             </div>
-          ) : (
-            <Link to="/login" className="btn btn--primary btn--small" onClick={closeMobileMenu}>
-              Anmelden
-            </Link>
-          )}
+          ) : null}
           <button
             type="button"
             className="navbar-hamburger"
@@ -561,11 +549,6 @@ const Navbar = ({
           </div>
           <ul className="navbar-mobile-nav">
             {navLinksMobile}
-            {!user && (
-              <li>
-                <Link to="/login" className="btn btn--primary btn--small" onClick={closeMobileMenu}>Anmelden</Link>
-              </li>
-            )}
           </ul>
         </div>
       </div>
