@@ -1,12 +1,7 @@
-/** Erkennt Spalten für Voucher-Art (Tabs) und Nummer (Kopie bei Reservieren). */
+/** Erkennt Spalte „Nummer“ / Code (Kopie bei Reservieren). */
 export function findVoucherArtKey(headers) {
   if (!headers?.length) return null;
-  const tests = [
-    /voucher[\s\-_]?art/i,
-    /voucher\s*type/i,
-    /^art$/i,
-    /vouchertype/i
-  ];
+  const tests = [/voucher[\s\-_]?art/i, /voucher\s*type/i, /^art$/i, /vouchertype/i];
   for (const h of headers) {
     const s = String(h || '');
     if (tests.some((re) => re.test(s))) return h;
@@ -30,31 +25,46 @@ export function getRowNummer(row, nummerKey) {
   return v != null && v !== undefined ? String(v).trim() : '';
 }
 
-export function getRowVoucherArt(row, artKey) {
-  if (!artKey || !row?.rowData) return '';
-  const v = row.rowData[artKey];
-  const s = v != null && v !== undefined ? String(v).trim() : '';
-  return s || '(Ohne Angabe)';
+function rowSearchBlob(row) {
+  if (!row?.rowData) return '';
+  return Object.values(row.rowData)
+    .map((v) => String(v ?? '').toLowerCase())
+    .join('\n');
 }
 
-export function uniqueTabsForRows(rows, artKey) {
-  if (!artKey || !rows?.length) return [];
-  const set = new Set();
-  rows.forEach((r) => {
-    set.add(getRowVoucherArt(r, artKey));
-  });
-  return Array.from(set).sort((a, b) => String(a).localeCompare(String(b), 'de'));
+/** Drei feste Tabs – Zuordnung über Zeileninhalte (wie frühere Demo-Kategorien). */
+export const VOUCHER_FIXED_TABS = [
+  { id: 'o2_ff', label: 'o2 mit Family and Friends' },
+  { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
+  { id: 'ay_5eur', label: 'Ay Yildiz · 5 Euro Rabatt Voucher' }
+];
+
+export function rowMatchesVoucherTab(row, tabId) {
+  const s = rowSearchBlob(row);
+  switch (tabId) {
+    case 'o2_ff':
+      return (
+        s.includes('o2') &&
+        (s.includes('family') || s.includes('friends') || s.includes('f&f') || s.includes('f & f'))
+      );
+    case 'ay_ag0':
+      return (s.includes('yildiz') || s.includes('ay yildiz')) && s.includes('ag0');
+    case 'ay_5eur':
+      return (
+        (s.includes('yildiz') || s.includes('ay yildiz')) &&
+        (s.includes('rabatt') || s.includes('5 euro') || s.includes('5€'))
+      );
+    default:
+      return false;
+  }
 }
 
-export function buildDisplayColumnOrder(columnOrder, nummerKey) {
+/** Wie IMEI-Tabelle: Nummer, Aktion, dann übrige Spalten. */
+export function buildVoucherDisplayColumns(columnOrder, nummerKey) {
   const base = Array.isArray(columnOrder) ? [...columnOrder] : [];
-  if (!nummerKey || !base.includes(nummerKey)) {
-    return [...base, '__aktion__'];
+  if (!nummerKey) {
+    return ['__aktion__', ...base];
   }
-  const out = [];
-  for (const c of base) {
-    out.push(c);
-    if (c === nummerKey) out.push('__aktion__');
-  }
-  return out;
+  const rest = base.filter((c) => c !== nummerKey);
+  return ['__nummer__', '__aktion__', ...rest];
 }

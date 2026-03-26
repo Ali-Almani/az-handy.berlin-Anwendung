@@ -96,6 +96,15 @@
   margin-bottom: $spacing-md;
 }
 
+.voucher-admin-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-md;
+}
+
 .voucher-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -103,6 +112,14 @@
   margin-bottom: $spacing-md;
   padding-bottom: $spacing-sm;
   border-bottom: 1px solid #e8e8e8;
+
+  &.voucher-tabs--fixed {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .voucher-tab {
