@@ -377,7 +377,7 @@ const Dashboard = () => {
                   {siteNewsHistoryEditId && (
                     <div className="dashboard-site-news-archive-hint">
                       <p>
-                        Sie bearbeiten einen Eintrag aus „Alte NEWS“ im Editor oben. Speichern übernimmt nur
+                        Sie bearbeiten einen Eintrag aus „Archiv NEWS“ im Editor oben. Speichern übernimmt nur
                         diesen Archiv-Eintrag, nicht die aktuelle Startseiten-NEWS.
                       </p>
                       <button
@@ -407,7 +407,7 @@ const Dashboard = () => {
                   id={`${alteNewsPanelId}-trigger`}
                   onClick={() => setSiteNewsAlteOpen((o) => !o)}
                 >
-                  <h3 className="card-title">Alte NEWS</h3>
+                  <h3 className="card-title">Archiv NEWS</h3>
                   <span className="dashboard-accordion-chevron" aria-hidden>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
