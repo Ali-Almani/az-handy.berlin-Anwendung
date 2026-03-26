@@ -36,7 +36,7 @@ function rowSearchBlob(row) {
 export const VOUCHER_FIXED_TABS = [
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
   { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
-  { id: 'ay_5eur', label: 'Ay Yildiz · 5 Euro Rabatt Voucher' }
+  { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' }
 ];
 
 export function rowMatchesVoucherTab(row, tabId) {

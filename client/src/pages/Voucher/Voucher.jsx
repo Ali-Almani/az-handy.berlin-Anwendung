@@ -224,14 +224,6 @@ const Voucher = () => {
                         <button type="button" className="btn btn--danger btn--small" onClick={handleDeleteAllLocal}>
                           Alle löschen
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn--secondary btn--small"
-                          disabled
-                          title="Nicht verfügbar in der Voucher-Verwaltung"
-                        >
-                          Bestand
-                        </button>
                       </div>
                     </div>
                   </div>

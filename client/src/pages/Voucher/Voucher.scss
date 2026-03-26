@@ -96,12 +96,14 @@
   margin-bottom: $spacing-md;
 }
 
-/** Kategorie-Tabs: gleiche Klassen wie IMEI-Hersteller; längere Voucher-Labels mehrzeilig */
+/** Kategorie-Tabs: einzeilig (kein Umbrechen mitten im Label) */
 .imeis .voucher-category-tabs.imeis-manufacturer-tabs {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
   .imeis-manufacturer-tab {
-    white-space: normal;
-    text-align: center;
-    line-height: 1.35;
-    max-width: 12.5rem;
+    white-space: nowrap;
+    max-width: none;
+    flex-shrink: 0;
   }
 }
