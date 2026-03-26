@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useId } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { canAccessImeis, canAccessDashboard, isAdmin } from '../../utils/roles';
+import { canAccessImeisList, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
@@ -202,7 +202,7 @@ const Navbar = ({
   };
 
   const renderImeisItem = () =>
-    canAccessImeis(user) ? (
+    canAccessImeisList(user) ? (
       <li>
         <NavLink to="/imeis" className={navLinkClassName} onClick={closeMobileMenu} end>
           IMEIs

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { canAccessImeis, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isTeamleiterShop, isAdmin } from '../../utils/roles';
+import { canAccessImeisList, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isTeamleiterShop, isAdmin } from '../../utils/roles';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -108,12 +108,12 @@ const Imeis = () => {
     }
   }, [searchParams, setSearchParams, setShowHistoryModal]);
 
-  if (!canAccessImeis(user)) {
+  if (!canAccessImeisList(user)) {
     return (
       <div className="imeis">
         <div className="card">
           <div className="card-body">
-            <p>Sie haben keine Berechtigung, diese Seite zu sehen.</p>
+            <p>Die IMEI-Übersicht ist nur für den Einsatzort Zentrale vorgesehen.</p>
           </div>
         </div>
       </div>
