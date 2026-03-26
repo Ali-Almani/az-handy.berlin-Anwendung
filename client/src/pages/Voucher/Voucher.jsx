@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getVouchersApi } from '../../services/api';
+import { getVouchersApi, putVoucherUserStateApi } from '../../services/api';
 import { canAccessVoucherList } from '../../utils/roles';
 import Login from '../Auth/Login';
 import '../Imeis/Imeis.scss';
@@ -99,6 +99,61 @@ const Voucher = () => {
     setSelectedCells(new Set());
   }, [activeTab]);
 
+  const handleExportCsv = useCallback(() => {
+    if (!filteredRows.length) return;
+    const headers = displayCols.map((col) => {
+      if (col === '__nummer__') return 'Nummer';
+      if (col === '__aktion__') return 'Aktion';
+      return col;
+    });
+    const rows = filteredRows.map((row) =>
+      displayCols.map((col) => {
+        if (col === '__nummer__') return getRowNummer(row, nummerKey);
+        if (col === '__aktion__') {
+          const rid = voucherRowId(row);
+          const ra = rowActions[rid];
+          return ra ? `${ra.action} (${ra.userName || ''})` : '';
+        }
+        const v = row.rowData?.[col];
+        return v != null && v !== undefined ? String(v) : '';
+      })
+    );
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const link = document.createElement('a');
+    link.setAttribute(
+      'href',
+      URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }))
+    );
+    link.setAttribute('download', `voucher_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [filteredRows, displayCols, nummerKey, rowActions, voucherRowId, activeTab]);
+
+  const handleDeleteAllLocal = useCallback(async () => {
+    if (
+      !window.confirm(
+        'Alle Voucher-Reservierungen und Verlauf-Einträge aus der Anzeige löschen? (Betrifft nur Ihren Zugang.)'
+      )
+    ) {
+      return;
+    }
+    setCopyHistory([]);
+    setCopyTimestamps([]);
+    setRowActions({});
+    setHistoryUndoStack([]);
+    setSelectedCells(new Set());
+    try {
+      await putVoucherUserStateApi({ copyHistory: [], copyTimestamps: [], rowActions: {} });
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || err.message || 'Speichern fehlgeschlagen.');
+    }
+  }, []);
+
   if (!user) {
     return <Login />;
   }
@@ -148,30 +203,56 @@ const Voucher = () => {
                 </p>
               ) : (
                 <>
-                  <div className="voucher-tabs-block">
-                    <div className="voucher-verlauf-above-tabs">
-                      <button
-                        type="button"
-                        className="btn btn--small imeis-history-btn"
-                        onClick={() => setShowHistoryModal(true)}
-                      >
-                        Verlauf ({copyHistory.length})
-                      </button>
-                    </div>
-                    <div className="imeis-sheet-tabs" role="tablist" aria-label="Voucher-Kategorie">
-                      {VOUCHER_FIXED_TABS.map((tab) => (
+                  <div className="imeis-controls">
+                    <div className="imeis-actions">
+                      <div className="imeis-actions-buttons">
                         <button
-                          key={tab.id}
                           type="button"
-                          role="tab"
-                          aria-selected={activeTab === tab.id}
-                          className={`imeis-sheet-tab${activeTab === tab.id ? ' imeis-sheet-tab--active' : ''}`}
-                          onClick={() => setActiveTab(tab.id)}
+                          className="btn btn--secondary btn--small"
+                          disabled={filteredRows.length === 0}
+                          onClick={handleExportCsv}
                         >
-                          {tab.label}
+                          Exportieren (CSV)
                         </button>
-                      ))}
+                        <button
+                          type="button"
+                          className="btn btn--small imeis-history-btn"
+                          onClick={() => setShowHistoryModal(true)}
+                        >
+                          Verlauf ({copyHistory.length})
+                        </button>
+                        <button type="button" className="btn btn--danger btn--small" onClick={handleDeleteAllLocal}>
+                          Alle löschen
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--secondary btn--small"
+                          disabled
+                          title="Nicht verfügbar in der Voucher-Verwaltung"
+                        >
+                          Bestand
+                        </button>
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="imeis-manufacturer-tabs voucher-category-tabs" role="tablist" aria-label="Voucher-Kategorie">
+                    {VOUCHER_FIXED_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
+                        className={`imeis-manufacturer-tab${activeTab === tab.id ? ' imeis-manufacturer-tab--active' : ''}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setActiveTab(tab.id);
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
 
                   {!nummerKey && (
@@ -180,7 +261,7 @@ const Voucher = () => {
                     </p>
                   )}
 
-                  <div className="imeis">
+                  <>
                     {filteredRows.length === 0 ? (
                       <p className="voucher-meta">
                         Keine Zeilen für diese Kategorie. Excel muss Voucher-Daten enthalten, die zu „
@@ -368,7 +449,7 @@ const Voucher = () => {
                       historyUndoStack={historyUndoStack}
                       onUndo={handleHistoryModalUndo}
                     />
-                  </div>
+                  </>
                 </>
               )}
             </>
