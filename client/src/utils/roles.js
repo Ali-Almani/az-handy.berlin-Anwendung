@@ -98,10 +98,10 @@ export const canSeeBestand = (user) => {
          role === ROLES.TEAMLEITER_SHOP;
 };
 
-// Prüfe ob Benutzer Dashboard sehen darf (nicht Mitarbeiter shop)
+// Prüfe ob Benutzer Dashboard sehen darf (Navbar + Route: nur Administrator und Büro Mitarbeiter)
 export const canAccessDashboard = (user) => {
   if (!user) return false;
-  return !isMitarbeiterShop(user);
+  return isAdmin(user) || isBüroMitarbeiter(user);
 };
 
 // Prüfe ob Benutzer Excel-Upload sehen darf (Büro Mitarbeiter und Administrator)
