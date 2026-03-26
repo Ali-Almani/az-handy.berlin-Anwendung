@@ -1,6 +1,6 @@
 @import '../../styles/variables';
 
-/* Archiv NEWS – Layout angelehnt an Home NEWS-Accordion (vgl. az-schnelltest.berlin) */
+/* Archiv NEWS – gleiches Accordion-Muster wie Startseiten-NEWS */
 
 .archiv-news-page {
   max-width: 1400px;
@@ -16,22 +16,10 @@
 }
 
 .archiv-news-page__title {
-  margin: 0 0 $spacing-xs;
+  margin: 0;
   font-size: 1.35rem;
   font-weight: $font-weight-bold;
   color: #34495e;
-}
-
-.archiv-news-page__subtitle {
-  margin: 0;
-  font-size: 0.9rem;
-  color: $text-light;
-  line-height: 1.5;
-  max-width: 52rem;
-
-  a {
-    color: $primary-color;
-  }
 }
 
 .archiv-news-feed {

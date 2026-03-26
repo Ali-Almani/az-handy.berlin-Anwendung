@@ -138,13 +138,6 @@ const ArchivNews = () => {
     <div className="archiv-news-page">
       <header className="archiv-news-page__intro">
         <h1 className="archiv-news-page__title">Archiv NEWS</h1>
-        <p className="archiv-news-page__subtitle">
-          Frühere Startseiten-NEWS – Darstellung wie auf der Startseite (
-          <a href="https://az-schnelltest.berlin/" target="_blank" rel="noopener noreferrer">
-            az-schnelltest.berlin
-          </a>
-          ).
-        </p>
       </header>
 
       <div className="archiv-news-feed">
