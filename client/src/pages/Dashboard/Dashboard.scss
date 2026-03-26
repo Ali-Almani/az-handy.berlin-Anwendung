@@ -101,6 +101,11 @@
     overflow: visible;
   }
 
+  .dashboard-excel-upload-panel {
+    padding: $spacing-sm $spacing-md $spacing-md;
+    overflow: visible;
+  }
+
   .dashboard-site-news {
     position: relative;
     z-index: 25;
@@ -761,6 +766,30 @@
   &.dashboard-user-management {
     overflow: visible;
   }
+
+  &.dashboard-excel-upload {
+    overflow: visible;
+  }
+
+  .dashboard-admin-panel__header.dashboard-excel-upload__headerRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+/* Pill wie Startseiten-NEWS-Badge, kompakt für Excel-Panel-Titel */
+.dashboard-excel-upload__badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: $primary-color;
+  border-radius: 999px;
 }
 
 @media (max-width: $breakpoint-md) {

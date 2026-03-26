@@ -296,6 +296,18 @@ const Dashboard = () => {
   const navBtnClass = (section) =>
     `dashboard-admin-nav__item${adminSection === section ? ' is-active' : ''}`;
 
+  const renderExcelDashboardPanel = () => (
+    <div className="card dashboard-excel-upload dashboard-admin-panel">
+      <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
+        <h2 className="card-title">IMEs Excel-Datei hochladen</h2>
+        <span className="dashboard-excel-upload__badge">Excel / CSV</span>
+      </div>
+      <div className="dashboard-excel-upload-panel">
+        <ExcelUpload embedded />
+      </div>
+    </div>
+  );
+
   return (
     <div className="dashboard">
       {isAdmin(user) && (
@@ -659,12 +671,31 @@ const Dashboard = () => {
               </div>
             )}
 
-            {adminSection === SEC_EXCEL && canShowExcelUpload(user) && <ExcelUpload />}
+            {adminSection === SEC_EXCEL && canShowExcelUpload(user) && renderExcelDashboardPanel()}
           </div>
         </div>
       )}
 
-      {!isAdmin(user) && canShowExcelUpload(user) && <ExcelUpload />}
+      {!isAdmin(user) && canShowExcelUpload(user) && (
+        <div className="dashboard-admin-layout">
+          <aside className="dashboard-admin-sidebar">
+            <nav className="dashboard-admin-nav" aria-label="Büro-Dashboard">
+              <ul className="dashboard-admin-nav__list">
+                <li>
+                  <button
+                    type="button"
+                    className="dashboard-admin-nav__item is-active"
+                    aria-current="page"
+                  >
+                    IMEs Excel-Datei hochladen
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </aside>
+          <div className="dashboard-admin-main">{renderExcelDashboardPanel()}</div>
+        </div>
+      )}
     </div>
   );
 };

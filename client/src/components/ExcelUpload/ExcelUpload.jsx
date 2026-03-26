@@ -9,7 +9,7 @@ import { persistImeisState } from '../../services/imeis.service';
 
 const VALID_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
 
-const ExcelUpload = () => {
+const ExcelUpload = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState(null);
@@ -90,12 +90,7 @@ const ExcelUpload = () => {
 
   const handleViewAllImeis = () => navigate('/imeis');
 
-  return (
-    <div className="card">
-      <div className="card-header">
-        <h2 className="card-title">IMEs Excel-Datei hochladen</h2>
-      </div>
-      <div className="card-body">
+  const body = (
         <div className="excel-upload-section">
           <div className="form-group">
             <label htmlFor="excel-file-input" className="form-label">
@@ -174,6 +169,19 @@ const ExcelUpload = () => {
             </div>
           )}
         </div>
+  );
+
+  if (embedded) {
+    return body;
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h2 className="card-title">IMEs Excel-Datei hochladen</h2>
+      </div>
+      <div className="card-body">
+        {body}
       </div>
     </div>
   );
