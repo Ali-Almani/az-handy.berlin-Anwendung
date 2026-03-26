@@ -8,6 +8,7 @@ import ArchivAnweisung from './pages/ArchivAnweisung/ArchivAnweisung';
 import ArchivNews from './pages/ArchivNews/ArchivNews';
 import Settings from './pages/Settings/Settings';
 import Imeis from './pages/Imeis/Imeis';
+import Voucher from './pages/Voucher/Voucher';
 import Documentation from './pages/Documentation/Documentation';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
@@ -55,6 +56,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Imeis />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/voucher"
+          element={
+            <ProtectedRoute>
+              <Voucher />
             </ProtectedRoute>
           }
         />

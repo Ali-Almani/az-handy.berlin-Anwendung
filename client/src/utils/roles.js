@@ -79,6 +79,9 @@ export const canAccessImeisList = (user) => {
   return String(user.einsatz_ort || '').trim() !== 'Zentrale';
 };
 
+/** Voucher-Navbar + Seite: gleiche Regel wie IMEI-Liste */
+export const canAccessVoucherList = canAccessImeisList;
+
 // Prüfe ob Benutzer Export und Alle löschen sehen darf (Admin, Teamleiter, Büro Mitarbeiter)
 export const canUseImeiAdvancedActions = (user) => {
   if (!user) return false;

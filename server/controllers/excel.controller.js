@@ -1,9 +1,53 @@
 import ExcelJS from 'exceljs';
 import { saveImeisDataToStorage } from './imeis.controller.js';
 import User from '../models/User.js';
-import { saveJson } from '../utils/filePersistence.js';
+import { saveJson, loadJson } from '../utils/filePersistence.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
+
+/** Demo-Zeilen (Anzeige immer); hochgeladene Zeilen kommen aus vouchers.json */
+export const DEMO_VOUCHER_ROWS = [
+  {
+    provider: 'o2',
+    verlauf: 'Verlauf o2',
+    voucherType: 'Family and Friends (F&F) Voucher',
+    code: '400812345678',
+    digitLength: 12,
+    isDemo: true
+  },
+  {
+    provider: 'Ay Yildiz',
+    verlauf: '—',
+    voucherType: 'AG0- Voucher',
+    code: '987654321098765',
+    digitLength: 15,
+    isDemo: true
+  },
+  {
+    provider: 'Ay Yildiz',
+    verlauf: '—',
+    voucherType: '5 Euro Rabatt Voucher',
+    code: '123450987654321',
+    digitLength: 15,
+    isDemo: true
+  }
+];
+
+async function userCanViewVouchers(userId) {
+  if (!userId) return false;
+  try {
+    const u = await User.findByPk(userId);
+    if (!u) return false;
+    const role = String(u.role ?? u.get?.('role') ?? u.dataValues?.role ?? '').trim();
+    if (role === 'Büro Mitarbeiter') return true;
+    const roleLower = role.toLowerCase();
+    if (roleLower.includes('admin') || role === 'Administrator') return true;
+    const ort = String(u.einsatz_ort ?? u.get?.('einsatz_ort') ?? u.dataValues?.einsatz_ort ?? '').trim();
+    return ort !== 'Zentrale';
+  } catch {
+    return false;
+  }
+}
 
 async function userCanUploadVouchers(userId) {
   if (!userId) return false;
@@ -225,6 +269,25 @@ export const processExcelFile = async (req, res) => {
       message: 'Fehler beim Verarbeiten der Excel-Datei',
       error: error.message
     });
+  }
+};
+
+/** Voucher-Daten lesen: Demo + hochgeladene Zeilen (Rechte wie IMEI-Liste) */
+export const getVouchers = async (req, res, next) => {
+  try {
+    if (!(await userCanViewVouchers(req.user?.userId))) {
+      return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
+    }
+    const data = loadJson(VOUCHERS_FILE) || {};
+    const uploaded = Array.isArray(data.rows) ? data.rows : [];
+    return res.json({
+      success: true,
+      demo: DEMO_VOUCHER_ROWS,
+      uploaded,
+      updatedAt: data.updatedAt ?? null
+    });
+  } catch (error) {
+    next(error);
   }
 };
 

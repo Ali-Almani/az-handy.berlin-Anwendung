@@ -63,6 +63,41 @@ const createMockApi = () => {
       if (url === '/imeis/extra-copy-notifications') {
         return { data: { success: true, notifications: [] } };
       }
+      if (url === '/excel/vouchers') {
+        return {
+          data: {
+            success: true,
+            demo: [
+              {
+                provider: 'o2',
+                verlauf: 'Verlauf o2',
+                voucherType: 'Family and Friends (F&F) Voucher',
+                code: '400812345678',
+                digitLength: 12,
+                isDemo: true
+              },
+              {
+                provider: 'Ay Yildiz',
+                verlauf: '—',
+                voucherType: 'AG0- Voucher',
+                code: '987654321098765',
+                digitLength: 15,
+                isDemo: true
+              },
+              {
+                provider: 'Ay Yildiz',
+                verlauf: '—',
+                voucherType: '5 Euro Rabatt Voucher',
+                code: '123450987654321',
+                digitLength: 15,
+                isDemo: true
+              }
+            ],
+            uploaded: [],
+            updatedAt: null
+          }
+        };
+      }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     put: async (url, data) => {
@@ -190,6 +225,11 @@ export const uploadVoucherExcelFile = async (file) => {
   });
 
   return response.data;
+};
+
+export const getVouchersApi = async () => {
+  const res = await api.get('/excel/vouchers');
+  return res.data;
 };
 
 if (USE_MOCK_API) {

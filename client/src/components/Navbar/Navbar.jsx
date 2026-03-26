@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useId } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { canAccessImeisList, canAccessDashboard, isAdmin } from '../../utils/roles';
+import { canAccessImeisList, canAccessVoucherList, canAccessDashboard, isAdmin } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
@@ -210,6 +210,15 @@ const Navbar = ({
       </li>
     ) : null;
 
+  const renderVoucherItem = () =>
+    canAccessVoucherList(user) ? (
+      <li>
+        <NavLink to="/voucher" className={navLinkClassName} onClick={closeMobileMenu} end>
+          Voucher
+        </NavLink>
+      </li>
+    ) : null;
+
   const renderDashboardItem = () =>
     canAccessDashboard(user) ? (
       <li>
@@ -222,6 +231,7 @@ const Navbar = ({
   const navLinksDesktop = (
     <>
       {renderImeisItem()}
+      {renderVoucherItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId)}
       {renderDashboardItem()}
     </>
@@ -230,6 +240,7 @@ const Navbar = ({
   const navLinksMobile = (
     <>
       {renderImeisItem()}
+      {renderVoucherItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
       {renderDashboardItem()}
     </>
