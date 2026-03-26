@@ -1,5 +1,6 @@
 import api from './api';
 import { mockGetAdminName } from './mockApi';
+import { hasMeaningfulHtml } from '../utils/htmlContent';
 
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
   import.meta.env.VITE_API_URL === 'mock' ||
@@ -243,7 +244,7 @@ export const saveSiteNews = (content) => {
       const prevContent = typeof data.content === 'string' ? data.content : '';
       const prevAt = data.updatedAt ?? null;
       const newContent = typeof content === 'string' ? content : '';
-      if (prevContent.trim() && prevContent !== newContent) {
+      if (hasMeaningfulHtml(prevContent) && prevContent !== newContent) {
         const history = Array.isArray(data.history) ? [...data.history] : [];
         history.unshift({
           id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,

@@ -2,6 +2,7 @@ import { useEffect, useState, useId, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getSiteNewsHistory } from '../../services/dashboard.service';
 import { getSocket } from '../../services/socket';
+import { hasMeaningfulHtml } from '../../utils/htmlContent';
 import Login from '../Auth/Login';
 import './ArchivNews.scss';
 
@@ -25,8 +26,7 @@ const ArchivNewsEntry = ({ entry, idBase, defaultOpen }) => {
   const triggerId = `${idBase}-trigger-${entry.id}`;
   const panelId = `${idBase}-panel-${entry.id}`;
   const dateStr = formatStand(entry.updatedAt);
-  const hasBody =
-    entry.content && String(entry.content).replace(/<[^>]+>/g, '').trim().length > 0;
+  const hasBody = hasMeaningfulHtml(entry.content);
 
   return (
     <div className="card archiv-news-entry-card">

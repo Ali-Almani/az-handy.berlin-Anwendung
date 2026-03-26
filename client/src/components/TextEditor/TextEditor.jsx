@@ -91,7 +91,10 @@ const TextEditor = ({
   const handleInput = (e) => setContent(e.target.innerHTML);
 
   const handleSave = async () => {
-    await onSave?.(content);
+    // Zuletzt im DOM stehen lassen: Bei contentEditable fehlt manchmal das letzte onInput vor Klick auf Speichern.
+    const payload =
+      isEditing && editorRef.current ? editorRef.current.innerHTML : content;
+    await onSave?.(payload);
     setContent('');
     setLastSavedContent('');
     setIsEditing(false);

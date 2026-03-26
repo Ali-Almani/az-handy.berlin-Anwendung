@@ -388,6 +388,20 @@ export const savePerformanceMetrics = async (req, res, next) => {
 
 const SITE_NEWS_FILE = 'dashboard-site-news.json';
 
+/** Vorherige NEWS nur archivieren, wenn sich echter Inhalt (nicht nur leeres Markup) darin befindet. */
+function siteNewsHtmlIsMeaningful(html) {
+  if (html == null || typeof html !== 'string') return false;
+  const s = html.trim();
+  if (!s) return false;
+  if (/<img\b|<video\b|<iframe\b|<picture\b|<svg\b|<canvas\b|<table\b/i.test(s)) return true;
+  const text = s
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > 0;
+}
+
 /** NEWS-Startseiteninhalt (alle eingeloggten Benutzer lesbar, nur Admin schreibt) */
 export const getSiteNews = async (req, res, next) => {
   try {
@@ -419,7 +433,7 @@ export const saveSiteNews = async (req, res, next) => {
     const prevContent = typeof data.content === 'string' ? data.content : '';
     const prevAt = data.updatedAt ?? null;
     const newContent = typeof content === 'string' ? content : '';
-    if (prevContent.trim() && prevContent !== newContent) {
+    if (siteNewsHtmlIsMeaningful(prevContent) && prevContent !== newContent) {
       const history = Array.isArray(data.history) ? [...data.history] : [];
       history.unshift({
         id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
