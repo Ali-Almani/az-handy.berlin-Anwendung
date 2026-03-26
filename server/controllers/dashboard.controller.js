@@ -434,6 +434,7 @@ export const saveSiteNews = async (req, res, next) => {
     const io = req.app?.get?.('io');
     if (io) {
       io.emit('siteNews:updated', { updatedAt: data.updatedAt });
+      io.emit('siteNewsHistory:updated', { action: 'prepend' });
     }
     return res.json({ success: true, message: 'NEWS gespeichert', updatedAt: data.updatedAt });
   } catch (error) {

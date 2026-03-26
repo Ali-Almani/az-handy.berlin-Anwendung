@@ -92,8 +92,12 @@ const TextEditor = ({
 
   const handleSave = async () => {
     await onSave?.(content);
-    setLastSavedContent(content);
+    setContent('');
+    setLastSavedContent('');
     setIsEditing(false);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = '';
+    }
   };
 
   const handleCancel = () => {

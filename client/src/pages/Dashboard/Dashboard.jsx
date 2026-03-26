@@ -195,6 +195,7 @@ const Dashboard = () => {
       setSiteNewsContent('');
       setSiteNewsEditorKey((k) => k + 1);
       await reloadSiteNewsHistory();
+      setSiteNewsAlteOpen(true);
     } catch (error) {
       console.error('Error saving NEWS:', error);
     }
