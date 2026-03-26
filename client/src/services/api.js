@@ -168,6 +168,30 @@ export const uploadExcelFile = async (file, options = {}) => {
   return response.data;
 };
 
+export const uploadVoucherExcelFile = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const token = localStorage.getItem('token');
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (USE_MOCK_API) {
+    throw new Error('Voucher-Excel-Upload im Mock-Modus nicht verfügbar. Bitte verwenden Sie den echten API-Modus.');
+  }
+
+  const response = await axios.post(`${API_BASE || '/api'}/excel/voucher-upload`, formData, {
+    headers: {
+      ...headers,
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+
+  return response.data;
+};
+
 if (USE_MOCK_API) {
   console.log('🔧 Mock API Modus aktiviert - Kein Backend-Server erforderlich!');
   console.log('📝 Test-Login-Daten:');

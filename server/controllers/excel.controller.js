@@ -1,5 +1,23 @@
 import ExcelJS from 'exceljs';
 import { saveImeisDataToStorage } from './imeis.controller.js';
+import User from '../models/User.js';
+import { saveJson } from '../utils/filePersistence.js';
+
+const VOUCHERS_FILE = 'vouchers.json';
+
+async function userCanUploadVouchers(userId) {
+  if (!userId) return false;
+  try {
+    const u = await User.findByPk(userId);
+    if (!u) return false;
+    const role = String(u.role ?? u.get?.('role') ?? u.dataValues?.role ?? '').trim();
+    if (role === 'Büro Mitarbeiter') return true;
+    const roleLower = role.toLowerCase();
+    return roleLower.includes('admin') || role === 'Administrator';
+  } catch {
+    return false;
+  }
+}
 
 const exceljsColorToHex = (color) => {
   if (!color) return null;
@@ -205,6 +223,145 @@ export const processExcelFile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Fehler beim Verarbeiten der Excel-Datei',
+      error: error.message
+    });
+  }
+};
+
+/** Voucher-Listen: alle Tabellenzeilen (ohne IMEI-Pflicht), nur Administrator / Büro Mitarbeiter */
+export const processVoucherExcelFile = async (req, res) => {
+  try {
+    const ok = await userCanUploadVouchers(req.user?.userId);
+    if (!ok) {
+      return res.status(403).json({
+        success: false,
+        message: 'Nur Administrator oder Büro Mitarbeiter können Voucher-Dateien hochladen'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Keine Datei hochgeladen'
+      });
+    }
+
+    const fileExtension = req.file.originalname.split('.').pop().toLowerCase();
+    const buffer = req.file.buffer;
+    let rows = [];
+
+    if (fileExtension === 'csv') {
+      const csvText = buffer.toString('utf-8');
+      const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== '');
+      if (lines.length === 0) {
+        return res.status(400).json({ success: false, message: 'CSV-Datei ist leer' });
+      }
+      const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+        const rowData = {};
+        headers.forEach((header, index) => {
+          const headerName = header || `Spalte${index + 1}`;
+          rowData[headerName] = values[index] || '';
+        });
+        const rowArray = headers.map((_, index) => values[index] || '');
+        const isEmpty = rowArray.every((val) => !val || val.toString().trim() === '');
+        if (!isEmpty) {
+          rows.push({
+            row: i + 1,
+            sheet: 'Sheet1',
+            sheetIndex: 0,
+            data: rowArray,
+            rowData,
+            rowDataFormats: {},
+            columnOrder: headers
+          });
+        }
+      }
+    } else {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+
+      workbook.eachSheet((worksheet, sheetId) => {
+        const sheetName = worksheet.name;
+        const headers = [];
+        const headerRow = worksheet.getRow(1);
+        if (headerRow) {
+          headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const headerValue = cell.value ? cell.value.toString() : '';
+            headers.push(headerValue.trim() || `Spalte${colNumber}`);
+          });
+        }
+
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return;
+          const rowData = {};
+          const rowDataFormats = {};
+          const rowArray = [];
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            let cellValue = '';
+            if (cell.value !== null && cell.value !== undefined) {
+              if (cell.value instanceof Date) {
+                const d = cell.value.getDate();
+                const m = cell.value.getMonth() + 1;
+                const y = cell.value.getFullYear();
+                cellValue = `${d}.${m}.${y}`;
+              } else {
+                cellValue = cell.value.toString();
+              }
+            }
+            const headerName = headers[colNumber - 1] || `Spalte${colNumber}`;
+            rowData[headerName] = cellValue;
+            rowArray.push(cellValue);
+            if (cell.font && cell.font.color) {
+              const textColor = exceljsColorToHex(cell.font.color);
+              if (textColor && textColor !== '#000000') {
+                rowDataFormats[headerName] = { textColor };
+              }
+            }
+          });
+          const isEmptyRow = rowArray.every((val) => !val || val.toString().trim() === '');
+          if (!isEmptyRow) {
+            rows.push({
+              row: rowNumber,
+              sheet: sheetName,
+              sheetIndex: sheetId - 1,
+              data: rowArray,
+              rowData,
+              rowDataFormats,
+              columnOrder: headers
+            });
+          }
+        });
+      });
+    }
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Keine Voucher-/Datenzeilen in der Datei gefunden'
+      });
+    }
+
+    const now = new Date().toISOString();
+    saveJson(VOUCHERS_FILE, {
+      rows,
+      updatedAt: now,
+      updatedByUserId: req.user.userId
+    });
+
+    return res.json({
+      success: true,
+      message: `${rows.length} Zeile(n) als Voucher-Liste gespeichert`,
+      data: rows,
+      count: rows.length,
+      saved: true
+    });
+  } catch (error) {
+    console.error('Error processing voucher Excel file:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Fehler beim Verarbeiten der Voucher-Datei',
       error: error.message
     });
   }

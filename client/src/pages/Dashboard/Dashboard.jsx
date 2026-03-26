@@ -19,6 +19,7 @@ import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
+import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
 import './Dashboard.scss';
@@ -29,6 +30,7 @@ const SEC_NEWS = 'news';
 const SEC_ANWEISUNG = 'anweisung';
 const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
 const SEC_EXCEL = 'excel';
+const SEC_VOUCHER = 'voucher';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -53,6 +55,7 @@ const Dashboard = () => {
   /** Pro Archiv-Eintrag: eingeklappt bis Klick auf Datumszeile */
   const [openAlteNewsEntryIds, setOpenAlteNewsEntryIds] = useState({});
   const [adminSection, setAdminSection] = useState(SEC_KENNZAHLEN);
+  const [bueroSection, setBueroSection] = useState(SEC_EXCEL);
   const alteNewsPanelId = useId();
 
   useEffect(() => {
@@ -296,6 +299,9 @@ const Dashboard = () => {
   const navBtnClass = (section) =>
     `dashboard-admin-nav__item${adminSection === section ? ' is-active' : ''}`;
 
+  const navBtnBueroClass = (section) =>
+    `dashboard-admin-nav__item${bueroSection === section ? ' is-active' : ''}`;
+
   const renderExcelDashboardPanel = () => (
     <div className="card dashboard-excel-upload dashboard-admin-panel">
       <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
@@ -304,6 +310,18 @@ const Dashboard = () => {
       </div>
       <div className="dashboard-excel-upload-panel">
         <ExcelUpload embedded />
+      </div>
+    </div>
+  );
+
+  const renderVoucherDashboardPanel = () => (
+    <div className="card dashboard-excel-upload dashboard-admin-panel">
+      <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
+        <h2 className="card-title">Voucher Excel-Datei hochladen</h2>
+        <span className="dashboard-excel-upload__badge">Voucher</span>
+      </div>
+      <div className="dashboard-excel-upload-panel">
+        <VoucherExcelUpload embedded />
       </div>
     </div>
   );
@@ -360,16 +378,28 @@ const Dashboard = () => {
                   </button>
                 </li>
                 {canShowExcelUpload(user) && (
-                  <li>
-                    <button
-                      type="button"
-                      className={navBtnClass(SEC_EXCEL)}
-                      onClick={() => setAdminSection(SEC_EXCEL)}
-                      aria-current={adminSection === SEC_EXCEL ? 'page' : undefined}
-                    >
-                      IMEs Excel-Datei hochladen
-                    </button>
-                  </li>
+                  <>
+                    <li>
+                      <button
+                        type="button"
+                        className={navBtnClass(SEC_EXCEL)}
+                        onClick={() => setAdminSection(SEC_EXCEL)}
+                        aria-current={adminSection === SEC_EXCEL ? 'page' : undefined}
+                      >
+                        IMEs Excel-Datei hochladen
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        className={navBtnClass(SEC_VOUCHER)}
+                        onClick={() => setAdminSection(SEC_VOUCHER)}
+                        aria-current={adminSection === SEC_VOUCHER ? 'page' : undefined}
+                      >
+                        Voucher Excel-Datei hochladen
+                      </button>
+                    </li>
+                  </>
                 )}
               </ul>
             </nav>
@@ -672,6 +702,7 @@ const Dashboard = () => {
             )}
 
             {adminSection === SEC_EXCEL && canShowExcelUpload(user) && renderExcelDashboardPanel()}
+            {adminSection === SEC_VOUCHER && canShowExcelUpload(user) && renderVoucherDashboardPanel()}
           </div>
         </div>
       )}
@@ -684,16 +715,30 @@ const Dashboard = () => {
                 <li>
                   <button
                     type="button"
-                    className="dashboard-admin-nav__item is-active"
-                    aria-current="page"
+                    className={navBtnBueroClass(SEC_EXCEL)}
+                    onClick={() => setBueroSection(SEC_EXCEL)}
+                    aria-current={bueroSection === SEC_EXCEL ? 'page' : undefined}
                   >
                     IMEs Excel-Datei hochladen
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className={navBtnBueroClass(SEC_VOUCHER)}
+                    onClick={() => setBueroSection(SEC_VOUCHER)}
+                    aria-current={bueroSection === SEC_VOUCHER ? 'page' : undefined}
+                  >
+                    Voucher Excel-Datei hochladen
                   </button>
                 </li>
               </ul>
             </nav>
           </aside>
-          <div className="dashboard-admin-main">{renderExcelDashboardPanel()}</div>
+          <div className="dashboard-admin-main">
+            {bueroSection === SEC_EXCEL && renderExcelDashboardPanel()}
+            {bueroSection === SEC_VOUCHER && renderVoucherDashboardPanel()}
+          </div>
         </div>
       )}
     </div>

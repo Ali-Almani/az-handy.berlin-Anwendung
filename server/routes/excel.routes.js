@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { processExcelFile } from '../controllers/excel.controller.js';
+import { processExcelFile, processVoucherExcelFile } from '../controllers/excel.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -27,5 +27,6 @@ const upload = multer({
 });
 
 router.post('/upload', authenticateToken, upload.single('file'), processExcelFile);
+router.post('/voucher-upload', authenticateToken, upload.single('file'), processVoucherExcelFile);
 
 export default router;
