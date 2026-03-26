@@ -8,6 +8,9 @@ import './Navbar.scss';
 const navLinkClassName = ({ isActive }) =>
   `navbar-link${isActive ? ' navbar-link--active' : ''}`;
 
+const archivDropdownLinkClass = ({ isActive }) =>
+  `navbar-dropdown-item${isActive ? ' navbar-dropdown-item--active' : ''}`;
+
 const Navbar = ({
   hasReminderBadge = false,
   reminderCount = 0,
@@ -174,28 +177,53 @@ const Navbar = ({
           </span>
         </button>
         {archivOpen && (
-          <ul id={submenuId} className="navbar-archiv-submenu" role="list" aria-labelledby={triggerId}>
-            <li role="none">
-              <NavLink
-                to="/archiv-news"
-                className={navLinkClassName}
-                onClick={closeMobileMenu}
-                end
-              >
-                  Archiv NEWS
-              </NavLink>
-            </li>
-            <li role="none">
-              <NavLink
-                to="/archiv-anweisung"
-                className={navLinkClassName}
-                onClick={closeMobileMenu}
-                end
-              >
-                Archiv Anweisung
-              </NavLink>
-            </li>
-          </ul>
+          <div
+            id={submenuId}
+            className="navbar-dropdown navbar-archiv-dropdown"
+            role="menu"
+            aria-labelledby={triggerId}
+          >
+            <NavLink
+              to="/archiv-news"
+              className={archivDropdownLinkClass}
+              onClick={closeMobileMenu}
+              role="menuitem"
+              end
+            >
+              <span className="navbar-dropdown-icon" aria-hidden>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M3 2.5h10c.28 0 .5.22.5.5v10a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5V3c0-.28.22-.5.5-.5z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M4.5 5h7M4.5 8h7M4.5 11h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+              </span>
+              Archiv NEWS
+            </NavLink>
+            <NavLink
+              to="/archiv-anweisung"
+              className={archivDropdownLinkClass}
+              onClick={closeMobileMenu}
+              role="menuitem"
+              end
+            >
+              <span className="navbar-dropdown-icon" aria-hidden>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M3 2.5h10c.28 0 .5.22.5.5v10a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5V3c0-.28.22-.5.5-.5z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M5 5.5l2 2 4-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              Archiv Anweisung
+            </NavLink>
+          </div>
         )}
       </li>
     );

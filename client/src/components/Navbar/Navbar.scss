@@ -230,6 +230,20 @@
       background: #ffecb3;
     }
   }
+
+  &--active {
+    background: rgba($primary-color, 0.1);
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+
+    &:hover {
+      background: rgba($primary-color, 0.14);
+    }
+
+    .navbar-dropdown-icon {
+      color: $primary-color;
+    }
+  }
 }
 
 /* Archiv-Hauptmenü (Nicht-Admins): Untermenü Desktop */
@@ -279,29 +293,12 @@
   }
 }
 
-.navbar-archiv-submenu {
-  position: absolute;
-  top: calc(100% + 0.35rem);
+/* Archiv-Popup: gleiches Panel wie Avatar-Menü (navbar-dropdown), links unter dem Trigger */
+.navbar-archiv-dropdown {
   left: 0;
-  margin: 0;
-  padding: 0.35rem 0;
-  list-style: none;
+  right: auto;
+  top: calc(100% + 10px);
   min-width: 220px;
-  background: #fff;
-  border-radius: 2px;
-  box-shadow: $shadow-lg;
-  z-index: 998;
-
-  li {
-    margin: 0;
-  }
-
-  .navbar-link {
-    display: block;
-    padding: 0.65rem 1rem;
-    white-space: nowrap;
-    text-decoration: none;
-  }
 }
 
 .navbar-dropdown-icon {
@@ -471,24 +468,20 @@
     border-bottom: none;
   }
 
-  .navbar-archiv-submenu {
+  .navbar-archiv-dropdown {
     position: static;
+    margin-top: 0;
     box-shadow: none;
+    border-radius: 0;
     border-top: 1px solid $border-color;
-    background: $bg-light;
+    animation: none;
+    width: 100%;
     min-width: unset;
-    padding: 0;
+    overflow: visible;
+    background: #fff;
 
-    li {
-      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-
-      &:last-child {
-        border-bottom: none;
-      }
-    }
-
-    .navbar-link {
-      padding: 0.85rem 1.25rem 0.85rem 2rem;
+    .navbar-dropdown-item {
+      padding-left: 2rem;
     }
   }
 
