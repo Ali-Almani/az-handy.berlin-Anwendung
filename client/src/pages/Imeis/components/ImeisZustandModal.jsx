@@ -5,7 +5,6 @@ const CHART_COLORS = ['#005d95', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6
 const flattenZustandRows = (zustandData) => {
   const rows = [];
   if (!zustandData?.manufacturers?.length) return rows;
-  const total = zustandData.total || 0;
   for (const m of zustandData.manufacturers) {
     for (const v of m.versions) {
       for (const vr of v.variants) {
@@ -24,10 +23,7 @@ const flattenZustandRows = (zustandData) => {
     }
   }
   rows.sort((a, b) => b.count - a.count);
-  return rows.map((r) => ({
-    ...r,
-    pct: total > 0 ? ((r.count / total) * 100).toFixed(1) : '0.0'
-  }));
+  return rows;
 };
 
 /** Donut-Segment im SVG (Winkel von oben im Uhrzeigersinn) */
@@ -127,13 +123,13 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
           ) : (
             <>
               <div className="imeis-zustand-chart-panel">
-                <div className="imeis-zustand-chart">
+                <div className="imeis-zustand-chart-donut">
                   <ZustandDistributionChart manufacturers={manufacturers} total={chartTotal} />
-                  <div className="imeis-zustand-chart__meta">
-                    <span className="imeis-zustand-chart__total-label">Gesamt</span>
-                    <strong className="imeis-zustand-chart__total-value">{chartTotal} IMEIs</strong>
-                    <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
-                  </div>
+                </div>
+                <div className="imeis-zustand-chart__meta">
+                  <span className="imeis-zustand-chart__total-label">Gesamt</span>
+                  <strong className="imeis-zustand-chart__total-value">{chartTotal} IMEIs</strong>
+                  <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
                 </div>
                 <ul className="imeis-zustand-legend">
                   {manufacturers.map((m, i) => {
@@ -157,23 +153,19 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                 <table className="imeis-zustand-table">
                   <thead>
                     <tr>
-                      <th scope="col">Hersteller</th>
-                      <th scope="col">Modell</th>
-                      <th scope="col" className="imeis-zustand-table__num">
-                        Anzahl
-                      </th>
-                      <th scope="col" className="imeis-zustand-table__num">
-                        Anteil %
+                      <th scope="col" className="imeis-zustand-table__head-line">
+                        <span>Modell</span>
+                        <span className="imeis-zustand-table__head-count">Anzahl</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableRows.map((row) => (
                       <tr key={row.key}>
-                        <td>{row.manufacturer}</td>
-                        <td className="imeis-zustand-table__model">{row.model || '–'}</td>
-                        <td className="imeis-zustand-table__num">{row.count}</td>
-                        <td className="imeis-zustand-table__num">{row.pct}</td>
+                        <td className="imeis-zustand-table__line">
+                          <span className="imeis-zustand-table__model">{row.model || '–'}</span>
+                          <span className="imeis-zustand-table__count">{row.count}</span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

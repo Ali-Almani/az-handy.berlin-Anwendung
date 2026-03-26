@@ -775,61 +775,69 @@
 
   .imeis-zustand-chart-panel {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: $spacing-md;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: $spacing-sm;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     flex-shrink: 0;
     margin-bottom: $spacing-sm;
     padding-bottom: $spacing-sm;
     border-bottom: 1px solid $border-color;
+    min-width: 0;
   }
 
-  .imeis-zustand-chart {
+  .imeis-zustand-chart-donut {
+    flex-shrink: 0;
+
+    .imeis-zustand-chart__svg {
+      width: 100px;
+      height: 100px;
+      display: block;
+    }
+  }
+
+  .imeis-zustand-chart__meta {
     display: flex;
-    align-items: center;
-    gap: $spacing-md;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+    max-width: 42%;
     min-width: 0;
+  }
 
-    &__svg {
-      width: 140px;
-      height: 140px;
-      flex-shrink: 0;
-    }
+  .imeis-zustand-chart__total-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $text-light;
+  }
 
-    &__meta {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+  .imeis-zustand-chart__total-value {
+    font-size: 1.05rem;
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+    line-height: 1.2;
+  }
 
-    &__total-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: $text-light;
-    }
-
-    &__total-value {
-      font-size: 1.25rem;
-      color: $primary-color;
-      font-weight: $font-weight-bold;
-    }
-
-    &__hint {
-      font-size: 0.8rem;
-      color: $text-light;
-    }
+  .imeis-zustand-chart__hint {
+    font-size: 0.72rem;
+    color: $text-light;
+    line-height: 1.2;
   }
 
   .imeis-zustand-legend {
     list-style: none;
     margin: 0;
     padding: 0;
-    flex: 1;
-    min-width: 180px;
-    max-height: 140px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-height: 100px;
+    overflow-x: hidden;
     overflow-y: auto;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 
     &__item {
       display: flex;
@@ -864,13 +872,15 @@
       font-variant-numeric: tabular-nums;
       color: $text-light;
       flex-shrink: 0;
+      white-space: nowrap;
     }
   }
 
   .imeis-zustand-table-wrap {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border: 1px solid $border-color;
     border-radius: 2px;
@@ -878,6 +888,8 @@
 
   .imeis-zustand-table {
     width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.85rem;
 
@@ -892,7 +904,6 @@
     th,
     td {
       padding: 0.45rem 0.6rem;
-      text-align: left;
       border-bottom: 1px solid $border-color;
       vertical-align: top;
     }
@@ -900,6 +911,31 @@
     th {
       font-weight: $font-weight-bold;
       color: $text-color;
+    }
+
+    &__head-line {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: $spacing-sm;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    &__head-count {
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    &__line {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: $spacing-sm;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     tbody tr {
@@ -913,14 +949,18 @@
     }
 
     &__model {
+      flex: 1;
+      min-width: 0;
       word-break: break-word;
+      text-align: left;
     }
 
-    &__num {
-      text-align: right;
+    &__count {
+      flex-shrink: 0;
       font-variant-numeric: tabular-nums;
+      font-weight: $font-weight-bold;
       white-space: nowrap;
-      width: 5rem;
+      color: $text-color;
     }
   }
 
