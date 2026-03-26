@@ -433,17 +433,33 @@ export const saveSiteNews = async (req, res, next) => {
     const prevContent = typeof data.content === 'string' ? data.content : '';
     const prevAt = data.updatedAt ?? null;
     const newContent = typeof content === 'string' ? content : '';
-    if (siteNewsHtmlIsMeaningful(prevContent) && prevContent !== newContent) {
-      const history = Array.isArray(data.history) ? [...data.history] : [];
-      history.unshift({
-        id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-        content: prevContent,
-        updatedAt: prevAt || new Date().toISOString()
-      });
-      data.history = history.slice(0, 100);
+    const now = new Date().toISOString();
+
+    /** Archiv-Einträge nur bei echter Änderung; erste Veröffentlichung (vorher leer) landet ebenfalls im Archiv. */
+    if (prevContent !== newContent) {
+      let history = Array.isArray(data.history) ? [...data.history] : [];
+      if (siteNewsHtmlIsMeaningful(prevContent)) {
+        // Doppelten Eintrag vermeiden, wenn derselbe Text schon als „erste Veröffentlichung“ oben steht.
+        if (history[0] && history[0].content === prevContent) {
+          history.shift();
+        }
+        history.unshift({
+          id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          content: prevContent,
+          updatedAt: prevAt || now
+        });
+        data.history = history.slice(0, 100);
+      } else if (siteNewsHtmlIsMeaningful(newContent)) {
+        history.unshift({
+          id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          content: newContent,
+          updatedAt: now
+        });
+        data.history = history.slice(0, 100);
+      }
     }
     data.content = newContent;
-    data.updatedAt = new Date().toISOString();
+    data.updatedAt = now;
     saveJson(SITE_NEWS_FILE, data);
     const io = req.app?.get?.('io');
     if (io) {

@@ -443,8 +443,8 @@ const Dashboard = () => {
                         <p>Lade Archiv…</p>
                       ) : siteNewsHistory.length === 0 ? (
                         <p className="text-muted">
-                          Keine archivierten NEWS. Beim nächsten Speichern wird die bisherige Startseiten-NEWS hier
-                          abgelegt.
+                          Noch keine NEWS im Archiv. Sobald Sie eine NEWS schreiben und speichern, erscheint sie hier (und
+                          bei weiteren Änderungen die jeweils vorherige Fassung).
                         </p>
                       ) : (
                         <ul className="dashboard-archive-list dashboard-alte-news-archive-list">

@@ -244,17 +244,30 @@ export const saveSiteNews = (content) => {
       const prevContent = typeof data.content === 'string' ? data.content : '';
       const prevAt = data.updatedAt ?? null;
       const newContent = typeof content === 'string' ? content : '';
-      if (hasMeaningfulHtml(prevContent) && prevContent !== newContent) {
-        const history = Array.isArray(data.history) ? [...data.history] : [];
-        history.unshift({
-          id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-          content: prevContent,
-          updatedAt: prevAt || new Date().toISOString()
-        });
-        data.history = history.slice(0, 100);
+      const now = new Date().toISOString();
+      if (prevContent !== newContent) {
+        let history = Array.isArray(data.history) ? [...data.history] : [];
+        if (hasMeaningfulHtml(prevContent)) {
+          if (history[0] && history[0].content === prevContent) {
+            history.shift();
+          }
+          history.unshift({
+            id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            content: prevContent,
+            updatedAt: prevAt || now
+          });
+          data.history = history.slice(0, 100);
+        } else if (hasMeaningfulHtml(newContent)) {
+          history.unshift({
+            id: `sn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            content: newContent,
+            updatedAt: now
+          });
+          data.history = history.slice(0, 100);
+        }
       }
       data.content = newContent;
-      data.updatedAt = new Date().toISOString();
+      data.updatedAt = now;
       localStorage.setItem(SITE_NEWS_MOCK_KEY, JSON.stringify(data));
       return Promise.resolve({
         data: { success: true, message: 'NEWS gespeichert (lokal)', updatedAt: data.updatedAt }
