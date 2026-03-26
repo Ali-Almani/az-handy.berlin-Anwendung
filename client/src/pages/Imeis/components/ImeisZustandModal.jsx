@@ -124,33 +124,73 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading, isAdmin = fa
             <p className="imeis-zustand-empty">Keine IMEIs gefunden</p>
           ) : (
             <>
-              <div className="imeis-zustand-chart-panel">
-                <div className="imeis-zustand-chart-donut">
-                  <ZustandDistributionChart manufacturers={manufacturers} total={chartTotal} />
+              {isAdmin ? (
+                <div className="imeis-zustand-chart-panel imeis-zustand-chart-panel--admin">
+                  <div className="imeis-zustand-chart__meta imeis-zustand-chart__meta--admin">
+                    <span className="imeis-zustand-chart__total-label">Gesamt</span>
+                    <strong className="imeis-zustand-chart__total-value">{chartTotal} IMEIs</strong>
+                    <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
+                  </div>
+                  <table className="imeis-zustand-mfr-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Hersteller</th>
+                        <th scope="col">Anzahl</th>
+                        <th scope="col">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {manufacturers.map((m, i) => {
+                        const pct = chartTotal > 0 ? ((m.total / chartTotal) * 100).toFixed(1) : '0.0';
+                        return (
+                          <tr key={m.manufacturer}>
+                            <td>
+                              <span className="imeis-zustand-mfr-table__name-cell">
+                                <span
+                                  className="imeis-zustand-mfr-table__swatch"
+                                  style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                                  aria-hidden
+                                />
+                                {m.manufacturer}
+                              </span>
+                            </td>
+                            <td>{m.total}</td>
+                            <td>{pct}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="imeis-zustand-chart__meta">
-                  <span className="imeis-zustand-chart__total-label">Gesamt</span>
-                  <strong className="imeis-zustand-chart__total-value">{chartTotal} IMEIs</strong>
-                  <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
+              ) : (
+                <div className="imeis-zustand-chart-panel">
+                  <div className="imeis-zustand-chart-donut">
+                    <ZustandDistributionChart manufacturers={manufacturers} total={chartTotal} />
+                  </div>
+                  <div className="imeis-zustand-chart__meta">
+                    <span className="imeis-zustand-chart__total-label">Gesamt</span>
+                    <strong className="imeis-zustand-chart__total-value">{chartTotal} IMEIs</strong>
+                    <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
+                  </div>
+                  <ul className="imeis-zustand-legend">
+                    {manufacturers.map((m, i) => {
+                      const pct = chartTotal > 0 ? ((m.total / chartTotal) * 100).toFixed(1) : '0.0';
+                      return (
+                        <li key={m.manufacturer} className="imeis-zustand-legend__item">
+                          <span
+                            className="imeis-zustand-legend__swatch"
+                            style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+                          />
+                          <span className="imeis-zustand-legend__name">{m.manufacturer}</span>
+                          <span className="imeis-zustand-legend__stats">
+                            {m.total} ({pct}%)
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-                <ul className="imeis-zustand-legend">
-                  {manufacturers.map((m, i) => {
-                    const pct = chartTotal > 0 ? ((m.total / chartTotal) * 100).toFixed(1) : '0.0';
-                    return (
-                      <li key={m.manufacturer} className="imeis-zustand-legend__item">
-                        <span
-                          className="imeis-zustand-legend__swatch"
-                          style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
-                        />
-                        <span className="imeis-zustand-legend__name">{m.manufacturer}</span>
-                        <span className="imeis-zustand-legend__stats">
-                          {m.total} ({pct}%)
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+              )}
               <div
                 className={
                   isAdmin

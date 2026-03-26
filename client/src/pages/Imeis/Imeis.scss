@@ -790,6 +790,145 @@
       white-space: nowrap;
       color: $text-color;
     }
+
+    .imeis-zustand-chart-panel--admin {
+      flex-direction: column;
+      align-items: stretch;
+      flex-wrap: nowrap;
+      overflow-x: hidden;
+      gap: $spacing-sm;
+    }
+
+    .imeis-zustand-chart__meta--admin {
+      flex-shrink: 0;
+      max-width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem 0.75rem;
+
+      .imeis-zustand-chart__total-label,
+      .imeis-zustand-chart__total-value {
+        display: inline;
+      }
+
+      .imeis-zustand-chart__hint {
+        flex-basis: 100%;
+      }
+    }
+
+    .imeis-zustand-mfr-table {
+      display: block;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.78rem;
+
+      thead {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.35rem;
+
+        tr {
+          display: flex;
+          flex-direction: row;
+          gap: 0.35rem;
+          padding: 0.35rem 0.45rem;
+          background: $bg-light;
+          border: 1px solid $border-color;
+          border-radius: 2px;
+          font-weight: $font-weight-bold;
+          color: $text-color;
+        }
+
+        th {
+          text-align: left;
+          font-weight: $font-weight-bold;
+
+          &:nth-child(1) {
+            flex: 1;
+            min-width: 0;
+          }
+
+          &:nth-child(2),
+          &:nth-child(3) {
+            flex-shrink: 0;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+          }
+
+          &:nth-child(3) {
+            min-width: 2.5rem;
+          }
+        }
+      }
+
+      tbody {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.35rem 0.45rem;
+      }
+
+      tbody tr {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 0.35rem;
+        padding: 0.35rem 0.45rem;
+        border: 1px solid $border-color;
+        border-radius: 2px;
+        background: #fff;
+        box-sizing: border-box;
+
+        &:nth-child(even) {
+          background: $bg-light;
+        }
+      }
+
+      tbody td {
+        padding: 0;
+        border: none;
+        vertical-align: top;
+
+        &:nth-child(1) {
+          flex: 1;
+          min-width: 0;
+        }
+
+        &:nth-child(2),
+        &:nth-child(3) {
+          flex-shrink: 0;
+          font-variant-numeric: tabular-nums;
+          text-align: right;
+          white-space: nowrap;
+        }
+
+        &:nth-child(2) {
+          font-weight: $font-weight-bold;
+        }
+
+        &:nth-child(3) {
+          color: $text-light;
+          min-width: 2.25rem;
+        }
+      }
+
+      &__name-cell {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.35rem;
+        min-width: 0;
+        word-break: break-word;
+      }
+
+      &__swatch {
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+        flex-shrink: 0;
+        margin-top: 0.2em;
+      }
+    }
   }
 
   .imeis-zustand-loading {
