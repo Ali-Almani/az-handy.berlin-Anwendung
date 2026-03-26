@@ -99,43 +99,56 @@ function rowSearchBlob(row) {
     .join('\n');
 }
 
-/**
- * „Alle“ zeigt jede importierte Zeile (wichtig für Excel ohne o2-/Yildiz-Text in Zellen).
- * Die anderen Tabs filtern nach typischen Begriffen – Varianten ohne Leerzeichen (z. B. 5euro) auch erkannt.
- */
+/** Tabs in fester Reihenfolge; jede Zeile gehört genau einem Tab (Priorität o2 → AG0 → 5 € → Sonstige). */
 export const VOUCHER_FIXED_TABS = [
-  { id: 'all', label: 'Alle' },
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
   { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
-  { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' }
+  { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' },
+  { id: 'sonstige', label: 'Sonstige' }
 ];
 
-export function rowMatchesVoucherTab(row, tabId) {
-  if (tabId === 'all') return true;
+function rowBlobParts(row) {
   const s = rowSearchBlob(row);
-  const compact = s.replace(/\s+/g, '');
+  return { s, compact: s.replace(/\s+/g, '') };
+}
+
+export function matchesO2Ff(row) {
+  const { s, compact } = rowBlobParts(row);
+  return (
+    (s.includes('o2') || s.includes('telefónica') || s.includes('telefonica')) &&
+    (s.includes('family') ||
+      s.includes('friends') ||
+      s.includes('f&f') ||
+      s.includes('f & f') ||
+      compact.includes('f&f'))
+  );
+}
+
+export function matchesAyAg0(row) {
+  const { s, compact } = rowBlobParts(row);
   const hasYildiz =
     s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
-  switch (tabId) {
-    case 'o2_ff':
-      return (
-        (s.includes('o2') || s.includes('telefónica') || s.includes('telefonica')) &&
-        (s.includes('family') ||
-          s.includes('friends') ||
-          s.includes('f&f') ||
-          s.includes('f & f') ||
-          compact.includes('f&f'))
-      );
-    case 'ay_ag0':
-      return hasYildiz && (s.includes('ag0') || s.includes('ag 0'));
-    case 'ay_5eur':
-      return (
-        hasYildiz &&
-        (s.includes('rabatt') || s.includes('5 euro') || s.includes('5€') || compact.includes('5euro'))
-      );
-    default:
-      return false;
-  }
+  return hasYildiz && (s.includes('ag0') || s.includes('ag 0'));
+}
+
+export function matchesAy5Eur(row) {
+  const { s, compact } = rowBlobParts(row);
+  const hasYildiz =
+    s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
+  return (
+    hasYildiz && (s.includes('rabatt') || s.includes('5 euro') || s.includes('5€') || compact.includes('5euro'))
+  );
+}
+
+export function getRowVoucherTabId(row) {
+  if (matchesO2Ff(row)) return 'o2_ff';
+  if (matchesAyAg0(row)) return 'ay_ag0';
+  if (matchesAy5Eur(row)) return 'ay_5eur';
+  return 'sonstige';
+}
+
+export function rowMatchesVoucherTab(row, tabId) {
+  return getRowVoucherTabId(row) === tabId;
 }
 
 /** Wie IMEI-Tabelle: Nummer, Aktion, dann übrige Spalten. */

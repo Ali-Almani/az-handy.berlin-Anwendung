@@ -46,16 +46,23 @@ const VoucherHistoryModal = ({ isOpen, onClose, copyHistory, onUpdateHistoryActi
     }
   };
 
-  const handleConfirmYes = () => {
+  const handleConfirmYes = async () => {
     if (!confirmation) return;
-    onUpdateHistoryAction(confirmation.index, confirmation.action);
-    setToast({
-      message:
-        confirmation.action === 'angenommen'
-          ? 'Vertrag wurde bei Partos als angenommen bestätigt.'
-          : 'Vertrag wurde bei Partos als abgelehnt bestätigt.',
-      type: 'success'
-    });
+    try {
+      await Promise.resolve(onUpdateHistoryAction(confirmation.index, confirmation.action));
+      setToast({
+        message:
+          confirmation.action === 'angenommen'
+            ? 'Vertrag wurde bei Partos als angenommen bestätigt.'
+            : 'Vertrag wurde bei Partos als abgelehnt bestätigt.',
+        type: 'success'
+      });
+    } catch (e) {
+      setToast({
+        message: e?.message || 'Aktion fehlgeschlagen.',
+        type: 'error'
+      });
+    }
     setConfirmation(null);
   };
 

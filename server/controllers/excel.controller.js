@@ -288,6 +288,95 @@ export const getVouchers = async (req, res, next) => {
   }
 };
 
+function normalizeClientVoucherRow(input) {
+  if (!input || typeof input !== 'object') return null;
+  const sheet = input.sheet != null ? String(input.sheet) : 'Sheet1';
+  const rowNum = Number(input.row);
+  if (!Number.isFinite(rowNum)) return null;
+  const rowData = input.rowData;
+  if (!rowData || typeof rowData !== 'object' || Array.isArray(rowData)) return null;
+  const out = {
+    sheet,
+    row: rowNum,
+    rowData: { ...rowData },
+    columnOrder: Array.isArray(input.columnOrder) ? [...input.columnOrder] : Object.keys(rowData),
+    rowDataFormats:
+      input.rowDataFormats && typeof input.rowDataFormats === 'object' && !Array.isArray(input.rowDataFormats)
+        ? { ...input.rowDataFormats }
+        : {},
+    sheetIndex: input.sheetIndex != null ? Number(input.sheetIndex) : 0
+  };
+  if (Array.isArray(input.data)) out.data = [...input.data];
+  return out;
+}
+
+function voucherRowsMatch(a, b) {
+  if (String(a.sheet || 'default') !== String(b.sheet || 'default')) return false;
+  if (Number(a.row) !== Number(b.row)) return false;
+  try {
+    return JSON.stringify(a.rowData || {}) === JSON.stringify(b.rowData || {});
+  } catch {
+    return false;
+  }
+}
+
+/** Reservieren: Zeile aus der gemeinsamen Voucher-Liste entfernen (persistiert in vouchers.json) */
+export const removeVoucherListRow = async (req, res, next) => {
+  try {
+    if (!(await userCanViewVouchers(req.user?.userId))) {
+      return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
+    }
+    const payload = normalizeClientVoucherRow(req.body?.row ?? req.body);
+    if (!payload) {
+      return res.status(400).json({ success: false, message: 'Ungültige Zeilendaten' });
+    }
+    const data = loadJson(VOUCHERS_FILE) || {};
+    const rows = Array.isArray(data.rows) ? [...data.rows] : [];
+    const idx = rows.findIndex((r) => voucherRowsMatch(r, payload));
+    if (idx === -1) {
+      return res.status(404).json({ success: false, message: 'Zeile nicht gefunden oder bereits entfernt' });
+    }
+    rows.splice(idx, 1);
+    saveJson(VOUCHERS_FILE, {
+      ...data,
+      rows,
+      updatedAt: new Date().toISOString(),
+      updatedByUserId: req.user.userId
+    });
+    return res.json({ success: true, count: rows.length });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Abgelehnt im Verlauf: Zeile wieder in die Liste einfügen */
+export const restoreVoucherListRow = async (req, res, next) => {
+  try {
+    if (!(await userCanViewVouchers(req.user?.userId))) {
+      return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
+    }
+    const payload = normalizeClientVoucherRow(req.body?.row ?? req.body);
+    if (!payload) {
+      return res.status(400).json({ success: false, message: 'Ungültige Zeilendaten' });
+    }
+    const data = loadJson(VOUCHERS_FILE) || {};
+    const rows = Array.isArray(data.rows) ? [...data.rows] : [];
+    if (rows.some((r) => voucherRowsMatch(r, payload))) {
+      return res.json({ success: true, duplicate: true, count: rows.length });
+    }
+    rows.push(payload);
+    saveJson(VOUCHERS_FILE, {
+      ...data,
+      rows,
+      updatedAt: new Date().toISOString(),
+      updatedByUserId: req.user.userId
+    });
+    return res.json({ success: true, count: rows.length });
+  } catch (e) {
+    next(e);
+  }
+};
+
 /** Verlauf / Reservierungen / Rate-Limit-Zeitstempel pro Benutzer persistieren */
 export const putVoucherUserState = async (req, res, next) => {
   try {

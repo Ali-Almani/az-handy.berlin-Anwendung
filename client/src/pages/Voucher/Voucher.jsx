@@ -65,7 +65,8 @@ const Voucher = () => {
       voucherArtKey,
       setShowRateLimitModal,
       setRateLimitMessage,
-      setCopySuccess
+      setCopySuccess,
+      setUploaded
     });
 
   const load = useCallback(async () => {
@@ -345,7 +346,7 @@ const Voucher = () => {
                                                 onChange={async (e) => {
                                                   e.stopPropagation();
                                                   if (e.target.checked) {
-                                                    await handleDropdownSelect(row, 'reservieren');
+                                                    await handleDropdownSelect(row);
                                                     setSelectedCells((prev) => {
                                                       const next = new Set(prev);
                                                       next.delete(nummerCellId);

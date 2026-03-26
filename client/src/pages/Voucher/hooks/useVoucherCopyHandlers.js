@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
-import { putVoucherUserStateApi } from '../../../services/api';
+import { putVoucherUserStateApi, removeVoucherListRowApi, restoreVoucherListRowApi } from '../../../services/api';
 import { getRowNummer } from '../utils/voucherColumns';
+import { cloneVoucherRowForApi, voucherRowsEqual } from '../utils/voucherRowApi';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 const MAX_COPIES = 10;
@@ -23,7 +24,8 @@ export function useVoucherCopyHandlers({
   voucherArtKey,
   setShowRateLimitModal,
   setRateLimitMessage,
-  setCopySuccess
+  setCopySuccess,
+  setUploaded
 }) {
   const stateRef = useRef({ copyHistory, copyTimestamps, rowActions });
   useEffect(() => {
@@ -89,72 +91,81 @@ export function useVoucherCopyHandlers({
     [nummerKey, voucherArtKey]
   );
 
-  const handleCopyReserveRow = useCallback(
-    async (row) => {
-      try {
-        const rateLimit = checkCopyRateLimit();
-        if (!rateLimit.allowed) {
-          showRateLimitError();
-          return;
-        }
-        const nummer = getRowNummer(row, nummerKey);
-        if (!nummer) {
-          alert('Keine Nummer in der erkannten Spalte – bitte Excel-Spalte „Nummer“ o. ä. prüfen.');
-          return;
-        }
-        await navigator.clipboard.writeText(nummer);
-        registerCopyAction();
-        const historyEntry = {
-          nummer,
-          product: productLabelForHistory(row),
-          action: 'checkout',
-          timestamp: new Date().toISOString(),
-          userName: user?.name || 'Unbekannt',
-          sheet: row.sheet || 'default',
-          row: row.row
-        };
-        const updatedHistory = [
-          historyEntry,
-          ...copyHistory.filter((e) => !(e.sheet === historyEntry.sheet && e.row === historyEntry.row))
-        ].slice(0, 100);
-        setCopyHistory(updatedHistory);
-        persistVoucher({ copyHistory: updatedHistory });
-        setCopySuccess?.(true);
-        setTimeout(() => setCopySuccess?.(false), 2000);
-      } catch (error) {
-        console.error('Voucher kopieren:', error);
-        alert('Fehler beim Kopieren in die Zwischenablage: ' + error.message);
-      }
+  const afterReserveSuccess = useCallback(
+    (row, rowSnapshot) => {
+      const nummer = getRowNummer(row, nummerKey);
+      const historyEntry = {
+        nummer,
+        product: productLabelForHistory(row),
+        action: 'checkout',
+        timestamp: new Date().toISOString(),
+        userName: user?.name || 'Unbekannt',
+        sheet: row.sheet || 'default',
+        row: row.row,
+        rowSnapshot
+      };
+      const updatedHistory = [
+        historyEntry,
+        ...copyHistory.filter((e) => !(e.sheet === historyEntry.sheet && e.row === historyEntry.row))
+      ].slice(0, 100);
+      setCopyHistory(updatedHistory);
+      persistVoucher({ copyHistory: updatedHistory });
+      setCopySuccess?.(true);
+      setTimeout(() => setCopySuccess?.(false), 2000);
     },
-    [
-      nummerKey,
-      checkCopyRateLimit,
-      showRateLimitError,
-      registerCopyAction,
-      productLabelForHistory,
-      user,
-      copyHistory,
-      setCopyHistory,
-      persistVoucher,
-      setCopySuccess
-    ]
+    [nummerKey, productLabelForHistory, user, copyHistory, setCopyHistory, persistVoucher, setCopySuccess]
   );
 
   const handleDropdownSelect = useCallback(
-    async (row, action) => {
+    async (row) => {
       const rateLimit = checkCopyRateLimit();
       if (!rateLimit.allowed) {
         showRateLimitError();
         return;
       }
+      const nummer = getRowNummer(row, nummerKey);
+      if (!nummer) {
+        alert('Keine Nummer in der erkannten Spalte – bitte Excel-Spalte „Nummer“ o. ä. prüfen.');
+        return;
+      }
+      const rowSnapshot = cloneVoucherRowForApi(row);
+      if (!rowSnapshot) {
+        alert('Zeile konnte nicht verarbeitet werden.');
+        return;
+      }
+      try {
+        await removeVoucherListRowApi(rowSnapshot);
+      } catch (err) {
+        console.error(err);
+        alert(err.response?.data?.message || err.message || 'Reservieren fehlgeschlagen – Zeile nicht entfernt.');
+        return;
+      }
+      setUploaded((prev) => prev.filter((r) => !voucherRowsEqual(r, row)));
+      try {
+        await navigator.clipboard.writeText(nummer);
+      } catch (e) {
+        console.error(e);
+        alert('Zeile entfernt, aber Kopieren in die Zwischenablage fehlgeschlagen: ' + e.message);
+      }
+      registerCopyAction();
+      afterReserveSuccess(row, rowSnapshot);
       const rowId = voucherRowId(row);
-      const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: new Date().toISOString() };
-      const updatedActions = { ...rowActions, [rowId]: actionData };
-      setRowActions(updatedActions);
-      persistVoucher({ rowActions: updatedActions });
-      await handleCopyReserveRow(row);
+      const nextRowActions = { ...rowActions };
+      delete nextRowActions[rowId];
+      setRowActions(nextRowActions);
+      persistVoucher({ rowActions: nextRowActions });
     },
-    [checkCopyRateLimit, showRateLimitError, user, rowActions, setRowActions, persistVoucher, handleCopyReserveRow]
+    [
+      checkCopyRateLimit,
+      showRateLimitError,
+      nummerKey,
+      setUploaded,
+      registerCopyAction,
+      afterReserveSuccess,
+      rowActions,
+      setRowActions,
+      persistVoucher
+    ]
   );
 
   const clearRowActionForEntry = useCallback(
@@ -169,7 +180,7 @@ export function useVoucherCopyHandlers({
   );
 
   const handleUpdateHistoryAction = useCallback(
-    (index, newAction) => {
+    async (index, newAction) => {
       if (index < 0 || index >= copyHistory.length) return;
       const entry = copyHistory[index];
       const oldAction = entry.action || null;
@@ -179,6 +190,16 @@ export function useVoucherCopyHandlers({
       ]);
 
       if (newAction === 'angenommen') {
+        try {
+          if (entry.rowSnapshot) {
+            await removeVoucherListRowApi(entry.rowSnapshot, { allowMissing: true });
+          }
+        } catch (err) {
+          console.error(err);
+        }
+        if (entry.rowSnapshot) {
+          setUploaded((prev) => prev.filter((r) => !voucherRowsEqual(r, entry.rowSnapshot)));
+        }
         const updatedHistory = copyHistory.filter((_, i) => i !== index);
         const updatedRowActions = clearRowActionForEntry(entry);
         setCopyHistory(updatedHistory);
@@ -186,6 +207,19 @@ export function useVoucherCopyHandlers({
         return;
       }
       if (newAction === 'abgelehnt') {
+        if (entry.rowSnapshot) {
+          try {
+            await restoreVoucherListRowApi(entry.rowSnapshot);
+            setUploaded((prev) => {
+              if (prev.some((r) => voucherRowsEqual(r, entry.rowSnapshot))) return prev;
+              return [...prev, entry.rowSnapshot];
+            });
+          } catch (err) {
+            alert(err.response?.data?.message || err.message || 'Zeile konnte nicht wiederhergestellt werden.');
+            setHistoryUndoStack((prev) => prev.slice(0, -1));
+            throw err;
+          }
+        }
         let updatedRowActions = { ...rowActions };
         const rowId = `${entry.sheet || 'default'}-${entry.row}`;
         delete updatedRowActions[rowId];
@@ -205,7 +239,16 @@ export function useVoucherCopyHandlers({
       setCopyHistory(updatedHistory);
       persistVoucher({ copyHistory: updatedHistory });
     },
-    [copyHistory, user, rowActions, setCopyHistory, setHistoryUndoStack, clearRowActionForEntry, persistVoucher]
+    [
+      copyHistory,
+      user,
+      rowActions,
+      setCopyHistory,
+      setHistoryUndoStack,
+      clearRowActionForEntry,
+      persistVoucher,
+      setUploaded
+    ]
   );
 
   const handleHistoryModalUndo = useCallback(() => {
@@ -218,6 +261,10 @@ export function useVoucherCopyHandlers({
       if (undoState.newAction === 'abgelehnt') {
         setRowActions(undoState.rowActionsSnapshot);
         persistVoucher({ copyHistory: updatedHistory, rowActions: undoState.rowActionsSnapshot });
+        if (undoState.entry.rowSnapshot) {
+          void removeVoucherListRowApi(undoState.entry.rowSnapshot).catch(() => {});
+          setUploaded((prev) => prev.filter((r) => !voucherRowsEqual(r, undoState.entry.rowSnapshot)));
+        }
       } else {
         persistVoucher({ copyHistory: updatedHistory });
       }
@@ -228,7 +275,7 @@ export function useVoucherCopyHandlers({
       persistVoucher({ copyHistory: updatedHistory });
     }
     setHistoryUndoStack((prev) => prev.slice(0, -1));
-  }, [historyUndoStack, copyHistory, setCopyHistory, setRowActions, setHistoryUndoStack, persistVoucher]);
+  }, [historyUndoStack, copyHistory, setCopyHistory, setRowActions, setHistoryUndoStack, persistVoucher, setUploaded]);
 
   const onRowActionRemove = useCallback(
     (rowId) => {
@@ -241,7 +288,6 @@ export function useVoucherCopyHandlers({
   );
 
   return {
-    handleCopyReserveRow,
     handleDropdownSelect,
     handleUpdateHistoryAction,
     handleHistoryModalUndo,

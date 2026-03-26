@@ -14,8 +14,19 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'htt
 // Stelle sicher, dass baseURL immer auf /api endet (Pfade wie /users/... werden angehängt)
 const API_BASE = !API_URL ? '/api' : (API_URL.endsWith('/api') ? API_URL : `${API_URL.replace(/\/$/, '')}/api`);
 
+function voucherRowsMatchMock(a, b) {
+  if (String(a.sheet || 'default') !== String(b.sheet || 'default')) return false;
+  if (Number(a.row) !== Number(b.row)) return false;
+  try {
+    return JSON.stringify(a.rowData || {}) === JSON.stringify(b.rowData || {});
+  } catch {
+    return false;
+  }
+}
+
 const createMockApi = () => {
   let voucherMockUserState = { copyHistory: [], copyTimestamps: [], rowActions: {} };
+  let voucherMockRows = [];
   return {
     post: async (url, data) => {
       if (url === '/auth/login') {
@@ -39,6 +50,25 @@ const createMockApi = () => {
       }
       if (url?.match(/^\/imeis\/extra-copy-request\/\d+\/reject$/)) {
         return { data: { success: true, message: 'Anfrage abgelehnt' } };
+      }
+      if (url === '/excel/voucher-remove-row') {
+        const payload = data?.row ?? data;
+        const idx = voucherMockRows.findIndex((r) => voucherRowsMatchMock(r, payload));
+        if (idx === -1) {
+          const err = new Error('Zeile nicht gefunden');
+          err.response = { status: 404, data: { success: false } };
+          throw err;
+        }
+        voucherMockRows.splice(idx, 1);
+        return { data: { success: true, count: voucherMockRows.length } };
+      }
+      if (url === '/excel/voucher-restore-row') {
+        const payload = data?.row ?? data;
+        if (voucherMockRows.some((r) => voucherRowsMatchMock(r, payload))) {
+          return { data: { success: true, duplicate: true, count: voucherMockRows.length } };
+        }
+        voucherMockRows.push(JSON.parse(JSON.stringify(payload)));
+        return { data: { success: true, count: voucherMockRows.length } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -68,7 +98,7 @@ const createMockApi = () => {
         return {
           data: {
             success: true,
-            uploaded: [],
+            uploaded: [...voucherMockRows],
             updatedAt: null,
             userState: {
               copyHistory: [...voucherMockUserState.copyHistory],
@@ -222,6 +252,24 @@ export const getVouchersApi = async () => {
 
 export const putVoucherUserStateApi = async (payload) => {
   const res = await api.put('/excel/voucher-user-state', payload);
+  return res.data;
+};
+
+export const removeVoucherListRowApi = async (row, options = {}) => {
+  const { allowMissing = false } = options;
+  try {
+    const res = await api.post('/excel/voucher-remove-row', { row });
+    return res.data;
+  } catch (e) {
+    if (allowMissing && e.response?.status === 404) {
+      return { success: true, alreadyGone: true };
+    }
+    throw e;
+  }
+};
+
+export const restoreVoucherListRowApi = async (row) => {
+  const res = await api.post('/excel/voucher-restore-row', { row });
   return res.data;
 };
 
