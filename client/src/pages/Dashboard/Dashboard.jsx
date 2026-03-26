@@ -23,11 +23,12 @@ import PerformanceDashboard from '../../components/PerformanceDashboard/Performa
 import UserManagement from '../../components/UserManagement/UserManagement';
 import './Dashboard.scss';
 
-/** Nur ein Admin-Accordion gleichzeitig offen */
-const ACC_KENNZAHLEN = 'kennzahlen';
-const ACC_NEWS = 'news';
-const ACC_ANWEISUNG = 'anweisung';
-const ACC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
+/** Admin-Sidebar: ein Bereich aktiv */
+const SEC_KENNZAHLEN = 'kennzahlen';
+const SEC_NEWS = 'news';
+const SEC_ANWEISUNG = 'anweisung';
+const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
+const SEC_EXCEL = 'excel';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -51,12 +52,8 @@ const Dashboard = () => {
   const [siteNewsAlteOpen, setSiteNewsAlteOpen] = useState(false);
   /** Pro Archiv-Eintrag: eingeklappt bis Klick auf Datumszeile */
   const [openAlteNewsEntryIds, setOpenAlteNewsEntryIds] = useState({});
-  const [openAdminAccordion, setOpenAdminAccordion] = useState(null);
-  const kennzahlenPanelId = useId();
-  const newsPanelId = useId();
+  const [adminSection, setAdminSection] = useState(SEC_KENNZAHLEN);
   const alteNewsPanelId = useId();
-  const anweisungPanelId = useId();
-  const benutzerverwaltungPanelId = useId();
 
   useEffect(() => {
     if (!user?.id || !canShowDashboardNotes(user)) return;
@@ -295,396 +292,378 @@ const Dashboard = () => {
     }
   };
 
-  const toggleAdminAccordion = (section) => {
-    setOpenAdminAccordion((prev) => (prev === section ? null : section));
-  };
-
-  const accordionKennzahlen = openAdminAccordion === ACC_KENNZAHLEN;
-  const accordionNews = openAdminAccordion === ACC_NEWS;
-  const accordionAnweisung = openAdminAccordion === ACC_ANWEISUNG;
-  const accordionBenutzerverwaltung = openAdminAccordion === ACC_BENUTZERVERWALTUNG;
+  const navBtnClass = (section) =>
+    `dashboard-admin-nav__item${adminSection === section ? ' is-active' : ''}`;
 
   return (
     <div className="dashboard">
       {isAdmin(user) && (
-        <div className="card dashboard-performance dashboard-accordion">
-          <button
-            type="button"
-            className="dashboard-accordion-trigger"
-            aria-expanded={accordionKennzahlen}
-            aria-controls={kennzahlenPanelId}
-            id={`${kennzahlenPanelId}-trigger`}
-            onClick={() => toggleAdminAccordion(ACC_KENNZAHLEN)}
-          >
-            <h2 className="card-title">Kennzahlen</h2>
-            <span className="dashboard-accordion-chevron" aria-hidden>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </button>
-          <div
-            id={kennzahlenPanelId}
-            className="dashboard-accordion-panel"
-            role="region"
-            aria-labelledby={`${kennzahlenPanelId}-trigger`}
-            hidden={!accordionKennzahlen}
-          >
-            <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
-              <PerformanceDashboard
-                isAdmin={isAdmin(user)}
-                metaInHeader
-                onMetricsLoaded={setMetricsMeta}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isAdmin(user) && canShowDashboardNotes(user) && (
-        <div className="card dashboard-site-news dashboard-accordion">
-          <button
-            type="button"
-            className="dashboard-accordion-trigger"
-            aria-expanded={accordionNews}
-            aria-controls={newsPanelId}
-            id={`${newsPanelId}-trigger`}
-            onClick={() => toggleAdminAccordion(ACC_NEWS)}
-          >
-            <h2 className="card-title">NEWS</h2>
-            <span className="dashboard-accordion-chevron" aria-hidden>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </button>
-          <div
-            id={newsPanelId}
-            className="dashboard-accordion-panel"
-            role="region"
-            aria-labelledby={`${newsPanelId}-trigger`}
-            hidden={!accordionNews}
-          >
-            <p className="dashboard-site-news-hint dashboard-site-news-hint--in-panel">
-              Erscheint auf der Startseite für alle Benutzer. Bilder über den Button „Bild“ einfügen.
-            </p>
-            <div className="card-body">
-              {siteNewsError && <p className="text-error">{siteNewsError}</p>}
-              {siteNewsLoading ? (
-                <p>Lade NEWS…</p>
-              ) : (
-                <>
-                  {siteNewsHistoryEditId && (
-                    <div className="dashboard-site-news-archive-hint">
-                      <p>
-                        Sie bearbeiten einen Eintrag aus „Archiv NEWS“ im Editor oben. Speichern übernimmt nur
-                        diesen Archiv-Eintrag, nicht die aktuelle Startseiten-NEWS.
-                      </p>
+        <div className="dashboard-admin-layout">
+          <aside className="dashboard-admin-sidebar">
+            <nav className="dashboard-admin-nav" aria-label="Admin-Dashboard">
+              <ul className="dashboard-admin-nav__list">
+                <li>
+                  <button
+                    type="button"
+                    className={navBtnClass(SEC_KENNZAHLEN)}
+                    onClick={() => setAdminSection(SEC_KENNZAHLEN)}
+                    aria-current={adminSection === SEC_KENNZAHLEN ? 'page' : undefined}
+                  >
+                    Kennzahlen
+                  </button>
+                </li>
+                {canShowDashboardNotes(user) && (
+                  <>
+                    <li>
                       <button
                         type="button"
-                        className="btn btn--outline btn--small"
-                        onClick={handleCancelSiteNewsHistoryEdit}
+                        className={navBtnClass(SEC_NEWS)}
+                        onClick={() => setAdminSection(SEC_NEWS)}
+                        aria-current={adminSection === SEC_NEWS ? 'page' : undefined}
                       >
-                        Archiv-Bearbeitung abbrechen
+                        NEWS
                       </button>
-                    </div>
-                  )}
-                  <TextEditor
-                    key={siteNewsEditorKey}
-                    initialContent={siteNewsContent}
-                    onSave={handleSaveSiteNews}
-                    placeholder="NEWS für die Startseite verfassen…"
-                    mediaUpload={{ uploadFile: uploadNewsFile }}
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        className={navBtnClass(SEC_ANWEISUNG)}
+                        onClick={() => setAdminSection(SEC_ANWEISUNG)}
+                        aria-current={adminSection === SEC_ANWEISUNG ? 'page' : undefined}
+                      >
+                        Anweisung schreiben
+                      </button>
+                    </li>
+                  </>
+                )}
+                <li>
+                  <button
+                    type="button"
+                    className={navBtnClass(SEC_BENUTZERVERWALTUNG)}
+                    onClick={() => setAdminSection(SEC_BENUTZERVERWALTUNG)}
+                    aria-current={adminSection === SEC_BENUTZERVERWALTUNG ? 'page' : undefined}
+                  >
+                    Benutzerverwaltung
+                  </button>
+                </li>
+                {canShowExcelUpload(user) && (
+                  <li>
+                    <button
+                      type="button"
+                      className={navBtnClass(SEC_EXCEL)}
+                      onClick={() => setAdminSection(SEC_EXCEL)}
+                      aria-current={adminSection === SEC_EXCEL ? 'page' : undefined}
+                    >
+                      Excel/CSV-Datei hochladen
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </nav>
+          </aside>
+          <div className="dashboard-admin-main">
+            {adminSection === SEC_KENNZAHLEN && (
+              <div className="card dashboard-performance dashboard-admin-panel">
+                <div className="dashboard-admin-panel__header">
+                  <h2 className="card-title">Kennzahlen</h2>
+                </div>
+                <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
+                  <PerformanceDashboard
+                    isAdmin={isAdmin(user)}
+                    metaInHeader
+                    onMetricsLoaded={setMetricsMeta}
                   />
-                </>
-              )}
-              <div className="dashboard-site-news-history dashboard-site-news-history--collapsible dashboard-accordion dashboard-archive">
-                <button
-                  type="button"
-                  className="dashboard-accordion-trigger dashboard-site-news-alte-trigger"
-                  aria-expanded={siteNewsAlteOpen}
-                  aria-controls={alteNewsPanelId}
-                  id={`${alteNewsPanelId}-trigger`}
-                  onClick={() => setSiteNewsAlteOpen((o) => !o)}
-                >
-                  <h3 className="card-title">Archiv NEWS</h3>
-                  <span className="dashboard-accordion-chevron" aria-hidden>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id={alteNewsPanelId}
-                  className="dashboard-accordion-panel dashboard-site-news-history-body"
-                  role="region"
-                  aria-labelledby={`${alteNewsPanelId}-trigger`}
-                  hidden={!siteNewsAlteOpen}
-                >
-                  {siteNewsHistoryLoading ? (
-                    <p>Lade Archiv…</p>
-                  ) : siteNewsHistory.length === 0 ? (
-                    <p className="text-muted">
-                      Keine archivierten NEWS. Beim nächsten Speichern wird die bisherige Startseiten-NEWS hier
-                      abgelegt.
-                    </p>
-                  ) : (
-                    <ul className="dashboard-archive-list dashboard-alte-news-archive-list">
-                      {siteNewsHistory.map((entry) => {
-                        const alteNewsEntryOpen = !!openAlteNewsEntryIds[entry.id];
-                        const dateStr = entry.updatedAt
-                          ? new Date(entry.updatedAt).toLocaleString('de-DE', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
-                          : null;
-                        const triggerId = `alte-news-entry-${entry.id}-trigger`;
-                        const panelId = `alte-news-entry-${entry.id}-panel`;
-                        return (
-                          <li
-                            key={entry.id}
-                            className={`dashboard-archive-item dashboard-alte-news-archive-item${siteNewsHistoryEditId === entry.id ? ' dashboard-archive-item--active-in-editor' : ''}`}
-                          >
-                            <button
-                              type="button"
-                              className="dashboard-alte-news-entry-trigger"
-                              aria-expanded={alteNewsEntryOpen}
-                              aria-controls={panelId}
-                              id={triggerId}
-                              onClick={() => toggleAlteNewsEntry(entry.id)}
-                            >
-                              <span className="dashboard-alte-news-entry-date">
-                                {dateStr ? `Stand: ${dateStr}` : 'Archiv-Eintrag'}
-                                <span className="dashboard-alte-news-entry-hint"> – anklicken zum Öffnen</span>
-                              </span>
-                              <span className="dashboard-accordion-chevron" aria-hidden>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </span>
-                            </button>
-                            <div
-                              id={panelId}
-                              className="dashboard-accordion-panel dashboard-alte-news-entry-panel"
-                              role="region"
-                              aria-labelledby={triggerId}
-                              hidden={!alteNewsEntryOpen}
-                            >
-                              <div
-                                className="dashboard-archive-content"
-                                dangerouslySetInnerHTML={{ __html: entry.content || '' }}
-                              />
-                              <div className="dashboard-archive-actions">
-                                <button
-                                  type="button"
-                                  className="btn btn--outline btn--small"
-                                  onClick={() => {
-                                    setSiteNewsAlteOpen(true);
-                                    handleStartEditSiteNewsHist(entry);
-                                  }}
-                                >
-                                  Bearbeiten
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn--danger btn--small"
-                                  onClick={() => handleDeleteSiteNewsHist(entry.id)}
-                                >
-                                  Löschen
-                                </button>
-                              </div>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
 
-      {isAdmin(user) && (
-        <div className="card dashboard-new-message dashboard-accordion">
-          <button
-            type="button"
-            className="dashboard-accordion-trigger"
-            aria-expanded={accordionAnweisung}
-            aria-controls={anweisungPanelId}
-            id={`${anweisungPanelId}-trigger`}
-            onClick={() => toggleAdminAccordion(ACC_ANWEISUNG)}
-          >
-            <h2 className="card-title">Anweisung schreiben</h2>
-            <span className="dashboard-accordion-chevron" aria-hidden>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </button>
-          <div
-            id={anweisungPanelId}
-            className="dashboard-accordion-panel"
-            role="region"
-            aria-labelledby={`${anweisungPanelId}-trigger`}
-            hidden={!accordionAnweisung}
-          >
-            {canShowDashboardNotes(user) && (
-              <div className="card-body dashboard-anweisung-editor">
-                {noteError && <p className="text-error">{noteError}</p>}
-                {noteLoading ? (
-                  <p>Lade...</p>
-                ) : (
-                  <TextEditor
-                    key={editorKey}
-                    initialContent={noteContent}
-                    onSave={handleSave}
-                    placeholder="schreiben Sie hier Ihre Anweisung ."
-                  />
-                )}
+            {adminSection === SEC_NEWS && canShowDashboardNotes(user) && (
+              <div className="card dashboard-site-news dashboard-admin-panel">
+                <div className="dashboard-admin-panel__header">
+                  <h2 className="card-title">NEWS</h2>
+                </div>
+                <p className="dashboard-site-news-hint dashboard-site-news-hint--in-panel">
+                  Erscheint auf der Startseite für alle Benutzer. Bilder über den Button „Bild“ einfügen.
+                </p>
+                <div className="card-body">
+                  {siteNewsError && <p className="text-error">{siteNewsError}</p>}
+                  {siteNewsLoading ? (
+                    <p>Lade NEWS…</p>
+                  ) : (
+                    <>
+                      {siteNewsHistoryEditId && (
+                        <div className="dashboard-site-news-archive-hint">
+                          <p>
+                            Sie bearbeiten einen Eintrag aus „Archiv NEWS“ im Editor oben. Speichern übernimmt nur
+                            diesen Archiv-Eintrag, nicht die aktuelle Startseiten-NEWS.
+                          </p>
+                          <button
+                            type="button"
+                            className="btn btn--outline btn--small"
+                            onClick={handleCancelSiteNewsHistoryEdit}
+                          >
+                            Archiv-Bearbeitung abbrechen
+                          </button>
+                        </div>
+                      )}
+                      <TextEditor
+                        key={siteNewsEditorKey}
+                        initialContent={siteNewsContent}
+                        onSave={handleSaveSiteNews}
+                        placeholder="NEWS für die Startseite verfassen…"
+                        mediaUpload={{ uploadFile: uploadNewsFile }}
+                      />
+                    </>
+                  )}
+                  <div className="dashboard-site-news-history dashboard-site-news-history--collapsible dashboard-accordion dashboard-archive">
+                    <button
+                      type="button"
+                      className="dashboard-accordion-trigger dashboard-site-news-alte-trigger"
+                      aria-expanded={siteNewsAlteOpen}
+                      aria-controls={alteNewsPanelId}
+                      id={`${alteNewsPanelId}-trigger`}
+                      onClick={() => setSiteNewsAlteOpen((o) => !o)}
+                    >
+                      <h3 className="card-title">Archiv NEWS</h3>
+                      <span className="dashboard-accordion-chevron" aria-hidden>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    </button>
+                    <div
+                      id={alteNewsPanelId}
+                      className="dashboard-accordion-panel dashboard-site-news-history-body"
+                      role="region"
+                      aria-labelledby={`${alteNewsPanelId}-trigger`}
+                      hidden={!siteNewsAlteOpen}
+                    >
+                      {siteNewsHistoryLoading ? (
+                        <p>Lade Archiv…</p>
+                      ) : siteNewsHistory.length === 0 ? (
+                        <p className="text-muted">
+                          Keine archivierten NEWS. Beim nächsten Speichern wird die bisherige Startseiten-NEWS hier
+                          abgelegt.
+                        </p>
+                      ) : (
+                        <ul className="dashboard-archive-list dashboard-alte-news-archive-list">
+                          {siteNewsHistory.map((entry) => {
+                            const alteNewsEntryOpen = !!openAlteNewsEntryIds[entry.id];
+                            const dateStr = entry.updatedAt
+                              ? new Date(entry.updatedAt).toLocaleString('de-DE', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : null;
+                            const triggerId = `alte-news-entry-${entry.id}-trigger`;
+                            const panelId = `alte-news-entry-${entry.id}-panel`;
+                            return (
+                              <li
+                                key={entry.id}
+                                className={`dashboard-archive-item dashboard-alte-news-archive-item${siteNewsHistoryEditId === entry.id ? ' dashboard-archive-item--active-in-editor' : ''}`}
+                              >
+                                <button
+                                  type="button"
+                                  className="dashboard-alte-news-entry-trigger"
+                                  aria-expanded={alteNewsEntryOpen}
+                                  aria-controls={panelId}
+                                  id={triggerId}
+                                  onClick={() => toggleAlteNewsEntry(entry.id)}
+                                >
+                                  <span className="dashboard-alte-news-entry-date">
+                                    {dateStr ? `Stand: ${dateStr}` : 'Archiv-Eintrag'}
+                                    <span className="dashboard-alte-news-entry-hint"> – anklicken zum Öffnen</span>
+                                  </span>
+                                  <span className="dashboard-accordion-chevron" aria-hidden>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  </span>
+                                </button>
+                                <div
+                                  id={panelId}
+                                  className="dashboard-accordion-panel dashboard-alte-news-entry-panel"
+                                  role="region"
+                                  aria-labelledby={triggerId}
+                                  hidden={!alteNewsEntryOpen}
+                                >
+                                  <div
+                                    className="dashboard-archive-content"
+                                    dangerouslySetInnerHTML={{ __html: entry.content || '' }}
+                                  />
+                                  <div className="dashboard-archive-actions">
+                                    <button
+                                      type="button"
+                                      className="btn btn--outline btn--small"
+                                      onClick={() => {
+                                        setSiteNewsAlteOpen(true);
+                                        handleStartEditSiteNewsHist(entry);
+                                      }}
+                                    >
+                                      Bearbeiten
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn--danger btn--small"
+                                      onClick={() => handleDeleteSiteNewsHist(entry.id)}
+                                    >
+                                      Löschen
+                                    </button>
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-            <div className="dashboard-archive dashboard-archive--in-anweisung">
-              <h3 className="dashboard-archive-in-anweisung-title">Alte Anweisung</h3>
-              <div className="dashboard-archive-in-anweisung-body">
-                {archiveLoading ? (
-                  <p>Lade Archiv…</p>
-                ) : archive.length === 0 ? (
-                  <p className="text-muted">Keine vergangenen Nachrichten.</p>
-                ) : (
-                  <ul className="dashboard-archive-list">
-                    {archive.map((m) => (
-                      <li key={m.id} className="dashboard-archive-item">
-                        {editingId === m.id ? (
-                          <>
-                            <textarea
-                              className="dashboard-archive-edit-input"
-                              value={editingContent}
-                              onChange={(e) => setEditingContent(e.target.value)}
-                              rows={4}
-                              placeholder="Nachricht bearbeiten..."
-                            />
-                            <div className="dashboard-archive-actions">
-                              <button
-                                type="button"
-                                className="btn btn--primary btn--small"
-                                onClick={() => handleSaveEditArchive(m.id)}
-                                aria-label="Änderungen speichern"
-                              >
-                                Speichern
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn--outline btn--small"
-                                onClick={handleCancelEditArchive}
-                                aria-label="Abbrechen"
-                              >
-                                Abbrechen
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div
-                              className="dashboard-archive-content"
-                              dangerouslySetInnerHTML={{ __html: m.content || '' }}
-                            />
-                            {m.createdAt && (
-                              <div className="dashboard-archive-date">
-                                Erstellt: {new Date(m.createdAt).toLocaleString('de-DE', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </div>
-                            )}
-                            {m.updatedAt && (
-                              <div className="dashboard-archive-edited">
-                                Bearbeitet am {new Date(m.updatedAt).toLocaleString('de-DE', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                                {m.updatedBy && ` von ${m.updatedBy}`}
-                              </div>
-                            )}
-                            {m.readers?.length > 0 ? (
-                              <div className="dashboard-archive-readers">
-                                Gelesen von: {m.readers.map((r) => r.userName).join(', ')}
-                              </div>
+
+            {adminSection === SEC_ANWEISUNG && canShowDashboardNotes(user) && (
+              <div className="card dashboard-new-message dashboard-admin-panel">
+                <div className="dashboard-admin-panel__header">
+                  <h2 className="card-title">Anweisung schreiben</h2>
+                </div>
+                <div className="card-body dashboard-anweisung-editor">
+                  {noteError && <p className="text-error">{noteError}</p>}
+                  {noteLoading ? (
+                    <p>Lade...</p>
+                  ) : (
+                    <TextEditor
+                      key={editorKey}
+                      initialContent={noteContent}
+                      onSave={handleSave}
+                      placeholder="schreiben Sie hier Ihre Anweisung ."
+                    />
+                  )}
+                </div>
+                <div className="dashboard-archive dashboard-archive--in-anweisung">
+                  <h3 className="dashboard-archive-in-anweisung-title">Alte Anweisung</h3>
+                  <div className="dashboard-archive-in-anweisung-body">
+                    {archiveLoading ? (
+                      <p>Lade Archiv…</p>
+                    ) : archive.length === 0 ? (
+                      <p className="text-muted">Keine vergangenen Nachrichten.</p>
+                    ) : (
+                      <ul className="dashboard-archive-list">
+                        {archive.map((m) => (
+                          <li key={m.id} className="dashboard-archive-item">
+                            {editingId === m.id ? (
+                              <>
+                                <textarea
+                                  className="dashboard-archive-edit-input"
+                                  value={editingContent}
+                                  onChange={(e) => setEditingContent(e.target.value)}
+                                  rows={4}
+                                  placeholder="Nachricht bearbeiten..."
+                                />
+                                <div className="dashboard-archive-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn--primary btn--small"
+                                    onClick={() => handleSaveEditArchive(m.id)}
+                                    aria-label="Änderungen speichern"
+                                  >
+                                    Speichern
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn--outline btn--small"
+                                    onClick={handleCancelEditArchive}
+                                    aria-label="Abbrechen"
+                                  >
+                                    Abbrechen
+                                  </button>
+                                </div>
+                              </>
                             ) : (
-                              <div className="dashboard-archive-readers">Noch von niemandem gelesen.</div>
+                              <>
+                                <div
+                                  className="dashboard-archive-content"
+                                  dangerouslySetInnerHTML={{ __html: m.content || '' }}
+                                />
+                                {m.createdAt && (
+                                  <div className="dashboard-archive-date">
+                                    Erstellt: {new Date(m.createdAt).toLocaleString('de-DE', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </div>
+                                )}
+                                {m.updatedAt && (
+                                  <div className="dashboard-archive-edited">
+                                    Bearbeitet am {new Date(m.updatedAt).toLocaleString('de-DE', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                    {m.updatedBy && ` von ${m.updatedBy}`}
+                                  </div>
+                                )}
+                                {m.readers?.length > 0 ? (
+                                  <div className="dashboard-archive-readers">
+                                    Gelesen von: {m.readers.map((r) => r.userName).join(', ')}
+                                  </div>
+                                ) : (
+                                  <div className="dashboard-archive-readers">Noch von niemandem gelesen.</div>
+                                )}
+                                <div className="dashboard-archive-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn--outline btn--small"
+                                    onClick={() => handleStartEditArchive(m)}
+                                    aria-label="Nachricht bearbeiten"
+                                  >
+                                    Bearbeiten
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn--danger btn--small"
+                                    onClick={() => handleDeleteArchive(m.id)}
+                                    aria-label="Nachricht löschen"
+                                  >
+                                    Löschen
+                                  </button>
+                                </div>
+                              </>
                             )}
-                            <div className="dashboard-archive-actions">
-                              <button
-                                type="button"
-                                className="btn btn--outline btn--small"
-                                onClick={() => handleStartEditArchive(m)}
-                                aria-label="Nachricht bearbeiten"
-                              >
-                                Bearbeiten
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn--danger btn--small"
-                                onClick={() => handleDeleteArchive(m.id)}
-                                aria-label="Nachricht löschen"
-                              >
-                                Löschen
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {adminSection === SEC_BENUTZERVERWALTUNG && (
+              <div className="card dashboard-user-management dashboard-admin-panel">
+                <div className="dashboard-admin-panel__header">
+                  <h2 className="card-title">Benutzerverwaltung</h2>
+                </div>
+                <div className="dashboard-user-management-panel">
+                  <UserManagement compact />
+                </div>
+              </div>
+            )}
+
+            {adminSection === SEC_EXCEL && canShowExcelUpload(user) && <ExcelUpload />}
           </div>
         </div>
       )}
 
-      {isAdmin(user) && (
-        <div className="card dashboard-user-management dashboard-accordion">
-          <button
-            type="button"
-            className="dashboard-accordion-trigger"
-            aria-expanded={accordionBenutzerverwaltung}
-            aria-controls={benutzerverwaltungPanelId}
-            id={`${benutzerverwaltungPanelId}-trigger`}
-            onClick={() => toggleAdminAccordion(ACC_BENUTZERVERWALTUNG)}
-          >
-            <h2 className="card-title">Benutzerverwaltung</h2>
-            <span className="dashboard-accordion-chevron" aria-hidden>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </button>
-          <div
-            id={benutzerverwaltungPanelId}
-            className="dashboard-accordion-panel"
-            role="region"
-            aria-labelledby={`${benutzerverwaltungPanelId}-trigger`}
-            hidden={!accordionBenutzerverwaltung}
-          >
-            <div className="dashboard-user-management-panel">
-              <UserManagement compact />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {canShowExcelUpload(user) && <ExcelUpload />}
+      {!isAdmin(user) && canShowExcelUpload(user) && <ExcelUpload />}
     </div>
   );
 };

@@ -658,3 +658,130 @@
     }
   }
 }
+
+/* Administrator: linke Navigation statt Accordion */
+.dashboard-admin-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-lg;
+  width: 100%;
+  min-height: 50vh;
+}
+
+.dashboard-admin-sidebar {
+  flex: 0 0 240px;
+  position: sticky;
+  top: calc(#{$spacing-md} + 0.5rem);
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+
+.dashboard-admin-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dashboard-admin-nav__item {
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  margin: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: $font-weight-medium;
+  color: $text-color;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: $border-radius-card;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba($primary-color, 0.35);
+  }
+
+  &.is-active {
+    background: $primary-color;
+    color: #fff;
+    border-color: $primary-color;
+  }
+
+  &.is-active:hover {
+    background: darken($primary-color, 6%);
+    border-color: darken($primary-color, 6%);
+    color: #fff;
+  }
+}
+
+.dashboard-admin-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.dashboard-admin-panel {
+  &.card {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .dashboard-admin-panel__header {
+    padding: $spacing-sm $spacing-md;
+    margin: 0;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fff;
+    border-radius: $border-radius-card $border-radius-card 0 0;
+
+    .card-title {
+      margin: 0;
+      color: #495057;
+      font-size: 1.125rem;
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  &.dashboard-performance .card-header.card-header--kennzahlen {
+    border-radius: 0;
+  }
+
+  &.dashboard-user-management {
+    overflow: visible;
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .dashboard-admin-layout {
+    flex-direction: column;
+  }
+
+  .dashboard-admin-sidebar {
+    flex: none;
+    width: 100%;
+    max-height: none;
+    position: static;
+  }
+
+  .dashboard-admin-nav__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .dashboard-admin-nav__item {
+    flex: 1 1 auto;
+    min-width: min(100%, 160px);
+  }
+}
