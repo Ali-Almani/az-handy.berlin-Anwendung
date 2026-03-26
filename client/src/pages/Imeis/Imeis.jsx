@@ -113,7 +113,10 @@ const Imeis = () => {
       <div className="imeis">
         <div className="card">
           <div className="card-body">
-            <p>Die IMEI-Übersicht ist nur für den Einsatzort Zentrale vorgesehen.</p>
+            <p>
+              Die IMEI-Übersicht ist für den Einsatzort Zentrale nicht vorgesehen.
+              Zugang haben weiterhin nur Administratoren und Büro-Mitarbeitende.
+            </p>
           </div>
         </div>
       </div>

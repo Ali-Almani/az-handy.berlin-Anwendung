@@ -70,13 +70,13 @@ export const canAccessImeis = (user) => {
 };
 
 /**
- * IMEI-Link (Navbar) und IMEI-Seite: Administrator, Büro Mitarbeiter oder Einsatzort Zentrale.
- * Mitarbeitende an anderen Standorten (Sonne, KM …) sehen die Liste nicht.
+ * IMEI-Link (Navbar) und IMEI-Seite: für alle außer Benutzer mit Einsatzort Zentrale
+ * (ohne Rolle Administrator/Büro). Admin und Büro sehen die Liste immer – auch in Zentrale.
  */
 export const canAccessImeisList = (user) => {
   if (!user) return false;
   if (isAdmin(user) || isBüroMitarbeiter(user)) return true;
-  return String(user.einsatz_ort || '').trim() === 'Zentrale';
+  return String(user.einsatz_ort || '').trim() !== 'Zentrale';
 };
 
 // Prüfe ob Benutzer Export und Alle löschen sehen darf (Admin, Teamleiter, Büro Mitarbeiter)
