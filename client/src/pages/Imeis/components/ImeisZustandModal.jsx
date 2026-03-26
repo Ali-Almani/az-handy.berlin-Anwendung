@@ -90,17 +90,19 @@ const ZustandDistributionChart = ({ manufacturers, total }) => {
   );
 };
 
-const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
+const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading, isAdmin = false }) => {
   const tableRows = useMemo(() => flattenZustandRows(zustandData), [zustandData]);
   const chartTotal = zustandData?.total ?? 0;
   const manufacturers = zustandData?.manufacturers ?? [];
 
   if (!isOpen) return null;
 
+  const modalClassName = `imeis-history-modal imeis-zustand-modal${isAdmin ? ' imeis-zustand-modal--admin' : ''}`;
+
   return (
     <div className="imeis-history-modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="imeis-history-modal imeis-zustand-modal"
+        className={modalClassName}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="imeis-zustand-title"
@@ -149,27 +151,44 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading }) => {
                   })}
                 </ul>
               </div>
-              <div className="imeis-zustand-table-wrap">
-                <table className="imeis-zustand-table">
-                  <thead>
-                    <tr>
-                      <th scope="col" className="imeis-zustand-table__head-line">
-                        <span>Modell</span>
-                        <span className="imeis-zustand-table__head-count">Anzahl</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <div
+                className={
+                  isAdmin
+                    ? 'imeis-zustand-table-wrap imeis-zustand-table-wrap--admin-grid'
+                    : 'imeis-zustand-table-wrap'
+                }
+              >
+                {isAdmin ? (
+                  <div className="imeis-zustand-grid" role="list">
                     {tableRows.map((row) => (
-                      <tr key={row.key}>
-                        <td className="imeis-zustand-table__line">
-                          <span className="imeis-zustand-table__model">{row.model || '–'}</span>
-                          <span className="imeis-zustand-table__count">{row.count}</span>
-                        </td>
-                      </tr>
+                      <div key={row.key} className="imeis-zustand-grid__cell" role="listitem">
+                        <span className="imeis-zustand-grid__model">{row.model || '–'}</span>
+                        <span className="imeis-zustand-grid__count">{row.count}</span>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                ) : (
+                  <table className="imeis-zustand-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" className="imeis-zustand-table__head-line">
+                          <span>Modell</span>
+                          <span className="imeis-zustand-table__head-count">Anzahl</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tableRows.map((row) => (
+                        <tr key={row.key}>
+                          <td className="imeis-zustand-table__line">
+                            <span className="imeis-zustand-table__model">{row.model || '–'}</span>
+                            <span className="imeis-zustand-table__count">{row.count}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </>
           )}

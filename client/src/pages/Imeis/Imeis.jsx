@@ -258,6 +258,7 @@ const Imeis = () => {
         onClose={onCloseZustandModal}
         zustandData={zustandDataCache || { manufacturers: [], total: 0 }}
         loading={zustandLoading}
+        isAdmin={isAdmin(user)}
       />
 
       <ImeisRateLimitModal

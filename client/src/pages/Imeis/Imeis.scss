@@ -736,6 +736,62 @@
     }
   }
 
+  /* Administrator: breiteres Modal, Bestand als mehrspaltiges Grid (weniger Scroll in Y) */
+  .imeis-zustand-modal--admin {
+    width: 90%;
+    max-width: 90vw;
+
+    .imeis-zustand-table-wrap--admin-grid {
+      padding: 0;
+    }
+
+    .imeis-zustand-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.35rem 0.45rem;
+      padding: 0.4rem;
+      align-content: start;
+    }
+
+    .imeis-zustand-grid__cell {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.4rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid $border-color;
+      border-radius: 2px;
+      background: $bg-color;
+      font-size: 0.78rem;
+      min-width: 0;
+      line-height: 1.25;
+
+      &:nth-child(odd) {
+        background: #fff;
+      }
+
+      &:nth-child(even) {
+        background: $bg-light;
+      }
+    }
+
+    .imeis-zustand-grid__model {
+      flex: 1;
+      min-width: 0;
+      word-break: break-word;
+      text-align: left;
+    }
+
+    .imeis-zustand-grid__count {
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: $font-weight-bold;
+      white-space: nowrap;
+      color: $text-color;
+    }
+  }
+
   .imeis-zustand-loading {
     display: flex;
     flex-direction: column;
