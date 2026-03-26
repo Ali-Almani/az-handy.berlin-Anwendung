@@ -4,34 +4,30 @@ import User from '../models/User.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
+const VOUCHER_USER_STATE_FILE = 'voucher-user-state.json';
 
-/** Demo-Zeilen (Anzeige immer); hochgeladene Zeilen kommen aus vouchers.json */
-export const DEMO_VOUCHER_ROWS = [
-  {
-    provider: 'o2',
-    verlauf: 'Verlauf o2',
-    voucherType: 'Family and Friends (F&F) Voucher',
-    code: '400812345678',
-    digitLength: 12,
-    isDemo: true
-  },
-  {
-    provider: 'Ay Yildiz',
-    verlauf: '—',
-    voucherType: 'AG0- Voucher',
-    code: '987654321098765',
-    digitLength: 15,
-    isDemo: true
-  },
-  {
-    provider: 'Ay Yildiz',
-    verlauf: '—',
-    voucherType: '5 Euro Rabatt Voucher',
-    code: '123450987654321',
-    digitLength: 15,
-    isDemo: true
+function loadVoucherUserStateMap() {
+  const map = loadJson(VOUCHER_USER_STATE_FILE);
+  return map && typeof map === 'object' && !Array.isArray(map) ? map : {};
+}
+
+function getVoucherUserStateForUser(userId) {
+  if (!userId) {
+    return { copyHistory: [], copyTimestamps: [], rowActions: {} };
   }
-];
+  const map = loadVoucherUserStateMap();
+  const raw = map[String(userId)];
+  if (!raw || typeof raw !== 'object') {
+    return { copyHistory: [], copyTimestamps: [], rowActions: {} };
+  }
+  return {
+    copyHistory: Array.isArray(raw.copyHistory) ? raw.copyHistory : [],
+    copyTimestamps: Array.isArray(raw.copyTimestamps) ? raw.copyTimestamps : [],
+    rowActions: raw.rowActions && typeof raw.rowActions === 'object' && !Array.isArray(raw.rowActions)
+      ? raw.rowActions
+      : {}
+  };
+}
 
 async function userCanViewVouchers(userId) {
   if (!userId) return false;
@@ -272,7 +268,7 @@ export const processExcelFile = async (req, res) => {
   }
 };
 
-/** Voucher-Daten lesen: Demo + hochgeladene Zeilen (Rechte wie IMEI-Liste) */
+/** Voucher-Daten lesen: hochgeladene Zeilen + eigener Verlauf (Rechte wie IMEI-Liste) */
 export const getVouchers = async (req, res, next) => {
   try {
     if (!(await userCanViewVouchers(req.user?.userId))) {
@@ -280,12 +276,48 @@ export const getVouchers = async (req, res, next) => {
     }
     const data = loadJson(VOUCHERS_FILE) || {};
     const uploaded = Array.isArray(data.rows) ? data.rows : [];
+    const userState = getVoucherUserStateForUser(req.user?.userId);
     return res.json({
       success: true,
-      demo: DEMO_VOUCHER_ROWS,
       uploaded,
-      updatedAt: data.updatedAt ?? null
+      updatedAt: data.updatedAt ?? null,
+      userState
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Verlauf / Reservierungen / Rate-Limit-Zeitstempel pro Benutzer persistieren */
+export const putVoucherUserState = async (req, res, next) => {
+  try {
+    if (!(await userCanViewVouchers(req.user?.userId))) {
+      return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
+    }
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
+    const body = req.body || {};
+    const prev = getVoucherUserStateForUser(userId);
+    const nextState = {
+      copyHistory: body.copyHistory !== undefined ? body.copyHistory : prev.copyHistory,
+      copyTimestamps: body.copyTimestamps !== undefined ? body.copyTimestamps : prev.copyTimestamps,
+      rowActions: body.rowActions !== undefined ? body.rowActions : prev.rowActions
+    };
+    if (!Array.isArray(nextState.copyHistory)) {
+      return res.status(400).json({ success: false, message: 'copyHistory muss ein Array sein' });
+    }
+    if (!Array.isArray(nextState.copyTimestamps)) {
+      return res.status(400).json({ success: false, message: 'copyTimestamps muss ein Array sein' });
+    }
+    if (nextState.rowActions === null || typeof nextState.rowActions !== 'object' || Array.isArray(nextState.rowActions)) {
+      return res.status(400).json({ success: false, message: 'rowActions muss ein Objekt sein' });
+    }
+    const map = loadVoucherUserStateMap();
+    map[String(userId)] = nextState;
+    saveJson(VOUCHER_USER_STATE_FILE, map);
+    return res.json({ success: true });
   } catch (error) {
     next(error);
   }

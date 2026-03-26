@@ -15,6 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'htt
 const API_BASE = !API_URL ? '/api' : (API_URL.endsWith('/api') ? API_URL : `${API_URL.replace(/\/$/, '')}/api`);
 
 const createMockApi = () => {
+  let voucherMockUserState = { copyHistory: [], copyTimestamps: [], rowActions: {} };
   return {
     post: async (url, data) => {
       if (url === '/auth/login') {
@@ -67,34 +68,13 @@ const createMockApi = () => {
         return {
           data: {
             success: true,
-            demo: [
-              {
-                provider: 'o2',
-                verlauf: 'Verlauf o2',
-                voucherType: 'Family and Friends (F&F) Voucher',
-                code: '400812345678',
-                digitLength: 12,
-                isDemo: true
-              },
-              {
-                provider: 'Ay Yildiz',
-                verlauf: '—',
-                voucherType: 'AG0- Voucher',
-                code: '987654321098765',
-                digitLength: 15,
-                isDemo: true
-              },
-              {
-                provider: 'Ay Yildiz',
-                verlauf: '—',
-                voucherType: '5 Euro Rabatt Voucher',
-                code: '123450987654321',
-                digitLength: 15,
-                isDemo: true
-              }
-            ],
             uploaded: [],
-            updatedAt: null
+            updatedAt: null,
+            userState: {
+              copyHistory: [...voucherMockUserState.copyHistory],
+              copyTimestamps: [...voucherMockUserState.copyTimestamps],
+              rowActions: { ...voucherMockUserState.rowActions }
+            }
           }
         };
       }
@@ -111,6 +91,14 @@ const createMockApi = () => {
       }
       if (url === '/imeis/data') {
         return await mockApi.saveImeisData(data);
+      }
+      if (url === '/excel/voucher-user-state') {
+        voucherMockUserState = {
+          copyHistory: Array.isArray(data?.copyHistory) ? data.copyHistory : [],
+          copyTimestamps: Array.isArray(data?.copyTimestamps) ? data.copyTimestamps : [],
+          rowActions: data?.rowActions && typeof data.rowActions === 'object' ? data.rowActions : {}
+        };
+        return { data: { success: true } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -229,6 +217,11 @@ export const uploadVoucherExcelFile = async (file) => {
 
 export const getVouchersApi = async () => {
   const res = await api.get('/excel/vouchers');
+  return res.data;
+};
+
+export const putVoucherUserStateApi = async (payload) => {
+  const res = await api.put('/excel/voucher-user-state', payload);
   return res.data;
 };
 
