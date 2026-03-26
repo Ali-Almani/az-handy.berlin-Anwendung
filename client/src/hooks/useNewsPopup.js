@@ -56,6 +56,12 @@ export function useNewsPopup() {
   useEffect(() => {
     if (!user?.id) return;
 
+    // Nur Nicht-Administratoren: Popup bei neuer Anweisung (Admins speichern selbst, kein eigenes Popup).
+    if (isAdmin(user)) {
+      setShowPopup(false);
+      return;
+    }
+
     const showNewNews = (newContent, newAuthorName, hasReadFromServer = false) => {
       if (!newContent || !newContent.trim()) return;
       if (hasReadFromServer) return; // Server sagt: Benutzer hat bereits gelesen → kein Popup
@@ -91,7 +97,7 @@ export function useNewsPopup() {
       clearInterval(id);
       if (socket) socket.off('news:new', onNewsNew);
     };
-  }, [user?.id, fetchNews]);
+  }, [user, fetchNews]);
 
   const handleMarkAsRead = useCallback(async () => {
     const hash = simpleHash(content);

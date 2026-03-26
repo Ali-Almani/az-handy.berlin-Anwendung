@@ -355,7 +355,7 @@ const Dashboard = () => {
                       onClick={() => setAdminSection(SEC_EXCEL)}
                       aria-current={adminSection === SEC_EXCEL ? 'page' : undefined}
                     >
-                      Excel/CSV-Datei hochladen
+                      IMEs Excel-Datei hochladen
                     </button>
                   </li>
                 )}

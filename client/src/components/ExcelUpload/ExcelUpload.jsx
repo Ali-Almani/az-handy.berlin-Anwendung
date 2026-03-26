@@ -93,13 +93,13 @@ const ExcelUpload = () => {
   return (
     <div className="card">
       <div className="card-header">
-        <h2 className="card-title">Excel/CSV-Datei hochladen</h2>
+        <h2 className="card-title">IMEs Excel-Datei hochladen</h2>
       </div>
       <div className="card-body">
         <div className="excel-upload-section">
           <div className="form-group">
             <label htmlFor="excel-file-input" className="form-label">
-              Excel/CSV-Datei auswählen (.xlsx, .xls, .csv)
+              IMEs Excel-Datei auswählen (.xlsx, .xls, .csv)
             </label>
             <div className="file-input-wrapper">
               <input
