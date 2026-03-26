@@ -39,7 +39,7 @@ const Layout = ({ children }) => {
   const [showExtraCopyModal, setShowExtraCopyModal] = useState(false);
   const [showExtraCopyNotificationModal, setShowExtraCopyNotificationModal] = useState(false);
   const [showReminderResponseModal, setShowReminderResponseModal] = useState(false);
-  const { showPopup, content, authorName, onMarkAsRead } = useNewsPopup();
+  const { showPopup, content, onMarkAsRead } = useNewsPopup();
   const { hasUnreadReminders, reminderCount } = useImeiReminderBadge();
   const { requests, hasPendingRequests, requestCount, loading, approve, reject } = useExtraCopyRequests();
   const { notifications, hasUnreadNotifications, notificationCount, markAsRead } = useExtraCopyNotification();
@@ -80,7 +80,7 @@ const Layout = ({ children }) => {
       </main>
       <Footer />
       {showPopup && (
-        <NewsPopup content={content} authorName={authorName} onMarkAsRead={onMarkAsRead} />
+        <NewsPopup content={content} onMarkAsRead={onMarkAsRead} />
       )}
       <ExtraCopyRequestsModal
         isOpen={showExtraCopyModal}

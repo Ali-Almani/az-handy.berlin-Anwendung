@@ -36,7 +36,6 @@ const simpleHash = (str) => {
 export function useNewsPopup() {
   const { user } = useAuth();
   const [content, setContent] = useState('');
-  const [authorName, setAuthorName] = useState('');
   const [showPopup, setShowPopup] = useState(false);
 
   const fetchNews = useCallback(async () => {
@@ -45,7 +44,6 @@ export function useNewsPopup() {
       const res = await getNews();
       return {
         content: res?.data?.content ?? '',
-        authorName: (res?.data?.authorName ?? '').trim(),
         hasRead: !!res?.data?.hasRead
       };
     } catch {
@@ -62,7 +60,7 @@ export function useNewsPopup() {
       return;
     }
 
-    const showNewNews = (newContent, newAuthorName, hasReadFromServer = false) => {
+    const showNewNews = (newContent, hasReadFromServer = false) => {
       if (!newContent || !newContent.trim()) return;
       if (hasReadFromServer) return; // Server sagt: Benutzer hat bereits gelesen → kein Popup
       const hash = simpleHash(newContent);
@@ -70,7 +68,6 @@ export function useNewsPopup() {
       const lastRead = getLastReadHash(user.id);
       if (lastRead !== hash) {
         setContent(newContent);
-        setAuthorName(newAuthorName || '');
         setShowPopup(true);
       }
     };
@@ -78,13 +75,13 @@ export function useNewsPopup() {
     const check = async () => {
       const data = await fetchNews();
       if (!data) return;
-      showNewNews(data.content, data.authorName, data.hasRead);
+      showNewNews(data.content, data.hasRead);
     };
 
     // Echtzeit: Socket.io – wenn Admin Anweisung speichert, sofort Popup
     const socket = getSocket();
     const onNewsNew = (payload) => {
-      if (payload?.content) showNewNews(payload.content, payload.authorName || '', false);
+      if (payload?.content) showNewNews(payload.content, false);
     };
     if (socket) {
       socket.on('news:new', onNewsNew);
@@ -115,7 +112,6 @@ export function useNewsPopup() {
   return {
     showPopup: showPopup && !!content,
     content,
-    authorName,
     onMarkAsRead: handleMarkAsRead
   };
 }

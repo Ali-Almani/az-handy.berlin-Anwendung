@@ -332,7 +332,7 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_ANWEISUNG)}
                         aria-current={adminSection === SEC_ANWEISUNG ? 'page' : undefined}
                       >
-                        Anweisung schreiben
+                        Anweisung
                       </button>
                     </li>
                   </>
@@ -529,7 +529,7 @@ const Dashboard = () => {
             {adminSection === SEC_ANWEISUNG && canShowDashboardNotes(user) && (
               <div className="card dashboard-new-message dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header">
-                  <h2 className="card-title">Anweisung schreiben</h2>
+                  <h2 className="card-title">Anweisung</h2>
                 </div>
                 <div className="card-body dashboard-anweisung-editor">
                   {noteError && <p className="text-error">{noteError}</p>}
