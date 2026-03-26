@@ -132,13 +132,6 @@ const ImeisZustandModal = ({ isOpen, onClose, zustandData, loading, isAdmin = fa
                     <span className="imeis-zustand-chart__hint">Verteilung nach Hersteller</span>
                   </div>
                   <table className="imeis-zustand-mfr-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Hersteller</th>
-                        <th scope="col">Anzahl</th>
-                        <th scope="col">%</th>
-                      </tr>
-                    </thead>
                     <tbody>
                       {manufacturers.map((m, i) => {
                         const pct = chartTotal > 0 ? ((m.total / chartTotal) * 100).toFixed(1) : '0.0';

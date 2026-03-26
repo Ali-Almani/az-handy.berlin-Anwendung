@@ -824,45 +824,6 @@
       border-spacing: 0;
       font-size: 0.78rem;
 
-      thead {
-        display: block;
-        width: 100%;
-        margin-bottom: 0.35rem;
-
-        tr {
-          display: flex;
-          flex-direction: row;
-          gap: 0.35rem;
-          padding: 0.35rem 0.45rem;
-          background: $bg-light;
-          border: 1px solid $border-color;
-          border-radius: 2px;
-          font-weight: $font-weight-bold;
-          color: $text-color;
-        }
-
-        th {
-          text-align: left;
-          font-weight: $font-weight-bold;
-
-          &:nth-child(1) {
-            flex: 1;
-            min-width: 0;
-          }
-
-          &:nth-child(2),
-          &:nth-child(3) {
-            flex-shrink: 0;
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-          }
-
-          &:nth-child(3) {
-            min-width: 2.5rem;
-          }
-        }
-      }
-
       tbody {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
