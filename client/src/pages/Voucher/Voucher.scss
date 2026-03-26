@@ -96,49 +96,11 @@
   margin-bottom: $spacing-md;
 }
 
-.voucher-admin-bar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: $spacing-md;
-  flex-wrap: wrap;
+/** Verlauf oben, darunter IMEI-gleiche Sheet-Tabs (.imeis .imeis-sheet-tabs) */
+.voucher-tabs-block {
   margin-bottom: $spacing-md;
 }
 
-.voucher-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-bottom: $spacing-md;
-  padding-bottom: $spacing-sm;
-  border-bottom: 1px solid #e8e8e8;
-
-  &.voucher-tabs--fixed {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-.voucher-tab {
-  padding: 0.45rem 0.9rem;
-  font-size: 0.88rem;
-  border: 1px solid transparent;
-  border-radius: $border-radius-card;
-  background: #f1f3f5;
-  color: #495057;
-  cursor: pointer;
-
-  &:hover {
-    background: #e9ecef;
-  }
-
-  &.is-active {
-    background: #495057;
-    color: #fff;
-    border-color: #495057;
-    font-weight: $font-weight-bold;
-  }
+.voucher-verlauf-above-tabs {
+  margin-bottom: $spacing-sm;
 }

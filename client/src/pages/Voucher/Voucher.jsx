@@ -148,28 +148,30 @@ const Voucher = () => {
                 </p>
               ) : (
                 <>
-                  <div className="voucher-admin-bar">
-                    <div className="voucher-tabs voucher-tabs--fixed" role="tablist" aria-label="Voucher-Kategorie">
+                  <div className="voucher-tabs-block">
+                    <div className="voucher-verlauf-above-tabs">
+                      <button
+                        type="button"
+                        className="btn btn--small imeis-history-btn"
+                        onClick={() => setShowHistoryModal(true)}
+                      >
+                        Verlauf ({copyHistory.length})
+                      </button>
+                    </div>
+                    <div className="imeis-sheet-tabs" role="tablist" aria-label="Voucher-Kategorie">
                       {VOUCHER_FIXED_TABS.map((tab) => (
                         <button
                           key={tab.id}
                           type="button"
                           role="tab"
                           aria-selected={activeTab === tab.id}
-                          className={`voucher-tab${activeTab === tab.id ? ' is-active' : ''}`}
+                          className={`imeis-sheet-tab${activeTab === tab.id ? ' imeis-sheet-tab--active' : ''}`}
                           onClick={() => setActiveTab(tab.id)}
                         >
                           {tab.label}
                         </button>
                       ))}
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn--small imeis-history-btn"
-                      onClick={() => setShowHistoryModal(true)}
-                    >
-                      Verlauf
-                    </button>
                   </div>
 
                   {!nummerKey && (
