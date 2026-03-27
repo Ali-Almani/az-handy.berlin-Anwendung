@@ -344,7 +344,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   return (
                     <tr key={key}>
                       <td className="performance-dashboard__cell-label">{label}</td>
-                      <td className="performance-dashboard__cell-muted">
+                      <td>
                         {editing ? (
                           <input type="number" className="performance-dashboard__cell-input" value={row?.vormonate ?? row?.letzterMonat ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.vormonate`, parseInt(e.target.value, 10) || 0)} />
                         ) : (row?.vormonate ?? row?.letzterMonat ?? '–')}

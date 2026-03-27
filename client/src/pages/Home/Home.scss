@@ -8,7 +8,7 @@
   flex-direction: column;
   gap: $spacing-xl;
 
-  /* Kennzahlen / NEWS: untereinander bis Desktop; ab lg nebeneinander 65 % / 35 % */
+  /* Kennzahlen / NEWS: untereinander bis Desktop; ab lg nebeneinander 60 % / 40 % */
   &__dashboard-row {
     display: grid;
     gap: $spacing-xl;
@@ -16,7 +16,7 @@
     align-items: start;
 
     @media (min-width: $breakpoint-lg) {
-      grid-template-columns: minmax(0, 13fr) minmax(0, 7fr);
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
       gap: $spacing-lg;
 
       > .home__kennzahlen,
@@ -425,14 +425,8 @@
   }
 }
 
-/* az-schnelltest.berlin: Kennzahlen-Spalte breiter (~75 % / 25 %), volle Höhe ohne künstliche Begrenzung */
+/* az-schnelltest.berlin: gleiches 60/40 wie Startseite; Card ohne Höhenbegrenzung */
 body.layout-host--schnelltest .home {
-  .home__dashboard-row {
-    @media (min-width: $breakpoint-lg) {
-      grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
-    }
-  }
-
   .home__kennzahlen.card {
     padding: $spacing-md $spacing-lg;
 

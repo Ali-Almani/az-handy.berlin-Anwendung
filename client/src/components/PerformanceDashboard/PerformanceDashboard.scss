@@ -229,14 +229,21 @@
   }
 
   &__table {
-    width: max-content;
+    width: 100%;
     max-width: 100%;
     min-width: 0;
-    table-layout: auto;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.85rem;
     background: $bg-color;
     border: 1px solid $border-color;
+
+    /* Monatsziel und Quartalsziel: gleiche Breite, sechs gleich breite Spalten */
+    @for $i from 1 through 6 {
+      th:nth-child(#{$i}) {
+        width: calc(100% / 6);
+      }
+    }
 
     th,
     td {
@@ -244,9 +251,9 @@
       border: 1px solid $border-color;
       color: $text-color;
       box-sizing: border-box;
-      white-space: nowrap;
-      word-break: normal;
-      overflow-wrap: normal;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       vertical-align: middle;
       text-align: center;
     }
