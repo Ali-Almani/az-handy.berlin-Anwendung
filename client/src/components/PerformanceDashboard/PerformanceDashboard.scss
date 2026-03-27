@@ -138,11 +138,12 @@
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    padding: $spacing-xs $spacing-sm;
+    padding: 0.15rem 0.3rem;
     border: 1px solid $border-color;
     border-radius: $border-radius-card;
     font-size: 0.9rem;
     box-sizing: border-box;
+    text-align: center;
 
     &:focus {
       outline: none;
@@ -223,14 +224,15 @@
     border: 1px solid $border-color;
     border-radius: $border-radius-card;
     box-shadow: $shadow-card;
-    overflow-x: visible;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   &__table {
-    width: 100%;
-    min-width: 0;
+    width: max-content;
     max-width: 100%;
-    table-layout: fixed;
+    min-width: 0;
+    table-layout: auto;
     border-collapse: collapse;
     font-size: 0.85rem;
     background: $bg-color;
@@ -238,46 +240,30 @@
 
     th,
     td {
-      padding: 0.3rem 0.4rem;
+      padding: 0.2rem 0.35rem;
       border: 1px solid $border-color;
       color: $text-color;
       box-sizing: border-box;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: anywhere;
-      vertical-align: top;
+      white-space: nowrap;
+      word-break: normal;
+      overflow-wrap: normal;
+      vertical-align: middle;
+      text-align: center;
     }
-
-    /* Kompakte Spalten, Summe 100 % */
-    th:first-child,
-    td:first-child {
-      width: 15%;
-    }
-    th:nth-child(2), td:nth-child(2) { width: 14%; }
-    th:nth-child(3), td:nth-child(3) { width: 14%; }
-    th:nth-child(4), td:nth-child(4) { width: 28%; }
-    th:nth-child(5), td:nth-child(5) { width: 14%; }
-    th:nth-child(6), td:nth-child(6) { width: 15%; }
 
     @media (max-width: $breakpoint-lg - 1px) {
       font-size: 0.78rem;
 
       th,
       td {
-        padding: 0.25rem 0.3rem;
+        padding: 0.18rem 0.3rem;
       }
     }
 
     th {
-      text-align: left;
+      text-align: center;
       font-weight: $font-weight-bold;
       background: $bg-light;
-    }
-
-    td {
-      &:last-child {
-        text-align: center;
-      }
     }
 
     tbody tr {
