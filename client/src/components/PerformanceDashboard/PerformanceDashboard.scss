@@ -4,6 +4,15 @@
   background: $bg-color;
   padding: 0;
 
+  /* Eine Spalte – verhindert, dass bei display:flex auf .card-header Meta + Tabellen nebeneinander rutschen */
+  &--root {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+  }
+
   &__header-meta {
     display: flex;
     flex-wrap: wrap;

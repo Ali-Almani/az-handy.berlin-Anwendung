@@ -53,7 +53,8 @@ const Home = () => {
           }
         } else {
           setNewsIsUnread(false);
-          setNewsOpen(true);
+          /* Schnelltest: NEWS nach Laden immer zugeklappt (auch ohne NEUE-Nachricht-Logik) */
+          setNewsOpen(getIsSchnelltestHost() ? false : true);
         }
       } catch {
         setSiteNewsHtml('');

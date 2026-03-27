@@ -164,6 +164,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   const patchEditData = useCallback((fn) => {
     setEditData((prev) => {
+      if (prev == null) return prev;
       const next = JSON.parse(JSON.stringify(prev));
       fn(next);
       return next;
@@ -273,6 +274,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   const updateEdit = (path, value) => {
     setEditData((prev) => {
+      if (prev == null) return prev;
       const next = JSON.parse(JSON.stringify(prev));
       const parts = path.split('.');
       let obj = next;
@@ -393,7 +395,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
   );
 
   return (
-    <>
+    <div className="performance-dashboard performance-dashboard--root">
       {headerMetaAndActions}
       <div className="performance-dashboard performance-dashboard__content">
       {!metaInHeader && (
@@ -670,12 +672,8 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
         </div>
       )}
     </div>
-    </>
+    </div>
   );
 };
 
 export default PerformanceDashboard;
-
-
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-StrReplace

@@ -413,6 +413,7 @@ const Dashboard = () => {
                 <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
                   <PerformanceDashboard
                     isAdmin={isAdmin(user)}
+                    readOnly={false}
                     metaInHeader
                     onMetricsLoaded={setMetricsMeta}
                   />
