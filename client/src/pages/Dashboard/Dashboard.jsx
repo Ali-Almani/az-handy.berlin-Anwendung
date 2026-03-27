@@ -379,7 +379,7 @@ const Dashboard = () => {
   const renderExcelDashboardPanel = () => (
     <div className="card dashboard-excel-upload dashboard-admin-panel">
       <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
-        <h2 className="card-title">IMEs Excel-Datei hochladen</h2>
+        <h2 className="card-title">IMEs Verwaltung</h2>
         <span className="dashboard-excel-upload__badge">Excel / CSV</span>
       </div>
       <div className="dashboard-excel-upload-panel">
@@ -391,7 +391,7 @@ const Dashboard = () => {
   const renderVoucherDashboardPanel = () => (
     <div className="card dashboard-excel-upload dashboard-admin-panel">
       <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
-        <h2 className="card-title">Voucher Excel-Datei hochladen</h2>
+        <h2 className="card-title">Voucher Verwaltung</h2>
         <span className="dashboard-excel-upload__badge">Voucher</span>
       </div>
       <div className="dashboard-excel-upload-panel">
@@ -470,7 +470,7 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_EXCEL)}
                         aria-current={adminSection === SEC_EXCEL ? 'page' : undefined}
                       >
-                        IMEs Excel-Datei hochladen
+                        IMEs Verwaltung
                       </button>
                     </li>
                     <li>
@@ -480,7 +480,7 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_VOUCHER)}
                         aria-current={adminSection === SEC_VOUCHER ? 'page' : undefined}
                       >
-                        Voucher Excel-Datei hochladen
+                        Voucher Verwaltung
                       </button>
                     </li>
                   </>
@@ -872,7 +872,7 @@ const Dashboard = () => {
                     onClick={() => setBueroSection(SEC_EXCEL)}
                     aria-current={bueroSection === SEC_EXCEL ? 'page' : undefined}
                   >
-                    IMEs Excel-Datei hochladen
+                    IMEs Verwaltung
                   </button>
                 </li>
                 <li>
@@ -882,7 +882,7 @@ const Dashboard = () => {
                     onClick={() => setBueroSection(SEC_VOUCHER)}
                     aria-current={bueroSection === SEC_VOUCHER ? 'page' : undefined}
                   >
-                    Voucher Excel-Datei hochladen
+                    Voucher Verwaltung
                   </button>
                 </li>
               </ul>
