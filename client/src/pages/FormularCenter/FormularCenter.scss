@@ -10,7 +10,7 @@
 }
 
 .formular-center-intro {
-  margin: 0 0 $spacing-md;
+  margin: 15px;
   color: $text-color;
   line-height: 1.5;
   font-size: 0.95rem;
@@ -63,15 +63,11 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: $spacing-sm $spacing-md;
+  margin: 15px;
   padding: $spacing-md;
   border: 1px solid $border-color;
   border-radius: $border-radius-card;
-  margin-bottom: $spacing-sm;
   background: #fff;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 }
 
 .formular-center-link {

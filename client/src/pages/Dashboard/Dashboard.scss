@@ -801,12 +801,6 @@
   border-radius: 999px;
 }
 
-.dashboard-formular-intro {
-  margin-top: 0;
-  margin-bottom: $spacing-lg;
-  margin-left: $spacing-md;
-}
-
 .dashboard-formular-upload {
   flex-direction: column;
   align-items: flex-start;
@@ -818,14 +812,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-sm $spacing-md;
-}
-
-.dashboard-formular-pick-label {
-  display: block;
-  width: 100%;
-  font-size: 0.9rem;
-  color: $text-light;
-  word-break: break-word;
 }
 
 @media (max-width: $breakpoint-md) {

@@ -27,8 +27,8 @@ import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
 import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
-import './Dashboard.scss';
 import '../FormularCenter/FormularCenter.scss';
+import './Dashboard.scss';
 
 /** Admin-Sidebar: ein Bereich aktiv */
 const SEC_KENNZAHLEN = 'kennzahlen';
@@ -70,7 +70,6 @@ const Dashboard = () => {
   const [formularError, setFormularError] = useState(null);
   const [formularUploadBusy, setFormularUploadBusy] = useState(false);
   const [formularDeleteId, setFormularDeleteId] = useState(null);
-  const [formularPickLabel, setFormularPickLabel] = useState('Keine Datei ausgewählt');
 
   const loadFormularCenter = useCallback(async () => {
     setFormularLoading(true);
@@ -183,7 +182,6 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    setFormularPickLabel(file.name);
     setFormularUploadBusy(true);
     setFormularError(null);
     try {
@@ -204,7 +202,6 @@ const Dashboard = () => {
       setFormularError(msg);
     } finally {
       setFormularUploadBusy(false);
-      setFormularPickLabel('Keine Datei ausgewählt');
     }
   };
 
@@ -798,7 +795,7 @@ const Dashboard = () => {
                   <span className="dashboard-excel-upload__badge">PDF</span>
                 </div>
                 <div className="card-body">
-                  <p className="formular-center-intro dashboard-formular-intro">
+                  <p className="formular-center-intro">
                     PDFs, die Sie hier hochladen, erscheinen für alle Benutzer unter „Formular Center“ in der
                     Navigation.
                   </p>
@@ -821,7 +818,6 @@ const Dashboard = () => {
                       </button>
                       <span className="formular-center-upload-hint">max. 100 MB · PDF</span>
                     </div>
-                    <span className="dashboard-formular-pick-label">{formularPickLabel}</span>
                   </div>
                   {formularError && <p className="text-error formular-center-error">{formularError}</p>}
                   {formularLoading ? (
