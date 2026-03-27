@@ -384,15 +384,14 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
         {((notizenDeAnzeige || notizenArAnzeige) || (!readOnly && isAdmin)) && (
           <div className="performance-dashboard__notizen">
             <div className="performance-dashboard__notizen-block performance-dashboard__notizen-block--de">
-              <label className="performance-dashboard__notizen-label" htmlFor="perf-notizen-de">DE</label>
               {!readOnly && isAdmin && editing ? (
                 <textarea
                   id="perf-notizen-de"
                   className="performance-dashboard__notizen-input"
                   value={editData?.notizenDe ?? ''}
                   onChange={(e) => updateEdit('notizenDe', e.target.value)}
-                  rows={3}
-                  placeholder="DE…"
+                  rows={2}
+                  aria-label="Notizen Deutsch"
                   lang="de"
                 />
               ) : (
@@ -402,15 +401,14 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
               )}
             </div>
             <div className="performance-dashboard__notizen-block performance-dashboard__notizen-block--ar">
-              <label className="performance-dashboard__notizen-label" htmlFor="perf-notizen-ar">AR</label>
               {!readOnly && isAdmin && editing ? (
                 <textarea
                   id="perf-notizen-ar"
                   className="performance-dashboard__notizen-input performance-dashboard__notizen-input--rtl"
                   value={editData?.notizenAr ?? ''}
                   onChange={(e) => updateEdit('notizenAr', e.target.value)}
-                  rows={3}
-                  placeholder="AR…"
+                  rows={2}
+                  aria-label="Notizen Arabisch"
                   dir="rtl"
                   lang="ar"
                 />
