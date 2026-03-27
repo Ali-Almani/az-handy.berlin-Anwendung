@@ -766,6 +766,10 @@
   /* Kennzahlen: gleiche Innenabstände wie NEWS-Panel (.dashboard-admin-panel__header + Inhalt mit $spacing-sm $spacing-md) */
   &.dashboard-performance .card-header.card-header--kennzahlen {
     border-radius: 0;
+
+    .card-header__meta {
+      margin-bottom: 15px;
+    }
   }
 
   &.dashboard-user-management {
