@@ -556,26 +556,6 @@ export const uploadNewsFile = async (req, res, next) => {
   }
 };
 
-/** Sprachnachricht für Anweisung (nur Admin), gleiche öffentliche URL-Struktur wie NEWS-Bilder */
-export const uploadAnweisungAudioFile = async (req, res, next) => {
-  try {
-    const userId = req.user.userId;
-    const currentUser = await User.findByPk(userId);
-    if (!isAdminUser(currentUser)) {
-      return res.status(403).json({ message: 'Nur Administratoren können Audio hochladen' });
-    }
-    if (!req.file) {
-      return res.status(400).json({ message: 'Keine Datei' });
-    }
-    const publicPath = `/uploads/news/${req.file.filename}`;
-    const base = `${req.protocol}://${req.get('host')}`;
-    const url = `${base}${publicPath}`;
-    return res.json({ success: true, url, path: publicPath });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const getHistory = async (req, res, next) => {
   try {
     const userId = req.user.userId;

@@ -350,13 +350,3 @@ export const uploadNewsMedia = (file) => {
   formData.append('file', file);
   return api.post('/dashboard/news/upload', formData);
 };
-
-/** Audio für Anweisung (Browser-Aufnahme, nur Admin) */
-export const uploadAnweisungAudioMedia = (file) => {
-  if (USE_MOCK_API) {
-    return Promise.reject(new Error('Audio-Upload im Mock-Modus nicht verfügbar. Bitte VITE_API_URL setzen.'));
-  }
-  const formData = new FormData();
-  formData.append('file', file);
-  return api.post('/dashboard/note/upload-audio', formData);
-};

@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { newsUpload, anweisungAudioUpload } from '../middleware/newsUpload.js';
+import { newsUpload } from '../middleware/newsUpload.js';
 import {
   getNote,
   saveNote,
@@ -18,8 +18,7 @@ import {
   getSiteNewsHistory,
   updateSiteNewsHistoryEntry,
   deleteSiteNewsHistoryEntry,
-  uploadNewsFile,
-  uploadAnweisungAudioFile
+  uploadNewsFile
 } from '../controllers/dashboard.controller.js';
 
 const router = express.Router();
@@ -44,20 +43,6 @@ router.post('/news/upload', (req, res, next) => {
     next();
   });
 }, uploadNewsFile);
-
-router.post('/note/upload-audio', (req, res, next) => {
-  anweisungAudioUpload.single('file')(req, res, (err) => {
-    if (err) {
-      const code = err.code;
-      const msg =
-        code === 'LIMIT_FILE_SIZE'
-          ? 'Audio zu groß (max. 25 MB)'
-          : err.message || 'Upload fehlgeschlagen';
-      return res.status(400).json({ message: msg, code: code || undefined });
-    }
-    next();
-  });
-}, uploadAnweisungAudioFile);
 
 router.get('/performance', getPerformanceMetrics);
 router.put('/performance', savePerformanceMetrics);

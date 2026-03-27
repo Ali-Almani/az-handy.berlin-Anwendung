@@ -1,37 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import TextEditorToolbar from './TextEditorToolbar';
 import { useTextEditorFormatting } from './hooks/useTextEditorFormatting';
 import './TextEditor.scss';
-
-function pickAudioMimeType() {
-  if (typeof MediaRecorder === 'undefined') return '';
-  const candidates = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/mp4',
-    'audio/ogg;codecs=opus',
-    'audio/ogg'
-  ];
-  for (const c of candidates) {
-    if (MediaRecorder.isTypeSupported(c)) return c;
-  }
-  return '';
-}
-
-function escapeAttrUrl(url) {
-  return String(url || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;');
-}
 
 const TextEditor = ({
   initialContent = '',
   onSave,
   placeholder = 'Schreiben Sie hier...',
   /** Optional: { uploadFile: async (file) => urlString } für Bilder in NEWS */
-  mediaUpload = null,
-  /** Optional: { uploadFile: async (file) => urlString } – Mikrofon aufnehmen (Anweisung) */
-  audioUpload = null
+  mediaUpload = null
 }) => {
   const [content, setContent] = useState(initialContent);
   const [lastSavedContent, setLastSavedContent] = useState(initialContent);
@@ -47,14 +24,6 @@ const TextEditor = ({
   const bgColorPickerRef = useRef(null);
   const imageInputRef = useRef(null);
   const [mediaBusy, setMediaBusy] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioStreamRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const audioDiscardRef = useRef(false);
-  const audioTickRef = useRef(null);
-  const [isAudioRecording, setIsAudioRecording] = useState(false);
-  const [audioRecordSeconds, setAudioRecordSeconds] = useState(0);
-  const [audioBusy, setAudioBusy] = useState(false);
 
   const { formatText, applyTextColor, applyBackgroundColor } = useTextEditorFormatting(editorRef, setContent);
 
@@ -71,126 +40,6 @@ const TextEditor = ({
       }
     });
   };
-
-  const insertAudioFromUrl = useCallback((url) => {
-    if (!editorRef.current || !url) return;
-    const safe = escapeAttrUrl(url);
-    editorRef.current.focus();
-    requestAnimationFrame(() => {
-      try {
-        const html = `<p><audio controls preload="metadata" src="${safe}"></audio></p>`;
-        document.execCommand('insertHTML', false, html);
-        setContent(editorRef.current.innerHTML);
-        editorRef.current.focus();
-      } catch (err) {
-        console.error('Audio einfügen:', err);
-      }
-    });
-  }, []);
-
-  const stopAudioStream = useCallback(() => {
-    if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach((t) => t.stop());
-      audioStreamRef.current = null;
-    }
-  }, []);
-
-  const clearAudioTimer = useCallback(() => {
-    if (audioTickRef.current) {
-      clearInterval(audioTickRef.current);
-      audioTickRef.current = null;
-    }
-  }, []);
-
-  const startAudioRecording = useCallback(async () => {
-    if (!audioUpload?.uploadFile || typeof navigator?.mediaDevices?.getUserMedia !== 'function') {
-      alert('Audioaufnahme wird von diesem Browser nicht unterstützt.');
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamRef.current = stream;
-      audioDiscardRef.current = false;
-      audioChunksRef.current = [];
-      const mimeType = pickAudioMimeType();
-      const options = mimeType ? { mimeType } : {};
-      const mr = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mr;
-      mr.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      mr.onstop = async () => {
-        stopAudioStream();
-        clearAudioTimer();
-        setIsAudioRecording(false);
-        setAudioRecordSeconds(0);
-        const discard = audioDiscardRef.current;
-        audioDiscardRef.current = false;
-        const chunks = audioChunksRef.current;
-        audioChunksRef.current = [];
-        if (discard || !chunks.length) return;
-        const blob = new Blob(chunks, { type: mr.mimeType || mimeType || 'audio/webm' });
-        const ext = blob.type.includes('mp4') || blob.type.includes('m4a') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
-        const file = new File([blob], `anweisung-${Date.now()}.${ext}`, { type: blob.type || 'audio/webm' });
-        try {
-          setAudioBusy(true);
-          const uploadedUrl = await audioUpload.uploadFile(file);
-          if (uploadedUrl) insertAudioFromUrl(uploadedUrl);
-        } catch (err) {
-          console.error(err);
-          alert(err?.response?.data?.message || err?.message || 'Audio-Upload fehlgeschlagen');
-        } finally {
-          setAudioBusy(false);
-        }
-      };
-      mr.start();
-      setIsAudioRecording(true);
-      setAudioRecordSeconds(0);
-      audioTickRef.current = setInterval(() => {
-        setAudioRecordSeconds((s) => s + 1);
-      }, 1000);
-    } catch (err) {
-      console.error(err);
-      alert('Mikrofon-Zugriff verweigert oder nicht verfügbar.');
-    }
-  }, [audioUpload, clearAudioTimer, insertAudioFromUrl, stopAudioStream]);
-
-  const finishAudioRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    } else {
-      clearAudioTimer();
-      stopAudioStream();
-      setIsAudioRecording(false);
-    }
-  }, [clearAudioTimer, stopAudioStream]);
-
-  const cancelAudioRecording = useCallback(() => {
-    audioDiscardRef.current = true;
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    } else {
-      clearAudioTimer();
-      stopAudioStream();
-      setIsAudioRecording(false);
-      setAudioRecordSeconds(0);
-    }
-  }, [clearAudioTimer, stopAudioStream]);
-
-  useEffect(() => {
-    return () => {
-      audioDiscardRef.current = true;
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        try {
-          mediaRecorderRef.current.stop();
-        } catch (_) {}
-      }
-      clearAudioTimer();
-      stopAudioStream();
-    };
-  }, [clearAudioTimer, stopAudioStream]);
 
   const handleMediaFile = async (e) => {
     const file = e.target.files?.[0];
@@ -321,34 +170,6 @@ const TextEditor = ({
             mediaBusy={mediaBusy}
             showMediaUpload={!!mediaUpload?.uploadFile}
           />
-          {audioUpload?.uploadFile && (
-            <div className="text-editor-audio-row">
-              {!isAudioRecording ? (
-                <button
-                  type="button"
-                  className="btn btn--outline btn--small"
-                  disabled={audioBusy || mediaBusy}
-                  onClick={startAudioRecording}
-                >
-                  Audio aufnehmen
-                </button>
-              ) : (
-                <>
-                  <span className="text-editor-recording-indicator">
-                    <span className="text-editor-rec-dot" aria-hidden />
-                    Aufnahme… {audioRecordSeconds}s
-                  </span>
-                  <button type="button" className="btn btn--primary btn--small" onClick={finishAudioRecording}>
-                    Beenden & einfügen
-                  </button>
-                  <button type="button" className="btn btn--outline btn--small" onClick={cancelAudioRecording}>
-                    Abbrechen
-                  </button>
-                </>
-              )}
-              {audioBusy && <span className="text-editor-media-busy">Audio wird hochgeladen…</span>}
-            </div>
-          )}
           <div
             ref={editorRef}
             contentEditable

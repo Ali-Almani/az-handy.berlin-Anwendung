@@ -12,8 +12,7 @@ import {
   getSiteNewsHistory,
   updateSiteNewsHistoryEntry,
   deleteSiteNewsHistoryEntry,
-  uploadNewsMedia,
-  uploadAnweisungAudioMedia
+  uploadNewsMedia
 } from '../../services/dashboard.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
@@ -256,11 +255,6 @@ const Dashboard = () => {
     return res.data?.url;
   };
 
-  const uploadAnweisungAudio = async (file) => {
-    const res = await uploadAnweisungAudioMedia(file);
-    return res.data?.url;
-  };
-
   const handleStartEditArchive = (m) => {
     setEditingId(m.id);
     setEditingContent(m.content || '');
@@ -416,13 +410,15 @@ const Dashboard = () => {
                 <div className="dashboard-admin-panel__header">
                   <h2 className="card-title">Kennzahlen</h2>
                 </div>
-                <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
-                  <PerformanceDashboard
-                    isAdmin={isAdmin(user)}
-                    readOnly={false}
-                    metaInHeader
-                    onMetricsLoaded={setMetricsMeta}
-                  />
+                <div className="card-body">
+                  <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
+                    <PerformanceDashboard
+                      isAdmin={isAdmin(user)}
+                      readOnly={false}
+                      metaInHeader
+                      onMetricsLoaded={setMetricsMeta}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -590,7 +586,6 @@ const Dashboard = () => {
                       initialContent={noteContent}
                       onSave={handleSave}
                       placeholder="schreiben Sie hier Ihre Anweisung ."
-                      audioUpload={{ uploadFile: uploadAnweisungAudio }}
                     />
                   )}
                 </div>

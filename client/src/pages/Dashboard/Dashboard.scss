@@ -252,6 +252,10 @@
     box-shadow: $shadow-card;
     overflow: visible;
 
+    .card-body {
+      overflow: visible;
+    }
+
     .dashboard-accordion-trigger {
       border-radius: $border-radius-card $border-radius-card 0 0;
     }
@@ -278,7 +282,6 @@
       display: flex;
       flex-wrap: wrap;
       gap: $spacing-lg;
-      margin-bottom: 15px;
       font-size: 0.9rem;
       color: #7f8c8d;
     }
@@ -760,15 +763,9 @@
     }
   }
 
-  &.dashboard-performance {
-    .dashboard-admin-panel__header {
-      padding: $spacing-md $spacing-lg;
-    }
-
-    .card-header.card-header--kennzahlen {
-      border-radius: 0;
-      padding: $spacing-md $spacing-lg $spacing-xl;
-    }
+  /* Kennzahlen: gleiche Innenabstände wie NEWS-Panel (.dashboard-admin-panel__header + Inhalt mit $spacing-sm $spacing-md) */
+  &.dashboard-performance .card-header.card-header--kennzahlen {
+    border-radius: 0;
   }
 
   &.dashboard-user-management {
