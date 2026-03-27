@@ -49,10 +49,11 @@ const FormularCenter = () => {
               {items.map((it) => (
                 <li key={it.id} className="formular-center-item">
                   <a
-                    href={it.url}
+                    href={it.url || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="formular-center-link"
+                    title="PDF in neuem Tab öffnen"
                   >
                     {it.originalName || 'Formular.pdf'}
                   </a>

@@ -22,7 +22,7 @@ export const getFormularCenterItems = async (req, res, next) => {
   try {
     const data = loadJson(FORMULAR_CENTER_FILE) || {};
     const raw = Array.isArray(data.items) ? data.items : [];
-    const base = `${req.protocol}://${req.get('host')}`;
+    /** Relativ zum Seiten-Origin: funktioniert für alle Nutzer hinter Proxy/Vite, ohne falsches Host/Protokoll. */
     const items = raw
       .filter((it) => it && it.id && it.fileName)
       .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))
@@ -31,7 +31,7 @@ export const getFormularCenterItems = async (req, res, next) => {
         originalName: it.originalName || it.fileName,
         uploadedAt: it.uploadedAt,
         uploadedByName: it.uploadedByName || '',
-        url: `${base}/uploads/${UPLOAD_SUBDIR}/${it.fileName}`
+        url: `/uploads/${UPLOAD_SUBDIR}/${it.fileName}`
       }));
     return res.json({ success: true, items });
   } catch (e) {
@@ -70,7 +70,6 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
     const items = Array.isArray(data.items) ? [...data.items] : [];
     items.unshift(entry);
     saveJson(FORMULAR_CENTER_FILE, { items });
-    const base = `${req.protocol}://${req.get('host')}`;
     return res.json({
       success: true,
       item: {
@@ -78,7 +77,7 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
         originalName: entry.originalName,
         uploadedAt: entry.uploadedAt,
         uploadedByName: entry.uploadedByName,
-        url: `${base}/uploads/${UPLOAD_SUBDIR}/${entry.fileName}`
+        url: `/uploads/${UPLOAD_SUBDIR}/${entry.fileName}`
       }
     });
   } catch (e) {
