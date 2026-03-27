@@ -51,15 +51,6 @@ const FormularCenter = () => {
                   <li key={it.id} className="formular-center-item">
                     <span className="formular-center-item-name">{label}</span>
                     <span className="formular-center-item-actions">
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="formular-center-link"
-                        title="PDF in neuem Tab anzeigen"
-                      >
-                        Vorschau
-                      </a>
                       <a href={href} download={fileName} className="formular-center-link formular-center-link--download">
                         Herunterladen
                       </a>

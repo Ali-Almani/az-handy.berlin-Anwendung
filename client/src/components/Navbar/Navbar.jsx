@@ -247,14 +247,6 @@ const Navbar = ({
       </li>
     ) : null;
 
-  const renderFormularCenterItem = () => (
-    <li>
-      <NavLink to="/formular-center" className={navLinkClassName} onClick={closeMobileMenu} end>
-        Formular Center
-      </NavLink>
-    </li>
-  );
-
   const renderDashboardItem = () =>
     canAccessDashboard(user) ? (
       <li>
@@ -268,7 +260,6 @@ const Navbar = ({
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
-      {renderFormularCenterItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId)}
       {renderDashboardItem()}
     </>
@@ -278,7 +269,6 @@ const Navbar = ({
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
-      {renderFormularCenterItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
       {renderDashboardItem()}
     </>
@@ -291,7 +281,6 @@ const Navbar = ({
           <img src={logo} alt="az-handy.berlin Logo" className="navbar-logo" />
         </Link>
         <ul className="navbar-nav">
-          {!user ? renderFormularCenterItem() : null}
           {user ? (
             <>
               {navLinksDesktop}
@@ -414,6 +403,25 @@ const Navbar = ({
                       </button>
                     )}
                     <Link
+                      to="/formular-center"
+                      className="navbar-dropdown-item"
+                      onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
+                    >
+                      <span className="navbar-dropdown-icon" aria-hidden>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M9.5 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.5L9.5 1.5z"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                            strokeLinejoin="round"
+                          />
+                          <path d="M9.5 1.5V5h3.5" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                          <path d="M5 9h6M5 11.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                      Formular Center
+                    </Link>
+                    <Link
                       to="/dokumentation"
                       className="navbar-dropdown-item"
                       onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
@@ -529,11 +537,30 @@ const Navbar = ({
                       <span>Erinnerung beantwortet</span>
                     </button>
                   )}
-                  <Link to="/dokumentation" className="navbar-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                  <Link
+                    to="/formular-center"
+                    className="navbar-dropdown-item"
+                    onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
+                  >
+                    <span className="navbar-dropdown-icon" aria-hidden>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M9.5 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.5L9.5 1.5z"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                          strokeLinejoin="round"
+                        />
+                        <path d="M9.5 1.5V5h3.5" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                        <path d="M5 9h6M5 11.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                    Formular Center
+                  </Link>
+                  <Link to="/dokumentation" className="navbar-dropdown-item" onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}>
                     <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2V3z" stroke="currentColor" strokeWidth="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.5"/></svg></span>
                     Dokumentation
                   </Link>
-                  <Link to="/settings" className="navbar-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                  <Link to="/settings" className="navbar-dropdown-item" onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}>
                     <span className="navbar-dropdown-icon">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
                         <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
