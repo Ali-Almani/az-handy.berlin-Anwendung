@@ -834,17 +834,6 @@ const Dashboard = () => {
                           >
                             {it.originalName || 'Formular.pdf'}
                           </a>
-                          <div className="formular-center-meta">
-                            {it.uploadedAt &&
-                              new Date(it.uploadedAt).toLocaleString('de-DE', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            {it.uploadedByName ? ` · ${it.uploadedByName}` : ''}
-                          </div>
                           <button
                             type="button"
                             className="btn btn--danger btn--small formular-center-delete"

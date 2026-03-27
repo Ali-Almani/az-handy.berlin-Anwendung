@@ -12,11 +12,10 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateToken);
-
+/** Öffentlich: alle können Liste & PDF-URLs sehen (Dateien unter /uploads ohnehin öffentlich). */
 router.get('/', getFormularCenterItems);
 
-router.post('/upload', (req, res, next) => {
+router.post('/upload', authenticateToken, (req, res, next) => {
   formularPdfUpload.single('file')(req, res, (err) => {
     if (err) {
       const code = err.code;
@@ -34,6 +33,6 @@ router.post('/upload', (req, res, next) => {
   });
 }, uploadFormularCenterPdf);
 
-router.delete('/:id', deleteFormularCenterItem);
+router.delete('/:id', authenticateToken, deleteFormularCenterItem);
 
 export default router;

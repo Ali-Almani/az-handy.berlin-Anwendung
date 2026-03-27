@@ -61,13 +61,27 @@
 .formular-center-item {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: $spacing-sm $spacing-md;
   margin: 15px;
   padding: $spacing-md;
   border: 1px solid $border-color;
   border-radius: $border-radius-card;
   background: #fff;
+}
+
+.formular-center-item-name {
+  flex: 1 1 12rem;
+  font-weight: $font-weight-medium;
+  color: $text-color;
+  word-break: break-word;
+}
+
+.formular-center-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm $spacing-md;
 }
 
 .formular-center-link {
@@ -81,11 +95,8 @@
   }
 }
 
-.formular-center-meta {
-  flex: 1 1 auto;
-  font-size: 0.85rem;
-  color: $text-light;
-  min-width: 10rem;
+.formular-center-link--download {
+  font-weight: $font-weight-normal;
 }
 
 .formular-center-delete {

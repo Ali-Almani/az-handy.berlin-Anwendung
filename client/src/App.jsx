@@ -76,14 +76,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/formular-center"
-          element={
-            <ProtectedRoute>
-              <FormularCenter />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/formular-center" element={<FormularCenter />} />
       </Routes>
     </Layout>
   );

@@ -291,6 +291,7 @@ const Navbar = ({
           <img src={logo} alt="az-handy.berlin Logo" className="navbar-logo" />
         </Link>
         <ul className="navbar-nav">
+          {!user ? renderFormularCenterItem() : null}
           {user ? (
             <>
               {navLinksDesktop}

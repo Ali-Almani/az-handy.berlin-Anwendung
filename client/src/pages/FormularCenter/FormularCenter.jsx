@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import Login from '../Auth/Login';
 import { getFormularCenterItems } from '../../services/formularCenter.service';
 import './FormularCenter.scss';
 
+function safeDownloadName(name) {
+  const n = String(name || 'formular.pdf').trim() || 'formular.pdf';
+  return n.replace(/[/\\?%*:|"<>]/g, '_');
+}
+
 const FormularCenter = () => {
-  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    if (!user?.id) return;
     setLoading(true);
     setError(null);
     try {
@@ -23,15 +24,11 @@ const FormularCenter = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  if (!user) {
-    return <Login />;
-  }
 
   return (
     <div className="formular-center-page">
@@ -46,30 +43,30 @@ const FormularCenter = () => {
             <p>Lade Formulare…</p>
           ) : items.length > 0 ? (
             <ul className="formular-center-list">
-              {items.map((it) => (
-                <li key={it.id} className="formular-center-item">
-                  <a
-                    href={it.url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="formular-center-link"
-                    title="PDF in neuem Tab öffnen"
-                  >
-                    {it.originalName || 'Formular.pdf'}
-                  </a>
-                  <div className="formular-center-meta">
-                    {it.uploadedAt &&
-                      new Date(it.uploadedAt).toLocaleString('de-DE', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    {it.uploadedByName ? ` · ${it.uploadedByName}` : ''}
-                  </div>
-                </li>
-              ))}
+              {items.map((it) => {
+                const label = it.originalName || 'Formular.pdf';
+                const href = it.url || '#';
+                const fileName = safeDownloadName(label);
+                return (
+                  <li key={it.id} className="formular-center-item">
+                    <span className="formular-center-item-name">{label}</span>
+                    <span className="formular-center-item-actions">
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="formular-center-link"
+                        title="PDF in neuem Tab anzeigen"
+                      >
+                        Vorschau
+                      </a>
+                      <a href={href} download={fileName} className="formular-center-link formular-center-link--download">
+                        Herunterladen
+                      </a>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </div>
