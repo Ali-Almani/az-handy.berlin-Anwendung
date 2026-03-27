@@ -675,7 +675,6 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 };
 
 export default PerformanceDashboard;
-</think>
 
 
 <｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
