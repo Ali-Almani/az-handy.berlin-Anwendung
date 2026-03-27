@@ -82,6 +82,12 @@ export const canAccessImeisList = (user) => {
 /** Voucher-Navbar + Seite: gleiche Regel wie IMEI-Liste */
 export const canAccessVoucherList = canAccessImeisList;
 
+/** Voucher-Verlauf: Aktionen für andere Benutzer (Server prüft erneut) – Büro, Admin, Teamleiter shop */
+export const canUpdateVoucherHistoryForOthers = (user) => {
+  if (!user) return false;
+  return isAdmin(user) || isBüroMitarbeiter(user) || isTeamleiterShop(user);
+};
+
 // Prüfe ob Benutzer Export und Alle löschen sehen darf (Admin, Teamleiter, Büro Mitarbeiter)
 export const canUseImeiAdvancedActions = (user) => {
   if (!user) return false;

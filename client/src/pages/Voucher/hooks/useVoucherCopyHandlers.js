@@ -1,5 +1,11 @@
 import { useCallback, useRef, useEffect } from 'react';
-import { putVoucherUserStateApi, removeVoucherListRowApi, restoreVoucherListRowApi } from '../../../services/api';
+import {
+  putVoucherUserStateApi,
+  removeVoucherListRowApi,
+  restoreVoucherListRowApi,
+  updateVoucherHistoryActionApi
+} from '../../../services/api';
+import { canUpdateVoucherHistoryForOthers } from '../../../utils/roles';
 import { getRowNummer } from '../utils/voucherColumns';
 import { cloneVoucherRowForApi, voucherRowsEqual } from '../utils/voucherRowApi';
 
@@ -25,7 +31,8 @@ export function useVoucherCopyHandlers({
   setShowRateLimitModal,
   setRateLimitMessage,
   setCopySuccess,
-  setUploaded
+  setUploaded,
+  refetchVouchers
 }) {
   const stateRef = useRef({ copyHistory, copyTimestamps, rowActions });
   useEffect(() => {
@@ -183,6 +190,28 @@ export function useVoucherCopyHandlers({
     async (index, newAction) => {
       if (index < 0 || index >= copyHistory.length) return;
       const entry = copyHistory[index];
+
+      if (
+        canUpdateVoucherHistoryForOthers(user) &&
+        (newAction === 'angenommen' || newAction === 'abgelehnt')
+      ) {
+        try {
+          await updateVoucherHistoryActionApi({
+            userName: entry.userName,
+            newAction,
+            nummer: entry.nummer,
+            timestamp: entry.timestamp,
+            sheet: entry.sheet,
+            row: entry.row
+          });
+          await refetchVouchers?.();
+        } catch (err) {
+          alert(err.response?.data?.message || err.message || 'Aktion fehlgeschlagen.');
+          throw err;
+        }
+        return;
+      }
+
       const oldAction = entry.action || null;
       setHistoryUndoStack((prev) => [
         ...prev,
@@ -247,7 +276,8 @@ export function useVoucherCopyHandlers({
       setHistoryUndoStack,
       clearRowActionForEntry,
       persistVoucher,
-      setUploaded
+      setUploaded,
+      refetchVouchers
     ]
   );
 

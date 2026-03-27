@@ -93,7 +93,6 @@ const VoucherHistoryModal = ({ isOpen, onClose, copyHistory, onUpdateHistoryActi
                   <tr>
                     <th>Nummer</th>
                     <th>Aktion</th>
-                    <th>Voucher / Details</th>
                     <th>Benutzer</th>
                     <th>Zeitpunkt</th>
                   </tr>
@@ -132,9 +131,6 @@ const VoucherHistoryModal = ({ isOpen, onClose, copyHistory, onUpdateHistoryActi
                             (aktuell: Reserviert / Check out)
                           </div>
                         )}
-                      </td>
-                      <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                        {entry.product || '-'}
                       </td>
                       <td>{entry.userName}</td>
                       <td>

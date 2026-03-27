@@ -59,6 +59,52 @@ async function userCanUploadVouchers(userId) {
   }
 }
 
+function roleIsAdmin(role) {
+  const r = String(role || '').trim().toLowerCase();
+  return r.includes('admin') || String(role || '').trim() === 'Administrator';
+}
+
+function emitVouchersUpdated(req) {
+  const io = req.app?.get?.('io');
+  if (io) io.emit('vouchers:updated');
+}
+
+/** Verlauf aller Benutzer (Büro / Admin), gleiche Idee wie IMEI merged copyHistory */
+function mergeAllVoucherCopyHistories(map) {
+  const merged = [];
+  for (const uid of Object.keys(map)) {
+    const st = map[uid];
+    if (!st || !Array.isArray(st.copyHistory)) continue;
+    merged.push(...st.copyHistory);
+  }
+  return merged
+    .filter((e) => e && (e.nummer != null || e.timestamp))
+    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+    .slice(0, 200);
+}
+
+/** Verlauf nur Benutzer mit gleichem einsatz_ort (Teamleiter shop) */
+async function mergeVoucherCopyHistoriesForEinsatzOrt(map, einsatzOrt) {
+  const ort = String(einsatzOrt || '').trim();
+  if (!ort) return [];
+  const usersInCategory = await User.findAll({
+    where: { einsatz_ort: ort },
+    attributes: ['id']
+  });
+  const allowed = new Set(usersInCategory.map((u) => String(u.id)));
+  const merged = [];
+  for (const uid of Object.keys(map)) {
+    if (!allowed.has(String(uid))) continue;
+    const st = map[uid];
+    if (!st || !Array.isArray(st.copyHistory)) continue;
+    merged.push(...st.copyHistory);
+  }
+  return merged
+    .filter((e) => e && (e.nummer != null || e.timestamp))
+    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+    .slice(0, 200);
+}
+
 const exceljsColorToHex = (color) => {
   if (!color) return null;
   
@@ -268,7 +314,7 @@ export const processExcelFile = async (req, res) => {
   }
 };
 
-/** Voucher-Daten lesen: hochgeladene Zeilen + eigener Verlauf (Rechte wie IMEI-Liste) */
+/** Voucher-Daten lesen: hochgeladene Zeilen + Verlauf (eigener oder gemerged für Büro/Admin bzw. Teamleiter nach Einsatzort) */
 export const getVouchers = async (req, res, next) => {
   try {
     if (!(await userCanViewVouchers(req.user?.userId))) {
@@ -276,7 +322,21 @@ export const getVouchers = async (req, res, next) => {
     }
     const data = loadJson(VOUCHERS_FILE) || {};
     const uploaded = Array.isArray(data.rows) ? data.rows : [];
-    const userState = getVoucherUserStateForUser(req.user?.userId);
+    const map = loadVoucherUserStateMap();
+    let userState = getVoucherUserStateForUser(req.user?.userId);
+    const currentUser = await User.findByPk(req.user.userId);
+    const role = String(currentUser?.role ?? currentUser?.get?.('role') ?? '').trim();
+    const isBuero = role === 'Büro Mitarbeiter';
+    const isTL = role === 'Teamleiter shop';
+    const isAdm = roleIsAdmin(role);
+    if (isBuero || isAdm) {
+      userState = { ...userState, copyHistory: mergeAllVoucherCopyHistories(map) };
+    } else if (isTL && currentUser?.einsatz_ort) {
+      userState = {
+        ...userState,
+        copyHistory: await mergeVoucherCopyHistoriesForEinsatzOrt(map, currentUser.einsatz_ort)
+      };
+    }
     return res.json({
       success: true,
       uploaded,
@@ -343,6 +403,7 @@ export const removeVoucherListRow = async (req, res, next) => {
       updatedAt: new Date().toISOString(),
       updatedByUserId: req.user.userId
     });
+    emitVouchersUpdated(req);
     return res.json({ success: true, count: rows.length });
   } catch (e) {
     next(e);
@@ -371,7 +432,111 @@ export const restoreVoucherListRow = async (req, res, next) => {
       updatedAt: new Date().toISOString(),
       updatedByUserId: req.user.userId
     });
+    emitVouchersUpdated(req);
     return res.json({ success: true, count: rows.length });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Büro / Administrator / Teamleiter shop: Verlauf-Aktion für einen anderen Benutzer (wie IMEI history-action) */
+export const updateVoucherHistoryAction = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    const role = String(currentUser?.role ?? currentUser?.get?.('role') ?? '').trim();
+    const isBuero = role === 'Büro Mitarbeiter';
+    const isTL = role === 'Teamleiter shop';
+    const isAdm = roleIsAdmin(role);
+    if (!isBuero && !isTL && !isAdm) {
+      return res.status(403).json({
+        success: false,
+        message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Verlauf-Aktionen für andere Benutzer setzen'
+      });
+    }
+    const { userName, newAction, nummer, timestamp, sheet, row } = req.body || {};
+    if (!userName || !newAction || (newAction !== 'angenommen' && newAction !== 'abgelehnt')) {
+      return res.status(400).json({ success: false, message: 'userName, newAction (angenommen|abgelehnt) erforderlich' });
+    }
+    const targetUser = await User.findOne({ where: { name: userName } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    if (isTL && !isBuero && !isAdm) {
+      const tlOrt = String(currentUser?.einsatz_ort ?? currentUser?.get?.('einsatz_ort') ?? '').trim();
+      const targetOrt = String(targetUser?.einsatz_ort ?? targetUser?.get?.('einsatz_ort') ?? '').trim();
+      if (!tlOrt || tlOrt !== targetOrt) {
+        return res.status(403).json({
+          success: false,
+          message: 'Teamleiter dürfen nur Aktionen für Benutzer ihrer Kategorie (einsatz_ort) aktualisieren'
+        });
+      }
+    }
+    const targetId = String(targetUser.id ?? targetUser.get?.('id'));
+    const map = loadVoucherUserStateMap();
+    const prev = getVoucherUserStateForUser(targetUser.id ?? targetUser.get?.('id'));
+    let copyHistory = Array.isArray(prev.copyHistory) ? [...prev.copyHistory] : [];
+    const ts = timestamp != null ? String(timestamp) : '';
+    const idx = copyHistory.findIndex((e) => {
+      if (!e || String(e.userName || '').trim() !== String(userName).trim()) return false;
+      if (String(e.nummer || '') !== String(nummer ?? '')) return false;
+      if (ts) return String(e.timestamp || '') === ts;
+      const s = sheet != null ? String(sheet) : '';
+      const r = row != null ? Number(row) : NaN;
+      return s && Number.isFinite(r) && String(e.sheet || 'default') === s && Number(e.row) === r;
+    });
+    if (idx === -1) {
+      return res.status(404).json({ success: false, message: 'Verlauf-Eintrag nicht gefunden' });
+    }
+    const entry = copyHistory[idx];
+    copyHistory = copyHistory.filter((_, i) => i !== idx);
+    const rowId = `${entry.sheet || 'default'}-${entry.row}`;
+    let rowActions = prev.rowActions && typeof prev.rowActions === 'object' && !Array.isArray(prev.rowActions)
+      ? { ...prev.rowActions }
+      : {};
+    delete rowActions[rowId];
+
+    if (newAction === 'abgelehnt' && entry.rowSnapshot) {
+      const payload = normalizeClientVoucherRow(entry.rowSnapshot);
+      if (payload) {
+        const vdata = loadJson(VOUCHERS_FILE) || {};
+        const rows = Array.isArray(vdata.rows) ? [...vdata.rows] : [];
+        if (!rows.some((r) => voucherRowsMatch(r, payload))) {
+          rows.push(payload);
+          saveJson(VOUCHERS_FILE, {
+            ...vdata,
+            rows,
+            updatedAt: new Date().toISOString(),
+            updatedByUserId: req.user.userId
+          });
+        }
+      }
+    }
+    if (newAction === 'angenommen' && entry.rowSnapshot) {
+      const payload = normalizeClientVoucherRow(entry.rowSnapshot);
+      if (payload) {
+        const vdata = loadJson(VOUCHERS_FILE) || {};
+        const rows = Array.isArray(vdata.rows) ? [...vdata.rows] : [];
+        const ridx = rows.findIndex((r) => voucherRowsMatch(r, payload));
+        if (ridx !== -1) {
+          rows.splice(ridx, 1);
+          saveJson(VOUCHERS_FILE, {
+            ...vdata,
+            rows,
+            updatedAt: new Date().toISOString(),
+            updatedByUserId: req.user.userId
+          });
+        }
+      }
+    }
+    map[targetId] = {
+      ...prev,
+      copyHistory,
+      rowActions
+    };
+    saveJson(VOUCHER_USER_STATE_FILE, map);
+    emitVouchersUpdated(req);
+    return res.json({ success: true });
   } catch (e) {
     next(e);
   }
@@ -406,6 +571,7 @@ export const putVoucherUserState = async (req, res, next) => {
     const map = loadVoucherUserStateMap();
     map[String(userId)] = nextState;
     saveJson(VOUCHER_USER_STATE_FILE, map);
+    emitVouchersUpdated(req);
     return res.json({ success: true });
   } catch (error) {
     next(error);
@@ -533,6 +699,7 @@ export const processVoucherExcelFile = async (req, res) => {
       updatedAt: now,
       updatedByUserId: req.user.userId
     });
+    emitVouchersUpdated(req);
 
     return res.json({
       success: true,

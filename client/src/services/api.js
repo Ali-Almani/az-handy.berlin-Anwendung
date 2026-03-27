@@ -133,6 +133,19 @@ const createMockApi = () => {
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     patch: async (url, data) => {
+      if (url === '/excel/voucher-history-action') {
+        const { userName, nummer, timestamp } = data || {};
+        voucherMockUserState.copyHistory = (voucherMockUserState.copyHistory || []).filter(
+          (e) =>
+            !(
+              e &&
+              String(e.userName || '').trim() === String(userName || '').trim() &&
+              String(e.nummer || '') === String(nummer ?? '') &&
+              String(e.timestamp || '') === String(timestamp || '')
+            )
+        );
+        return { data: { success: true } };
+      }
       if (url === '/imeis/data/history-action' || url === 'imeis/data/history-action') {
         return await mockApi.updateHistoryAction(data);
       }
@@ -270,6 +283,12 @@ export const removeVoucherListRowApi = async (row, options = {}) => {
 
 export const restoreVoucherListRowApi = async (row) => {
   const res = await api.post('/excel/voucher-restore-row', { row });
+  return res.data;
+};
+
+/** Büro / Admin / Teamleiter: Verlauf-Aktion für den genannten Benutzer (targetUserName) */
+export const updateVoucherHistoryActionApi = async (payload) => {
+  const res = await api.patch('/excel/voucher-history-action', payload);
   return res.data;
 };
 

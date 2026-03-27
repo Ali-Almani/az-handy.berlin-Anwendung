@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { getSocket } from '../../services/socket';
 import { getVouchersApi, putVoucherUserStateApi } from '../../services/api';
 import { canAccessVoucherList } from '../../utils/roles';
 import Login from '../Auth/Login';
@@ -50,25 +51,6 @@ const Voucher = () => {
     return uploaded.filter((r) => rowMatchesVoucherTab(r, activeTab));
   }, [uploaded, activeTab]);
 
-  const { handleDropdownSelect, handleUpdateHistoryAction, handleHistoryModalUndo, onRowActionRemove, voucherRowId } =
-    useVoucherCopyHandlers({
-      user,
-      copyHistory,
-      setCopyHistory,
-      copyTimestamps,
-      setCopyTimestamps,
-      rowActions,
-      setRowActions,
-      historyUndoStack,
-      setHistoryUndoStack,
-      nummerKey,
-      voucherArtKey,
-      setShowRateLimitModal,
-      setRateLimitMessage,
-      setCopySuccess,
-      setUploaded
-    });
-
   const load = useCallback(async () => {
     if (!user?.id || !canAccessVoucherList(user)) return;
     setLoading(true);
@@ -92,9 +74,44 @@ const Voucher = () => {
     }
   }, [user?.id, user?.role, user?.einsatz_ort]);
 
+  const { handleDropdownSelect, handleUpdateHistoryAction, handleHistoryModalUndo, onRowActionRemove, voucherRowId } =
+    useVoucherCopyHandlers({
+      user,
+      copyHistory,
+      setCopyHistory,
+      copyTimestamps,
+      setCopyTimestamps,
+      rowActions,
+      setRowActions,
+      historyUndoStack,
+      setHistoryUndoStack,
+      nummerKey,
+      voucherArtKey,
+      setShowRateLimitModal,
+      setRateLimitMessage,
+      setCopySuccess,
+      setUploaded,
+      refetchVouchers: load
+    });
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user?.id || !canAccessVoucherList(user)) return;
+    const socket = getSocket();
+    const onVouchersUpdated = () => {
+      load();
+    };
+    if (socket) {
+      socket.on('vouchers:updated', onVouchersUpdated);
+      if (!socket.connected) socket.connect();
+    }
+    return () => {
+      if (socket) socket.off('vouchers:updated', onVouchersUpdated);
+    };
+  }, [user?.id, user?.role, user?.einsatz_ort, load]);
 
   useEffect(() => {
     setSelectedCells(new Set());

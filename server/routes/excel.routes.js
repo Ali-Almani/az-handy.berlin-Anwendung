@@ -6,7 +6,8 @@ import {
   getVouchers,
   putVoucherUserState,
   removeVoucherListRow,
-  restoreVoucherListRow
+  restoreVoucherListRow,
+  updateVoucherHistoryAction
 } from '../controllers/excel.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -35,6 +36,7 @@ const upload = multer({
 
 router.get('/vouchers', authenticateToken, getVouchers);
 router.put('/voucher-user-state', authenticateToken, putVoucherUserState);
+router.patch('/voucher-history-action', authenticateToken, updateVoucherHistoryAction);
 router.post('/voucher-remove-row', authenticateToken, removeVoucherListRow);
 router.post('/voucher-restore-row', authenticateToken, restoreVoucherListRow);
 router.post('/upload', authenticateToken, upload.single('file'), processExcelFile);
