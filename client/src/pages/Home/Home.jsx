@@ -9,6 +9,12 @@ import './Home.scss';
 
 const siteNewsSeenKey = (userId) => `siteNewsLastSeen:${userId}`;
 
+const getIsSchnelltestHost = () => {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname.toLowerCase();
+  return h === 'az-schnelltest.berlin' || h === 'www.az-schnelltest.berlin';
+};
+
 const Home = () => {
   const { user } = useAuth();
   const panelId = useId();
@@ -39,7 +45,12 @@ const Home = () => {
           const lastSeen = localStorage.getItem(siteNewsSeenKey(user.id));
           const read = lastSeen === updatedAt;
           setNewsIsUnread(!read);
-          setNewsOpen(read);
+          /* Schnelltest: NEWS erst nach Klick aufklappen (Badge „ungelesen“ bleibt bis zum Öffnen) */
+          if (getIsSchnelltestHost()) {
+            setNewsOpen(false);
+          } else {
+            setNewsOpen(read);
+          }
         } else {
           setNewsIsUnread(false);
           setNewsOpen(true);
@@ -48,7 +59,7 @@ const Home = () => {
         setSiteNewsHtml('');
         setSiteNewsUpdatedAt(null);
         setNewsIsUnread(false);
-        setNewsOpen(true);
+        setNewsOpen(getIsSchnelltestHost() ? false : true);
       } finally {
         setSiteNewsLoading(false);
       }

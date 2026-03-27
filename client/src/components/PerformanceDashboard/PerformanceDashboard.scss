@@ -171,6 +171,84 @@
     gap: $spacing-sm;
   }
 
+  &__table-toolbar {
+    padding: $spacing-xs $spacing-sm 0;
+    margin-bottom: $spacing-xs;
+  }
+
+  &__row-editor {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    min-width: 0;
+    text-align: left;
+  }
+
+  &__row-move {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  &__row-move-btn {
+    min-width: 1.75rem;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-card;
+    background: #fff;
+    cursor: pointer;
+    color: $text-color;
+
+    &:hover:not(:disabled) {
+      background: $bg-light;
+      border-color: darken($border-color, 8%);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    &--danger {
+      color: $danger-color;
+      border-color: rgba($danger-color, 0.35);
+
+      &:hover:not(:disabled) {
+        background: rgba($danger-color, 0.08);
+      }
+    }
+  }
+
+  &__row-label-input {
+    text-align: left;
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  &__row-kind {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.15rem 0.25rem;
+    font-size: 0.75rem;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-card;
+    background: #fff;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
+  &__cell-label--stack {
+    vertical-align: top;
+  }
+
   &__table-wrapper {
     display: flex;
     flex-direction: column;
@@ -293,10 +371,6 @@
   &__cell-label {
     font-weight: $font-weight-medium;
     color: #34495e;
-  }
-
-  &__cell-muted {
-    color: #7f8c8d;
   }
 
   &__status {
