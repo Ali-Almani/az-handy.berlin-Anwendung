@@ -386,7 +386,11 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
             </button>
           </div>
         ) : (
-          <button type="button" className="btn btn--outline btn--small" onClick={handleStartEdit}>
+          <button
+            type="button"
+            className="btn btn--outline btn--small performance-dashboard__edit-toggle"
+            onClick={handleStartEdit}
+          >
             Bearbeiten
           </button>
         )
@@ -656,7 +660,11 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       {!readOnly && isAdmin && !metaInHeader && (
         <div className="performance-dashboard__footer">
           {!editing ? (
-            <button type="button" className="btn btn--outline btn--small" onClick={handleStartEdit}>
+            <button
+              type="button"
+              className="btn btn--outline btn--small performance-dashboard__edit-toggle"
+              onClick={handleStartEdit}
+            >
               Bearbeiten
             </button>
           ) : (

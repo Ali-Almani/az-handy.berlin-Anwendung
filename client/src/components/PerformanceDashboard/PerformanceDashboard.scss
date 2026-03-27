@@ -18,7 +18,13 @@
     flex-wrap: wrap;
     align-items: center;
     gap: $spacing-lg;
+    row-gap: $spacing-md;
     margin-left: auto;
+
+    .performance-dashboard__edit-toggle,
+    .performance-dashboard__actions {
+      margin-inline-start: $spacing-md;
+    }
   }
 
   &__content {
@@ -137,10 +143,11 @@
   }
 
   &__footer {
-    margin-top: $spacing-sm;
+    margin-top: $spacing-md;
     padding: $spacing-sm 0;
     display: flex;
     justify-content: flex-end;
+    gap: $spacing-sm;
   }
 
   &__cell-input {
