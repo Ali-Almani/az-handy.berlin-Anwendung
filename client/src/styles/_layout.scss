@@ -17,8 +17,10 @@
   margin-top: auto;
 }
 
-/* az-schnelltest.berlin: nur Hauptinhalt (.main) 1600px; sonst überall .container = 1400px (inkl. Navbar). */
-body.layout-host--schnelltest .main > .container {
+/* az-schnelltest.berlin: Hauptinhalt + Navbar + Footer gleiche Breite (1600px); sonst .container = 1400px. */
+body.layout-host--schnelltest .main > .container,
+body.layout-host--schnelltest .navbar .container,
+body.layout-host--schnelltest .footer .container {
   max-width: 1600px;
 }
 
