@@ -414,7 +414,8 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_KENNZAHLEN)}
                     aria-current={adminSection === SEC_KENNZAHLEN ? 'page' : undefined}
                   >
-                    Kennzahlen
+                    <span className="dashboard-admin-nav__item-text">Kennzahlen</span>
+                    <span className="dashboard-admin-nav__badge">Kennzahlen</span>
                   </button>
                 </li>
                 {canShowDashboardNotes(user) && (
@@ -426,7 +427,8 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_NEWS)}
                         aria-current={adminSection === SEC_NEWS ? 'page' : undefined}
                       >
-                        NEWS
+                        <span className="dashboard-admin-nav__item-text">NEWS</span>
+                        <span className="dashboard-admin-nav__badge">NEWS</span>
                       </button>
                     </li>
                     <li>
@@ -436,7 +438,8 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_ANWEISUNG)}
                         aria-current={adminSection === SEC_ANWEISUNG ? 'page' : undefined}
                       >
-                        Anweisung
+                        <span className="dashboard-admin-nav__item-text">Anweisung</span>
+                        <span className="dashboard-admin-nav__badge">Anweisung</span>
                       </button>
                     </li>
                   </>
@@ -448,7 +451,8 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_BENUTZERVERWALTUNG)}
                     aria-current={adminSection === SEC_BENUTZERVERWALTUNG ? 'page' : undefined}
                   >
-                    Benutzerverwaltung
+                    <span className="dashboard-admin-nav__item-text">Benutzerverwaltung</span>
+                    <span className="dashboard-admin-nav__badge">Benutzerverwaltung</span>
                   </button>
                 </li>
                 <li>

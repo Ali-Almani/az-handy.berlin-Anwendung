@@ -696,7 +696,11 @@
 
 .dashboard-admin-nav__item {
   width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.5rem;
+  flex-wrap: wrap;
   text-align: left;
   padding: 0.65rem 0.85rem;
   margin: 0;
@@ -732,6 +736,33 @@
     border-color: darken($primary-color, 6%);
     color: #fff;
   }
+}
+
+.dashboard-admin-nav__item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.dashboard-admin-nav__badge {
+  flex: 0 1 auto;
+  max-width: 100%;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.55rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  color: #fff;
+  background: $primary-color;
+  border-radius: 999px;
+  text-align: center;
+  word-break: break-word;
+}
+
+.dashboard-admin-nav__item.is-active .dashboard-admin-nav__badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 .dashboard-admin-main {
