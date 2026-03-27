@@ -424,3 +424,21 @@
     }
   }
 }
+
+/* az-schnelltest.berlin: Kennzahlen-Spalte breiter (~75 % / 25 %), volle Höhe ohne künstliche Begrenzung */
+body.layout-host--schnelltest .home {
+  .home__dashboard-row {
+    @media (min-width: $breakpoint-lg) {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    }
+  }
+
+  .home__kennzahlen.card {
+    padding: $spacing-md $spacing-lg;
+
+    .card-body {
+      overflow: visible;
+      max-height: none;
+    }
+  }
+}

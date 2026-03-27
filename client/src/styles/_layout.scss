@@ -27,3 +27,8 @@ body.layout-host--schnelltest .main .archiv-anweisung-page,
 body.layout-host--schnelltest .main .settings {
   max-width: 1600px;
 }
+
+/* Startseite: etwas weniger vertikaler Außenabstand, damit Kennzahlen/NEWS eher ohne Seiten-Scroll passen */
+body.layout-host--schnelltest .main:has(.home) {
+  padding: $spacing-md 0 $spacing-lg;
+}
