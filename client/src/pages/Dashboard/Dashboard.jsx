@@ -70,6 +70,7 @@ const Dashboard = () => {
   const [formularError, setFormularError] = useState(null);
   const [formularUploadBusy, setFormularUploadBusy] = useState(false);
   const [formularDeleteId, setFormularDeleteId] = useState(null);
+  const [formularPickLabel, setFormularPickLabel] = useState('Keine Datei ausgewählt');
 
   const loadFormularCenter = useCallback(async () => {
     setFormularLoading(true);
@@ -182,6 +183,7 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    setFormularPickLabel(file.name);
     setFormularUploadBusy(true);
     setFormularError(null);
     try {
@@ -189,16 +191,20 @@ const Dashboard = () => {
       await loadFormularCenter();
     } catch (err) {
       const status = err.response?.status;
-      const apiMsg = err.response?.data?.message;
+      const data = err.response?.data;
+      const apiMsg =
+        data && typeof data === 'object' && typeof data.message === 'string' ? data.message : null;
       let msg = apiMsg || err.message || 'Upload fehlgeschlagen.';
       if (status === 413) {
         msg =
-          apiMsg ||
-          'Die Anfrage ist zu groß (HTTP 413). Oft blockiert der Webserver (z. B. Nginx) große Uploads: „client_max_body_size“ erhöhen, Nginx neu laden (siehe deploy/nginx-*.conf im Projekt). Alternativ: kleinere PDF.';
+          apiMsg && apiMsg.length <= 160
+            ? apiMsg
+            : 'Upload zu groß (413). Nginx „client_max_body_size“ anpassen oder PDF max. 100 MB.';
       }
       setFormularError(msg);
     } finally {
       setFormularUploadBusy(false);
+      setFormularPickLabel('Keine Datei ausgewählt');
     }
   };
 
@@ -792,11 +798,11 @@ const Dashboard = () => {
                   <span className="dashboard-excel-upload__badge">PDF</span>
                 </div>
                 <div className="card-body">
-                  <p className="formular-center-intro">
+                  <p className="formular-center-intro dashboard-formular-intro">
                     PDFs, die Sie hier hochladen, erscheinen für alle Benutzer unter „Formular Center“ in der
                     Navigation.
                   </p>
-                  <div className="formular-center-upload">
+                  <div className="formular-center-upload dashboard-formular-upload">
                     <input
                       ref={formularFileInputRef}
                       type="file"
@@ -804,15 +810,18 @@ const Dashboard = () => {
                       className="formular-center-file-input"
                       onChange={handleFormularFileChange}
                     />
-                    <button
-                      type="button"
-                      className="btn btn--primary btn--small"
-                      disabled={formularUploadBusy}
-                      onClick={() => formularFileInputRef.current?.click()}
-                    >
-                      {formularUploadBusy ? 'Wird hochgeladen…' : 'PDF hochladen'}
-                    </button>
-                    <span className="formular-center-upload-hint">max. 100 MB · PDF</span>
+                    <div className="dashboard-formular-upload-actions">
+                      <button
+                        type="button"
+                        className="btn btn--primary btn--small"
+                        disabled={formularUploadBusy}
+                        onClick={() => formularFileInputRef.current?.click()}
+                      >
+                        {formularUploadBusy ? 'Wird hochgeladen…' : 'PDF hochladen'}
+                      </button>
+                      <span className="formular-center-upload-hint">max. 100 MB · PDF</span>
+                    </div>
+                    <span className="dashboard-formular-pick-label">{formularPickLabel}</span>
                   </div>
                   {formularError && <p className="text-error formular-center-error">{formularError}</p>}
                   {formularLoading ? (
