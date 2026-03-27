@@ -99,12 +99,12 @@ function rowSearchBlob(row) {
     .join('\n');
 }
 
-/** Tabs in fester Reihenfolge; jede Zeile gehört genau einem Tab (Priorität o2 → AG0 → 5 € → Sonstige). */
+/** Tabs: „ALL“ zuerst; Zuordnung Zeilen → Kategorie (Priorität o2 → AG0 → 5 € → ALL). */
 export const VOUCHER_FIXED_TABS = [
+  { id: 'sonstige', label: 'ALL' },
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
   { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
-  { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' },
-  { id: 'sonstige', label: 'Sonstige' }
+  { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' }
 ];
 
 function rowBlobParts(row) {
@@ -112,7 +112,25 @@ function rowBlobParts(row) {
   return { s, compact: s.replace(/\s+/g, '') };
 }
 
+/** Excel-Blattname (z. B. „o2 mit Family and Friends“) – auch wenn die Zeilen nur Nummern enthalten. */
+function sheetMatchesO2Ff(sheetName) {
+  if (sheetName == null || String(sheetName).trim() === '') return false;
+  const s = String(sheetName).toLowerCase().trim();
+  const compact = s.replace(/\s+/g, '');
+  const hasO2 = s.includes('o2') || s.includes('telefónica') || s.includes('telefonica');
+  if (!hasO2) return false;
+  return (
+    s.includes('family') ||
+    s.includes('friends') ||
+    s.includes('f&f') ||
+    s.includes('f & f') ||
+    compact.includes('f&f') ||
+    /family\s*(and|&|und)\s*friends/i.test(String(sheetName))
+  );
+}
+
 export function matchesO2Ff(row) {
+  if (sheetMatchesO2Ff(row?.sheet)) return true;
   const { s, compact } = rowBlobParts(row);
   return (
     (s.includes('o2') || s.includes('telefónica') || s.includes('telefonica')) &&
