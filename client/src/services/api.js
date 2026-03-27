@@ -70,6 +70,20 @@ const createMockApi = () => {
         voucherMockRows.push(JSON.parse(JSON.stringify(payload)));
         return { data: { success: true, count: voucherMockRows.length } };
       }
+      if (url === '/formular-center/upload') {
+        return {
+          data: {
+            success: true,
+            item: {
+              id: 'mock-fc',
+              originalName: 'beispiel.pdf',
+              uploadedAt: new Date().toISOString(),
+              uploadedByName: 'Mock',
+              url: '#'
+            }
+          }
+        };
+      }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     get: async (url) => {
@@ -107,6 +121,9 @@ const createMockApi = () => {
             }
           }
         };
+      }
+      if (url === '/formular-center') {
+        return { data: { success: true, items: [] } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -161,6 +178,12 @@ const createMockApi = () => {
         const token = localStorage.getItem('token');
         const id = url.replace('/imeis/reminder-response-notifications/', '').replace('/read', '');
         return await mockApi.markReminderResponseNotificationRead(token, id);
+      }
+      throw new Error(`Mock API: Route ${url} not implemented`);
+    },
+    delete: async (url) => {
+      if (url?.startsWith('/formular-center/')) {
+        return { data: { success: true } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     }

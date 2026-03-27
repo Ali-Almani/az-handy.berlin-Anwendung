@@ -10,6 +10,7 @@ import Settings from './pages/Settings/Settings';
 import Imeis from './pages/Imeis/Imeis';
 import Voucher from './pages/Voucher/Voucher';
 import Documentation from './pages/Documentation/Documentation';
+import FormularCenter from './pages/FormularCenter/FormularCenter';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 
 function App() {
@@ -72,6 +73,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Documentation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/formular-center"
+          element={
+            <ProtectedRoute>
+              <FormularCenter />
             </ProtectedRoute>
           }
         />

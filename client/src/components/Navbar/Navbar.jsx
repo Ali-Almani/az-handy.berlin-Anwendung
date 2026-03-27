@@ -47,7 +47,7 @@ const Navbar = ({
   useEffect(() => {
     const handleClickOutside = (event) => {
       const outsideDesktop = !dropdownRef.current?.contains(event.target);
-      const outsideMobileHeader = !mobileHeaderDropdownRef.current?.contains(event.target);
+      const outsideMobileHeader = !mobileHeaderDropdownRef.current?.contains(event.target); 
       const outsideArchiv =
         !archivDesktopRef.current?.contains(event.target) &&
         !archivMobileRef.current?.contains(event.target);
@@ -247,6 +247,14 @@ const Navbar = ({
       </li>
     ) : null;
 
+  const renderFormularCenterItem = () => (
+    <li>
+      <NavLink to="/formular-center" className={navLinkClassName} onClick={closeMobileMenu} end>
+        Formular Center
+      </NavLink>
+    </li>
+  );
+
   const renderDashboardItem = () =>
     canAccessDashboard(user) ? (
       <li>
@@ -260,6 +268,7 @@ const Navbar = ({
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
+      {renderFormularCenterItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId)}
       {renderDashboardItem()}
     </>
@@ -269,6 +278,7 @@ const Navbar = ({
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
+      {renderFormularCenterItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
       {renderDashboardItem()}
     </>

@@ -48,12 +48,14 @@ const mountRoutes = async () => {
   const excelRoutes = (await import('./routes/excel.routes.js')).default;
   const dashboardRoutes = (await import('./routes/dashboard.routes.js')).default;
   const imeisRoutes = (await import('./routes/imeis.routes.js')).default;
+  const formularCenterRoutes = (await import('./routes/formularCenter.routes.js')).default;
 
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/excel', excelRoutes);
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/imeis', imeisRoutes);
+  app.use('/api/formular-center', formularCenterRoutes);
 
   app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });

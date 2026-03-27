@@ -1,0 +1,95 @@
+@import '../../styles/variables';
+
+.formular-center-page {
+  padding-bottom: $spacing-lg;
+}
+
+.formular-center-card {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.formular-center-intro {
+  margin: 0 0 $spacing-md;
+  color: $text-color;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.formular-center-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+}
+
+.formular-center-file-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.formular-center-upload-hint {
+  font-size: 0.8rem;
+  color: $text-light;
+}
+
+.formular-center-error {
+  margin-bottom: $spacing-md;
+}
+
+.formular-center-empty {
+  margin: $spacing-md 0;
+}
+
+.formular-center-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.formular-center-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: $spacing-sm $spacing-md;
+  padding: $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  margin-bottom: $spacing-sm;
+  background: #fff;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.formular-center-link {
+  font-weight: $font-weight-medium;
+  color: $primary-color;
+  text-decoration: none;
+  word-break: break-word;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.formular-center-meta {
+  flex: 1 1 auto;
+  font-size: 0.85rem;
+  color: $text-light;
+  min-width: 10rem;
+}
+
+.formular-center-delete {
+  margin-left: auto;
+}
