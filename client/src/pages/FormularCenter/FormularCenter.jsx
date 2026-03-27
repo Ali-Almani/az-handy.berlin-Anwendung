@@ -40,18 +40,11 @@ const FormularCenter = () => {
           <h2 className="card-title">Formular Center</h2>
         </div>
         <div className="card-body">
-          <p className="formular-center-intro">
-            Hier finden Sie alle vom Administrator im Dashboard bereitgestellten Formulare als PDF. Klicken Sie auf
-            den Dateinamen zum Öffnen oder Herunterladen.
-          </p>
-
           {error && <p className="text-error formular-center-error">{error}</p>}
 
           {loading ? (
             <p>Lade Formulare…</p>
-          ) : items.length === 0 ? (
-            <p className="text-muted formular-center-empty">Noch keine PDF-Formulare hinterlegt.</p>
-          ) : (
+          ) : items.length > 0 ? (
             <ul className="formular-center-list">
               {items.map((it) => (
                 <li key={it.id} className="formular-center-item">
@@ -77,7 +70,7 @@ const FormularCenter = () => {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

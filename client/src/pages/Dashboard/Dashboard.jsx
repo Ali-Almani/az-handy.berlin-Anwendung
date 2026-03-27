@@ -188,7 +188,15 @@ const Dashboard = () => {
       await uploadFormularCenterPdf(file);
       await loadFormularCenter();
     } catch (err) {
-      setFormularError(err.response?.data?.message || err.message || 'Upload fehlgeschlagen.');
+      const status = err.response?.status;
+      const apiMsg = err.response?.data?.message;
+      let msg = apiMsg || err.message || 'Upload fehlgeschlagen.';
+      if (status === 413) {
+        msg =
+          apiMsg ||
+          'Die Anfrage ist zu groß (HTTP 413). Oft blockiert der Webserver (z. B. Nginx) große Uploads: „client_max_body_size“ erhöhen, Nginx neu laden (siehe deploy/nginx-*.conf im Projekt). Alternativ: kleinere PDF.';
+      }
+      setFormularError(msg);
     } finally {
       setFormularUploadBusy(false);
     }
@@ -804,14 +812,12 @@ const Dashboard = () => {
                     >
                       {formularUploadBusy ? 'Wird hochgeladen…' : 'PDF hochladen'}
                     </button>
-                    <span className="formular-center-upload-hint">max. 30 MB · PDF</span>
+                    <span className="formular-center-upload-hint">max. 100 MB · PDF</span>
                   </div>
                   {formularError && <p className="text-error formular-center-error">{formularError}</p>}
                   {formularLoading ? (
                     <p>Lade Formulare…</p>
-                  ) : formularItems.length === 0 ? (
-                    <p className="text-muted formular-center-empty">Noch keine PDF-Formulare hinterlegt.</p>
-                  ) : (
+                  ) : formularItems.length > 0 ? (
                     <ul className="formular-center-list">
                       {formularItems.map((it) => (
                         <li key={it.id} className="formular-center-item">
@@ -845,7 +851,7 @@ const Dashboard = () => {
                         </li>
                       ))}
                     </ul>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}

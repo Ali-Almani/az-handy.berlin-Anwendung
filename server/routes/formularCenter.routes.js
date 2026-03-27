@@ -1,6 +1,9 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { formularPdfUpload } from '../middleware/formularPdfUpload.js';
+import {
+  formularPdfUpload,
+  FORMULAR_CENTER_MAX_FILE_BYTES
+} from '../middleware/formularPdfUpload.js';
 import {
   getFormularCenterItems,
   uploadFormularCenterPdf,
@@ -17,10 +20,14 @@ router.post('/upload', (req, res, next) => {
   formularPdfUpload.single('file')(req, res, (err) => {
     if (err) {
       const code = err.code;
-      const msg =
-        code === 'LIMIT_FILE_SIZE'
-          ? 'Datei zu groß (max. 30 MB)'
-          : err.message || 'Upload fehlgeschlagen';
+      const maxMb = Math.round(FORMULAR_CENTER_MAX_FILE_BYTES / (1024 * 1024));
+      if (code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          message: `Datei zu groß (max. ${maxMb} MB).`
+        });
+      }
+      const msg = err.message || 'Upload fehlgeschlagen';
       return res.status(400).json({ success: false, message: msg });
     }
     next();

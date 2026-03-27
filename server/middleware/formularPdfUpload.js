@@ -21,6 +21,9 @@ const storage = multer.diskStorage({
   }
 });
 
+/** Darf `client_max_body_size` am Reverse-Proxy (z. B. Nginx) nicht überschreiten, sonst 413 bevor Multer greift. */
+export const FORMULAR_CENTER_MAX_FILE_BYTES = 100 * 1024 * 1024;
+
 const PDF_MIME = /^application\/pdf$/i;
 
 function isPdf(file) {
@@ -33,7 +36,7 @@ function isPdf(file) {
 
 export const formularPdfUpload = multer({
   storage,
-  limits: { fileSize: 30 * 1024 * 1024 },
+  limits: { fileSize: FORMULAR_CENTER_MAX_FILE_BYTES },
   fileFilter: (req, file, cb) => {
     if (isPdf(file)) {
       cb(null, true);
