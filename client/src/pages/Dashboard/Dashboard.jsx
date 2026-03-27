@@ -414,8 +414,7 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_KENNZAHLEN)}
                     aria-current={adminSection === SEC_KENNZAHLEN ? 'page' : undefined}
                   >
-                    <span className="dashboard-admin-nav__item-text">Kennzahlen</span>
-                    <span className="dashboard-admin-nav__badge">Kennzahlen</span>
+                    Kennzahlen
                   </button>
                 </li>
                 {canShowDashboardNotes(user) && (
@@ -427,8 +426,7 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_NEWS)}
                         aria-current={adminSection === SEC_NEWS ? 'page' : undefined}
                       >
-                        <span className="dashboard-admin-nav__item-text">NEWS</span>
-                        <span className="dashboard-admin-nav__badge">NEWS</span>
+                        NEWS
                       </button>
                     </li>
                     <li>
@@ -438,8 +436,7 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_ANWEISUNG)}
                         aria-current={adminSection === SEC_ANWEISUNG ? 'page' : undefined}
                       >
-                        <span className="dashboard-admin-nav__item-text">Anweisung</span>
-                        <span className="dashboard-admin-nav__badge">Anweisung</span>
+                        Anweisung
                       </button>
                     </li>
                   </>
@@ -451,8 +448,7 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_BENUTZERVERWALTUNG)}
                     aria-current={adminSection === SEC_BENUTZERVERWALTUNG ? 'page' : undefined}
                   >
-                    <span className="dashboard-admin-nav__item-text">Benutzerverwaltung</span>
-                    <span className="dashboard-admin-nav__badge">Benutzerverwaltung</span>
+                    Benutzerverwaltung
                   </button>
                 </li>
                 <li>
@@ -495,8 +491,9 @@ const Dashboard = () => {
           <div className="dashboard-admin-main">
             {adminSection === SEC_KENNZAHLEN && (
               <div className="card dashboard-performance dashboard-admin-panel">
-                <div className="dashboard-admin-panel__header">
+                <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Kennzahlen</h2>
+                  <span className="dashboard-excel-upload__badge">Kennzahlen</span>
                 </div>
                 <div className="card-body">
                   <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
@@ -513,8 +510,9 @@ const Dashboard = () => {
 
             {adminSection === SEC_NEWS && canShowDashboardNotes(user) && (
               <div className="card dashboard-site-news dashboard-admin-panel">
-                <div className="dashboard-admin-panel__header">
+                <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">NEWS</h2>
+                  <span className="dashboard-excel-upload__badge">NEWS</span>
                 </div>
                 <p className="dashboard-site-news-hint dashboard-site-news-hint--in-panel">
                   Erscheint auf der Startseite für alle Benutzer. Bilder über den Button „Bild“ einfügen.
@@ -661,8 +659,9 @@ const Dashboard = () => {
 
             {adminSection === SEC_ANWEISUNG && canShowDashboardNotes(user) && (
               <div className="card dashboard-new-message dashboard-admin-panel">
-                <div className="dashboard-admin-panel__header">
+                <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Anweisung</h2>
+                  <span className="dashboard-excel-upload__badge">Anweisung</span>
                 </div>
                 <div className="card-body dashboard-anweisung-editor">
                   {noteError && <p className="text-error">{noteError}</p>}
@@ -783,8 +782,9 @@ const Dashboard = () => {
 
             {adminSection === SEC_BENUTZERVERWALTUNG && (
               <div className="card dashboard-user-management dashboard-admin-panel">
-                <div className="dashboard-admin-panel__header">
+                <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Benutzerverwaltung</h2>
+                  <span className="dashboard-excel-upload__badge">Benutzerverwaltung</span>
                 </div>
                 <div className="dashboard-user-management-panel">
                   <UserManagement compact />
