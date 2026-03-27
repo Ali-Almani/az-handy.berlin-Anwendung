@@ -99,9 +99,8 @@ function rowSearchBlob(row) {
     .join('\n');
 }
 
-/** Tabs: „ALL“ zuerst; Zuordnung Zeilen → Kategorie (Priorität o2 → AG0 → 5 € → ALL). */
+/** Tabs; Zuordnung Zeilen → Kategorie (Priorität o2 FF → Ay AG0 → Ay 5 €). Ohne Treffer keine Tab-Zuordnung. */
 export const VOUCHER_FIXED_TABS = [
-  { id: 'sonstige', label: 'ALL' },
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
   { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
   { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' }
@@ -142,7 +141,28 @@ export function matchesO2Ff(row) {
   );
 }
 
+function sheetMatchesAyAg0(sheetName) {
+  if (sheetName == null || String(sheetName).trim() === '') return false;
+  const s = String(sheetName).toLowerCase().trim();
+  const compact = s.replace(/\s+/g, '');
+  const hasYildiz =
+    s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
+  return hasYildiz && (s.includes('ag0') || s.includes('ag 0'));
+}
+
+function sheetMatchesAy5Eur(sheetName) {
+  if (sheetName == null || String(sheetName).trim() === '') return false;
+  const s = String(sheetName).toLowerCase().trim();
+  const compact = s.replace(/\s+/g, '');
+  const hasYildiz =
+    s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
+  return (
+    hasYildiz && (s.includes('rabatt') || s.includes('5 euro') || s.includes('5€') || compact.includes('5euro'))
+  );
+}
+
 export function matchesAyAg0(row) {
+  if (sheetMatchesAyAg0(row?.sheet)) return true;
   const { s, compact } = rowBlobParts(row);
   const hasYildiz =
     s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
@@ -150,6 +170,7 @@ export function matchesAyAg0(row) {
 }
 
 export function matchesAy5Eur(row) {
+  if (sheetMatchesAy5Eur(row?.sheet)) return true;
   const { s, compact } = rowBlobParts(row);
   const hasYildiz =
     s.includes('yildiz') || s.includes('ay yildiz') || compact.includes('ayyildiz') || s.includes('ay-yildiz');
@@ -158,15 +179,17 @@ export function matchesAy5Eur(row) {
   );
 }
 
+/** @returns {'o2_ff' | 'ay_ag0' | 'ay_5eur' | null} */
 export function getRowVoucherTabId(row) {
   if (matchesO2Ff(row)) return 'o2_ff';
   if (matchesAyAg0(row)) return 'ay_ag0';
   if (matchesAy5Eur(row)) return 'ay_5eur';
-  return 'sonstige';
+  return null;
 }
 
 export function rowMatchesVoucherTab(row, tabId) {
-  return getRowVoucherTabId(row) === tabId;
+  const id = getRowVoucherTabId(row);
+  return id != null && id === tabId;
 }
 
 /** Wie IMEI-Tabelle: Nummer, Aktion, dann übrige Spalten. */

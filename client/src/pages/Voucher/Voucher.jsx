@@ -100,6 +100,12 @@ const Voucher = () => {
     setSelectedCells(new Set());
   }, [activeTab]);
 
+  useEffect(() => {
+    if (!VOUCHER_FIXED_TABS.some((t) => t.id === activeTab)) {
+      setActiveTab(VOUCHER_FIXED_TABS[0].id);
+    }
+  }, [activeTab]);
+
   const handleExportCsv = useCallback(() => {
     if (!filteredRows.length) return;
     const headers = displayCols.map((col) => {
@@ -256,11 +262,7 @@ const Voucher = () => {
 
                   <>
                     {filteredRows.length === 0 ? (
-                      <p className="voucher-meta">
-                        Keine Zeilen für diese Kategorie. Excel muss Voucher-Daten enthalten, die zu „
-                        {VOUCHER_FIXED_TABS.find((t) => t.id === activeTab)?.label}“ passen (z. B. Anbieter + Voucher-Art
-                        in den Zellen).
-                      </p>
+                      <p className="voucher-meta">Zurzeit sind keine Voucher verfügbar.</p>
                     ) : (
                       <div className="imeis-table-wrapper">
                         <table className="imeis-table">
