@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from 'react';
+import { useEffect, useState, useId, useRef, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -14,6 +14,11 @@ import {
   deleteSiteNewsHistoryEntry,
   uploadNewsMedia
 } from '../../services/dashboard.service';
+import {
+  getFormularCenterItems,
+  uploadFormularCenterPdf,
+  deleteFormularCenterItem
+} from '../../services/formularCenter.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
@@ -23,6 +28,7 @@ import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcel
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
 import './Dashboard.scss';
+import '../FormularCenter/FormularCenter.scss';
 
 /** Admin-Sidebar: ein Bereich aktiv */
 const SEC_KENNZAHLEN = 'kennzahlen';
@@ -31,6 +37,7 @@ const SEC_ANWEISUNG = 'anweisung';
 const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
 const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
+const SEC_FORMULAR = 'formular';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -57,6 +64,26 @@ const Dashboard = () => {
   const [adminSection, setAdminSection] = useState(SEC_KENNZAHLEN);
   const [bueroSection, setBueroSection] = useState(SEC_EXCEL);
   const alteNewsPanelId = useId();
+  const formularFileInputRef = useRef(null);
+  const [formularItems, setFormularItems] = useState([]);
+  const [formularLoading, setFormularLoading] = useState(false);
+  const [formularError, setFormularError] = useState(null);
+  const [formularUploadBusy, setFormularUploadBusy] = useState(false);
+  const [formularDeleteId, setFormularDeleteId] = useState(null);
+
+  const loadFormularCenter = useCallback(async () => {
+    setFormularLoading(true);
+    setFormularError(null);
+    try {
+      const res = await getFormularCenterItems();
+      setFormularItems(Array.isArray(res.data?.items) ? res.data.items : []);
+    } catch (e) {
+      setFormularError(e.response?.data?.message || e.message || 'Liste konnte nicht geladen werden.');
+      setFormularItems([]);
+    } finally {
+      setFormularLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user?.id || !canShowDashboardNotes(user)) return;
@@ -145,6 +172,42 @@ const Dashboard = () => {
       }
     };
   }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    if (!user?.id || !isAdmin(user) || adminSection !== SEC_FORMULAR) return;
+    loadFormularCenter();
+  }, [user?.id, adminSection, loadFormularCenter]);
+
+  const handleFormularFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setFormularUploadBusy(true);
+    setFormularError(null);
+    try {
+      await uploadFormularCenterPdf(file);
+      await loadFormularCenter();
+    } catch (err) {
+      setFormularError(err.response?.data?.message || err.message || 'Upload fehlgeschlagen.');
+    } finally {
+      setFormularUploadBusy(false);
+    }
+  };
+
+  const handleFormularDelete = async (id) => {
+    if (!id) return;
+    if (!window.confirm('Dieses Formular wirklich löschen?')) return;
+    setFormularDeleteId(id);
+    setFormularError(null);
+    try {
+      await deleteFormularCenterItem(id);
+      await loadFormularCenter();
+    } catch (err) {
+      setFormularError(err.response?.data?.message || err.message || 'Löschen fehlgeschlagen.');
+    } finally {
+      setFormularDeleteId(null);
+    }
+  };
 
   if (!canAccessDashboard(user)) {
     return <Navigate to="/" replace />;
@@ -375,6 +438,16 @@ const Dashboard = () => {
                     aria-current={adminSection === SEC_BENUTZERVERWALTUNG ? 'page' : undefined}
                   >
                     Benutzerverwaltung
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className={navBtnClass(SEC_FORMULAR)}
+                    onClick={() => setAdminSection(SEC_FORMULAR)}
+                    aria-current={adminSection === SEC_FORMULAR ? 'page' : undefined}
+                  >
+                    Formular Center
                   </button>
                 </li>
                 {canShowExcelUpload(user) && (
@@ -700,6 +773,79 @@ const Dashboard = () => {
                 </div>
                 <div className="dashboard-user-management-panel">
                   <UserManagement compact />
+                </div>
+              </div>
+            )}
+
+            {adminSection === SEC_FORMULAR && (
+              <div className="card dashboard-formular-center dashboard-admin-panel">
+                <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
+                  <h2 className="card-title">Formular Center</h2>
+                  <span className="dashboard-excel-upload__badge">PDF</span>
+                </div>
+                <div className="card-body">
+                  <p className="formular-center-intro">
+                    PDFs, die Sie hier hochladen, erscheinen für alle Benutzer unter „Formular Center“ in der
+                    Navigation.
+                  </p>
+                  <div className="formular-center-upload">
+                    <input
+                      ref={formularFileInputRef}
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="formular-center-file-input"
+                      onChange={handleFormularFileChange}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--small"
+                      disabled={formularUploadBusy}
+                      onClick={() => formularFileInputRef.current?.click()}
+                    >
+                      {formularUploadBusy ? 'Wird hochgeladen…' : 'PDF hochladen'}
+                    </button>
+                    <span className="formular-center-upload-hint">max. 30 MB · PDF</span>
+                  </div>
+                  {formularError && <p className="text-error formular-center-error">{formularError}</p>}
+                  {formularLoading ? (
+                    <p>Lade Formulare…</p>
+                  ) : formularItems.length === 0 ? (
+                    <p className="text-muted formular-center-empty">Noch keine PDF-Formulare hinterlegt.</p>
+                  ) : (
+                    <ul className="formular-center-list">
+                      {formularItems.map((it) => (
+                        <li key={it.id} className="formular-center-item">
+                          <a
+                            href={it.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="formular-center-link"
+                          >
+                            {it.originalName || 'Formular.pdf'}
+                          </a>
+                          <div className="formular-center-meta">
+                            {it.uploadedAt &&
+                              new Date(it.uploadedAt).toLocaleString('de-DE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            {it.uploadedByName ? ` · ${it.uploadedByName}` : ''}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn--danger btn--small formular-center-delete"
+                            disabled={formularDeleteId === it.id}
+                            onClick={() => handleFormularDelete(it.id)}
+                          >
+                            {formularDeleteId === it.id ? '…' : 'Löschen'}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             )}
