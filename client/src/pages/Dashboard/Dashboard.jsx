@@ -12,7 +12,8 @@ import {
   getSiteNewsHistory,
   updateSiteNewsHistoryEntry,
   deleteSiteNewsHistoryEntry,
-  uploadNewsMedia
+  uploadNewsMedia,
+  uploadAnweisungAudioMedia
 } from '../../services/dashboard.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
@@ -252,6 +253,11 @@ const Dashboard = () => {
 
   const uploadNewsFile = async (file) => {
     const res = await uploadNewsMedia(file);
+    return res.data?.url;
+  };
+
+  const uploadAnweisungAudio = async (file) => {
+    const res = await uploadAnweisungAudioMedia(file);
     return res.data?.url;
   };
 
@@ -584,6 +590,7 @@ const Dashboard = () => {
                       initialContent={noteContent}
                       onSave={handleSave}
                       placeholder="schreiben Sie hier Ihre Anweisung ."
+                      audioUpload={{ uploadFile: uploadAnweisungAudio }}
                     />
                   )}
                 </div>

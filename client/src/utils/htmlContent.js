@@ -5,6 +5,7 @@ export function hasMeaningfulHtml(html) {
   if (!s) return false;
   if (
     /<img\b/i.test(s) ||
+    /<audio\b/i.test(s) ||
     /<video\b/i.test(s) ||
     /<iframe\b/i.test(s) ||
     /<picture\b/i.test(s) ||
