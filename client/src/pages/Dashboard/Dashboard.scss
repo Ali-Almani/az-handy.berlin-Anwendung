@@ -759,8 +759,15 @@
     }
   }
 
-  &.dashboard-performance .card-header.card-header--kennzahlen {
-    border-radius: 0;
+  &.dashboard-performance {
+    .dashboard-admin-panel__header {
+      padding: $spacing-md $spacing-lg;
+    }
+
+    .card-header.card-header--kennzahlen {
+      border-radius: 0;
+      padding: $spacing-md $spacing-lg $spacing-xl;
+    }
   }
 
   &.dashboard-user-management {
