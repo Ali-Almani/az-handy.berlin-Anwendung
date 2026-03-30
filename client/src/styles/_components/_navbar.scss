@@ -23,11 +23,7 @@
     display: flex;
     gap: $spacing-lg;
     align-items: center;
-
-    /* Nur Link-Einträge: leichter Abstand nach oben – Logo & Avatar unverändert */
-    > li:not(.navbar-avatar-container) {
-      margin-top: 5px;
-    }
+    margin-top: 20px;
   }
 
   &-link {
