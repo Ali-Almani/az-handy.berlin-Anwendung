@@ -13,17 +13,30 @@ const Documentation = () => {
         <div className="card-header documentation__card-header">
           <h1 className="card-title documentation__title">Benutzerhandbuch</h1>
           <p className="documentation__lead">
-            Anleitung für az-handy.berlin – IMEI-Verwaltung und Mitarbeiter-System
+            <strong>az-handy.berlin Intranet</strong> – internes System zur{' '}
+            <strong>Mitarbeiterverwaltung</strong> und zur Abwicklung damit verbundener Aufgaben.
+            Die folgenden Kapitel beschreiben den <strong>aktuellen Funktionsumfang</strong>; dieser ist
+            bewusst nur ein <strong>Teil des Gesamtprogramms</strong>, das weiter ausgebaut wird.
           </p>
         </div>
         <div className="card-body documentation__card-body">
 
       <section className="doc-section">
-        <h2>Was ist az-handy.berlin?</h2>
+        <h2>Was ist das az-handy.berlin Intranet?</h2>
         <p>
-          az-handy.berlin ist ein internes Mitarbeiterverwaltungssystem für die IMEI-Verwaltung.
-          Alle eingeloggten Benutzer sehen die gemeinsame IMEI-Liste (von Melih hochgeladen),
-          können IMEIs kopieren und ihren eigenen Verlauf einsehen.
+          Das Intranet ist die interne Plattform von <strong>az-handy.berlin</strong> und dient der{' '}
+          <strong>Mitarbeiterverwaltung</strong> sowie der Unterstützung von Arbeitsabläufen im Team
+          (Zugriffe, Rollen, Nachrichten, Formulare und fachliche Module wie die Importer).
+        </p>
+        <p>
+          Was Sie hier in der Oberfläche nutzen – etwa IMEIs, Voucher, Dashboard, Archiv oder
+          Einstellungen – ist <strong>ein Auszug aus dem Gesamtsystem</strong>. Weitere Bereiche und
+          Funktionen sind vorgesehen bzw. in der Entwicklung und werden schrittweise ergänzt.
+        </p>
+        <p>
+          Für die <strong>IMEI-Verwaltung</strong>: Alle eingeloggten Benutzer sehen die gemeinsame
+          IMEI-Liste (u. a. durch Upload im Dashboard), können IMEIs reservieren und kopieren sowie
+          ihren eigenen Verlauf einsehen.
         </p>
       </section>
 
