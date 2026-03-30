@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getSocket } from '../../services/socket';
 import { getVouchersApi, putVoucherUserStateApi } from '../../services/api';
-import { canAccessVoucherList } from '../../utils/roles';
+import { canAccessVoucherList, isAdmin, isBüroMitarbeiter } from '../../utils/roles';
 import Login from '../Auth/Login';
 import '../Imeis/Imeis.scss';
 import ImeisRateLimitModal from '../Imeis/components/ImeisRateLimitModal';
@@ -41,6 +41,7 @@ const Voucher = () => {
 
   const voucherArtKey = useMemo(() => findVoucherArtKey(columnOrderFirst), [columnOrderFirst]);
   const nummerKey = useMemo(() => resolveNummerKey(columnOrderFirst, uploaded), [columnOrderFirst, uploaded]);
+  const canExportVoucher = isAdmin(user) || isBüroMitarbeiter(user);
   const displayCols = useMemo(
     () => buildVoucherDisplayColumns(columnOrderFirst, nummerKey),
     [columnOrderFirst, nummerKey]
@@ -230,14 +231,16 @@ const Voucher = () => {
                   <div className="imeis-controls">
                     <div className="imeis-actions">
                       <div className="imeis-actions-buttons">
-                        <button
-                          type="button"
-                          className="btn btn--secondary btn--small"
-                          disabled={filteredRows.length === 0}
-                          onClick={handleExportCsv}
-                        >
-                          Exportieren (CSV)
-                        </button>
+                        {canExportVoucher && (
+                          <button
+                            type="button"
+                            className="btn btn--secondary btn--small"
+                            disabled={filteredRows.length === 0}
+                            onClick={handleExportCsv}
+                          >
+                            Exportieren (CSV)
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn btn--small imeis-history-btn"

@@ -39,6 +39,12 @@ const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
 const SEC_FORMULAR = 'formular';
 
+const DashSidebarIcon = ({ children }) => (
+  <span className="dashboard-admin-nav__icon" aria-hidden>
+    {children}
+  </span>
+);
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [metricsMeta, setMetricsMeta] = useState(null);
@@ -414,7 +420,12 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_KENNZAHLEN)}
                     aria-current={adminSection === SEC_KENNZAHLEN ? 'page' : undefined}
                   >
-                    Kennzahlen
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 20V10M10 20V4M16 20v-6M22 20v-9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">Kennzahlen</span>
                   </button>
                 </li>
                 {canShowDashboardNotes(user) && (
@@ -426,7 +437,13 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_NEWS)}
                         aria-current={adminSection === SEC_NEWS ? 'page' : undefined}
                       >
-                        NEWS
+                        <DashSidebarIcon>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                            <path d="M8 8h8M8 12h6M8 16h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </DashSidebarIcon>
+                        <span className="dashboard-admin-nav__label">NEWS</span>
                       </button>
                     </li>
                     <li>
@@ -436,7 +453,14 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_ANWEISUNG)}
                         aria-current={adminSection === SEC_ANWEISUNG ? 'page' : undefined}
                       >
-                        Anweisung
+                        <DashSidebarIcon>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                            <path d="M9 5a2 2 0 012-2h2a2 2 0 012 2v0a2 2 0 01-2 2h-2a2 2 0 01-2-2v0z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                            <path d="M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </DashSidebarIcon>
+                        <span className="dashboard-admin-nav__label">Anweisung</span>
                       </button>
                     </li>
                   </>
@@ -448,7 +472,14 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_BENUTZERVERWALTUNG)}
                     aria-current={adminSection === SEC_BENUTZERVERWALTUNG ? 'page' : undefined}
                   >
-                    Benutzerverwaltung
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.75" />
+                        <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">Benutzerverwaltung</span>
                   </button>
                 </li>
                 <li>
@@ -458,7 +489,13 @@ const Dashboard = () => {
                     onClick={() => setAdminSection(SEC_FORMULAR)}
                     aria-current={adminSection === SEC_FORMULAR ? 'page' : undefined}
                   >
-                    Formular Center
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">Formular Center</span>
                   </button>
                 </li>
                 {canShowExcelUpload(user) && (
@@ -470,7 +507,13 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_EXCEL)}
                         aria-current={adminSection === SEC_EXCEL ? 'page' : undefined}
                       >
-                        IMEs Verwaltung
+                        <DashSidebarIcon>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.75" />
+                            <path d="M10 7h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </DashSidebarIcon>
+                        <span className="dashboard-admin-nav__label">IMEs Verwaltung</span>
                       </button>
                     </li>
                     <li>
@@ -480,7 +523,12 @@ const Dashboard = () => {
                         onClick={() => setAdminSection(SEC_VOUCHER)}
                         aria-current={adminSection === SEC_VOUCHER ? 'page' : undefined}
                       >
-                        Voucher Verwaltung
+                        <DashSidebarIcon>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 7V6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                          </svg>
+                        </DashSidebarIcon>
+                        <span className="dashboard-admin-nav__label">Voucher Verwaltung</span>
                       </button>
                     </li>
                   </>
@@ -493,7 +541,7 @@ const Dashboard = () => {
               <div className="card dashboard-performance dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Kennzahlen</h2>
-                  <span className="dashboard-excel-upload__badge">Kennzahlen</span>
+                  <span className="dashboard-excel-upload__badge">Übersicht</span>
                 </div>
                 <div className="card-body">
                   <div className="card-header card-header--kennzahlen dashboard-performance__panel-header">
@@ -872,7 +920,13 @@ const Dashboard = () => {
                     onClick={() => setBueroSection(SEC_EXCEL)}
                     aria-current={bueroSection === SEC_EXCEL ? 'page' : undefined}
                   >
-                    IMEs Verwaltung
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.75" />
+                        <path d="M10 7h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">IMEs Verwaltung</span>
                   </button>
                 </li>
                 <li>
@@ -882,7 +936,12 @@ const Dashboard = () => {
                     onClick={() => setBueroSection(SEC_VOUCHER)}
                     aria-current={bueroSection === SEC_VOUCHER ? 'page' : undefined}
                   >
-                    Voucher Verwaltung
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 7V6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">Voucher Verwaltung</span>
                   </button>
                 </li>
               </ul>

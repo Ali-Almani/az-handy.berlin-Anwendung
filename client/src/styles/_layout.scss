@@ -17,16 +17,26 @@
   margin-top: auto;
 }
 
-/* az-schnelltest.berlin: Hauptinhalt + Navbar + Footer gleiche Breite (1600px); sonst .container = 1400px. */
-body.layout-host--schnelltest .main > .container,
+/*
+ * az-schnelltest.berlin:
+ * - Navbar + Footer: 1600px (unverändert breiter wie bisher)
+ * - Hauptinhalt: 1400px (Projekt-Standard)
+ * - Nur Startseite (.home): weiterhin 1600px Breite
+ */
 body.layout-host--schnelltest .navbar .container,
 body.layout-host--schnelltest .footer .container {
   max-width: 1600px;
 }
 
-body.layout-host--schnelltest .main .home,
-body.layout-host--schnelltest .main .archiv-anweisung-page,
-body.layout-host--schnelltest .main .settings {
+body.layout-host--schnelltest .main > .container {
+  max-width: 1400px;
+}
+
+body.layout-host--schnelltest .main > .container:has(.home) {
+  max-width: 1600px;
+}
+
+body.layout-host--schnelltest .main .home {
   max-width: 1600px;
 }
 
