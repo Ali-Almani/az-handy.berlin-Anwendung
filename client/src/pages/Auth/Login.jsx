@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { loginUser } from '../../services/auth.service';
+import PasswordField from '../../components/PasswordField/PasswordField';
 import './Auth.scss';
 
 const Login = () => {
@@ -66,15 +67,14 @@ const Login = () => {
           </div>
 
           <div className="form-group">
-            <input
-              type="password"
+            <PasswordField
               id="password"
               name="password"
-              className="form-input"
               placeholder="Passwort"
               value={formData.password}
               onChange={handleChange}
               required
+              autoComplete="current-password"
             />
           </div>
 

@@ -1,4 +1,5 @@
 import { ROLE_OPTIONS, EINSATZ_ORT_OPTIONS } from '../../utils/roles';
+import PasswordField from '../PasswordField/PasswordField';
 
 const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmit }) => (
   <div className="user-form-section">
@@ -17,7 +18,15 @@ const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmi
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="new-password" className="form-label">Passwort</label>
-          <input type="password" id="new-password" name="password" className="form-input" value={newUserData.password} onChange={onInputChange} required minLength={6} />
+          <PasswordField
+            id="new-password"
+            name="password"
+            value={newUserData.password}
+            onChange={onInputChange}
+            required
+            minLength={6}
+            autoComplete="new-password"
+          />
           <small className="form-help">Mindestens 6 Zeichen</small>
         </div>
         <div className="form-group">

@@ -23,15 +23,20 @@
     display: flex;
     gap: $spacing-lg;
     align-items: center;
+
+    /* Nur Link-Einträge: leichter Abstand nach oben – Logo & Avatar unverändert */
+    > li:not(.navbar-avatar-container) {
+      margin-top: 5px;
+    }
   }
 
   &-link {
-    color: $text-light;
-    font-weight: $font-weight-medium;
-    transition: $transition-base;
+    color: #97a2ae;
+    font-weight: $font-weight-bold;
+    transition: color 0.2s ease, opacity 0.2s ease;
 
     &:hover {
-      color: $text-color;
+      color: #2f353a;
     }
 
     &--active {
@@ -39,7 +44,33 @@
     }
 
     &--active:hover {
-      color: $primary-color;
+      color: darken($primary-color, 6%);
     }
+  }
+
+  &-link-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &-link-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.9;
+
+    svg {
+      display: block;
+    }
+  }
+
+  &-link:hover &-link-icon {
+    opacity: 1;
+  }
+
+  &-link--active &-link-icon {
+    opacity: 1;
   }
 }

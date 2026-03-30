@@ -1,6 +1,6 @@
 @import '../../styles/variables';
 
-/* Archiv NEWS – gleiches Accordion-Muster wie Startseiten-NEWS */
+/* Archiv NEWS – Seitenrahmen wie Archiv Anweisung; Einträge per Klick aufklappbar */
 
 .archiv-news-page {
   max-width: 1400px;
@@ -8,42 +8,39 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-xl;
 }
 
-.archiv-news-page__intro {
-  padding: 0 $spacing-xs;
-}
-
-.archiv-news-page__title {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: $font-weight-bold;
-  color: #34495e;
-}
-
-.archiv-news-feed {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-  min-width: 0;
-}
-
-.archiv-news-loading-wrap {
-  padding: $spacing-lg;
-  text-align: center;
-}
-
-.archiv-news-loading {
-  margin: 0;
-  color: $primary-color;
-}
-
-.archiv-news-empty-card {
+.archiv-news-main-card {
   background: #ffffff;
   border: 1px solid #e8e8e8;
   border-radius: $border-radius-card;
   box-shadow: $shadow-card;
+
+  .card-header {
+    background: #ffffff;
+    border: none;
+    border-bottom: 1px solid #e8e8e8;
+    margin: 0;
+    padding: $spacing-md $spacing-lg;
+    border-radius: 0;
+  }
+
+  .card-title {
+    color: #34495e;
+    font-size: 1.125rem;
+    font-weight: $font-weight-bold;
+    margin-bottom: 0;
+  }
+
+  .card-body {
+    padding: $spacing-lg;
+  }
+}
+
+.archiv-news-loading {
+  margin: 0;
+  color: $text-color;
 }
 
 .archiv-news-empty {
@@ -52,18 +49,27 @@
   font-style: italic;
 }
 
-.archiv-news-entry-card.card {
-  padding: 0;
+.archiv-news-list {
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archiv-news-list-item {
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.archiv-news-entry {
+  padding: 0;
   overflow: hidden;
   background: #ffffff;
   border: 1px solid #e8e8e8;
   border-radius: $border-radius-card;
   box-shadow: $shadow-card;
-
-  &:hover {
-    box-shadow: $shadow-card;
-  }
 }
 
 .archiv-news-accordion-trigger {
@@ -73,14 +79,14 @@
   gap: 0.5rem;
   width: 100%;
   margin: 0;
-  padding: $spacing-md $spacing-lg;
+  padding: $spacing-md;
   padding-bottom: max(#{$spacing-md}, 0.75rem);
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  background: #ffffff;
+  background: transparent;
   border: none;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid transparent;
   transition: background 0.2s ease;
 
   @media (min-width: $breakpoint-md) {
@@ -101,7 +107,7 @@
   }
 
   &.is-open {
-    border-bottom: 1px solid #e8e8e8;
+    border-bottom-color: #e8e8e8;
   }
 }
 
@@ -123,7 +129,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: $primary-color;
+  color: #34495e;
 
   svg {
     display: block;
@@ -140,9 +146,9 @@
 }
 
 .archiv-news-accordion-title {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: $font-weight-bold;
-  color: $primary-color;
+  color: #34495e;
 }
 
 .archiv-news-accordion-date-pill {
@@ -182,7 +188,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  color: rgba($primary-color, 0.85);
+  color: rgba(#34495e, 0.75);
   transition: transform 0.2s ease;
 
   svg {
@@ -228,12 +234,12 @@
 }
 
 .archiv-news-accordion-panel .archiv-news-body {
-  padding: $spacing-lg $spacing-md;
+  padding: 0 $spacing-md $spacing-md;
 }
 
 .archiv-news-body {
-  font-size: 1.125rem;
-  line-height: 1.65;
+  font-size: 1rem;
+  line-height: 1.6;
   color: $text-color;
 
   &--empty {

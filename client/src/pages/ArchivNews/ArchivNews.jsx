@@ -21,15 +21,15 @@ const formatStand = (iso) => {
   }
 };
 
-const ArchivNewsEntry = ({ entry, idBase, defaultOpen }) => {
-  const [open, setOpen] = useState(defaultOpen);
+const ArchivNewsEntry = ({ entry, idBase }) => {
+  const [open, setOpen] = useState(false);
   const triggerId = `${idBase}-trigger-${entry.id}`;
   const panelId = `${idBase}-panel-${entry.id}`;
   const dateStr = formatStand(entry.updatedAt);
   const hasBody = hasMeaningfulHtml(entry.content);
 
   return (
-    <div className="card archiv-news-entry-card">
+    <div className="archiv-news-entry">
       <button
         type="button"
         id={triggerId}
@@ -136,31 +136,25 @@ const ArchivNews = () => {
 
   return (
     <div className="archiv-news-page">
-      <header className="archiv-news-page__intro">
-        <h1 className="archiv-news-page__title">Archiv NEWS</h1>
-      </header>
-
-      <div className="archiv-news-feed">
-        {loading ? (
-          <div className="archiv-news-loading-wrap">
+      <div className="card archiv-news-main-card">
+        <div className="card-header">
+          <h2 className="card-title">Archiv NEWS</h2>
+        </div>
+        <div className="card-body">
+          {loading ? (
             <p className="archiv-news-loading">Lade Archiv…</p>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="card archiv-news-empty-card">
-            <div className="card-body">
-              <p className="archiv-news-empty">Noch keine archivierten NEWS.</p>
-            </div>
-          </div>
-        ) : (
-          entries.map((entry, index) => (
-            <ArchivNewsEntry
-              key={entry.id || entry.updatedAt || index}
-              entry={entry}
-              idBase={idBase}
-              defaultOpen={index === 0}
-            />
-          ))
-        )}
+          ) : entries.length === 0 ? (
+            <p className="archiv-news-empty">Noch keine archivierten NEWS.</p>
+          ) : (
+            <ul className="archiv-news-list">
+              {entries.map((entry, index) => (
+                <li key={entry.id || entry.updatedAt || index} className="archiv-news-list-item">
+                  <ArchivNewsEntry entry={entry} idBase={idBase} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

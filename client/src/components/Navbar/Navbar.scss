@@ -95,20 +95,30 @@
 }
 
 .navbar-greeting {
-  color: $text-light;
+  color: #97a2ae;
   font-size: 0.9rem;
-  font-weight: $font-weight-normal;
+  font-weight: $font-weight-bold;
   flex-shrink: 0;
+  transition: color 0.2s ease;
 }
 
 .navbar-username-inline {
-  color: $text-color;
+  color: #88939e;
   font-size: 0.9rem;
   font-weight: $font-weight-bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  transition: color 0.2s ease;
+}
+
+.navbar-avatar-btn--with-greeting:hover .navbar-greeting {
+  color: #6c757d;
+}
+
+.navbar-avatar-btn--with-greeting:hover .navbar-username-inline {
+  color: #2f353a;
 }
 
 .navbar-avatar-image,
@@ -141,15 +151,25 @@
 
 .navbar-dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 4px);
   right: 0;
   background: white;
   border-radius: 2px;
   box-shadow: $shadow-lg;
   min-width: 220px;
   z-index: 1000;
-  overflow: hidden;
+  overflow: visible;
   animation: dropdownFadeIn 0.2s ease;
+
+  /* Unsichtbare Brücke in der Lücke Trigger → Panel (Hover bleibt bestehen) */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 10px;
+  }
 
   @keyframes dropdownFadeIn {
     from {
@@ -172,13 +192,13 @@
 .navbar-dropdown-user-info {
   .navbar-dropdown-name {
     font-weight: $font-weight-bold;
-    color: $text-color;
+    color: #88939e;
     font-size: 0.95rem;
     margin-bottom: 0.25rem;
   }
 
   .navbar-dropdown-email {
-    color: $text-light;
+    color: #adb5bd;
     font-size: 0.85rem;
   }
 }
@@ -199,18 +219,26 @@
   border: none;
   text-align: left;
   cursor: pointer;
-  color: $text-color;
+  color: #88939e;
   font-size: 0.9rem;
-  transition: background-color 0.2s ease;
+  font-weight: $font-weight-bold;
+  transition: background-color 0.2s ease, color 0.2s ease;
   text-decoration: none;
 
   &:hover {
     background: $bg-light;
+    color: #2f353a;
   }
 
   &:focus {
     outline: none;
     background: $bg-light;
+    color: #2f353a;
+  }
+
+  &:hover .navbar-dropdown-icon,
+  &:focus .navbar-dropdown-icon {
+    color: #6c757d;
   }
 
   &--danger {
@@ -225,9 +253,11 @@
   &--reminder {
     background: #fff8e6;
     font-weight: $font-weight-bold;
+    color: $text-color;
 
     &:hover {
       background: #ffecb3;
+      color: #2f353a;
     }
   }
 
@@ -238,10 +268,15 @@
 
     &:hover {
       background: rgba($primary-color, 0.14);
+      color: darken($primary-color, 6%);
     }
 
     .navbar-dropdown-icon {
       color: $primary-color;
+    }
+
+    &:hover .navbar-dropdown-icon {
+      color: darken($primary-color, 4%);
     }
   }
 }
@@ -252,24 +287,35 @@
   list-style: none;
 }
 
+.navbar-archiv-trigger-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .navbar-archiv-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   background: none;
   border: none;
   cursor: pointer;
   font: inherit;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-bold;
   padding: 0;
-  transition: $transition-base;
+  color: #97a2ae;
+  transition: color 0.2s ease, opacity 0.2s ease;
 
   &:hover {
-    color: $text-color;
+    color: #2f353a;
+  }
+
+  &.navbar-link--active {
+    color: $primary-color;
   }
 
   &.navbar-link--active:hover {
-    color: $primary-color;
+    color: darken($primary-color, 6%);
   }
 
   &:focus {
@@ -280,12 +326,18 @@
   .navbar-archiv-chevron {
     display: flex;
     align-items: center;
+    margin-left: auto;
     transition: transform 0.2s ease;
-    color: $text-light;
+    color: #97a2ae;
 
     svg {
       display: block;
     }
+  }
+
+  &:hover .navbar-archiv-chevron,
+  &.navbar-link--active .navbar-archiv-chevron {
+    color: inherit;
   }
 
   &.navbar-archiv-trigger--open .navbar-archiv-chevron {
@@ -297,7 +349,7 @@
 .navbar-archiv-dropdown {
   left: 0;
   right: auto;
-  top: calc(100% + 10px);
+  top: calc(100% + 4px);
   min-width: 220px;
 }
 
@@ -307,8 +359,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: $text-light;
+  color: #adb5bd;
   flex-shrink: 0;
+  transition: color 0.2s ease;
 
   svg {
     width: 16px;

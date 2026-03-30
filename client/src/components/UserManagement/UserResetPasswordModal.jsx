@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PasswordField from '../PasswordField/PasswordField';
 import './UserEditModal.scss';
 
 const UserResetPasswordModal = ({ user, onClose, onSave, loading }) => {
@@ -36,26 +37,26 @@ const UserResetPasswordModal = ({ user, onClose, onSave, loading }) => {
           </p>
           {error && <div className="alert alert--error" style={{ marginBottom: '1rem' }}>{error}</div>}
           <div className="form-group">
-            <label className="form-label">Neues Passwort</label>
-            <input
-              type="password"
-              className="form-input"
+            <label htmlFor="reset-new-password" className="form-label">Neues Passwort</label>
+            <PasswordField
+              id="reset-new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Mindestens 6 Zeichen"
               required
               minLength={6}
+              autoComplete="new-password"
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Passwort bestätigen</label>
-            <input
-              type="password"
-              className="form-input"
+            <label htmlFor="reset-confirm-password" className="form-label">Passwort bestätigen</label>
+            <PasswordField
+              id="reset-confirm-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Passwort wiederholen"
               required
+              autoComplete="new-password"
             />
           </div>
           <div className="user-edit-modal-actions">

@@ -39,9 +39,64 @@ const Navbar = ({
   const archivDesktopSubmenuId = useId();
   const archivMobileTriggerId = useId();
   const archivMobileSubmenuId = useId();
+  const dropdownHoverCloseRef = useRef(null);
+  const archivHoverCloseRef = useRef(null);
+  const [useHoverDropdowns, setUseHoverDropdowns] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 993px)').matches
+  );
 
   const archivPathActive =
     location.pathname === '/archiv-news' || location.pathname === '/archiv-anweisung';
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 993px)');
+    const onChange = () => setUseHoverDropdowns(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const clearHoverTimer = (ref) => {
+    if (ref.current) {
+      clearTimeout(ref.current);
+      ref.current = null;
+    }
+  };
+
+  const openDropdownHover = () => {
+    clearHoverTimer(dropdownHoverCloseRef);
+    setArchivOpen(false);
+    setDropdownOpen(true);
+  };
+
+  const scheduleDropdownClose = () => {
+    clearHoverTimer(dropdownHoverCloseRef);
+    dropdownHoverCloseRef.current = setTimeout(() => {
+      setDropdownOpen(false);
+      dropdownHoverCloseRef.current = null;
+    }, 200);
+  };
+
+  const openArchivHover = () => {
+    clearHoverTimer(archivHoverCloseRef);
+    setDropdownOpen(false);
+    setArchivOpen(true);
+  };
+
+  const scheduleArchivClose = () => {
+    clearHoverTimer(archivHoverCloseRef);
+    archivHoverCloseRef.current = setTimeout(() => {
+      setArchivOpen(false);
+      archivHoverCloseRef.current = null;
+    }, 200);
+  };
+
+  useEffect(
+    () => () => {
+      clearHoverTimer(dropdownHoverCloseRef);
+      clearHoverTimer(archivHoverCloseRef);
+    },
+    []
+  );
 
   // Schließe Dropdown beim Klick außerhalb
   useEffect(() => {
@@ -70,6 +125,7 @@ const Navbar = ({
 
   useEffect(() => {
     setArchivOpen(false);
+    setDropdownOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -109,8 +165,9 @@ const Navbar = ({
   };
 
   const toggleDropdown = () => {
+    clearHoverTimer(dropdownHoverCloseRef);
     setArchivOpen(false);
-    setDropdownOpen(!dropdownOpen);
+    setDropdownOpen((o) => !o);
   };
 
   const toggleMobileMenu = () => {
@@ -153,10 +210,15 @@ const Navbar = ({
     return name.charAt(0).toUpperCase();
   };
 
-  const renderArchivItem = (containerRef, triggerId, submenuId) => {
+  const renderArchivItem = (containerRef, triggerId, submenuId, enableHover = false) => {
     if (!user || isAdmin(user)) return null;
     return (
-      <li className="navbar-nav-archiv" ref={containerRef}>
+      <li
+        className="navbar-nav-archiv"
+        ref={containerRef}
+        onMouseEnter={enableHover ? openArchivHover : undefined}
+        onMouseLeave={enableHover ? scheduleArchivClose : undefined}
+      >
         <button
           type="button"
           className={`navbar-link navbar-archiv-trigger${archivPathActive ? ' navbar-link--active' : ''}${archivOpen ? ' navbar-archiv-trigger--open' : ''}`}
@@ -166,10 +228,27 @@ const Navbar = ({
           id={triggerId}
           onClick={() => {
             setDropdownOpen(false);
-            setArchivOpen((o) => !o);
+            if (!enableHover) {
+              setArchivOpen((o) => !o);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (enableHover && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              setDropdownOpen(false);
+              setArchivOpen((o) => !o);
+            }
           }}
         >
-          Archiv
+          <span className="navbar-archiv-trigger-label">
+            <span className="navbar-link-icon navbar-archiv-trigger-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 7V6a2 2 0 012-2h2M20 7V6a2 2 0 00-2-2h-2M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7M4 7h16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9 12h6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+              </svg>
+            </span>
+            Archiv
+          </span>
           <span className="navbar-archiv-chevron" aria-hidden>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -233,7 +312,15 @@ const Navbar = ({
     canAccessImeisList(user) ? (
       <li>
         <NavLink to="/imeis" className={navLinkClassName} onClick={closeMobileMenu} end>
-          IMEIs
+          <span className="navbar-link-inner">
+            <span className="navbar-link-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.75" />
+                <path d="M10 7h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
+            IMEIs
+          </span>
         </NavLink>
       </li>
     ) : null;
@@ -242,7 +329,14 @@ const Navbar = ({
     canAccessVoucherList(user) ? (
       <li>
         <NavLink to="/voucher" className={navLinkClassName} onClick={closeMobileMenu} end>
-          Voucher
+          <span className="navbar-link-inner">
+            <span className="navbar-link-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 7V6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+              </svg>
+            </span>
+            Voucher
+          </span>
         </NavLink>
       </li>
     ) : null;
@@ -251,7 +345,14 @@ const Navbar = ({
     canAccessDashboard(user) ? (
       <li>
         <NavLink to="/dashboard" className={navLinkClassName} onClick={closeMobileMenu} end>
-          Dashboard
+          <span className="navbar-link-inner">
+            <span className="navbar-link-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 20V10M10 20V4M16 20v-6M22 20v-9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+              </svg>
+            </span>
+            Dashboard
+          </span>
         </NavLink>
       </li>
     ) : null;
@@ -260,7 +361,7 @@ const Navbar = ({
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
-      {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId)}
+      {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId, useHoverDropdowns)}
       {renderDashboardItem()}
     </>
   );
@@ -284,11 +385,19 @@ const Navbar = ({
           {user ? (
             <>
               {navLinksDesktop}
-              <li className="navbar-avatar-container" ref={dropdownRef}>
+              <li
+                className="navbar-avatar-container"
+                ref={dropdownRef}
+                onMouseEnter={useHoverDropdowns ? openDropdownHover : undefined}
+                onMouseLeave={useHoverDropdowns ? scheduleDropdownClose : undefined}
+              >
                 <button
+                  type="button"
                   onClick={toggleDropdown}
                   className="navbar-avatar-btn navbar-avatar-btn--with-greeting"
                   aria-label="Benutzermenü"
+                  aria-expanded={dropdownOpen}
+                  aria-haspopup="true"
                 >
                   <span className="navbar-avatar-wrap">
                     {user.avatar ? (
@@ -474,7 +583,14 @@ const Navbar = ({
         <div className="navbar-mobile-right">
           {user ? (
             <div className="navbar-avatar-container" ref={mobileHeaderDropdownRef}>
-              <button onClick={toggleDropdown} className="navbar-avatar-btn navbar-avatar-btn--with-greeting" aria-label="Benutzermenü">
+              <button
+                type="button"
+                onClick={toggleDropdown}
+                className="navbar-avatar-btn navbar-avatar-btn--with-greeting"
+                aria-label="Benutzermenü"
+                aria-expanded={dropdownOpen}
+                aria-haspopup="true"
+              >
                 <span className="navbar-avatar-wrap">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="navbar-avatar-image" />

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { registerUser } from '../../services/auth.service';
+import PasswordField from '../../components/PasswordField/PasswordField';
 import './Auth.scss';
 
 const Register = () => {
@@ -81,15 +82,14 @@ const Register = () => {
             <label htmlFor="password" className="form-label">
               Passwort
             </label>
-            <input
-              type="password"
+            <PasswordField
               id="password"
               name="password"
-              className="form-input"
               value={formData.password}
               onChange={handleChange}
               required
               minLength={6}
+              autoComplete="new-password"
             />
           </div>
 
