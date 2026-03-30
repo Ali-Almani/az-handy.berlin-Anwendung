@@ -83,7 +83,7 @@ export const canAccessImeisList = (user) => {
 export const canAccessVoucherList = canAccessImeisList;
 
 /**
- * Voucher-Zeile an Büro melden (Avatar-Menü): alle außer Zentrale, nicht Büro/Admin.
+ * Voucher eintragen / Anfrage an Büro (Avatar-Menü): alle außer Zentrale, nicht Büro/Admin.
  */
 export const canSubmitVoucherManualRequest = (user) => {
   if (!user) return false;

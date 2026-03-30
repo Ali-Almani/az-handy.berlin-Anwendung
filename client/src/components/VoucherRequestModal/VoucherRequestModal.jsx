@@ -56,14 +56,14 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
     <div className="voucher-request-modal-overlay" onClick={handleClose} role="presentation">
       <div className="voucher-request-modal" onClick={(e) => e.stopPropagation()}>
         <div className="voucher-request-modal__header">
-          <h3 id="voucher-request-title">Voucher an Büro melden</h3>
+          <h3 id="voucher-request-title">Voucher eintragen</h3>
           <button type="button" className="voucher-request-modal__close" onClick={handleClose} aria-label="Schließen">
             ×
           </button>
         </div>
         <form className="voucher-request-modal__body" onSubmit={handleSubmit}>
           <p className="voucher-request-modal__hint">
-            Die Buchhaltung prüft Ihre Angaben und trägt den Voucher nach Genehmigung in die passende Kategorie ein.
+            „Melih prüft Ihre Angaben und trägt den Voucher nach Genehmigung in die passende Kategorie ein.“
           </p>
           <div className="form-group">
             <label htmlFor="voucher-request-art" className="form-label">
@@ -102,7 +102,7 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
               Abbrechen
             </button>
             <button type="submit" className="btn btn--primary" disabled={loading}>
-              {loading ? 'Senden…' : 'An Büro senden'}
+              {loading ? 'Senden…' : 'Anfrage senden'}
             </button>
           </div>
         </form>

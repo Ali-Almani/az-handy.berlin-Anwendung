@@ -487,7 +487,7 @@ const Navbar = ({
                   {hasVoucherManualRequestBadge && (isBüroMitarbeiter(user) || isAdmin(user)) && onOpenVoucherManualRequestsModal && (
                     <span
                       className="navbar-avatar-badge navbar-avatar-badge--voucher-request"
-                      title="Voucher-Anfragen aus dem Feld – Klicken zum Öffnen"
+                      title="Voucher anfrage – Klicken zum Öffnen"
                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenVoucherManualRequestsModal(); }}
                       role="button"
                       tabIndex={0}
@@ -555,7 +555,7 @@ const Navbar = ({
                         onClick={handleOpenVoucherManualRequestsModal}
                       >
                         <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--voucher-request">{voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}</span>
-                        <span>Voucher-Anfragen (Feld)</span>
+                        <span>Voucher anfrage</span>
                       </button>
                     )}
                     {canSubmitVoucherManualRequest(user) && onOpenVoucherRequestModal && (
@@ -566,7 +566,7 @@ const Navbar = ({
                             <path d="M5 2.5h6l1.5 3H3.5l1.5-3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                           </svg>
                         </span>
-                        Voucher an Büro melden
+                        Voucher eintragen
                       </button>
                     )}
                     <Link
@@ -678,7 +678,7 @@ const Navbar = ({
                 {hasVoucherManualRequestBadge && (isBüroMitarbeiter(user) || isAdmin(user)) && onOpenVoucherManualRequestsModal && (
                   <span
                     className="navbar-avatar-badge navbar-avatar-badge--voucher-request"
-                    title="Voucher-Anfragen aus dem Feld"
+                    title="Voucher anfrage"
                     onClick={(e) => { e.stopPropagation(); handleOpenVoucherManualRequestsModal(); }}
                     role="button"
                     tabIndex={0}
@@ -725,7 +725,7 @@ const Navbar = ({
                   {hasVoucherManualRequestBadge && onOpenVoucherManualRequestsModal && (isBüroMitarbeiter(user) || isAdmin(user)) && (
                     <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenVoucherManualRequestsModal}>
                       <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--voucher-request">{voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}</span>
-                      <span>Voucher-Anfragen (Feld)</span>
+                      <span>Voucher anfrage</span>
                     </button>
                   )}
                   {canSubmitVoucherManualRequest(user) && onOpenVoucherRequestModal && (
@@ -736,7 +736,7 @@ const Navbar = ({
                           <path d="M5 2.5h6l1.5 3H3.5l1.5-3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                         </svg>
                       </span>
-                      Voucher an Büro melden
+                      Voucher eintragen
                     </button>
                   )}
                   <Link

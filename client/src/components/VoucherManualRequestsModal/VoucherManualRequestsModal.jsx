@@ -12,7 +12,7 @@ const VoucherManualRequestsModal = ({ isOpen, onClose, requests, loading, onAppr
         style={{ maxWidth: '520px', width: '92%' }}
       >
         <div className="imeis-history-modal-header">
-          <h3>Voucher-Anfragen (Feld)</h3>
+          <h3>Voucher anfrage</h3>
           <button type="button" onClick={onClose} className="imeis-history-modal-close" aria-label="Schließen">
             ×
           </button>
