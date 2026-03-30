@@ -560,7 +560,7 @@ const Dashboard = () => {
               <div className="card dashboard-site-news dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">NEWS</h2>
-                  <span className="dashboard-excel-upload__badge">NEWS</span>
+                  <span className="dashboard-excel-upload__badge">Startseiten-Editor</span>
                 </div>
                 <p className="dashboard-site-news-hint dashboard-site-news-hint--in-panel">
                   Erscheint auf der Startseite für alle Benutzer. Bilder über den Button „Bild“ einfügen.
@@ -709,7 +709,7 @@ const Dashboard = () => {
               <div className="card dashboard-new-message dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Anweisung</h2>
-                  <span className="dashboard-excel-upload__badge">Anweisung</span>
+                  <span className="dashboard-excel-upload__badge">Hinweise & Archiv</span>
                 </div>
                 <div className="card-body dashboard-anweisung-editor">
                   {noteError && <p className="text-error">{noteError}</p>}
@@ -832,7 +832,7 @@ const Dashboard = () => {
               <div className="card dashboard-user-management dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Benutzerverwaltung</h2>
-                  <span className="dashboard-excel-upload__badge">Benutzerverwaltung</span>
+                  <span className="dashboard-excel-upload__badge">Konten & Rollen</span>
                 </div>
                 <div className="dashboard-user-management-panel">
                   <UserManagement compact />
