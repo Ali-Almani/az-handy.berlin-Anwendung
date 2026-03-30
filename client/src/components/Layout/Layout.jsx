@@ -6,6 +6,8 @@ import NewsPopup from '../NewsPopup/NewsPopup';
 import ExtraCopyRequestsModal from '../ExtraCopyRequestsModal/ExtraCopyRequestsModal';
 import ExtraCopyNotificationModal from '../ExtraCopyNotificationModal/ExtraCopyNotificationModal';
 import ReminderResponseNotificationModal from '../ReminderResponseNotificationModal/ReminderResponseNotificationModal';
+import VoucherRequestModal from '../VoucherRequestModal/VoucherRequestModal';
+import VoucherManualRequestsModal from '../VoucherManualRequestsModal/VoucherManualRequestsModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useNewsPopup } from '../../hooks/useNewsPopup';
 import { useImeiReminderBadge } from '../../hooks/useImeiReminderPopup';
@@ -13,6 +15,7 @@ import { getSocket } from '../../services/socket';
 import { useExtraCopyRequests } from '../../hooks/useExtraCopyRequests';
 import { useExtraCopyNotification } from '../../hooks/useExtraCopyNotification';
 import { useReminderResponseNotification } from '../../hooks/useReminderResponseNotification';
+import { useVoucherManualRequests } from '../../hooks/useVoucherManualRequests';
 import './Layout.scss';
 
 const Layout = ({ children }) => {
@@ -39,11 +42,14 @@ const Layout = ({ children }) => {
   const [showExtraCopyModal, setShowExtraCopyModal] = useState(false);
   const [showExtraCopyNotificationModal, setShowExtraCopyNotificationModal] = useState(false);
   const [showReminderResponseModal, setShowReminderResponseModal] = useState(false);
+  const [showVoucherRequestModal, setShowVoucherRequestModal] = useState(false);
+  const [showVoucherManualRequestsModal, setShowVoucherManualRequestsModal] = useState(false);
   const { showPopup, content, onMarkAsRead } = useNewsPopup();
   const { hasUnreadReminders, reminderCount } = useImeiReminderBadge();
   const { requests, hasPendingRequests, requestCount, loading, approve, reject } = useExtraCopyRequests();
   const { notifications, hasUnreadNotifications, notificationCount, markAsRead } = useExtraCopyNotification();
   const { notifications: reminderResponseNotifications, hasUnreadNotifications: hasReminderResponseNotifications, notificationCount: reminderResponseCount, markAsRead: markReminderResponseRead } = useReminderResponseNotification();
+  const voucherManualReq = useVoucherManualRequests();
 
   const openVerlauf = () => {
     navigate('/imeis?showVerlauf=1');
@@ -72,6 +78,10 @@ const Layout = ({ children }) => {
         hasReminderResponseBadge={hasReminderResponseNotifications}
         reminderResponseCount={reminderResponseCount}
         onOpenReminderResponseModal={() => setShowReminderResponseModal(true)}
+        hasVoucherManualRequestBadge={voucherManualReq.hasPendingRequests}
+        voucherManualRequestCount={voucherManualReq.requestCount}
+        onOpenVoucherManualRequestsModal={() => setShowVoucherManualRequestsModal(true)}
+        onOpenVoucherRequestModal={() => setShowVoucherRequestModal(true)}
       />
       <main className="main">
         <div className="container">
@@ -101,6 +111,32 @@ const Layout = ({ children }) => {
         onClose={() => setShowReminderResponseModal(false)}
         notifications={reminderResponseNotifications}
         onMarkAsRead={markReminderResponseRead}
+      />
+      <VoucherRequestModal
+        isOpen={showVoucherRequestModal}
+        onClose={() => setShowVoucherRequestModal(false)}
+      />
+      <VoucherManualRequestsModal
+        isOpen={showVoucherManualRequestsModal}
+        onClose={() => setShowVoucherManualRequestsModal(false)}
+        requests={voucherManualReq.requests}
+        loading={voucherManualReq.loading}
+        onApprove={async (id) => {
+          try {
+            await voucherManualReq.approve(id);
+          } catch (e) {
+            console.error(e);
+            window.alert(e.response?.data?.message || e.message || 'Genehmigen fehlgeschlagen');
+          }
+        }}
+        onReject={async (id) => {
+          try {
+            await voucherManualReq.reject(id);
+          } catch (e) {
+            console.error(e);
+            window.alert(e.response?.data?.message || e.message || 'Ablehnen fehlgeschlagen');
+          }
+        }}
       />
     </div>
   );

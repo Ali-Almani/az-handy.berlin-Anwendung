@@ -1,0 +1,61 @@
+@import '../../styles/variables';
+
+.voucher-manual-requests-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.voucher-manual-request-item {
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  padding: 0.85rem 1rem;
+  background: $bg-light;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  @media (min-width: 480px) {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.voucher-manual-request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+
+  strong {
+    color: $text-color;
+  }
+}
+
+.voucher-manual-request-meta {
+  font-size: 0.85rem;
+  color: $text-color;
+  white-space: pre-wrap;
+}
+
+.voucher-manual-request-nummer {
+  font-size: 0.9rem;
+  font-weight: $font-weight-medium;
+  color: $primary-color;
+}
+
+.voucher-manual-request-time {
+  font-size: 0.8rem;
+  color: $text-light;
+}
+
+.voucher-manual-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}

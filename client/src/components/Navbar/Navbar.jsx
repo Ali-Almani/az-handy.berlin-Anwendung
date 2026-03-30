@@ -1,7 +1,14 @@
 import { useState, useRef, useEffect, useId } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { canAccessImeisList, canAccessVoucherList, canAccessDashboard, isAdmin } from '../../utils/roles';
+import {
+  canAccessImeisList,
+  canAccessVoucherList,
+  canAccessDashboard,
+  isAdmin,
+  isBüroMitarbeiter,
+  canSubmitVoucherManualRequest
+} from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
 
@@ -23,7 +30,11 @@ const Navbar = ({
   onOpenExtraCopyResultModal,
   hasReminderResponseBadge = false,
   reminderResponseCount = 0,
-  onOpenReminderResponseModal
+  onOpenReminderResponseModal,
+  hasVoucherManualRequestBadge = false,
+  voucherManualRequestCount = 0,
+  onOpenVoucherManualRequestsModal,
+  onOpenVoucherRequestModal
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -199,6 +210,20 @@ const Navbar = ({
   const handleOpenReminderResponseModal = () => {
     onOpenReminderResponseModal?.();
     setDropdownOpen(false);
+  };
+
+  const handleOpenVoucherRequestModal = () => {
+    onOpenVoucherRequestModal?.();
+    setDropdownOpen(false);
+    setArchivOpen(false);
+    setMobileMenuOpen(false);
+  };
+
+  const handleOpenVoucherManualRequestsModal = () => {
+    onOpenVoucherManualRequestsModal?.();
+    setDropdownOpen(false);
+    setArchivOpen(false);
+    setMobileMenuOpen(false);
   };
 
   const getInitials = (name) => {
@@ -459,6 +484,18 @@ const Navbar = ({
                       {reminderResponseCount > 9 ? '9+' : reminderResponseCount}
                     </span>
                   )}
+                  {hasVoucherManualRequestBadge && (isBüroMitarbeiter(user) || isAdmin(user)) && onOpenVoucherManualRequestsModal && (
+                    <span
+                      className="navbar-avatar-badge navbar-avatar-badge--voucher-request"
+                      title="Voucher-Anfragen aus dem Feld – Klicken zum Öffnen"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenVoucherManualRequestsModal(); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenVoucherManualRequestsModal(); } }}
+                    >
+                      {voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}
+                    </span>
+                  )}
                   </span>
                   <span className="navbar-greeting">Hey</span>
                   <span className="navbar-username-inline">{user.name}</span>
@@ -509,6 +546,27 @@ const Navbar = ({
                       >
                         <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderResponseCount > 9 ? '9+' : reminderResponseCount}</span>
                         <span>Erinnerung beantwortet</span>
+                      </button>
+                    )}
+                    {hasVoucherManualRequestBadge && onOpenVoucherManualRequestsModal && (isBüroMitarbeiter(user) || isAdmin(user)) && (
+                      <button
+                        type="button"
+                        className="navbar-dropdown-item navbar-dropdown-item--reminder"
+                        onClick={handleOpenVoucherManualRequestsModal}
+                      >
+                        <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--voucher-request">{voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}</span>
+                        <span>Voucher-Anfragen (Feld)</span>
+                      </button>
+                    )}
+                    {canSubmitVoucherManualRequest(user) && onOpenVoucherRequestModal && (
+                      <button type="button" className="navbar-dropdown-item" onClick={handleOpenVoucherRequestModal}>
+                        <span className="navbar-dropdown-icon" aria-hidden>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 5.5h10v8a1 1 0 01-1 1H4a1 1 0 01-1-1v-8z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                            <path d="M5 2.5h6l1.5 3H3.5l1.5-3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        Voucher an Büro melden
                       </button>
                     )}
                     <Link
@@ -617,6 +675,17 @@ const Navbar = ({
                     {reminderResponseCount > 9 ? '9+' : reminderResponseCount}
                   </span>
                 )}
+                {hasVoucherManualRequestBadge && (isBüroMitarbeiter(user) || isAdmin(user)) && onOpenVoucherManualRequestsModal && (
+                  <span
+                    className="navbar-avatar-badge navbar-avatar-badge--voucher-request"
+                    title="Voucher-Anfragen aus dem Feld"
+                    onClick={(e) => { e.stopPropagation(); handleOpenVoucherManualRequestsModal(); }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}
+                  </span>
+                )}
                 </span>
                 <span className="navbar-greeting">Hey</span>
                 <span className="navbar-username-inline">{user.name}</span>
@@ -651,6 +720,23 @@ const Navbar = ({
                     <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenReminderResponseModal}>
                       <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderResponseCount > 9 ? '9+' : reminderResponseCount}</span>
                       <span>Erinnerung beantwortet</span>
+                    </button>
+                  )}
+                  {hasVoucherManualRequestBadge && onOpenVoucherManualRequestsModal && (isBüroMitarbeiter(user) || isAdmin(user)) && (
+                    <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenVoucherManualRequestsModal}>
+                      <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--voucher-request">{voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}</span>
+                      <span>Voucher-Anfragen (Feld)</span>
+                    </button>
+                  )}
+                  {canSubmitVoucherManualRequest(user) && onOpenVoucherRequestModal && (
+                    <button type="button" className="navbar-dropdown-item" onClick={handleOpenVoucherRequestModal}>
+                      <span className="navbar-dropdown-icon" aria-hidden>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 5.5h10v8a1 1 0 01-1 1H4a1 1 0 01-1-1v-8z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                          <path d="M5 2.5h6l1.5 3H3.5l1.5-3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      Voucher an Büro melden
                     </button>
                   )}
                   <Link

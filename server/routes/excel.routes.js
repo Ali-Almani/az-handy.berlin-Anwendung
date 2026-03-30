@@ -9,6 +9,12 @@ import {
   restoreVoucherListRow,
   updateVoucherHistoryAction
 } from '../controllers/excel.controller.js';
+import {
+  createVoucherManualRequest,
+  getVoucherManualRequests,
+  approveVoucherManualRequest,
+  rejectVoucherManualRequest
+} from '../controllers/voucherManualRequest.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -41,5 +47,10 @@ router.post('/voucher-remove-row', authenticateToken, removeVoucherListRow);
 router.post('/voucher-restore-row', authenticateToken, restoreVoucherListRow);
 router.post('/upload', authenticateToken, upload.single('file'), processExcelFile);
 router.post('/voucher-upload', authenticateToken, upload.single('file'), processVoucherExcelFile);
+
+router.post('/voucher-manual-request', authenticateToken, createVoucherManualRequest);
+router.get('/voucher-manual-requests', authenticateToken, getVoucherManualRequests);
+router.post('/voucher-manual-request/:id/approve', authenticateToken, approveVoucherManualRequest);
+router.post('/voucher-manual-request/:id/reject', authenticateToken, rejectVoucherManualRequest);
 
 export default router;

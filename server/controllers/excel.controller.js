@@ -380,6 +380,91 @@ function voucherRowsMatch(a, b) {
   }
 }
 
+function normalizeVoucherNummerValue(v) {
+  return String(v ?? '')
+    .trim()
+    .replace(/^:+\s*/, '');
+}
+
+/** Spalte mit Voucher-/PIN-Nummer erkennen (analog zu client voucherColumns.findNummerKey). */
+function findVoucherNummerKey(columnOrder, rowData) {
+  const order =
+    Array.isArray(columnOrder) && columnOrder.length > 0
+      ? columnOrder
+      : Object.keys(rowData || {});
+  const tests = [
+    /nummer/i,
+    /voucher[\s\-_]?nummer/i,
+    /^code$/i,
+    /voucher[\s\-_]?code/i,
+    /^nr\.?$/i,
+    /\bnr\b/i,
+    /^pin$/i,
+    /serien(nummer)?/i,
+    /kartennummer/i,
+    /gutschein[\s\-_]?nummer/i,
+    /^:\s*nummer$/i
+  ];
+  for (const h of order) {
+    const s = String(h ?? '').trim();
+    if (!s) continue;
+    if (tests.some((re) => re.test(s))) return h;
+  }
+  return null;
+}
+
+/** Ein Schlüssel pro Zeile: bevorzugt normalisierte Voucher-Nummer, sonst Inhalts-Fingerprint (ohne Excel-Zeilennummer). */
+function voucherRowDedupKey(row) {
+  if (!row?.rowData || typeof row.rowData !== 'object' || Array.isArray(row.rowData)) return null;
+  const numKey = findVoucherNummerKey(row.columnOrder, row.rowData);
+  if (numKey != null && row.rowData[numKey] != null && String(row.rowData[numKey]).trim() !== '') {
+    const n = normalizeVoucherNummerValue(row.rowData[numKey]);
+    if (n) return `n:${n}`;
+  }
+  try {
+    const keys = Object.keys(row.rowData).sort();
+    const blob = keys.map((k) => `${k}=${normalizeVoucherNummerValue(row.rowData[k])}`).join('|');
+    return `r:${blob}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Neuen Upload an bestehende Liste anhängen (nicht ersetzen).
+ * Doppelte Voucher-Nummern bzw. identische Zeilen werden übersprungen.
+ */
+export function mergeVoucherRowsAppend(existingRows, incomingRows) {
+  const existing = Array.isArray(existingRows) ? [...existingRows] : [];
+  const seen = new Set();
+  for (const r of existing) {
+    const k = voucherRowDedupKey(r);
+    if (k) seen.add(k);
+  }
+  const merged = [...existing];
+  const addedRows = [];
+  let added = 0;
+  let skippedDuplicate = 0;
+  for (const r of incomingRows) {
+    const k = voucherRowDedupKey(r);
+    if (k && seen.has(k)) {
+      skippedDuplicate += 1;
+      continue;
+    }
+    if (k) seen.add(k);
+    merged.push(r);
+    addedRows.push(r);
+    added += 1;
+  }
+  return {
+    merged,
+    addedRows,
+    added,
+    skippedDuplicate,
+    previousCount: existing.length
+  };
+}
+
 /** Reservieren: Zeile aus der gemeinsamen Voucher-Liste entfernen (persistiert in vouchers.json) */
 export const removeVoucherListRow = async (req, res, next) => {
   try {
@@ -693,19 +778,36 @@ export const processVoucherExcelFile = async (req, res) => {
       });
     }
 
+    const prev = loadJson(VOUCHERS_FILE) || {};
+    const existingRows = Array.isArray(prev.rows) ? prev.rows : [];
+    const { merged, addedRows, added, skippedDuplicate, previousCount } = mergeVoucherRowsAppend(existingRows, rows);
+
     const now = new Date().toISOString();
     saveJson(VOUCHERS_FILE, {
-      rows,
+      ...prev,
+      rows: merged,
       updatedAt: now,
       updatedByUserId: req.user.userId
     });
     emitVouchersUpdated(req);
 
+    let message;
+    if (added === 0 && skippedDuplicate > 0) {
+      message = `Keine neuen Zeilen: alle ${skippedDuplicate} aus der Datei waren bereits in der Liste (${merged.length} Zeilen gesamt).`;
+    } else if (skippedDuplicate > 0) {
+      message = `${added} Zeile(n) hinzugefügt, ${skippedDuplicate} Duplikat(e) übersprungen (${merged.length} Zeilen gesamt, vorher ${previousCount}).`;
+    } else {
+      message = `${added} Zeile(n) zur Voucher-Liste hinzugefügt (${merged.length} Zeilen gesamt, vorher ${previousCount}).`;
+    }
+
     return res.json({
       success: true,
-      message: `${rows.length} Zeile(n) als Voucher-Liste gespeichert`,
-      data: rows,
-      count: rows.length,
+      message,
+      data: addedRows,
+      count: merged.length,
+      added,
+      skippedDuplicate,
+      previousCount,
       saved: true
     });
   } catch (error) {

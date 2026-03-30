@@ -1,0 +1,78 @@
+@import '../../styles/variables';
+
+.voucher-request-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.voucher-request-modal {
+  background: $bg-color;
+  border-radius: $border-radius-card;
+  box-shadow: $shadow-lg;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.voucher-request-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid $border-color;
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: $font-weight-bold;
+    color: $text-color;
+  }
+}
+
+.voucher-request-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: $text-light;
+  padding: 0.25rem;
+
+  &:hover {
+    color: $text-color;
+  }
+}
+
+.voucher-request-modal__body {
+  padding: 1.25rem;
+}
+
+.voucher-request-modal__hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: $text-light;
+  line-height: 1.45;
+}
+
+.voucher-request-modal__error {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba($danger-color, 0.1);
+  color: $danger-color;
+  border-radius: $border-radius-sm;
+  font-size: 0.9rem;
+}
+
+.voucher-request-modal__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}

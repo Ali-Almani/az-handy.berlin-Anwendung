@@ -35,7 +35,7 @@ const VoucherExcelUpload = ({ embedded = false }) => {
     try {
       setUploadStatus({ type: 'info', message: 'Datei wird hochgeladen und verarbeitet...' });
       const response = await uploadVoucherExcelFile(selectedFile);
-      if (!response.success || !Array.isArray(response.data) || response.data.length === 0) {
+      if (!response.success || !Array.isArray(response.data)) {
         setUploadStatus({
           type: 'error',
           message: response.message || 'Keine Voucher-Daten in der Datei gefunden'
@@ -43,10 +43,28 @@ const VoucherExcelUpload = ({ embedded = false }) => {
         setIsProcessing(false);
         return;
       }
-      setUploadedRows(response.data);
+      const allDuplicates =
+        response.added === 0 &&
+        (response.skippedDuplicate ?? 0) > 0 &&
+        response.data.length === 0;
+      const nothingFromFile =
+        response.data.length === 0 && (response.skippedDuplicate ?? 0) === 0 && (response.added ?? 0) === 0;
+      if (nothingFromFile) {
+        setUploadStatus({
+          type: 'error',
+          message: response.message || 'Keine Voucher-Daten in der Datei gefunden'
+        });
+        setIsProcessing(false);
+        return;
+      }
+      setUploadedRows(allDuplicates ? [] : response.data);
       setUploadStatus({
-        type: 'success',
-        message: response.message || `${response.data.length} Zeile(n) gespeichert.`
+        type: allDuplicates ? 'info' : 'success',
+        message:
+          response.message ||
+          (allDuplicates
+            ? 'Liste unverändert.'
+            : `${response.data.length} Zeile(n) hinzugefügt.`)
       });
       setSelectedFile(null);
       const input = document.getElementById('voucher-file-input');

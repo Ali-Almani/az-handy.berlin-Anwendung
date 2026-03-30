@@ -52,6 +52,30 @@
     height: 20px;
     margin-right: 0.5rem;
   }
+
+  &--voucher-request {
+    background: #563d7c;
+    left: -6px;
+    right: auto;
+    top: auto;
+    bottom: -2px;
+
+    &:hover {
+      background: darken(#563d7c, 8%);
+    }
+  }
+
+  &--small.navbar-avatar-badge--voucher-request {
+    position: static;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    background: #563d7c;
+
+    &:hover {
+      background: darken(#563d7c, 8%);
+    }
+  }
 }
 
 .navbar-avatar-btn {

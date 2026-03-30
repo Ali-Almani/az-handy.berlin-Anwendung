@@ -82,6 +82,15 @@ export const canAccessImeisList = (user) => {
 /** Voucher-Navbar + Seite: gleiche Regel wie IMEI-Liste */
 export const canAccessVoucherList = canAccessImeisList;
 
+/**
+ * Voucher-Zeile an Büro melden (Avatar-Menü): alle außer Zentrale, nicht Büro/Admin.
+ */
+export const canSubmitVoucherManualRequest = (user) => {
+  if (!user) return false;
+  if (isAdmin(user) || isBüroMitarbeiter(user)) return false;
+  return String(user.einsatz_ort || '').trim() !== 'Zentrale';
+};
+
 /** Voucher-Verlauf: Aktionen für andere Benutzer (Server prüft erneut) – Büro, Admin, Teamleiter shop */
 export const canUpdateVoucherHistoryForOthers = (user) => {
   if (!user) return false;
