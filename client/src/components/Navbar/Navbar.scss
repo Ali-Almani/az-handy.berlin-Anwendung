@@ -272,6 +272,11 @@
       background: #fee;
       color: darken($danger-color, 10%);
     }
+
+    &:hover .navbar-dropdown-icon,
+    &:focus .navbar-dropdown-icon {
+      color: darken($danger-color, 12%);
+    }
   }
 
   &--reminder {
