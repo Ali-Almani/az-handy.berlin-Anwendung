@@ -551,29 +551,27 @@
     border-bottom: none;
   }
 
+  /* Icon + „Archiv“ links; Dropdown-Pfeil rechts, gleiche Zeilenhöhe wie Text */
   .navbar-archiv-trigger-label {
     flex: 1;
     min-width: 0;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-  }
-
-  .navbar-archiv-trigger-text {
-    order: 1;
-    line-height: 1.25;
-  }
-
-  .navbar-archiv-trigger-icon {
-    order: 2;
-    margin-left: auto;
-    align-self: center;
+    gap: 0.35rem;
   }
 
   .navbar-archiv-chevron {
-    margin-left: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    margin-left: auto;
     align-self: center;
+    line-height: 1;
+  }
+
+  .navbar-archiv-chevron svg {
+    display: block;
   }
 
   .navbar-archiv-dropdown {

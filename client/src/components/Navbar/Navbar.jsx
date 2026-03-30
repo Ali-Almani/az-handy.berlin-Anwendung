@@ -272,7 +272,7 @@ const Navbar = ({
                 <path d="M9 12h6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
               </svg>
             </span>
-            <span className="navbar-archiv-trigger-text">Archiv</span>
+            Archiv
           </span>
           <span className="navbar-archiv-chevron" aria-hidden>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
