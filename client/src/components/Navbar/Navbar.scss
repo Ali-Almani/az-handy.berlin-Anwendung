@@ -542,32 +542,38 @@
   }
 
   .navbar-archiv-trigger {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
     width: 100%;
     justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
+    /* Pfeil bündig rechts, 10 px zum Panelrand */
+    padding: 1rem 10px 1rem 1.25rem;
     box-sizing: border-box;
     text-align: left;
     border-bottom: none;
   }
 
-  /* Icon + „Archiv“ links; Dropdown-Pfeil rechts, gleiche Zeilenhöhe wie Text */
+  /* Icon + „Archiv“ links; eine Zeile mit dem Chevron */
   .navbar-archiv-trigger-label {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 0.35rem;
+    white-space: nowrap;
   }
 
   .navbar-archiv-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 auto;
     flex-shrink: 0;
-    margin-left: auto;
     align-self: center;
-    line-height: 1;
+    line-height: 0;
+    margin-left: 0.25rem;
   }
 
   .navbar-archiv-chevron svg {
