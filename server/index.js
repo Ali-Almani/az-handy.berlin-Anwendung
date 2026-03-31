@@ -13,9 +13,18 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
+/** Mehrere Frontends (Test + Live): CLIENT_URL=https://a.de,https://b.de */
+const corsOrigin =
+  process.env.CLIENT_URL && String(process.env.CLIENT_URL).includes(',')
+    ? String(process.env.CLIENT_URL)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : process.env.CLIENT_URL || 'http://localhost:3000';
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: corsOrigin,
     credentials: true
   }
 });
@@ -23,7 +32,7 @@ app.set('io', io);
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: corsOrigin,
   credentials: true
 }));
 app.use(morgan('dev'));

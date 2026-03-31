@@ -7,9 +7,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  // Production: Immer echte API nutzen, falls URL gesetzt (oder Default)
-  const apiUrl = env.VITE_API_URL || (mode === 'production' ? 'https://az-schnelltest.berlin/api' : '');
-  const useMockApi = env.VITE_USE_MOCK_API === 'true' || env.VITE_API_URL === 'mock' || !apiUrl;
+  // Leer = gleicher Origin (/api über Nginx) – kein CORS, funktioniert für Test- und Live-Domain.
+  // Nur setzen, wenn du ohne Reverse-Proxy direkt aufs Backend zeigen musst (z. B. http://127.0.0.1:5000/api).
+  const apiUrl = (env.VITE_API_URL ?? '').trim();
+  const useMockApi =
+    env.VITE_USE_MOCK_API === 'true' ||
+    env.VITE_API_URL === 'mock' ||
+    (mode !== 'production' && !apiUrl);
 
   const proxy = {
     '/api': {
@@ -67,11 +71,14 @@ export default defineConfig(({ mode }) => {
   build: {
     outDir: 'dist',
     sourcemap: true,
-    // Erzwinge API-URL in Production-Build (falls .env nicht geladen wird)
-    define: mode === 'production' && apiUrl ? {
-      'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl),
-      'import.meta.env.VITE_USE_MOCK_API': JSON.stringify('false')
-    } : {}
+    // Production: VITE_API_URL explizit setzen (leer = relativer /api je nach aufgerufener Domain)
+    define:
+      mode === 'production'
+        ? {
+            'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl),
+            'import.meta.env.VITE_USE_MOCK_API': JSON.stringify('false')
+          }
+        : {}
   }
   };
 });

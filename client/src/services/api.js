@@ -8,10 +8,12 @@ const USE_MOCK_API = import.meta.env.PROD ? false : (
   !import.meta.env.VITE_API_URL
 );
 
-// In Dev: Nutze Proxy (leerer baseURL = gleicher Origin, Proxy leitet /api weiter)
-// In Prod: Volle API-URL
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000/api');
-// Stelle sicher, dass baseURL immer auf /api endet (Pfade wie /users/... werden angehängt)
+// Leeres VITE_API_URL: Axios nutzt /api (Vite-Proxy im Dev, Nginx auf dem gleichen Host in Prod → kein CORS).
+const _rawApi = import.meta.env.VITE_API_URL;
+const API_URL =
+  _rawApi !== undefined && _rawApi !== null && String(_rawApi).trim() !== ''
+    ? String(_rawApi).trim()
+    : '';
 const API_BASE = !API_URL ? '/api' : (API_URL.endsWith('/api') ? API_URL : `${API_URL.replace(/\/$/, '')}/api`);
 
 function voucherRowsMatchMock(a, b) {
