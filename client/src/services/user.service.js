@@ -1,9 +1,11 @@
 import api from './api';
 import mockApi from './mockApi.js';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || 
-                     import.meta.env.VITE_API_URL === 'mock' ||
-                     !import.meta.env.VITE_API_URL;
+const USE_MOCK_API = import.meta.env.PROD ? false : (
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
+  import.meta.env.VITE_API_URL === 'mock' ||
+  !import.meta.env.VITE_API_URL
+);
 
 export const getUserProfile = () => {
   if (USE_MOCK_API) {

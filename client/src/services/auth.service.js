@@ -1,9 +1,12 @@
 import api from './api';
 import mockApi from './mockApi.js';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || 
-                     import.meta.env.VITE_API_URL === 'mock' ||
-                     !import.meta.env.VITE_API_URL;
+// Wie api.js: In Produktion nie Mock – leeres VITE_API_URL bedeutet dort relatives /api.
+const USE_MOCK_API = import.meta.env.PROD ? false : (
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
+  import.meta.env.VITE_API_URL === 'mock' ||
+  !import.meta.env.VITE_API_URL
+);
 
 export const registerUser = (userData) => {
   if (USE_MOCK_API) {

@@ -2,9 +2,11 @@ import api from './api';
 import { mockGetAdminName } from './mockApi';
 import { hasMeaningfulHtml } from '../utils/htmlContent';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' ||
+const USE_MOCK_API = import.meta.env.PROD ? false : (
+  import.meta.env.VITE_USE_MOCK_API === 'true' ||
   import.meta.env.VITE_API_URL === 'mock' ||
-  !import.meta.env.VITE_API_URL;
+  !import.meta.env.VITE_API_URL
+);
 
 const STORAGE_KEY = 'dashboard-content';
 const HISTORY_KEY = 'dashboard-content-history';
