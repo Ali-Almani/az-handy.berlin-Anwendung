@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { saveImeisDataToStorage } from './imeis.controller.js';
+import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.controller.js';
 import User from '../models/User.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
 
@@ -134,6 +134,59 @@ const exceljsColorToHex = (color) => {
   return null;
 };
 
+async function userCanAppendImeiExcel(userId) {
+  if (!userId) return false;
+  try {
+    const u = await User.findByPk(userId);
+    if (!u) return false;
+    const role = String(u.role ?? u.get?.('role') ?? u.dataValues?.role ?? '').trim();
+    if (role === 'Büro Mitarbeiter') return true;
+    const rl = role.toLowerCase();
+    return rl.includes('admin') || role === 'Administrator';
+  } catch {
+    return false;
+  }
+}
+
+/** Büro/Admin: an bestehende Liste anhängen; sonst bisheriges Verhalten (ersetzen). */
+async function saveImeisAfterExcelParse(req, imeis) {
+  const uploaderId = req.user?.userId;
+  if (!uploaderId || imeis.length === 0) return null;
+  const append = await userCanAppendImeiExcel(uploaderId);
+  if (append) {
+    const { merged, added, skippedDuplicate, previousCount, addedRows, total } = await appendImeisFromExcelUpload(
+      uploaderId,
+      imeis,
+      req.app
+    );
+    let message;
+    if (added === 0 && skippedDuplicate > 0) {
+      message = `Keine neuen IMEIs: alle ${skippedDuplicate} aus der Datei waren bereits in der Liste (${total} IMEIs gesamt).`;
+    } else if (skippedDuplicate > 0) {
+      message = `${added} IMEI(s) hinzugefügt, ${skippedDuplicate} Duplikat(e) übersprungen (${total} gesamt, vorher ${previousCount}).`;
+    } else {
+      message = `${added} IMEI(s) zur IMEI-Liste hinzugefügt (${total} gesamt, vorher ${previousCount}).`;
+    }
+    return {
+      success: true,
+      message,
+      data: addedRows,
+      mergedCount: total,
+      added,
+      skippedDuplicate,
+      previousCount,
+      saved: true
+    };
+  }
+  await saveImeisDataToStorage(uploaderId, { imeis }, req.app);
+  return {
+    success: true,
+    message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,
+    data: imeis,
+    saved: true
+  };
+}
+
 export const processExcelFile = async (req, res) => {
   try {
     if (!req.file) {
@@ -189,13 +242,8 @@ export const processExcelFile = async (req, res) => {
 
     const saveDirectlyCsv = req.body?.saveDirectly === 'true' || req.body?.saveDirectly === true;
     if (saveDirectlyCsv && req.user?.userId && imeis.length > 0) {
-      await saveImeisDataToStorage(req.user.userId, { imeis }, req.app);
-      return res.json({
-        success: true,
-        message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,
-        data: imeis,
-        saved: true
-      });
+      const payload = await saveImeisAfterExcelParse(req, imeis);
+      return res.json(payload);
     }
 
       return res.json({
@@ -289,13 +337,8 @@ export const processExcelFile = async (req, res) => {
     // saveDirectly: Server speichert direkt – vermeidet 413 bei großem JSON-Payload
     const saveDirectly = req.body?.saveDirectly === 'true' || req.body?.saveDirectly === true;
     if (saveDirectly && req.user?.userId && imeis.length > 0) {
-      await saveImeisDataToStorage(req.user.userId, { imeis }, req.app);
-      return res.json({
-        success: true,
-        message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,
-        data: imeis,
-        saved: true
-      });
+      const payload = await saveImeisAfterExcelParse(req, imeis);
+      return res.json(payload);
     }
 
     res.json({

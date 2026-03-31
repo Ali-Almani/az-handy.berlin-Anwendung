@@ -5,7 +5,7 @@ import { readExcelFile } from '../../utils/excelParser';
 import { getManufacturer } from '../../utils/manufacturer';
 import { uploadExcelFile } from '../../services/api.js';
 import { saveImeis } from '../../utils/storage';
-import { persistImeisState } from '../../services/imeis.service';
+import { persistImeisState, getImeisDataFromApi } from '../../services/imeis.service';
 
 const VALID_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
 
@@ -55,12 +55,41 @@ const ExcelUpload = ({ embedded = false }) => {
       } else {
         setUploadStatus({ type: 'info', message: 'Datei wird hochgeladen und verarbeitet...' });
         const response = await uploadExcelFile(selectedFile, { saveDirectly: true });
-        if (!response.success || !response.data?.length) {
+        if (!response.success) {
+          setUploadStatus({ type: 'error', message: response.message || 'Upload fehlgeschlagen' });
+          setIsProcessing(false);
+          return;
+        }
+        if (response.saved && !Array.isArray(response.data)) {
+          setUploadStatus({ type: 'error', message: response.message || 'Ungültige Server-Antwort' });
+          setIsProcessing(false);
+          return;
+        }
+        const addedRows = Array.isArray(response.data) ? response.data : [];
+        if (!response.saved || (addedRows.length === 0 && (response.added ?? 0) === 0 && (response.skippedDuplicate ?? 0) === 0)) {
           setUploadStatus({ type: 'error', message: response.message || 'Keine IMEI-Daten in der Datei gefunden' });
           setIsProcessing(false);
           return;
         }
-        imeis = response.data;
+        imeis = addedRows;
+        setUploadedImeis(addedRows);
+        setUploadStatus({
+          type: 'success',
+          message:
+            response.message ||
+            (addedRows.length > 0
+              ? `${addedRows.length} neue IMEI(s) verarbeitet.`
+              : 'Liste unverändert (nur Duplikate in der Datei).')
+        });
+        const fresh = await getImeisDataFromApi();
+        if (fresh?.imeis?.length) {
+          await saveImeis(fresh.imeis);
+        }
+        setSelectedFile(null);
+        const fileInput = document.getElementById('excel-file-input');
+        if (fileInput) fileInput.value = '';
+        setIsProcessing(false);
+        return;
       }
 
       if (imeis.length === 0) {
@@ -70,7 +99,7 @@ const ExcelUpload = ({ embedded = false }) => {
       }
 
       setUploadedImeis(imeis);
-      setUploadStatus({ type: 'success', message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen. Alte Daten wurden ersetzt.` });
+      setUploadStatus({ type: 'success', message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen.` });
       await saveImeis(imeis);
       if (USE_MOCK_API) {
         await persistImeisState(user, { imeis });
@@ -96,6 +125,10 @@ const ExcelUpload = ({ embedded = false }) => {
             <label htmlFor="excel-file-input" className="form-label">
               IMEs Excel-Datei auswählen (.xlsx, .xls, .csv)
             </label>
+            <p className="form-help">
+              Als Administrator oder Büro wird der Dateiinhalt an die bestehende IMEI-Liste angehängt; bereits vorhandene
+              IMEIs werden übersprungen (wie bei Voucher-Upload).
+            </p>
             <div className="file-input-wrapper">
               <input
                 id="excel-file-input"

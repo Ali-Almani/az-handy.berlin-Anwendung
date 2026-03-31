@@ -246,6 +246,76 @@ export const getImeisData = async (req, res, next) => {
   }
 };
 
+function normalizeImeiDedupKey(imei) {
+  return String(imei ?? '').trim();
+}
+
+/**
+ * Neue Upload-Zeilen an bestehende IMEI-Liste anhängen (wie Voucher). Duplikate nach IMEI-Wert überspringen.
+ */
+export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
+  const existing = Array.isArray(existingImeis) ? [...existingImeis] : [];
+  const seen = new Set();
+  for (const item of existing) {
+    const k = normalizeImeiDedupKey(item?.imei);
+    if (k) seen.add(k);
+  }
+  const merged = [...existing];
+  let added = 0;
+  let skippedDuplicate = 0;
+  const addedRows = [];
+  for (const item of incomingImeis) {
+    if (!item || typeof item !== 'object') continue;
+    const k = normalizeImeiDedupKey(item?.imei);
+    if (!k) continue;
+    if (seen.has(k)) {
+      skippedDuplicate += 1;
+      continue;
+    }
+    seen.add(k);
+    merged.push(item);
+    addedRows.push(item);
+    added += 1;
+  }
+  return {
+    merged,
+    addedRows,
+    added,
+    skippedDuplicate,
+    previousCount: existing.length
+  };
+}
+
+/**
+ * Excel-Upload (Büro/Admin): bestehende gemeinsame Liste lesen, mergen, unter Uploader speichern.
+ */
+export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, app) {
+  const incoming = Array.isArray(incomingImeis) ? incomingImeis : [];
+  const ownerId = await getSharedImeiOwnerId();
+  const baseUserId = ownerId ?? uploaderUserId;
+  let existing = [];
+  const baseRow = await ImeisUserData.findOne({ where: { user_id: baseUserId } });
+  if (baseRow) {
+    const raw = (baseRow.get && baseRow.get('imeis_json')) ?? baseRow.imeis_json;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) existing = parsed;
+      } catch (_) {}
+    }
+  }
+  const { merged, added, skippedDuplicate, previousCount, addedRows } = mergeImeiRowsAppend(existing, incoming);
+  await saveImeisDataToStorage(uploaderUserId, { imeis: merged }, app);
+  return {
+    merged,
+    addedRows,
+    added,
+    skippedDuplicate,
+    previousCount,
+    total: merged.length
+  };
+}
+
 /** Interne Speicherlogik – wiederverwendbar für Excel-Upload (vermeidet 413 bei großem JSON) */
 export const saveImeisDataToStorage = async (userId, body, app) => {
   const currentUser = await User.findByPk(userId);
