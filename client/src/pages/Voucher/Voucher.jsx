@@ -13,6 +13,7 @@ import {
   resolveNummerKey,
   buildVoucherDisplayColumns,
   getRowNummer,
+  formatVoucherNummerForDisplay,
   VOUCHER_FIXED_TABS,
   rowMatchesVoucherTab
 } from './utils/voucherColumns';
@@ -343,7 +344,7 @@ const Voucher = () => {
                                             letterSpacing: '0.04em'
                                           }}
                                         >
-                                          {nummer || '–'}
+                                          {nummer ? formatVoucherNummerForDisplay(nummer) : '–'}
                                         </td>
                                       );
                                     }

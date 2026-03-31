@@ -92,6 +92,22 @@ export function getRowNummer(row, nummerKey) {
     .replace(/^:+\s*/, '');
 }
 
+/**
+ * Tabellen-Anzeige: alle Zeichen außer den letzten `visibleLast` durch • ersetzen.
+ * Kurze Werte (Länge ≤ visibleLast) unverändert.
+ */
+export function formatVoucherNummerForDisplay(nummer, { visibleLast = 4 } = {}) {
+  const s =
+    nummer == null || nummer === undefined
+      ? ''
+      : String(nummer)
+          .trim()
+          .replace(/^:+\s*/, '');
+  if (!s) return '';
+  if (s.length <= visibleLast) return s;
+  return `${'•'.repeat(s.length - visibleLast)}${s.slice(-visibleLast)}`;
+}
+
 function rowSearchBlob(row) {
   if (!row?.rowData) return '';
   return Object.values(row.rowData)

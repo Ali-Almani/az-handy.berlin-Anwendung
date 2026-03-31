@@ -99,6 +99,7 @@
   .dashboard-user-management-panel {
     padding: 0 $spacing-sm $spacing-sm;
     overflow: visible;
+    min-width: 0;
   }
 
   .dashboard-excel-upload-panel {

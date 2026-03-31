@@ -26,8 +26,8 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
       ) : users.length === 0 ? (
         <div className="empty-state">Keine Benutzer gefunden</div>
       ) : (
-        <div className="users-table">
-          <table>
+        <div className="users-table-wrapper">
+          <table className="users-table">
             <thead>
               <tr>
                 <th>Name</th>
