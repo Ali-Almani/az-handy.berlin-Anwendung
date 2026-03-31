@@ -90,6 +90,8 @@
     overflow: visible;
     position: relative;
     z-index: 20;
+    min-width: 0;
+    max-width: 100%;
 
     .dashboard-accordion-trigger {
       border-radius: $border-radius-card $border-radius-card 0 0;
@@ -798,6 +800,8 @@
 
   &.dashboard-user-management {
     overflow: visible;
+    min-width: 0;
+    max-width: 100%;
   }
 
   &.dashboard-excel-upload {
