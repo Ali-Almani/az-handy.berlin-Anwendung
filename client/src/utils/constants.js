@@ -1,7 +1,7 @@
-/** Gleiche Logik wie api.js: leer in Prod = /api unter aktueller Domain */
-const raw = import.meta.env.VITE_API_URL;
-export const API_URL =
-  raw !== undefined && raw !== null && String(raw).trim() !== '' ? String(raw).trim() : '/api';
+import { resolveApiBasePath } from './runtimeApiBase.js';
+
+/** Gleiche Basis wie api.js (inkl. Host-Anpassung bei falscher VITE_API_URL im Build) */
+export const API_URL = resolveApiBasePath();
 
 export const ROUTES = {
   HOME: '/',

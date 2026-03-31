@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { resolveSocketOrigin } from '../utils/runtimeApiBase.js';
 
 // In Produktion: Immer Socket nutzen (wie api.js), damit Echtzeit-Updates funktionieren
 const USE_MOCK_API = import.meta.env.PROD ? false : (
@@ -7,11 +8,7 @@ const USE_MOCK_API = import.meta.env.PROD ? false : (
   !import.meta.env.VITE_API_URL
 );
 
-// In Dev: Vite proxy leitet /socket.io an Backend weiter → gleicher Origin nutzen
-// In Prod: Gleicher Origin oder VITE_API_URL als Backend-Basis
-const SOCKET_URL = import.meta.env.VITE_API_URL && !import.meta.env.DEV
-  ? (import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '') || window.location.origin)
-  : window.location.origin;
+const SOCKET_URL = resolveSocketOrigin();
 
 let socketInstance = null;
 

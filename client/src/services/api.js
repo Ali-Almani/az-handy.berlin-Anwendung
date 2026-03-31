@@ -1,5 +1,6 @@
 import axios from 'axios';
 import mockApi from './mockApi.js';
+import { resolveApiBasePath } from '../utils/runtimeApiBase.js';
 
 // In Produktion: Immer echte API (nie Mock), damit IMEI-Daten für alle Benutzer sichtbar sind
 const USE_MOCK_API = import.meta.env.PROD ? false : (
@@ -8,13 +9,7 @@ const USE_MOCK_API = import.meta.env.PROD ? false : (
   !import.meta.env.VITE_API_URL
 );
 
-// Leeres VITE_API_URL: Axios nutzt /api (Vite-Proxy im Dev, Nginx auf dem gleichen Host in Prod → kein CORS).
-const _rawApi = import.meta.env.VITE_API_URL;
-const API_URL =
-  _rawApi !== undefined && _rawApi !== null && String(_rawApi).trim() !== ''
-    ? String(_rawApi).trim()
-    : '';
-const API_BASE = !API_URL ? '/api' : (API_URL.endsWith('/api') ? API_URL : `${API_URL.replace(/\/$/, '')}/api`);
+const API_BASE = resolveApiBasePath();
 
 function voucherRowsMatchMock(a, b) {
   if (String(a.sheet || 'default') !== String(b.sheet || 'default')) return false;
