@@ -40,6 +40,35 @@ const LEGACY_QUARTAL_LABELS = {
   o2tv: 'o2 TV'
 };
 
+/** Anzeige/Parsing mit deutschem Dezimalkomma (z. B. 22,31); keine Tausenderpunkte in der Eingabe nötig */
+function numberToDeInput(n) {
+  if (n == null || n === '') return '';
+  const num = Number(n);
+  if (Number.isNaN(num)) return '';
+  if (Math.abs(num - Math.round(num)) < 1e-9) return String(Math.round(num));
+  return String(num).replace('.', ',');
+}
+
+function deInputToNumber(raw) {
+  if (raw == null || String(raw).trim() === '') return null;
+  const t = String(raw).trim().replace(/\s/g, '').replace(',', '.');
+  const n = parseFloat(t);
+  return Number.isNaN(n) ? null : n;
+}
+
+function formatDeDisplay(value) {
+  if (value == null || value === '') return '–';
+  const n = Number(value);
+  if (!Number.isNaN(n)) {
+    return n.toLocaleString('de-DE', { maximumFractionDigits: 10 });
+  }
+  return String(value);
+}
+
+function deltaHochHasLetter(s) {
+  return /[a-zA-ZäöüÄÖÜß]/.test(String(s || ''));
+}
+
 /** @type {Record<string, 'delta' | 'percentGt' | 'percentLt' | 'manual'>} */
 const LEGACY_MONAT_KIND = {
   postpaid: 'delta',
@@ -260,6 +289,10 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       const payload = JSON.parse(JSON.stringify(editData));
       payload.monatszielOrder = normalizeMonatszielOrder(payload.monatsziel, payload.monatszielOrder);
       payload.quartalszielOrder = normalizeQuartalszielOrder(payload.quartalsziel, payload.quartalszielOrder);
+      if (typeof payload.resttage === 'string') {
+        const r = deInputToNumber(payload.resttage);
+        payload.resttage = r != null ? Math.round(r) : null;
+      }
       await savePerformanceMetrics(payload);
       setMetrics(payload);
       onMetricsLoaded?.(payload);
@@ -296,9 +329,20 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
   const getMonatStatus = (kind, mo) => {
     if (kind === 'delta') {
       const override = mo?.deltaHochrechnung;
-      const d = override != null ? Number(override) : calcDeltaMonat(mo?.hochrechnung, mo?.ziel);
-      if (d == null || (override == null && Number.isNaN(d))) return { text: '–', ok: null };
-      return { text: String(d >= 0 ? d : d), ok: d >= 0 };
+      if (override != null && String(override).trim() !== '') {
+        const str = String(override).trim();
+        if (deltaHochHasLetter(str)) {
+          return { text: str, ok: null };
+        }
+        const n = typeof override === 'number' ? override : deInputToNumber(str);
+        if (n != null && !Number.isNaN(n)) {
+          return { text: formatDeDisplay(n), ok: n >= 0 };
+        }
+        return { text: str, ok: null };
+      }
+      const d = calcDeltaMonat(mo?.hochrechnung, mo?.ziel);
+      if (d == null || Number.isNaN(d)) return { text: '–', ok: null };
+      return { text: formatDeDisplay(d), ok: d >= 0 };
     }
     if (kind === 'percentGt' || kind === 'percentLt') {
       const statusOverride = mo?.statusOverride;
@@ -368,7 +412,21 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
       {editing && isAdmin ? (
         <label className="card-header__meta-item card-header__meta-item--editable">
           <strong>Resttage im Monat</strong>
-          <input type="number" className="performance-dashboard__meta-input-inline" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
+          <input
+            type="text"
+            className="performance-dashboard__meta-input-inline"
+            inputMode="decimal"
+            value={editData?.resttage == null ? '' : numberToDeInput(editData.resttage)}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === '') {
+                updateEdit('resttage', null);
+                return;
+              }
+              const n = deInputToNumber(v);
+              updateEdit('resttage', n != null ? Math.round(n) : v);
+            }}
+          />
         </label>
       ) : (
         <span className="card-header__meta-item">
@@ -413,7 +471,21 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                 </label>
                 <label className="performance-dashboard__meta-item">
                   <strong>Resttage im Monat</strong>
-                  <input type="number" className="performance-dashboard__meta-input" value={editData?.resttage ?? ''} onChange={(e) => updateEdit('resttage', parseInt(e.target.value, 10) || 0)} />
+                  <input
+                    type="text"
+                    className="performance-dashboard__meta-input"
+                    inputMode="numeric"
+                    value={editData?.resttage == null ? '' : numberToDeInput(editData.resttage)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') {
+                        updateEdit('resttage', null);
+                        return;
+                      }
+                      const n = deInputToNumber(v);
+                      updateEdit('resttage', n != null ? Math.round(n) : v);
+                    }}
+                  />
                 </label>
               </>
             ) : (
@@ -490,18 +562,72 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.deltaZuGestern ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaZuGestern`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
-                        ) : isDelta ? (row?.deltaZuGestern ?? '–') : (row?.deltaZuGestern != null ? row.deltaZuGestern : '–')}
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            inputMode="decimal"
+                            value={numberToDeInput(row?.deltaZuGestern)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                updateEdit(`monatsziel.${key}.deltaZuGestern`, null);
+                                return;
+                              }
+                              const n = deInputToNumber(v);
+                              updateEdit(`monatsziel.${key}.deltaZuGestern`, n != null ? (Number.isInteger(n) ? Math.trunc(n) : n) : null);
+                            }}
+                          />
+                        ) : isDelta
+                          ? formatDeDisplay(row?.deltaZuGestern)
+                          : row?.deltaZuGestern != null
+                            ? formatDeDisplay(row.deltaZuGestern)
+                            : '–'}
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="number" step={isPercent ? '0.01' : '1'} className="performance-dashboard__cell-input" value={row?.aktuell ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.aktuell`, isPercent ? parseFloat(e.target.value) || 0 : parseInt(e.target.value, 10) || 0)} />
-                        ) : row?.aktuell != null ? (isPercent ? `${Number(row.aktuell).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : row.aktuell) : '–'}
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            inputMode="decimal"
+                            value={numberToDeInput(row?.aktuell)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                updateEdit(`monatsziel.${key}.aktuell`, null);
+                                return;
+                              }
+                              const n = deInputToNumber(v);
+                              updateEdit(`monatsziel.${key}.aktuell`, n != null ? n : null);
+                            }}
+                          />
+                        ) : row?.aktuell != null
+                          ? isPercent
+                            ? `${Number(row.aktuell).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+                            : formatDeDisplay(row.aktuell)
+                          : '–'}
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.hochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.hochrechnung`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
-                        ) : isDelta ? (row?.hochrechnung ?? '–') : (row?.hochrechnung != null ? row.hochrechnung : '–')}
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            inputMode="decimal"
+                            value={numberToDeInput(row?.hochrechnung)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                updateEdit(`monatsziel.${key}.hochrechnung`, null);
+                                return;
+                              }
+                              const n = deInputToNumber(v);
+                              updateEdit(`monatsziel.${key}.hochrechnung`, n != null ? (Number.isInteger(n) ? Math.trunc(n) : n) : null);
+                            }}
+                          />
+                        ) : isDelta
+                          ? formatDeDisplay(row?.hochrechnung)
+                          : row?.hochrechnung != null
+                            ? formatDeDisplay(row.hochrechnung)
+                            : '–'}
                       </td>
                       <td>
                         {showRowControls ? (
@@ -511,7 +637,18 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                       <td>
                         {showRowControls ? (
                           isDelta ? (
-                            <input type="number" className="performance-dashboard__cell-input" value={row?.deltaHochrechnung ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.deltaHochrechnung`, e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)} />
+                            <input
+                              type="text"
+                              className="performance-dashboard__cell-input"
+                              placeholder="z. B. 22,31 oder Ziel erreicht"
+                              value={row?.deltaHochrechnung == null ? '' : String(row.deltaHochrechnung)}
+                              onChange={(e) =>
+                                updateEdit(
+                                  `monatsziel.${key}.deltaHochrechnung`,
+                                  e.target.value === '' ? null : e.target.value
+                                )
+                              }
+                            />
                           ) : (
                             <input type="text" className="performance-dashboard__cell-input" value={row?.statusOverride ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.statusOverride`, e.target.value)} />
                           )
@@ -581,18 +718,60 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.vormonate ?? row?.letzterMonat ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.vormonate`, parseInt(e.target.value, 10) || 0)} />
-                        ) : (row?.vormonate ?? row?.letzterMonat ?? '–')}
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            inputMode="decimal"
+                            value={numberToDeInput(row?.vormonate ?? row?.letzterMonat)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                updateEdit(`quartalsziel.${key}.vormonate`, null);
+                                return;
+                              }
+                              const n = deInputToNumber(v);
+                              updateEdit(`quartalsziel.${key}.vormonate`, n != null ? (Number.isInteger(n) ? Math.trunc(n) : n) : null);
+                            }}
+                          />
+                        ) : formatDeDisplay(row?.vormonate ?? row?.letzterMonat)}
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.aktuell ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.aktuell`, parseInt(e.target.value, 10) || 0)} />
-                        ) : (row?.aktuell ?? '–')}
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            inputMode="decimal"
+                            value={numberToDeInput(row?.aktuell)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                updateEdit(`quartalsziel.${key}.aktuell`, null);
+                                return;
+                              }
+                              const n = deInputToNumber(v);
+                              updateEdit(`quartalsziel.${key}.aktuell`, n != null ? (Number.isInteger(n) ? Math.trunc(n) : n) : null);
+                            }}
+                          />
+                        ) : formatDeDisplay(row?.aktuell)}
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="number" className="performance-dashboard__cell-input" value={row?.gesamt ?? row?.hochrechnung ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.gesamt`, parseInt(e.target.value, 10) || 0)} />
-                        ) : (row?.gesamt ?? row?.hochrechnung ?? '–')}
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            inputMode="decimal"
+                            value={numberToDeInput(row?.gesamt ?? row?.hochrechnung)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '') {
+                                updateEdit(`quartalsziel.${key}.gesamt`, null);
+                                return;
+                              }
+                              const n = deInputToNumber(v);
+                              updateEdit(`quartalsziel.${key}.gesamt`, n != null ? (Number.isInteger(n) ? Math.trunc(n) : n) : null);
+                            }}
+                          />
+                        ) : formatDeDisplay(row?.gesamt ?? row?.hochrechnung)}
                       </td>
                       <td>
                         {showRowControls ? (
@@ -601,7 +780,13 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                       </td>
                       <td>
                         {showRowControls ? (
-                          <input type="text" className="performance-dashboard__cell-input" value={row?.rest ?? row?.fehlen ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.rest`, e.target.value)} />
+                          <input
+                            type="text"
+                            className="performance-dashboard__cell-input"
+                            placeholder="Zahl oder Text, z. B. 36 oder OK"
+                            value={row?.rest ?? row?.fehlen ?? ''}
+                            onChange={(e) => updateEdit(`quartalsziel.${key}.rest`, e.target.value)}
+                          />
                         ) : (
                           <span className={`performance-dashboard__status performance-dashboard__status--${status.ok ? 'ok' : 'warn'}`}>
                             {status.text}
