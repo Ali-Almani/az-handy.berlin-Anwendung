@@ -3,6 +3,7 @@ import DashboardNoteHistory from '../models/DashboardNoteHistory.model.js';
 import User from '../models/User.js';
 import * as NewsRead from '../models/NewsRead.memory.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
+import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -75,7 +76,10 @@ export const getNews = async (req, res, next) => {
 
 export const getNote = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const admin = await getAdminUserForNotes();
     const adminId = admin?.id ?? admin?._id ?? userId;
@@ -104,7 +108,8 @@ export const getNote = async (req, res, next) => {
       updatedAt: note.updated_at ?? null
     });
   } catch (error) {
-    next(error);
+    console.error('getNote:', error);
+    return res.json({ success: true, content: '', updatedAt: null });
   }
 };
 
@@ -289,7 +294,7 @@ export const getNewsArchive = async (req, res, next) => {
     return res.json({ success: true, messages });
   } catch (error) {
     console.error('getNewsArchive:', error);
-    next(error);
+    return res.json({ success: true, messages: [] });
   }
 };
 
