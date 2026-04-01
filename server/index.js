@@ -160,12 +160,21 @@ if (USE_MEMORY_DB) {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('');
 
-      if (process.env.NODE_ENV !== 'production') {
-        startServer();
-      } else {
-        console.error('❌ Exiting in production mode (PostgreSQL required)');
+      const requirePg =
+        process.env.NODE_ENV === 'production' &&
+        process.env.PRODUCTION_REQUIRE_POSTGRES === 'true';
+      if (requirePg) {
+        console.error('❌ PRODUCTION_REQUIRE_POSTGRES=true und PostgreSQL nicht erreichbar → Abbruch');
         process.exit(1);
       }
+      if (process.env.NODE_ENV === 'production') {
+        console.error('');
+        console.error('⚠️  PRODUCTION ohne PostgreSQL: App läuft im Datei-Speicher-Modus (server/data/*.json).');
+        console.error('⚠️  Ursache beheben (z. B. PostgreSQL „out of shared memory“), dann PM2 neu starten.');
+        console.error('⚠️  Optional: PRODUCTION_REQUIRE_POSTGRES=true setzt hartes Beenden bei DB-Ausfall.');
+        console.error('');
+      }
+      startServer();
     });
 }
 
