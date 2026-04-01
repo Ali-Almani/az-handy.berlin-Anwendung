@@ -1,20 +1,34 @@
 import { Link } from 'react-router-dom';
 import './Documentation.scss';
+import handbookBild1 from '../../photo/Bild1.png';
+import handbookBild2 from '../../photo/Bild2.png';
+import handbookBild3 from '../../photo/Bild3.png';
+import handbookBild4 from '../../photo/Bild4.png';
+import handbookBild5 from '../../photo/Bild5.png';
+import handbookBild6 from '../../photo/Bild6.png';
+import handbookBild7 from '../../photo/Bild7.png';
 
-/** Statische Screenshots unter client/public/photo/ (URL /photo/…) */
-const HANDBOOK_IMG = '/photo';
+/** Handbuch-Screenshots: client/src/photo/Bild1.png … Bild7.png (Vite bindelt sie ins dist) */
+const HANDBOOK_IMAGES = {
+  bild1: handbookBild1,
+  bild2: handbookBild2,
+  bild3: handbookBild3,
+  bild4: handbookBild4,
+  bild5: handbookBild5,
+  bild6: handbookBild6,
+  bild7: handbookBild7
+};
 
-const DocFigure = ({ name, alt, caption }) => (
-  <figure className="doc-figure">
-    <img
-      src={`${HANDBOOK_IMG}/${name}.png`}
-      alt={alt}
-      loading="lazy"
-      className="doc-figure__img"
-    />
-    {caption ? <figcaption className="doc-figure__caption">{caption}</figcaption> : null}
-  </figure>
-);
+const DocFigure = ({ name, alt, caption }) => {
+  const src = HANDBOOK_IMAGES[name];
+  if (!src) return null;
+  return (
+    <figure className="doc-figure">
+      <img src={src} alt={alt} loading="lazy" className="doc-figure__img" />
+      {caption ? <figcaption className="doc-figure__caption">{caption}</figcaption> : null}
+    </figure>
+  );
+};
 
 const Documentation = () => {
   return (
