@@ -16,9 +16,9 @@ const persist = () => {
 const load = () => {
   if (!getPersist()) return;
   const data = loadJson(FILE);
-  if (data?.requests?.length !== undefined) {
+  if (data && Array.isArray(data.requests)) {
     requests = data.requests;
-    const maxId = requests.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
+    const maxId = requests.reduce((m, r) => Math.max(m, Number(r?.id) || 0), 0);
     nextId = Number(data.nextId) || maxId + 1 || 1;
   }
 };
@@ -28,6 +28,7 @@ load();
 export const isValidTabId = (id) => VALID_TAB_IDS.has(String(id || '').trim());
 
 export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, voucherArtLabel, nummer }) => {
+  if (!Array.isArray(requests)) requests = [];
   const tab = String(voucherTabId || '').trim();
   if (!isValidTabId(tab)) return { error: 'Ungültige Voucher-Art' };
   const n = String(nummer ?? '').trim();
@@ -57,10 +58,12 @@ export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, v
   return { id };
 };
 
-export const getPendingRequests = () =>
-  requests
-    .filter((r) => r.status === 'pending')
+export const getPendingRequests = () => {
+  if (!Array.isArray(requests)) return [];
+  return requests
+    .filter((r) => r && r.status === 'pending')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+};
 
 export const getRequestById = (id) => requests.find((r) => String(r.id) === String(id));
 

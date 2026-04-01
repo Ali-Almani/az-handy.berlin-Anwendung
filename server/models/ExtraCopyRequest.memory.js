@@ -13,15 +13,18 @@ const persist = () => {
 const load = () => {
   if (!getPersist()) return;
   const data = loadJson(FILE);
-  if (data?.requests?.length !== undefined) {
+  if (data && Array.isArray(data.requests)) {
     requests = data.requests;
-    nextId = (data.nextId ?? nextId) || Math.max(...requests.map((r) => r.id || 0), 0) + 1;
+    const ids = requests.map((r) => Number(r?.id) || 0);
+    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+    nextId = Number(data.nextId) || maxId + 1 || 1;
   }
 };
 
 load();
 
 export const addRequest = (requesterUserId, requesterUserName) => {
+  if (!Array.isArray(requests)) requests = [];
   const existing = requests.find(
     (r) => String(r.requester_user_id) === String(requesterUserId) && r.status === 'pending'
   );
@@ -41,8 +44,9 @@ export const addRequest = (requesterUserId, requesterUserName) => {
 };
 
 export const getPendingRequests = () => {
+  if (!Array.isArray(requests)) return [];
   return requests
-    .filter((r) => r.status === 'pending')
+    .filter((r) => r && r.status === 'pending')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 };
 

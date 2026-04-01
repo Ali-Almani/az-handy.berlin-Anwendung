@@ -30,8 +30,30 @@ const shouldUseSharedImeiData = () => true;
 
 const safeJsonParse = (raw, fallback) => {
   if (raw == null || raw === '') return fallback;
+  if (Array.isArray(fallback) && Array.isArray(raw)) return raw;
+  if (
+    typeof fallback === 'object' &&
+    fallback !== null &&
+    !Array.isArray(fallback) &&
+    typeof raw === 'object' &&
+    raw !== null &&
+    !Array.isArray(raw)
+  ) {
+    return raw;
+  }
+  const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
   try {
-    return JSON.parse(raw);
+    const v = JSON.parse(str);
+    if (Array.isArray(fallback) && !Array.isArray(v)) return fallback;
+    if (
+      typeof fallback === 'object' &&
+      fallback !== null &&
+      !Array.isArray(fallback) &&
+      (typeof v !== 'object' || v === null || Array.isArray(v))
+    ) {
+      return fallback;
+    }
+    return v;
   } catch {
     return fallback;
   }
@@ -130,12 +152,23 @@ const getSharedImeiOwnerId = async () => {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
     let arr = [];
     try {
-      arr = imeisJson ? JSON.parse(imeisJson) : [];
-    } catch (_) {}
+      if (Array.isArray(imeisJson)) arr = imeisJson;
+      else if (imeisJson && typeof imeisJson === 'object') arr = [];
+      else arr = imeisJson ? JSON.parse(String(imeisJson)) : [];
+    } catch (_) {
+      arr = [];
+    }
     if (!Array.isArray(arr) || arr.length === 0) continue;
-    const user = await User.findByPk(rowUserId);
-    const role = user?.role ?? '';
-    const isBueroOrAdmin = role.trim() === 'Büro Mitarbeiter' || role.toLowerCase().includes('admin');
+    let user;
+    try {
+      user = await User.findByPk(rowUserId);
+    } catch {
+      continue;
+    }
+    const roleRaw = user?.role ?? user?.get?.('role') ?? '';
+    const roleStr = typeof roleRaw === 'string' ? roleRaw : String(roleRaw || '');
+    const isBueroOrAdmin =
+      roleStr.trim() === 'Büro Mitarbeiter' || roleStr.toLowerCase().includes('admin');
     const count = arr.length;
     const replace = count > bestCount || (count === bestCount && isBueroOrAdmin && !bestIsBueroOrAdmin);
     if (replace) {
@@ -151,12 +184,16 @@ const getSharedImeiOwnerId = async () => {
 
 export const getImeisData = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? null;
 
     // Mitarbeiter shop & Büro Mitarbeiter: IMEI-Liste vom Admin oder User mit Daten laden, eigene copyHistory/copyTimestamps behalten
-    const dataUserId = shouldUseSharedImeiData(role) ? (await getSharedImeiOwnerId()) ?? userId : userId;
+    let dataUserId = shouldUseSharedImeiData(role) ? (await getSharedImeiOwnerId()) ?? userId : userId;
+    if (dataUserId == null) dataUserId = userId;
 
     if (USE_MEMORY_DB) {
       const [data] = await ImeisUserData.findOrCreate({
@@ -214,7 +251,12 @@ export const getImeisData = async (req, res, next) => {
 
     const [data, created] = await ImeisUserData.findOrCreate({
       where: { user_id: dataUserId },
-      defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]' }
+      defaults: {
+        cell_colors_json: '{}',
+        row_actions_json: '{}',
+        copy_history_json: '[]',
+        copy_timestamps_json: '[]'
+      }
     });
 
     let imeis = safeJsonParse(data.imeis_json, []);
@@ -666,13 +708,22 @@ export const notifyReminderResponse = async (req, res, next) => {
 /** Büro Mitarbeiter: Benachrichtigungen über Erinnerungs-Antworten abrufen */
 export const getReminderResponseNotifications = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? null;
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können diese Benachrichtigungen einsehen' });
     }
-    const list = ReminderResponseNotification.getUnreadForUser(userId);
+    let list = [];
+    try {
+      list = ReminderResponseNotification.getUnreadForUser(userId);
+    } catch (err) {
+      console.error('getReminderResponseNotifications:', err);
+    }
+    if (!Array.isArray(list)) list = [];
     res.json({ success: true, notifications: list });
   } catch (error) {
     next(error);
@@ -716,7 +767,10 @@ export const createExtraCopyRequest = async (req, res, next) => {
 /** Büro Mitarbeiter: Offene Extra-Kopie-Anfragen abrufen */
 export const getExtraCopyRequests = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? null;
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {

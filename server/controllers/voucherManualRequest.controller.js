@@ -91,7 +91,10 @@ export const createVoucherManualRequest = async (req, res, next) => {
 
 export const getVoucherManualRequests = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? currentUser?.get?.('role') ?? '';
     if (!userCanProcessRequests(role)) {

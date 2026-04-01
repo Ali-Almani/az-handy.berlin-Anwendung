@@ -13,9 +13,11 @@ const persist = () => {
 const load = () => {
   if (!getPersist()) return;
   const data = loadJson(FILE);
-  if (data?.notifications?.length !== undefined) {
+  if (data && Array.isArray(data.notifications)) {
     notifications = data.notifications;
-    nextId = (data.nextId ?? nextId) || Math.max(...notifications.map((n) => n.id || 0), 0) + 1;
+    const ids = notifications.map((n) => Number(n?.id) || 0);
+    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+    nextId = Number(data.nextId) || maxId + 1 || 1;
   }
 };
 
@@ -42,12 +44,14 @@ export const addNotification = (targetUserId, fromUserName, imei, action) => {
 };
 
 export const getUnreadForUser = (userId) => {
+  if (!Array.isArray(notifications)) return [];
   return notifications
-    .filter((n) => String(n.target_user_id) === String(userId) && !n.read)
+    .filter((n) => n && String(n.target_user_id) === String(userId) && !n.read)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 };
 
 export const markAsRead = (id, userId) => {
+  if (!Array.isArray(notifications)) return false;
   const n = notifications.find((x) => String(x.id) === String(id) && String(x.target_user_id) === String(userId));
   if (n) {
     n.read = true;
