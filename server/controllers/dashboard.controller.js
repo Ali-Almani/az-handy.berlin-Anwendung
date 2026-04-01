@@ -46,31 +46,41 @@ export const getNews = async (req, res, next) => {
     let content = (note?.content ?? note?.get?.('content') ?? '') || '';
     let updatedAt = note?.updated_at ?? note?.get?.('updated_at') ?? null;
     if (!content.trim()) {
-      if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
-        const history = DashboardNote.getHistory(adminId, 1);
-        const latest = history[0];
-        if (latest && (latest.content ?? '').trim()) {
-          content = (latest.content ?? '').trim();
-          updatedAt = latest.created_at ?? latest.createdAt ?? null;
+      try {
+        if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
+          const history = DashboardNote.getHistory(adminId, 1);
+          const latest = Array.isArray(history) ? history[0] : null;
+          if (latest && (latest.content ?? '').trim()) {
+            content = (latest.content ?? '').trim();
+            updatedAt = latest.created_at ?? latest.createdAt ?? null;
+          }
+        } else if (!USE_MEMORY_DB) {
+          const latest = await DashboardNoteHistory.findOne({
+            where: { user_id: adminId },
+            order: [['created_at', 'DESC']],
+            raw: true
+          });
+          if (latest && (latest.content ?? '').trim()) {
+            content = (latest.content ?? '').trim();
+            updatedAt = latest.created_at ?? null;
+          }
         }
-      } else if (!USE_MEMORY_DB) {
-        const latest = await DashboardNoteHistory.findOne({
-          where: { user_id: adminId },
-          order: [['created_at', 'DESC']],
-          raw: true
-        });
-        if (latest && (latest.content ?? '').trim()) {
-          content = (latest.content ?? '').trim();
-          updatedAt = latest.created_at ?? null;
-        }
+      } catch (err) {
+        console.error('getNews: history fallback:', err);
       }
     }
     const contentHash = simpleHash(content);
-    const userId = req.user?.userId ?? null;
-    const hasRead = contentHash && userId && NewsRead.hasUserRead(userId, contentHash);
-    return res.json({ success: true, content, updatedAt, authorName, hasRead: !!hasRead });
+    const uid = resolveAuthUserId(req.user);
+    let hasRead = false;
+    try {
+      hasRead = !!(contentHash && uid != null && NewsRead.hasUserRead(uid, contentHash));
+    } catch (err) {
+      console.error('getNews: hasUserRead:', err);
+    }
+    return res.json({ success: true, content, updatedAt, authorName, hasRead });
   } catch (error) {
-    next(error);
+    console.error('getNews:', error);
+    return res.json({ success: true, content: '', updatedAt: null, authorName: '', hasRead: false });
   }
 };
 
@@ -588,11 +598,20 @@ export const uploadNewsFile = async (req, res, next) => {
 
 export const getHistory = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
 
     if (USE_MEMORY_DB) {
-      const history = DashboardNote.getHistory(userId, limit);
+      let history = [];
+      try {
+        history = DashboardNote.getHistory(userId, limit);
+      } catch (err) {
+        console.error('getHistory: memory getHistory:', err);
+      }
+      if (!Array.isArray(history)) history = [];
       return res.json({
         success: true,
         history: history.map((h) => ({
@@ -619,6 +638,7 @@ export const getHistory = async (req, res, next) => {
       }))
     });
   } catch (error) {
-    next(error);
+    console.error('getHistory:', error);
+    return res.json({ success: true, history: [] });
   }
 };
