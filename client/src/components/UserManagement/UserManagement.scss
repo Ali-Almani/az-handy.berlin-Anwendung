@@ -210,12 +210,14 @@
       color: $text-light;
     }
 
+    /* overflow-x: auto + overflow-y: visible → Browser setzt y oft auf auto (Scrollbar im Wrapper).
+       Kein max-height: Inhalt bestimmt die Höhe, overflow-y: hidden schneidet nichts ab. */
     .users-table-wrapper {
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
       overflow-x: auto;
-      overflow-y: visible;
+      overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
       border: 1px solid $border-color;
       border-radius: $border-radius-md;
