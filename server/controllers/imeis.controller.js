@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import ImeisUserData from '../models/ImeisUserData.js';
 import User from '../models/User.js';
+import { normalizeUserId } from '../utils/normalizeUserId.js';
 import * as ImeiReminder from '../models/ImeiReminder.memory.js';
 import * as ExtraCopyRequest from '../models/ExtraCopyRequest.memory.js';
 import * as ExtraCopyNotification from '../models/ExtraCopyNotification.memory.js';
@@ -29,20 +30,20 @@ const isAdmin = (role) => role && typeof role === 'string' && (role.toLowerCase(
 const shouldUseSharedImeiData = () => true;
 
 const safeJsonParse = (raw, fallback) => {
-  if (raw == null || raw === '') return fallback;
-  if (Array.isArray(fallback) && Array.isArray(raw)) return raw;
-  if (
-    typeof fallback === 'object' &&
-    fallback !== null &&
-    !Array.isArray(fallback) &&
-    typeof raw === 'object' &&
-    raw !== null &&
-    !Array.isArray(raw)
-  ) {
-    return raw;
-  }
-  const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
   try {
+    if (raw == null || raw === '') return fallback;
+    if (Array.isArray(fallback) && Array.isArray(raw)) return raw;
+    if (
+      typeof fallback === 'object' &&
+      fallback !== null &&
+      !Array.isArray(fallback) &&
+      typeof raw === 'object' &&
+      raw !== null &&
+      !Array.isArray(raw)
+    ) {
+      return raw;
+    }
+    const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
     const v = JSON.parse(str);
     if (Array.isArray(fallback) && !Array.isArray(v)) return fallback;
     if (
@@ -173,27 +174,30 @@ const getSharedImeiOwnerId = async () => {
     const replace = count > bestCount || (count === bestCount && isBueroOrAdmin && !bestIsBueroOrAdmin);
     if (replace) {
       bestCount = count;
-      best = rowUserId;
+      best = normalizeUserId(rowUserId) ?? rowUserId;
       bestIsBueroOrAdmin = isBueroOrAdmin;
     }
   }
-  if (best) return best;
+  if (best != null) {
+    const nb = normalizeUserId(best);
+    return nb != null ? nb : best;
+  }
   const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
-  return admin?.id ?? null;
+  return normalizeUserId(admin?.id ?? admin?.get?.('id')) ?? null;
 };
 
 export const getImeisData = async (req, res, next) => {
   try {
-    const userId = req.user?.userId;
+    const userId = normalizeUserId(req.user?.userId);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
 
     // Mitarbeiter shop & Büro Mitarbeiter: IMEI-Liste vom Admin oder User mit Daten laden, eigene copyHistory/copyTimestamps behalten
     let dataUserId = shouldUseSharedImeiData(role) ? (await getSharedImeiOwnerId()) ?? userId : userId;
-    if (dataUserId == null) dataUserId = userId;
+    dataUserId = normalizeUserId(dataUserId) ?? userId;
 
     if (USE_MEMORY_DB) {
       const [data] = await ImeisUserData.findOrCreate({
@@ -222,7 +226,12 @@ export const getImeisData = async (req, res, next) => {
           const userName = currentUser?.name || '';
           copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
         } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
-          copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+          try {
+            copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+          } catch (err) {
+            console.error('getCopyHistoryForEinsatzOrt (memory, branch):', err);
+            copyHistory = [];
+          }
         } else {
           copyHistory = rawHistory;
         }
@@ -233,10 +242,20 @@ export const getImeisData = async (req, res, next) => {
         if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
       }
       if (isBüroMitarbeiter(role)) {
-        copyHistory = await getMergedCopyHistory();
+        try {
+          copyHistory = await getMergedCopyHistory();
+        } catch (err) {
+          console.error('getMergedCopyHistory (memory):', err);
+          copyHistory = [];
+        }
       }
       if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
-        copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+        try {
+          copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+        } catch (err) {
+          console.error('getCopyHistoryForEinsatzOrt (memory):', err);
+          copyHistory = [];
+        }
       }
 
       return res.json({
@@ -271,7 +290,12 @@ export const getImeisData = async (req, res, next) => {
     if (shouldUseSharedImeiData(role) && dataUserId !== userId) {
       const [ownData] = await ImeisUserData.findOrCreate({
         where: { user_id: userId },
-        defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]' }
+        defaults: {
+          cell_colors_json: '{}',
+          row_actions_json: '{}',
+          copy_history_json: '[]',
+          copy_timestamps_json: '[]'
+        }
       });
       copyTimestamps = safeJsonParse(ownData.copy_timestamps_json, []);
       if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
@@ -281,7 +305,12 @@ export const getImeisData = async (req, res, next) => {
         const userName = currentUser?.name || '';
         copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
       } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
-        copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+        try {
+          copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+        } catch (err) {
+          console.error('getCopyHistoryForEinsatzOrt (pg, branch):', err);
+          copyHistory = [];
+        }
       } else {
         copyHistory = rawHistory;
       }
@@ -292,10 +321,20 @@ export const getImeisData = async (req, res, next) => {
       if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
     }
     if (isBüroMitarbeiter(role)) {
-      copyHistory = await getMergedCopyHistory();
+      try {
+        copyHistory = await getMergedCopyHistory();
+      } catch (err) {
+        console.error('getMergedCopyHistory:', err);
+        copyHistory = [];
+      }
     }
     if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
-      copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+      try {
+        copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+      } catch (err) {
+        console.error('getCopyHistoryForEinsatzOrt:', err);
+        copyHistory = [];
+      }
     }
 
     res.json({
@@ -307,6 +346,7 @@ export const getImeisData = async (req, res, next) => {
       copyTimestamps
     });
   } catch (error) {
+    console.error('getImeisData:', error);
     next(error);
   }
 };
@@ -383,8 +423,13 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
 
 /** Interne Speicherlogik – wiederverwendbar für Excel-Upload (vermeidet 413 bei großem JSON) */
 export const saveImeisDataToStorage = async (userId, body, app) => {
+  const uid = normalizeUserId(userId);
+  if (uid == null) {
+    throw new Error('Ungültige Benutzer-ID');
+  }
+  userId = uid;
   const currentUser = await User.findByPk(userId);
-  const role = currentUser?.role ?? null;
+  const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
   const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
 
   if (removedImei) {
@@ -485,7 +530,12 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
 
   const [data] = await ImeisUserData.findOrCreate({
     where: { user_id: userId },
-    defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]' }
+    defaults: {
+      cell_colors_json: '{}',
+      row_actions_json: '{}',
+      copy_history_json: '[]',
+      copy_timestamps_json: '[]'
+    }
   });
 
   if (!isMitarbeiter && !canEditSharedImeiList && imeis !== undefined) data.imeis_json = JSON.stringify(imeis);
@@ -519,7 +569,10 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
 
 export const saveImeisData = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = normalizeUserId(req.user?.userId);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     await saveImeisDataToStorage(userId, req.body, req.app);
     res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
   } catch (error) {
@@ -670,7 +723,10 @@ export const markImeiReminderRead = async (req, res, next) => {
 /** Benutzer: Benachrichtigung an Büro senden, wenn auf Erinnerung reagiert (angenommen/abgelehnt) */
 export const notifyReminderResponse = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = normalizeUserId(req.user?.userId);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const role = currentUser?.role ?? null;
     if (isBüroMitarbeiter(role) || isAdmin(role)) {
@@ -708,7 +764,7 @@ export const notifyReminderResponse = async (req, res, next) => {
 /** Büro Mitarbeiter: Benachrichtigungen über Erinnerungs-Antworten abrufen */
 export const getReminderResponseNotifications = async (req, res, next) => {
   try {
-    const userId = req.user?.userId;
+    const userId = normalizeUserId(req.user?.userId);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -767,7 +823,7 @@ export const createExtraCopyRequest = async (req, res, next) => {
 /** Büro Mitarbeiter: Offene Extra-Kopie-Anfragen abrufen */
 export const getExtraCopyRequests = async (req, res, next) => {
   try {
-    const userId = req.user?.userId;
+    const userId = normalizeUserId(req.user?.userId);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
