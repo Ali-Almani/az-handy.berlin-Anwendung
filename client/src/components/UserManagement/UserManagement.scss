@@ -198,8 +198,8 @@
     min-width: 0;
 
     h3 {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
+      font-size: 1rem;
+      margin-bottom: $spacing-xs;
       color: $text-color;
     }
 
@@ -210,14 +210,13 @@
       color: $text-light;
     }
 
-    /* overflow-x: auto + overflow-y: visible → Browser setzt y oft auf auto (Scrollbar im Wrapper).
-       Kein max-height: Inhalt bestimmt die Höhe, overflow-y: hidden schneidet nichts ab. */
+    /* Horizontal scroll nur bei Bedarf; kein sticky thead (vermeidet Scrollbar-Y mit overflow-x). */
     .users-table-wrapper {
       width: 100%;
       max-width: 100%;
       box-sizing: border-box;
       overflow-x: auto;
-      overflow-y: hidden;
+      overflow-y: clip;
       -webkit-overflow-scrolling: touch;
       border: 1px solid $border-color;
       border-radius: $border-radius-md;
@@ -238,16 +237,14 @@
 
       thead {
         background: $bg-light;
-        position: sticky;
-        top: 0;
-        z-index: 10;
 
         th {
-          padding: 0.6rem 0.75rem;
+          padding: 0.3rem 0.35rem;
           text-align: left;
           font-weight: $font-weight-bold;
           color: $text-color;
-          font-size: 0.78rem;
+          font-size: 0.7rem;
+          line-height: 1.25;
           white-space: normal;
           word-break: break-word;
           overflow-wrap: anywhere;
@@ -255,13 +252,26 @@
           vertical-align: bottom;
           border: 1px solid $border-color;
           background: $bg-light;
-          position: sticky;
-          top: 0;
 
-          &:nth-child(5),
-          &:nth-child(6) {
+          &:nth-child(1) {
+            width: 15%;
+          }
+          &:nth-child(2) {
+            width: 7%;
+          }
+          &:nth-child(3) {
+            width: 46%;
+          }
+          &:nth-child(4) {
+            width: 11%;
+          }
+          &:nth-child(5) {
+            width: 9%;
             white-space: nowrap;
-            width: 1%;
+          }
+          &:nth-child(6) {
+            width: 12%;
+            white-space: nowrap;
           }
         }
       }
@@ -284,9 +294,10 @@
         }
 
         td {
-          padding: 0.6rem 0.75rem;
+          padding: 0.3rem 0.35rem;
           color: $text-color;
-          font-size: 0.78rem;
+          font-size: 0.7rem;
+          line-height: 1.25;
           vertical-align: middle;
           border: 1px solid $border-color;
           white-space: normal;
@@ -301,7 +312,6 @@
           &:nth-child(5),
           &:nth-child(6) {
             white-space: nowrap;
-            width: 1%;
             vertical-align: middle;
           }
         }
@@ -310,8 +320,8 @@
       .user-cell {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
-        font-size: 0.78rem;
+        gap: 0.2rem;
+        font-size: 0.7rem;
         min-width: 0;
 
         > span {
@@ -322,8 +332,8 @@
 
         .user-avatar-small,
         .user-avatar-placeholder-small {
-          width: 26px;
-          height: 26px;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
           flex-shrink: 0;
         }
@@ -339,14 +349,14 @@
           background: #212529;
           color: white;
           font-weight: bold;
-          font-size: 0.7rem;
+          font-size: 0.62rem;
         }
       }
 
       .user-actions {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.2rem;
         justify-content: flex-start;
 
         &.user-actions-dropdown {
@@ -364,17 +374,17 @@
         }
 
         .btn--small {
-          padding: 0.28rem 0.5rem;
-          font-size: 0.72rem;
+          padding: 0.22rem 0.35rem;
+          font-size: 0.65rem;
         }
       }
 
 
       .role-badge {
         display: inline-block;
-        padding: 0.18rem 0.4rem;
+        padding: 0.12rem 0.28rem;
         border-radius: $border-radius-sm;
-        font-size: 0.72rem;
+        font-size: 0.65rem;
         font-weight: $font-weight-medium;
         background: $bg-light;
         color: $text-color;
