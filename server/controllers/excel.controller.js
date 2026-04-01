@@ -696,6 +696,30 @@ export const putVoucherUserState = async (req, res, next) => {
     if (nextState.rowActions === null || typeof nextState.rowActions !== 'object' || Array.isArray(nextState.rowActions)) {
       return res.status(400).json({ success: false, message: 'rowActions muss ein Objekt sein' });
     }
+
+    const currentUser = await User.findByPk(userId);
+    const role = String(currentUser?.role ?? currentUser?.get?.('role') ?? '').trim();
+    const isBueroWipe = role === 'Büro Mitarbeiter';
+    const isAdmWipe = roleIsAdmin(role);
+    /** Admin/Büro: „Alle löschen“ leert den gemergten Verlauf → gesamte voucher-user-state.json zurücksetzen */
+    const wipeAllUserStates = isBueroWipe || isAdmWipe;
+    const isFullClearRequest =
+      body.copyHistory !== undefined &&
+      Array.isArray(body.copyHistory) &&
+      body.copyHistory.length === 0 &&
+      body.copyTimestamps !== undefined &&
+      Array.isArray(body.copyTimestamps) &&
+      body.copyTimestamps.length === 0 &&
+      body.rowActions !== undefined &&
+      typeof body.rowActions === 'object' &&
+      !Array.isArray(body.rowActions) &&
+      Object.keys(body.rowActions).length === 0;
+    if (isFullClearRequest && wipeAllUserStates) {
+      saveJson(VOUCHER_USER_STATE_FILE, {});
+      emitVouchersUpdated(req);
+      return res.json({ success: true });
+    }
+
     const map = loadVoucherUserStateMap();
     map[String(userId)] = nextState;
     saveJson(VOUCHER_USER_STATE_FILE, map);

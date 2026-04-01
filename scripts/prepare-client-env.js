@@ -18,6 +18,8 @@ if (fs.existsSync(envPath)) {
   const match = content.match(/^CLIENT_URL=(.+)$/m);
   if (match) {
     clientUrl = match[1].trim().replace(/^["']|["']$/g, '');
+    /* Mehrere Origins für CORS (z. B. az-intranet.de,az-schnelltest.berlin): erste URL für Vite-Build */
+    clientUrl = clientUrl.split(',')[0].trim();
   }
 }
 const apiUrl = clientUrl.replace(/\/$/, '') + '/api';
