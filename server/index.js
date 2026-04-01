@@ -2,6 +2,7 @@ import './loadEnv.js';
 import path from 'path';
 import http from 'http';
 import express from 'express';
+import 'express-async-errors';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -38,8 +39,12 @@ const io = new Server(server, {
 app.set('io', io);
 
 app.use(helmet());
+// Wie Socket.io: In Production Standard-Origin spiegeln, sonst scheitern Requests bei www↔ohne www
+// oder falscher CLIENT_URL. Mit CORS_STRICT=true nur noch CLIENT_URL-Einträge.
+const httpCorsOrigin =
+  process.env.NODE_ENV === 'production' && process.env.CORS_STRICT !== 'true' ? true : corsOrigin;
 app.use(cors({
-  origin: corsOrigin,
+  origin: httpCorsOrigin,
   credentials: true
 }));
 app.use(morgan('dev'));
@@ -47,10 +52,15 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.get('/api/health', (req, res) => {
+  const secret = process.env.JWT_SECRET;
   res.json({
     status: 'OK',
     message: 'az-handy.berlin API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    nodeEnv: process.env.NODE_ENV || 'development',
+    useMemoryDb: process.env.USE_MEMORY_DB === 'true',
+    jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
+    apiPatchLevel: 3
   });
 });
 
