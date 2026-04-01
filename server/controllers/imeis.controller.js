@@ -10,22 +10,25 @@ import * as ReminderResponseNotification from '../models/ReminderResponseNotific
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
 
-const isMitarbeiterShop = (role) => {
-  if (!role || typeof role !== 'string') return false;
-  return role.trim() === 'Mitarbeiter shop';
+/** Sequelize/DB liefert Rollen mitunter nicht als String – für Rechtevergleiche normalisieren */
+const toRoleString = (role) => {
+  if (role == null || role === '') return '';
+  if (typeof role === 'string') return role;
+  return String(role);
 };
 
-const isTeamleiterShop = (role) => {
-  if (!role || typeof role !== 'string') return false;
-  return role.trim() === 'Teamleiter shop';
-};
+const isMitarbeiterShop = (role) => toRoleString(role).trim() === 'Mitarbeiter shop';
 
-const isBüroMitarbeiter = (role) => {
-  if (!role || typeof role !== 'string') return false;
-  return role.trim() === 'Büro Mitarbeiter';
-};
+const isTeamleiterShop = (role) => toRoleString(role).trim() === 'Teamleiter shop';
 
-const isAdmin = (role) => role && typeof role === 'string' && (role.toLowerCase().includes('admin') || role.trim() === 'Administrator');
+const isBüroMitarbeiter = (role) => toRoleString(role).trim() === 'Büro Mitarbeiter';
+
+const isAdmin = (role) => {
+  const r = toRoleString(role);
+  if (!r) return false;
+  const rl = r.toLowerCase();
+  return rl.includes('admin') || r.trim() === 'Administrator';
+};
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
 
@@ -86,10 +89,17 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
     where: { einsatz_ort: einsatzOrt.trim() },
     attributes: ['id']
   });
-  const userIds = new Set(usersInCategory.map((u) => u.id));
-  if (userIds.size === 0) return [];
+  const ids = [
+    ...new Set(
+      usersInCategory
+        .map((u) => u.id ?? u.get?.('id'))
+        .filter((id) => id != null && Number.isFinite(Number(id)))
+        .map((id) => Number(id))
+    )
+  ];
+  if (ids.length === 0) return [];
   const all = await ImeisUserData.findAll({
-    where: { user_id: { [Op.in]: Array.from(userIds) } }
+    where: { user_id: { [Op.in]: ids } }
   });
   const merged = [];
   for (const row of all) {
@@ -193,11 +203,21 @@ export const getImeisData = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
     const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
 
     // Mitarbeiter shop & Büro Mitarbeiter: IMEI-Liste vom Admin oder User mit Daten laden, eigene copyHistory/copyTimestamps behalten
-    let dataUserId = shouldUseSharedImeiData(role) ? (await getSharedImeiOwnerId()) ?? userId : userId;
+    let sharedOwnerId = null;
+    try {
+      sharedOwnerId = await getSharedImeiOwnerId();
+    } catch (err) {
+      console.error('getSharedImeiOwnerId:', err);
+    }
+    let dataUserId = shouldUseSharedImeiData(role) ? sharedOwnerId ?? userId : userId;
     dataUserId = normalizeUserId(dataUserId) ?? userId;
+    const sameDataUser = String(dataUserId) === String(userId);
 
     if (USE_MEMORY_DB) {
       const [data] = await ImeisUserData.findOrCreate({
@@ -213,7 +233,7 @@ export const getImeisData = async (req, res, next) => {
       let copyHistory = [];
       let copyTimestamps = [];
 
-      if (shouldUseSharedImeiData(role) && dataUserId !== userId) {
+      if (shouldUseSharedImeiData(role) && !sameDataUser) {
         const [ownData] = await ImeisUserData.findOrCreate({
           where: { user_id: userId },
           defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
@@ -223,7 +243,7 @@ export const getImeisData = async (req, res, next) => {
         let rawHistory = safeJsonParse(ownData.copy_history_json, []);
         if (!Array.isArray(rawHistory)) rawHistory = [];
         if (isMitarbeiterShop(role)) {
-          const userName = currentUser?.name || '';
+          const userName = currentUser?.name ?? currentUser?.get?.('name') ?? '';
           copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
         } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
           try {
@@ -287,7 +307,7 @@ export const getImeisData = async (req, res, next) => {
     let copyHistory = [];
     let copyTimestamps = [];
 
-    if (shouldUseSharedImeiData(role) && dataUserId !== userId) {
+    if (shouldUseSharedImeiData(role) && !sameDataUser) {
       const [ownData] = await ImeisUserData.findOrCreate({
         where: { user_id: userId },
         defaults: {
@@ -302,7 +322,7 @@ export const getImeisData = async (req, res, next) => {
       let rawHistory = safeJsonParse(ownData.copy_history_json, []);
       if (!Array.isArray(rawHistory)) rawHistory = [];
       if (isMitarbeiterShop(role)) {
-        const userName = currentUser?.name || '';
+        const userName = currentUser?.name ?? currentUser?.get?.('name') ?? '';
         copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
       } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
         try {
@@ -769,7 +789,10 @@ export const getReminderResponseNotifications = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können diese Benachrichtigungen einsehen' });
     }
@@ -828,7 +851,10 @@ export const getExtraCopyRequests = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen einsehen' });
     }

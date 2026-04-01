@@ -95,7 +95,8 @@ class InMemoryImeisUserData {
       const vals = Object.values(userIds);
       if (vals.length === 1 && Array.isArray(vals[0])) userIds = vals[0];
     }
-    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+    if (userIds && Array.isArray(userIds)) {
+      if (userIds.length === 0) return [];
       const idSet = new Set(userIds.map((id) => String(id)));
       rows = rows.filter((r) => idSet.has(String(r.user_id)));
     }

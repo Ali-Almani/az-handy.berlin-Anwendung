@@ -97,6 +97,9 @@ export const getVoucherManualRequests = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
     const role = currentUser?.role ?? currentUser?.get?.('role') ?? '';
     if (!userCanProcessRequests(role)) {
       return res.status(403).json({

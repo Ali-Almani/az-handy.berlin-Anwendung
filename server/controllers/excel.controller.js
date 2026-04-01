@@ -362,14 +362,21 @@ export const processExcelFile = async (req, res) => {
 /** Voucher-Daten lesen: hochgeladene Zeilen + Verlauf (eigener oder gemerged für Büro/Admin bzw. Teamleiter nach Einsatzort) */
 export const getVouchers = async (req, res, next) => {
   try {
-    if (!(await userCanViewVouchers(req.user?.userId))) {
+    const uid = normalizeUserId(req.user?.userId);
+    if (uid == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
+    if (!(await userCanViewVouchers(uid))) {
       return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
     }
     const data = loadJson(VOUCHERS_FILE) || {};
     const uploaded = Array.isArray(data.rows) ? data.rows : [];
     const map = loadVoucherUserStateMap();
-    let userState = getVoucherUserStateForUser(req.user?.userId);
-    const currentUser = await User.findByPk(req.user.userId);
+    let userState = getVoucherUserStateForUser(uid);
+    const currentUser = await User.findByPk(uid);
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
     const role = String(currentUser?.role ?? currentUser?.get?.('role') ?? '').trim();
     const isBuero = role === 'Büro Mitarbeiter';
     const isTL = role === 'Teamleiter shop';
