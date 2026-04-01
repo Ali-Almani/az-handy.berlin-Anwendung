@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import './Documentation.scss';
 
-const HANDBOOK_IMG = '/docs/handbook';
+/** Statische Screenshots unter client/public/photo/ (URL /photo/…) */
+const HANDBOOK_IMG = '/photo';
 
 const DocFigure = ({ name, alt, caption }) => (
   <figure className="doc-figure">
@@ -31,7 +32,7 @@ const Documentation = () => {
           </p>
           <p className="documentation__meta">
             Screenshots <code>bild1.png</code> bis <code>bild7.png</code> liegen unter{' '}
-            <code>client/public/docs/handbook/</code>. Bei fehlenden Dateien: In diesem Ordner{' '}
+            <code>client/public/photo/</code>. Bei fehlenden Dateien: dort{' '}
             <code>.\copy-screenshots.ps1</code> ausführen oder Bilder manuell aus Word/Cursor
             hinterlegen.
           </p>

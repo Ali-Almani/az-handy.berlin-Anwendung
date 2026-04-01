@@ -1,5 +1,5 @@
-# Kopiert die Bild1–Bild7-Screenshots aus dem Cursor-Workspace in diesen Ordner.
-# Ausführen (PowerShell):  .\copy-screenshots.ps1
+# Kopiert die Bild1–Bild7-Screenshots aus dem Cursor-Workspace nach client/public/photo.
+# Ausführen (PowerShell):  cd client/public/photo  ;  .\copy-screenshots.ps1
 $here = $PSScriptRoot
 $assets = Join-Path $env:USERPROFILE '.cursor\projects\srv-file-Downloads-ali-almani-Downloads-AZ-handy-berlin-az-handy-berlin\assets'
 if (-not (Test-Path $assets)) {
