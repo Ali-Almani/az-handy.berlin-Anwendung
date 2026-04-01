@@ -18,6 +18,8 @@ const load = () => {
     const ids = notifications.map((n) => Number(n?.id) || 0);
     const maxId = ids.length > 0 ? Math.max(...ids) : 0;
     nextId = Number(data.nextId) || maxId + 1 || 1;
+  } else {
+    notifications = [];
   }
 };
 
@@ -25,6 +27,7 @@ load();
 
 /** Benachrichtigung an Büro-Mitarbeiter: Benutzer hat auf Erinnerung reagiert */
 export const addNotification = (targetUserId, fromUserName, imei, action) => {
+  if (!Array.isArray(notifications)) notifications = [];
   const id = nextId++;
   const actionText = action === 'angenommen' ? 'angenommen' : 'abgelehnt';
   const message = `${fromUserName} hat auf deine Erinnerung für IMEI ${imei} reagiert: ${actionText}`;
@@ -52,7 +55,9 @@ export const getUnreadForUser = (userId) => {
 
 export const markAsRead = (id, userId) => {
   if (!Array.isArray(notifications)) return false;
-  const n = notifications.find((x) => String(x.id) === String(id) && String(x.target_user_id) === String(userId));
+  const n = notifications.find(
+    (x) => x && String(x.id) === String(id) && String(x.target_user_id) === String(userId)
+  );
   if (n) {
     n.read = true;
     persist();

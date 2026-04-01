@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import ImeisUserData from '../models/ImeisUserData.js';
 import User from '../models/User.js';
-import { normalizeUserId } from '../utils/normalizeUserId.js';
+import { normalizeUserId, resolveAuthUserId, coerceUserId } from '../utils/normalizeUserId.js';
 import * as ImeiReminder from '../models/ImeiReminder.memory.js';
 import * as ExtraCopyRequest from '../models/ExtraCopyRequest.memory.js';
 import * as ExtraCopyNotification from '../models/ExtraCopyNotification.memory.js';
@@ -198,7 +198,7 @@ const getSharedImeiOwnerId = async () => {
 
 export const getImeisData = async (req, res, next) => {
   try {
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -443,7 +443,7 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
 
 /** Interne Speicherlogik – wiederverwendbar für Excel-Upload (vermeidet 413 bei großem JSON) */
 export const saveImeisDataToStorage = async (userId, body, app) => {
-  const uid = normalizeUserId(userId);
+  const uid = coerceUserId(userId);
   if (uid == null) {
     throw new Error('Ungültige Benutzer-ID');
   }
@@ -589,7 +589,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
 
 export const saveImeisData = async (req, res, next) => {
   try {
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -743,7 +743,7 @@ export const markImeiReminderRead = async (req, res, next) => {
 /** Benutzer: Benachrichtigung an Büro senden, wenn auf Erinnerung reagiert (angenommen/abgelehnt) */
 export const notifyReminderResponse = async (req, res, next) => {
   try {
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -784,7 +784,7 @@ export const notifyReminderResponse = async (req, res, next) => {
 /** Büro Mitarbeiter: Benachrichtigungen über Erinnerungs-Antworten abrufen */
 export const getReminderResponseNotifications = async (req, res, next) => {
   try {
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -805,7 +805,8 @@ export const getReminderResponseNotifications = async (req, res, next) => {
     if (!Array.isArray(list)) list = [];
     res.json({ success: true, notifications: list });
   } catch (error) {
-    next(error);
+    console.error('getReminderResponseNotifications uncaught:', error);
+    res.json({ success: true, notifications: [] });
   }
 };
 
@@ -846,7 +847,7 @@ export const createExtraCopyRequest = async (req, res, next) => {
 /** Büro Mitarbeiter: Offene Extra-Kopie-Anfragen abrufen */
 export const getExtraCopyRequests = async (req, res, next) => {
   try {
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -867,7 +868,8 @@ export const getExtraCopyRequests = async (req, res, next) => {
     if (!Array.isArray(requests)) requests = [];
     res.json({ success: true, requests });
   } catch (error) {
-    next(error);
+    console.error('getExtraCopyRequests uncaught:', error);
+    res.json({ success: true, requests: [] });
   }
 };
 

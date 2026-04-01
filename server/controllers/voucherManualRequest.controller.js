@@ -1,5 +1,5 @@
 import User from '../models/User.js';
-import { normalizeUserId } from '../utils/normalizeUserId.js';
+import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
 import { mergeVoucherRowsAppend } from './excel.controller.js';
@@ -92,7 +92,7 @@ export const createVoucherManualRequest = async (req, res, next) => {
 
 export const getVoucherManualRequests = async (req, res, next) => {
   try {
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -123,7 +123,8 @@ export const getVoucherManualRequests = async (req, res, next) => {
     }));
     return res.json({ success: true, requests: list });
   } catch (e) {
-    next(e);
+    console.error('getVoucherManualRequests uncaught:', e);
+    return res.json({ success: true, requests: [] });
   }
 };
 

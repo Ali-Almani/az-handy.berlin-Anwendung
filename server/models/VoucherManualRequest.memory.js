@@ -20,6 +20,8 @@ const load = () => {
     requests = data.requests;
     const maxId = requests.reduce((m, r) => Math.max(m, Number(r?.id) || 0), 0);
     nextId = Number(data.nextId) || maxId + 1 || 1;
+  } else {
+    requests = [];
   }
 };
 

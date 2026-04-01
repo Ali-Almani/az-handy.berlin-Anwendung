@@ -1,11 +1,22 @@
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
+import { normalizeUserId, coerceUserId } from '../utils/normalizeUserId.js';
 
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: '7d'
-  });
+  const secret = process.env.JWT_SECRET;
+  if (secret == null || String(secret).trim() === '') {
+    const err = new Error('JWT_SECRET ist in der Server-.env nicht gesetzt');
+    err.statusCode = 500;
+    throw err;
+  }
+  const uid = coerceUserId(userId);
+  if (uid == null) {
+    const err = new Error('Ungültige Benutzer-ID für Token');
+    err.statusCode = 500;
+    throw err;
+  }
+  return jwt.sign({ userId: uid }, secret, { expiresIn: '7d' });
 };
 
 export const register = async (req, res, next) => {
@@ -49,38 +60,59 @@ export const login = async (req, res, next) => {
     }
 
     const { email, password } = req.body;
+    if (!email || typeof email !== 'string' || !password) {
+      return res.status(400).json({ message: 'E-Mail und Passwort erforderlich' });
+    }
 
-    const user = await User.findOne({ where: { email: email.toLowerCase() } });
+    let user;
+    try {
+      user = await User.findOne({ where: { email: email.toLowerCase().trim() } });
+    } catch (dbErr) {
+      console.error('login User.findOne:', dbErr);
+      return res.status(503).json({
+        message: 'Anmeldung derzeit nicht möglich (Datenbank). Bitte später erneut versuchen oder Administrator informieren.'
+      });
+    }
+
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const isPasswordValid = await user.comparePassword(password);
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await user.comparePassword(password);
+    } catch (pwErr) {
+      console.error('login comparePassword:', pwErr);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = generateToken(user.id);
+    const userId = user.id ?? user.get?.('id');
+    const token = generateToken(userId);
     const userEmail = (user.email || '').toLowerCase();
-    let role = (user.role || '').trim();
+    let role = String(user.role ?? user.get?.('role') ?? '').trim();
     if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
       role = 'Administrator';
     }
 
+    const uidOut = userId ?? user._id ?? user.get?.('id');
     res.json({
       success: true,
       message: 'Login successful',
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: normalizeUserId(uidOut) ?? uidOut,
+        name: user.name ?? user.get?.('name'),
+        email: user.email ?? user.get?.('email'),
         role,
-        avatar: user.avatar || null,
-        einsatz_ort: user.einsatz_ort || null
+        avatar: user.avatar ?? user.get?.('avatar') ?? null,
+        einsatz_ort: user.einsatz_ort ?? user.get?.('einsatz_ort') ?? null
       }
     });
   } catch (error) {
+    console.error('login:', error?.message || error);
     next(error);
   }
 };
