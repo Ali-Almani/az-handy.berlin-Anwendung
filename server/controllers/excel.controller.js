@@ -1,7 +1,9 @@
 import ExcelJS from 'exceljs';
 import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.controller.js';
 import User from '../models/User.js';
+import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
+import { normalizeUserId } from '../utils/normalizeUserId.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
 const VOUCHER_USER_STATE_FILE = 'voucher-user-state.json';
@@ -676,8 +678,8 @@ export const putVoucherUserState = async (req, res, next) => {
     if (!(await userCanViewVouchers(req.user?.userId))) {
       return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
     }
-    const userId = req.user?.userId;
-    if (!userId) {
+    const userId = normalizeUserId(req.user?.userId);
+    if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const body = req.body || {};
@@ -716,6 +718,14 @@ export const putVoucherUserState = async (req, res, next) => {
       Object.keys(body.rowActions).length === 0;
     if (isFullClearRequest && wipeAllUserStates) {
       saveJson(VOUCHER_USER_STATE_FILE, {});
+      const prevV = loadJson(VOUCHERS_FILE) || {};
+      saveJson(VOUCHERS_FILE, {
+        ...prevV,
+        rows: [],
+        updatedAt: new Date().toISOString(),
+        updatedByUserId: userId
+      });
+      VoucherManualRequest.clearAllRequests();
       emitVouchersUpdated(req);
       return res.json({ success: true });
     }

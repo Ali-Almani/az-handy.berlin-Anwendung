@@ -58,6 +58,13 @@ export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, v
   return { id };
 };
 
+/** Admin/Büro: alle Anfragen zurücksetzen (z. B. bei kompletter Voucher-Liste neu aufsetzen) */
+export const clearAllRequests = () => {
+  requests = [];
+  nextId = 1;
+  persist();
+};
+
 export const getPendingRequests = () => {
   if (!Array.isArray(requests)) return [];
   return requests

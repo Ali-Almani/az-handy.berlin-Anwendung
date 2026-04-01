@@ -160,9 +160,12 @@ const Voucher = () => {
   }, [filteredRows, displayCols, nummerKey, rowActions, voucherRowId, activeTab]);
 
   const handleDeleteAllLocal = useCallback(async () => {
+    const adminOrBuero = isAdmin(user) || isBüroMitarbeiter(user);
     if (
       !window.confirm(
-        'Alle Voucher-Reservierungen und Verlauf-Einträge aus der Anzeige löschen? (Betrifft nur Ihren Zugang.)'
+        adminOrBuero
+          ? 'Die gesamte Voucher-Liste (alle hochgeladenen Zeilen), alle Reservierungen und Verläufe systemweit löschen? Anschließend können Sie eine neue Excel-Datei hochladen – die Liste wird dann neu aus der Datei aufgebaut.'
+          : 'Alle Voucher-Reservierungen und Verlauf-Einträge aus der Anzeige löschen? (Betrifft nur Ihren Zugang.)'
       )
     ) {
       return;
@@ -174,11 +177,12 @@ const Voucher = () => {
     setSelectedCells(new Set());
     try {
       await putVoucherUserStateApi({ copyHistory: [], copyTimestamps: [], rowActions: {} });
+      await load();
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || err.message || 'Speichern fehlgeschlagen.');
     }
-  }, []);
+  }, [user, load]);
 
   if (!user) {
     return <Login />;
