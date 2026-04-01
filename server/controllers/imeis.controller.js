@@ -193,7 +193,7 @@ const getSharedImeiOwnerId = async () => {
     return nb != null ? nb : best;
   }
   const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
-  return normalizeUserId(admin?.id ?? admin?.get?.('id')) ?? null;
+  return coerceUserId(admin?.id ?? admin?._id ?? admin?.get?.('id')) ?? null;
 };
 
 export const getImeisData = async (req, res, next) => {
@@ -216,7 +216,8 @@ export const getImeisData = async (req, res, next) => {
       console.error('getSharedImeiOwnerId:', err);
     }
     let dataUserId = shouldUseSharedImeiData(role) ? sharedOwnerId ?? userId : userId;
-    dataUserId = normalizeUserId(dataUserId) ?? userId;
+    // INTEGER (PostgreSQL) oder String-UUID (Memory): normalizeUserId würde UUID zu null machen
+    dataUserId = coerceUserId(dataUserId) ?? userId;
     const sameDataUser = String(dataUserId) === String(userId);
 
     if (USE_MEMORY_DB) {
