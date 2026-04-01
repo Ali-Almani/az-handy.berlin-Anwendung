@@ -107,14 +107,19 @@ export const getVoucherManualRequests = async (req, res, next) => {
         message: 'Nur Büro Mitarbeiter und Administratoren sehen offene Voucher-Anfragen.'
       });
     }
-    const pending = VoucherManualRequest.getPendingRequests();
+    let pending = [];
+    try {
+      pending = VoucherManualRequest.getPendingRequests();
+    } catch (err) {
+      console.error('getVoucherManualRequests getPendingRequests:', err);
+    }
     const list = (Array.isArray(pending) ? pending : []).map((r) => ({
-      id: r.id,
-      requester_user_name: r.requester_user_name,
-      voucher_art_label: r.voucher_art_label,
-      voucher_tab_id: r.voucher_tab_id,
-      nummer: r.nummer,
-      created_at: r.created_at
+      id: r?.id,
+      requester_user_name: r?.requester_user_name ?? '',
+      voucher_art_label: r?.voucher_art_label ?? '',
+      voucher_tab_id: r?.voucher_tab_id ?? '',
+      nummer: r?.nummer ?? '',
+      created_at: r?.created_at ?? null
     }));
     return res.json({ success: true, requests: list });
   } catch (e) {

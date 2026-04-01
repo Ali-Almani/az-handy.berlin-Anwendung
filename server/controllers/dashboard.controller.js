@@ -231,39 +231,64 @@ export const getNewsArchive = async (req, res, next) => {
     const currentHash = simpleHash(currentContent);
 
     let history = [];
-    if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
-      history = DashboardNote.getHistory(adminId, 100) || [];
-    } else if (!USE_MEMORY_DB) {
-      const rows = await DashboardNoteHistory.findAll({
-        where: { user_id: adminId },
-        order: [['created_at', 'DESC']],
-        limit: 100,
-        raw: true
-      });
-      history = rows.map((r) => ({ id: r.id, content: r.content, created_at: r.created_at }));
+    try {
+      if (USE_MEMORY_DB && typeof DashboardNote.getHistory === 'function') {
+        history = DashboardNote.getHistory(adminId, 100) || [];
+      } else if (!USE_MEMORY_DB) {
+        const rows = await DashboardNoteHistory.findAll({
+          where: { user_id: adminId },
+          order: [['created_at', 'DESC']],
+          limit: 100,
+          raw: true
+        });
+        history = Array.isArray(rows)
+          ? rows.map((r) => ({ id: r.id, content: r.content, created_at: r.created_at }))
+          : [];
+      }
+    } catch (err) {
+      console.error('getNewsArchive: history load:', err);
+      history = [];
     }
+    if (!Array.isArray(history)) history = [];
 
-    const messages = history
-      .filter((h) => {
-        const c = (h.content ?? '').trim();
-        return c && simpleHash(c) !== currentHash;
-      })
-      .map((h) => {
-        const content = (h.content ?? '').trim();
-        const hash = simpleHash(content);
-        const readers = NewsRead.getReadsByContentHash ? NewsRead.getReadsByContentHash(hash) : [];
-        return {
-          id: h.id,
-          content,
-          createdAt: h.created_at ?? h.createdAt,
-          updatedAt: h.updated_at ?? h.updatedAt ?? null,
-          updatedBy: h.updated_by ?? null,
-          readers: readers.map((r) => ({ userName: r.user_name, readAt: r.read_at }))
-        };
-      });
+    let messages = [];
+    try {
+      messages = history
+        .filter((h) => {
+          const c = (h?.content ?? '').trim();
+          return c && simpleHash(c) !== currentHash;
+        })
+        .map((h) => {
+          const content = (h?.content ?? '').trim();
+          const hash = simpleHash(content);
+          let readers = [];
+          try {
+            readers =
+              typeof NewsRead.getReadsByContentHash === 'function'
+                ? NewsRead.getReadsByContentHash(hash) || []
+                : [];
+          } catch (err) {
+            console.error('getNewsArchive: getReadsByContentHash:', err);
+            readers = [];
+          }
+          if (!Array.isArray(readers)) readers = [];
+          return {
+            id: h.id,
+            content,
+            createdAt: h.created_at ?? h.createdAt,
+            updatedAt: h.updated_at ?? h.updatedAt ?? null,
+            updatedBy: h.updated_by ?? null,
+            readers: readers.map((r) => ({ userName: r?.user_name ?? '', readAt: r?.read_at ?? null }))
+          };
+        });
+    } catch (err) {
+      console.error('getNewsArchive: build messages:', err);
+      messages = [];
+    }
 
     return res.json({ success: true, messages });
   } catch (error) {
+    console.error('getNewsArchive:', error);
     next(error);
   }
 };

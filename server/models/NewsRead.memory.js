@@ -12,14 +12,17 @@ const persist = () => {
 const load = () => {
   if (!getPersist()) return;
   const data = loadJson(FILE);
-  if (data?.reads?.length) {
+  if (data && Array.isArray(data.reads)) {
     reads = data.reads;
+  } else {
+    reads = [];
   }
 };
 
 load();
 
 export const addRead = (userId, userName, contentHash) => {
+  if (!Array.isArray(reads)) reads = [];
   const existing = reads.find(
     (r) => String(r.user_id) === String(userId) && r.content_hash === contentHash
   );
@@ -34,6 +37,7 @@ export const addRead = (userId, userName, contentHash) => {
 };
 
 export const getReads = () => {
+  if (!Array.isArray(reads)) return [];
   return [...reads].sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
 };
 
@@ -47,19 +51,23 @@ const simpleHash = (str) => {
 };
 
 export const getReadsByContentHash = (contentHash) => {
-  return reads.filter((r) => r.content_hash === contentHash).sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
+  if (!Array.isArray(reads)) return [];
+  return reads
+    .filter((r) => r && r.content_hash === contentHash)
+    .sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
 };
 
 /** Prüft, ob ein Benutzer diese Anweisung bereits gelesen hat (für Popup: nur einmal anzeigen) */
 export const hasUserRead = (userId, contentHash) => {
-  if (!userId || !contentHash) return false;
+  if (!userId || !contentHash || !Array.isArray(reads)) return false;
   return reads.some(
-    (r) => String(r.user_id) === String(userId) && r.content_hash === String(contentHash)
+    (r) => r && String(r.user_id) === String(userId) && r.content_hash === String(contentHash)
   );
 };
 
 export const deleteReadsByContentHash = (contentHash) => {
+  if (!Array.isArray(reads)) reads = [];
   const before = reads.length;
-  reads = reads.filter((r) => r.content_hash !== contentHash);
+  reads = reads.filter((r) => r && r.content_hash !== contentHash);
   if (reads.length !== before) persist();
 };

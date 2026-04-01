@@ -13,15 +13,20 @@ const persist = () => {
 const load = () => {
   if (!getPersist()) return;
   const data = loadJson(FILE);
-  if (data?.reminders?.length) {
+  if (data && Array.isArray(data.reminders)) {
     reminders = data.reminders;
-    nextId = (data.nextId ?? nextId) || Math.max(...reminders.map((r) => r.id || 0), 0) + 1;
+    const ids = reminders.map((r) => Number(r?.id) || 0);
+    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+    nextId = Number(data.nextId) || maxId + 1 || 1;
+  } else {
+    reminders = [];
   }
 };
 
 load();
 
 export const addReminder = (targetUserId, targetUserName, imei, fromUserName, fromUserId) => {
+  if (!Array.isArray(reminders)) reminders = [];
   const id = nextId++;
   const message = `Erinnerung: Benutzt du noch diese IMEI? (${imei})`;
   reminders.push({
@@ -40,13 +45,15 @@ export const addReminder = (targetUserId, targetUserName, imei, fromUserName, fr
 };
 
 export const getRemindersForUser = (userId) => {
+  if (!Array.isArray(reminders)) return [];
   return reminders
-    .filter((r) => String(r.target_user_id) === String(userId) && !r.read)
+    .filter((r) => r && String(r.target_user_id) === String(userId) && !r.read)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 };
 
 export const markReminderRead = (reminderId, userId) => {
-  const r = reminders.find((x) => String(x.id) === String(reminderId) && String(x.target_user_id) === String(userId));
+  if (!Array.isArray(reminders)) return false;
+  const r = reminders.find((x) => x && String(x.id) === String(reminderId) && String(x.target_user_id) === String(userId));
   if (r) {
     r.read = true;
     persist();
@@ -57,9 +64,14 @@ export const markReminderRead = (reminderId, userId) => {
 
 /** Finde Erinnerungen für Benutzer+IMEI (für Benachrichtigung an Büro bei Aktion) */
 export const findRemindersForUserAndImei = (targetUserId, imei) => {
+  if (!Array.isArray(reminders)) return [];
   const imeiStr = String(imei || '').trim();
   const targetStr = String(targetUserId || '');
   return reminders.filter(
-    (r) => String(r.target_user_id) === targetStr && String(r.imei || '').trim() === imeiStr && (r.from_user_id || r.from_user_name)
+    (r) =>
+      r &&
+      String(r.target_user_id) === targetStr &&
+      String(r.imei || '').trim() === imeiStr &&
+      (r.from_user_id || r.from_user_name)
   );
 };

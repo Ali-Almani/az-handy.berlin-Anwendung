@@ -36,7 +36,7 @@ const persistDashboard = () => {
 const loadDashboard = () => {
   if (!getPersist()) return;
   const data = loadJson('dashboard.json');
-  if (data?.notes?.length) {
+  if (data && Array.isArray(data.notes) && data.notes.length > 0) {
     notes.length = 0;
     data.notes.forEach(n => {
       notes.push({
@@ -49,7 +49,7 @@ const loadDashboard = () => {
     });
     console.log(`✅ ${notes.length} Dashboard-Notizen geladen`);
   }
-  if (data?.history?.length) {
+  if (data && Array.isArray(data.history) && data.history.length > 0) {
     history.length = 0;
     data.history.forEach(h => {
       history.push({
