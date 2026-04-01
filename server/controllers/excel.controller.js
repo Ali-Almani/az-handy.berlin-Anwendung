@@ -3,7 +3,7 @@ import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.cont
 import User from '../models/User.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
-import { normalizeUserId } from '../utils/normalizeUserId.js';
+import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
 const VOUCHER_USER_STATE_FILE = 'voucher-user-state.json';
@@ -362,7 +362,7 @@ export const processExcelFile = async (req, res) => {
 /** Voucher-Daten lesen: hochgeladene Zeilen + Verlauf (eigener oder gemerged für Büro/Admin bzw. Teamleiter nach Einsatzort) */
 export const getVouchers = async (req, res, next) => {
   try {
-    const uid = normalizeUserId(req.user?.userId);
+    const uid = resolveAuthUserId(req.user);
     if (uid == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
@@ -520,7 +520,7 @@ export function mergeVoucherRowsAppend(existingRows, incomingRows) {
 /** Reservieren: Zeile aus der gemeinsamen Voucher-Liste entfernen (persistiert in vouchers.json) */
 export const removeVoucherListRow = async (req, res, next) => {
   try {
-    if (!(await userCanViewVouchers(req.user?.userId))) {
+    if (!(await userCanViewVouchers(resolveAuthUserId(req.user)))) {
       return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
     }
     const payload = normalizeClientVoucherRow(req.body?.row ?? req.body);
@@ -550,7 +550,7 @@ export const removeVoucherListRow = async (req, res, next) => {
 /** Abgelehnt im Verlauf: Zeile wieder in die Liste einfügen */
 export const restoreVoucherListRow = async (req, res, next) => {
   try {
-    if (!(await userCanViewVouchers(req.user?.userId))) {
+    if (!(await userCanViewVouchers(resolveAuthUserId(req.user)))) {
       return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
     }
     const payload = normalizeClientVoucherRow(req.body?.row ?? req.body);
@@ -579,7 +579,10 @@ export const restoreVoucherListRow = async (req, res, next) => {
 /** Büro / Administrator / Teamleiter shop: Verlauf-Aktion für einen anderen Benutzer (wie IMEI history-action) */
 export const updateVoucherHistoryAction = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
     const role = String(currentUser?.role ?? currentUser?.get?.('role') ?? '').trim();
     const isBuero = role === 'Büro Mitarbeiter';
@@ -682,12 +685,12 @@ export const updateVoucherHistoryAction = async (req, res, next) => {
 /** Verlauf / Reservierungen / Rate-Limit-Zeitstempel pro Benutzer persistieren */
 export const putVoucherUserState = async (req, res, next) => {
   try {
-    if (!(await userCanViewVouchers(req.user?.userId))) {
-      return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
-    }
-    const userId = normalizeUserId(req.user?.userId);
+    const userId = resolveAuthUserId(req.user);
     if (userId == null) {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
+    if (!(await userCanViewVouchers(userId))) {
+      return res.status(403).json({ success: false, message: 'Kein Zugriff auf die Voucher-Übersicht' });
     }
     const body = req.body || {};
     const prev = getVoucherUserStateForUser(userId);
@@ -750,7 +753,7 @@ export const putVoucherUserState = async (req, res, next) => {
 /** Voucher-Listen: alle Tabellenzeilen (ohne IMEI-Pflicht), nur Administrator / Büro Mitarbeiter */
 export const processVoucherExcelFile = async (req, res) => {
   try {
-    const ok = await userCanUploadVouchers(req.user?.userId);
+    const ok = await userCanUploadVouchers(resolveAuthUserId(req.user));
     if (!ok) {
       return res.status(403).json({
         success: false,
