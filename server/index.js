@@ -22,9 +22,16 @@ const corsOrigin =
         .filter(Boolean)
     : process.env.CLIENT_URL || 'http://localhost:3000';
 
+// Socket.io-Handshake sendet Origin der Webseite. Fehlt diese Domain in CLIENT_URL, schlägt
+// wss://…/socket.io fehl. In Production daher standardmäßig Origin spiegeln (wie cors origin: true).
+const socketIoCorsOrigin =
+  process.env.SOCKET_IO_CORS_REFLECT === 'true' ||
+  process.env.SOCKET_IO_CORS_REFLECT === '1' ||
+  (process.env.NODE_ENV === 'production' && process.env.SOCKET_IO_CORS_REFLECT !== 'false');
+
 const io = new Server(server, {
   cors: {
-    origin: corsOrigin,
+    origin: socketIoCorsOrigin ? true : corsOrigin,
     credentials: true
   }
 });

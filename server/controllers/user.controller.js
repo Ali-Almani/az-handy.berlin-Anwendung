@@ -1,10 +1,13 @@
 import User from '../models/User.js';
+import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
 
 export const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const user = await User.findByPk(uid);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -33,8 +36,10 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
     const { name, email, avatar } = req.body;
-    const user = await User.findByPk(req.user.userId);
+    const user = await User.findByPk(uid);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -73,7 +78,9 @@ export const updateProfile = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const currentUser = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const currentUser = await User.findByPk(uid);
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer verwalten' });
     }
@@ -95,7 +102,9 @@ export const getAllUsers = async (req, res, next) => {
 
 export const createUserByAdmin = async (req, res, next) => {
   try {
-    const currentUser = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const currentUser = await User.findByPk(uid);
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer erstellen' });
     }
@@ -121,7 +130,9 @@ export const createUserByAdmin = async (req, res, next) => {
 
 export const updateUserByAdmin = async (req, res, next) => {
   try {
-    const currentUser = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const currentUser = await User.findByPk(uid);
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer bearbeiten' });
     }
@@ -164,8 +175,10 @@ export const updateUserByAdmin = async (req, res, next) => {
 
 export const updatePassword = async (req, res, next) => {
   try {
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
     const { currentPassword, newPassword } = req.body;
-    const user = await User.findByPk(req.user.userId);
+    const user = await User.findByPk(uid);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
@@ -180,13 +193,19 @@ export const updatePassword = async (req, res, next) => {
     await user.save();
     res.json({ success: true, message: 'Passwort erfolgreich geändert' });
   } catch (error) {
-    next(error);
+    console.error('updatePassword:', error);
+    return res.status(503).json({
+      success: false,
+      message: 'Passwort konnte nicht gespeichert werden. Datenbank oder Server – bitte später erneut versuchen.'
+    });
   }
 };
 
 export const restoreAdmin = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const user = await User.findByPk(uid);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
@@ -208,7 +227,9 @@ export const restoreAdmin = async (req, res, next) => {
 
 export const setPasswordByAdmin = async (req, res, next) => {
   try {
-    const currentUser = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const currentUser = await User.findByPk(uid);
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Passwörter zurücksetzen' });
     }
@@ -225,13 +246,19 @@ export const setPasswordByAdmin = async (req, res, next) => {
     await user.save();
     res.json({ success: true, message: 'Passwort erfolgreich gesetzt' });
   } catch (error) {
-    next(error);
+    console.error('setPasswordByAdmin:', error);
+    return res.status(503).json({
+      success: false,
+      message: 'Passwort konnte nicht gespeichert werden. Datenbank oder Server – bitte später erneut versuchen.'
+    });
   }
 };
 
 export const deleteUserById = async (req, res, next) => {
   try {
-    const currentUser = await User.findByPk(req.user.userId);
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const currentUser = await User.findByPk(uid);
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer löschen' });
     }
