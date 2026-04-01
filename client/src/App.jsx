@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
 import Login from './pages/Auth/Login';
@@ -69,13 +69,14 @@ function App() {
           }
         />
         <Route
-          path="/dokumentation"
+          path="/benutzerhandbuch"
           element={
             <ProtectedRoute>
               <Documentation />
             </ProtectedRoute>
           }
         />
+        <Route path="/dokumentation" element={<Navigate to="/benutzerhandbuch" replace />} />
         <Route path="/formular-center" element={<FormularCenter />} />
       </Routes>
     </Layout>

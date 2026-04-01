@@ -589,7 +589,7 @@ const Navbar = ({
                       Formular Center
                     </Link>
                     <Link
-                      to="/dokumentation"
+                      to="/benutzerhandbuch"
                       className="navbar-dropdown-item"
                       onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
                     >
@@ -758,7 +758,7 @@ const Navbar = ({
                     </span>
                     Formular Center
                   </Link>
-                  <Link to="/dokumentation" className="navbar-dropdown-item" onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}>
+                  <Link to="/benutzerhandbuch" className="navbar-dropdown-item" onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}>
                     <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2V3z" stroke="currentColor" strokeWidth="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.5"/></svg></span>
                     Benutzerhandbuch
                   </Link>
