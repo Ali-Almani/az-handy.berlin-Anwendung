@@ -30,12 +30,6 @@ const Documentation = () => {
             </strong>{' '}
             – A-Z Handy Shop GmbH
           </p>
-          <p className="documentation__meta">
-            Screenshots <code>bild1.png</code> bis <code>bild7.png</code> liegen unter{' '}
-            <code>client/public/photo/</code>. Bei fehlenden Dateien: dort{' '}
-            <code>.\copy-screenshots.ps1</code> ausführen oder Bilder manuell aus Word/Cursor
-            hinterlegen.
-          </p>
         </div>
 
         <div className="card-body documentation__card-body">
