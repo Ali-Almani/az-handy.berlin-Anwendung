@@ -28,6 +28,15 @@ const isAdmin = (role) => role && typeof role === 'string' && (role.toLowerCase(
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
 
+const safeJsonParse = (raw, fallback) => {
+  if (raw == null || raw === '') return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+
 /** Merge copy_history aus allen Benutzern für Verlauf (Büro Mitarbeiter sieht gesamte Historie) */
 const getMergedCopyHistory = async () => {
   const all = await ImeisUserData.findAll();
@@ -154,9 +163,12 @@ export const getImeisData = async (req, res, next) => {
         where: { user_id: dataUserId },
         defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
       });
-      let imeis = data.imeis_json ? JSON.parse(data.imeis_json) : [];
-      let cellColors = data.cell_colors_json ? JSON.parse(data.cell_colors_json) : {};
-      let rowActions = data.row_actions_json ? JSON.parse(data.row_actions_json) : {};
+      let imeis = safeJsonParse(data.imeis_json, []);
+      if (!Array.isArray(imeis)) imeis = [];
+      let cellColors = safeJsonParse(data.cell_colors_json, {});
+      if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
+      let rowActions = safeJsonParse(data.row_actions_json, {});
+      if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) rowActions = {};
       let copyHistory = [];
       let copyTimestamps = [];
 
@@ -165,8 +177,10 @@ export const getImeisData = async (req, res, next) => {
           where: { user_id: userId },
           defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
         });
-        copyTimestamps = ownData.copy_timestamps_json ? JSON.parse(ownData.copy_timestamps_json) : [];
-        let rawHistory = ownData.copy_history_json ? JSON.parse(ownData.copy_history_json) : [];
+        copyTimestamps = safeJsonParse(ownData.copy_timestamps_json, []);
+        if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
+        let rawHistory = safeJsonParse(ownData.copy_history_json, []);
+        if (!Array.isArray(rawHistory)) rawHistory = [];
         if (isMitarbeiterShop(role)) {
           const userName = currentUser?.name || '';
           copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
@@ -176,8 +190,10 @@ export const getImeisData = async (req, res, next) => {
           copyHistory = rawHistory;
         }
       } else {
-        copyHistory = data.copy_history_json ? JSON.parse(data.copy_history_json) : [];
-        copyTimestamps = data.copy_timestamps_json ? JSON.parse(data.copy_timestamps_json) : [];
+        copyHistory = safeJsonParse(data.copy_history_json, []);
+        if (!Array.isArray(copyHistory)) copyHistory = [];
+        copyTimestamps = safeJsonParse(data.copy_timestamps_json, []);
+        if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
       }
       if (isBüroMitarbeiter(role)) {
         copyHistory = await getMergedCopyHistory();
@@ -201,9 +217,12 @@ export const getImeisData = async (req, res, next) => {
       defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]' }
     });
 
-    let imeis = data.imeis_json ? JSON.parse(data.imeis_json) : [];
-    let cellColors = data.cell_colors_json ? JSON.parse(data.cell_colors_json) : {};
-    let rowActions = data.row_actions_json ? JSON.parse(data.row_actions_json) : {};
+    let imeis = safeJsonParse(data.imeis_json, []);
+    if (!Array.isArray(imeis)) imeis = [];
+    let cellColors = safeJsonParse(data.cell_colors_json, {});
+    if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
+    let rowActions = safeJsonParse(data.row_actions_json, {});
+    if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) rowActions = {};
     let copyHistory = [];
     let copyTimestamps = [];
 
@@ -212,8 +231,10 @@ export const getImeisData = async (req, res, next) => {
         where: { user_id: userId },
         defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]' }
       });
-      copyTimestamps = ownData.copy_timestamps_json ? JSON.parse(ownData.copy_timestamps_json) : [];
-      let rawHistory = ownData.copy_history_json ? JSON.parse(ownData.copy_history_json) : [];
+      copyTimestamps = safeJsonParse(ownData.copy_timestamps_json, []);
+      if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
+      let rawHistory = safeJsonParse(ownData.copy_history_json, []);
+      if (!Array.isArray(rawHistory)) rawHistory = [];
       if (isMitarbeiterShop(role)) {
         const userName = currentUser?.name || '';
         copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
@@ -223,8 +244,10 @@ export const getImeisData = async (req, res, next) => {
         copyHistory = rawHistory;
       }
     } else {
-      copyHistory = data.copy_history_json ? JSON.parse(data.copy_history_json) : [];
-      copyTimestamps = data.copy_timestamps_json ? JSON.parse(data.copy_timestamps_json) : [];
+      copyHistory = safeJsonParse(data.copy_history_json, []);
+      if (!Array.isArray(copyHistory)) copyHistory = [];
+      copyTimestamps = safeJsonParse(data.copy_timestamps_json, []);
+      if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
     }
     if (isBüroMitarbeiter(role)) {
       copyHistory = await getMergedCopyHistory();
@@ -403,10 +426,19 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     await ownerListRow.save();
   }
   if (clearingMasterList) {
-    await ImeisUserData.update(
-      { copy_history_json: '[]', copy_timestamps_json: '[]' },
-      { where: {} }
-    );
+    // Sequelize 6: update ohne where (where: {}) wirft oft einen Fehler → pro user_id aktualisieren
+    const allRows = await ImeisUserData.findAll({ attributes: ['user_id'] });
+    const uidSet = new Set();
+    for (const row of allRows) {
+      const uid = row.user_id ?? (row.get && row.get('user_id'));
+      if (uid != null) uidSet.add(Number(uid));
+    }
+    for (const uid of uidSet) {
+      await ImeisUserData.update(
+        { copy_history_json: '[]', copy_timestamps_json: '[]' },
+        { where: { user_id: uid } }
+      );
+    }
   }
 
   const [data] = await ImeisUserData.findOrCreate({
@@ -690,7 +722,13 @@ export const getExtraCopyRequests = async (req, res, next) => {
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen einsehen' });
     }
-    const requests = ExtraCopyRequest.getPendingRequests();
+    let requests = [];
+    try {
+      requests = ExtraCopyRequest.getPendingRequests();
+    } catch (err) {
+      console.error('getExtraCopyRequests:', err);
+    }
+    if (!Array.isArray(requests)) requests = [];
     res.json({ success: true, requests });
   } catch (error) {
     next(error);

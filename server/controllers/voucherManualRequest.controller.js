@@ -100,7 +100,8 @@ export const getVoucherManualRequests = async (req, res, next) => {
         message: 'Nur Büro Mitarbeiter und Administratoren sehen offene Voucher-Anfragen.'
       });
     }
-    const list = VoucherManualRequest.getPendingRequests().map((r) => ({
+    const pending = VoucherManualRequest.getPendingRequests();
+    const list = (Array.isArray(pending) ? pending : []).map((r) => ({
       id: r.id,
       requester_user_name: r.requester_user_name,
       voucher_art_label: r.voucher_art_label,
