@@ -79,7 +79,8 @@ const createDefaultAdmin = async () => {
   return adminUser;
 };
 
-createDefaultAdmin();
+// Wichtig: erst ausführen, bevor Login-Requests laufen – sonst war die Nutzerliste kurz leer.
+await createDefaultAdmin();
 
 class InMemoryUser {
   constructor(data) {

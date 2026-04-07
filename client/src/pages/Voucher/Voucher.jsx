@@ -253,9 +253,11 @@ const Voucher = () => {
                         >
                           Verlauf ({copyHistory.length})
                         </button>
-                        <button type="button" className="btn btn--danger btn--small" onClick={handleDeleteAllLocal}>
-                          Alle löschen
-                        </button>
+                        {canExportVoucher && (
+                          <button type="button" className="btn btn--danger btn--small" onClick={handleDeleteAllLocal}>
+                            Alle löschen
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
