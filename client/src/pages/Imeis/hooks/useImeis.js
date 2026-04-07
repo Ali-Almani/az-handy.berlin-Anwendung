@@ -124,6 +124,15 @@ export function useImeis() {
   const currentImeis = filteredImeis.slice(startIndex, endIndex);
 
   useEffect(() => {
+    if (filteredImeis.length === 0) {
+      if (currentPage !== 1) setCurrentPage(1);
+      return;
+    }
+    const tp = Math.ceil(filteredImeis.length / itemsPerPage);
+    if (tp > 0 && currentPage > tp) setCurrentPage(tp);
+  }, [filteredImeis.length, itemsPerPage, currentPage, setCurrentPage]);
+
+  useEffect(() => {
     let hasSelectedRow = false;
     currentImeis.forEach(item => {
       const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;

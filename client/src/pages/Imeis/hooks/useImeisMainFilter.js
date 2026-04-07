@@ -94,10 +94,11 @@ export function useImeisMainFilter({
     } else {
       setAllColumns([]);
     }
-    setCurrentPage(1);
 
     const filterKey = `${activeSheet}|${activeManufacturer}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
+    // Nur bei geänderter Suche/Filter/Tabs auf Seite 1 – nicht bei jedem imeis-/rowActions-Update
     if (prevFilterRef.current !== null && prevFilterRef.current !== filterKey) {
+      setCurrentPage(1);
       setSelectedCells(new Set());
     }
     prevFilterRef.current = filterKey;
