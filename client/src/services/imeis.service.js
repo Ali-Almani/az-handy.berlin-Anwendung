@@ -10,7 +10,10 @@ const USE_MOCK_API = import.meta.env.PROD ? false : (
 
 export const getImeisDataFromApi = async () => {
   try {
-    const res = await api.get('/imeis/data');
+    const res = await api.get('/imeis/data', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     if (res.data?.success && res.data) {
       const imeis = res.data.imeis ?? [];
       // Immer Server-Daten nutzen – kein Fallback auf lokale Daten, damit alle Benutzer

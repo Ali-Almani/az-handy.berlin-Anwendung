@@ -102,6 +102,12 @@ const isBüroMitarbeiter = (role) => {
 const getUserRole = (user) =>
   user?.role ?? user?.get?.('role') ?? user?.dataValues?.role ?? null;
 
+/** ID aus Sequelize-/Memory-User zuverlässig lesen (für isSelf) */
+const entityUserId = (u) =>
+  coerceUserId(
+    u?.id ?? u?._id ?? u?.get?.('id') ?? u?.dataValues?.id
+  );
+
 const isAdmin = (role) => {
   const r = toRoleString(role);
   if (!r) return false;
@@ -727,12 +733,21 @@ export const updateHistoryAction = async (req, res, next) => {
       return res.status(400).json({ message: 'newAction: angenommen oder abgelehnt erforderlich' });
     }
 
-    const targetUser = await resolveTargetUserByName(userName);
+    let targetUser = await resolveTargetUserByName(userName);
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
-    const targetUserId = coerceUserId(targetUser.id ?? targetUser._id ?? targetUser.get?.('id'));
-    const isSelf = targetUserId != null && String(targetUserId) === String(userId);
+    let targetUserId = entityUserId(targetUser);
+    let isSelf =
+      targetUserId != null && userId != null && String(targetUserId) === String(userId);
+    if (!isSelf && currentUser) {
+      const myName = normHistUserName(currentUser.name ?? currentUser.get?.('name'));
+      if (myName && myName === normHistUserName(userName)) {
+        isSelf = true;
+        targetUser = currentUser;
+        targetUserId = entityUserId(currentUser);
+      }
+    }
     /** Eigener Verlauf: jeder angemeldete Nutzer darf (PATCH oder alter Client); Fremde nur Büro/Admin/Teamleiter */
     const allowedOffice = isBüro || isTeamleiter || isAdminUser;
     if (!isSelf && !allowedOffice) {
