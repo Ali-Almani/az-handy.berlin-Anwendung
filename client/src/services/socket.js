@@ -12,22 +12,36 @@ const SOCKET_URL = resolveSocketOrigin();
 
 let socketInstance = null;
 
+/** az-intranet: Laufzeit (ohne neuen Build) — nur Polling, sonst weiter wss://-Fehler trotz upgrade:false in älteren Clients. */
+function hostRequiresPollingOnly() {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname.toLowerCase();
+  if (h === 'az-intranet.de' || h === 'www.az-intranet.de') return true;
+  const extra = String(import.meta.env.VITE_SOCKET_POLLING_ONLY_HOSTS || '')
+    .split(/[,;\s]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return extra.length > 0 && extra.includes(h);
+}
+
 /** Socket-Verbindung für Echtzeit-Updates (News-Popup). Bei Mock-API wird kein Socket verwendet. */
 export function getSocket() {
   if (USE_MOCK_API) return null;
   if (socketInstance?.connected) return socketInstance;
   if (socketInstance) return socketInstance;
   try {
+    const forcePolling = hostRequiresPollingOnly();
     // Polling zuerst: Intranet/Proxys blockieren oft WebSocket-Upgrade; optional nur Polling per Build-ENV.
     const t = String(import.meta.env.VITE_SOCKET_TRANSPORTS || '').trim();
     let transports = ['polling', 'websocket'];
-    if (t === 'websocket-first') transports = ['websocket', 'polling'];
-    if (t === 'polling-only' || t === 'polling') transports = ['polling'];
+    if (t === 'websocket-first' && !forcePolling) transports = ['websocket', 'polling'];
+    if (t === 'polling-only' || t === 'polling' || forcePolling) transports = ['polling'];
     // Nach Polling versucht Socket.io sonst WebSocket-Upgrade → hinter Nginx/Firewall rote wss://-Fehler.
     const allowWsUpgrade =
-      import.meta.env.DEV ||
-      t === 'websocket-first' ||
-      String(import.meta.env.VITE_SOCKET_UPGRADE || '').trim() === 'true';
+      !forcePolling &&
+      (import.meta.env.DEV ||
+        t === 'websocket-first' ||
+        String(import.meta.env.VITE_SOCKET_UPGRADE || '').trim() === 'true');
     socketInstance = io(SOCKET_URL, {
       path: '/socket.io',
       transports,
