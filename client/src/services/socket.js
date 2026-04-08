@@ -23,9 +23,15 @@ export function getSocket() {
     let transports = ['polling', 'websocket'];
     if (t === 'websocket-first') transports = ['websocket', 'polling'];
     if (t === 'polling-only' || t === 'polling') transports = ['polling'];
+    // Nach Polling versucht Socket.io sonst WebSocket-Upgrade → hinter Nginx/Firewall rote wss://-Fehler.
+    const allowWsUpgrade =
+      import.meta.env.DEV ||
+      t === 'websocket-first' ||
+      String(import.meta.env.VITE_SOCKET_UPGRADE || '').trim() === 'true';
     socketInstance = io(SOCKET_URL, {
       path: '/socket.io',
       transports,
+      upgrade: allowWsUpgrade,
       autoConnect: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
