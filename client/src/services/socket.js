@@ -36,16 +36,16 @@ export function getSocket() {
     let transports = ['polling', 'websocket'];
     if (t === 'websocket-first' && !forcePolling) transports = ['websocket', 'polling'];
     if (t === 'polling-only' || t === 'polling' || forcePolling) transports = ['polling'];
-    // Nach Polling versucht Socket.io sonst WebSocket-Upgrade → hinter Nginx/Firewall rote wss://-Fehler.
-    const allowWsUpgrade =
-      !forcePolling &&
-      (import.meta.env.DEV ||
-        t === 'websocket-first' ||
-        String(import.meta.env.VITE_SOCKET_UPGRADE || '').trim() === 'true');
+    // Standard Prod (z. B. Schnelltest): Polling zuerst, dann WebSocket-Upgrade — sonst fehlen oft Echtzeit-Events.
+    // Nur auf az-intranet (forcePolling) / oder VITE_SOCKET_NO_UPGRADE: kein Upgrade → keine wss://-Fehler in der Konsole.
+    const noUpgrade =
+      forcePolling || String(import.meta.env.VITE_SOCKET_NO_UPGRADE || '').trim() === 'true';
+    const allowWsUpgrade = !noUpgrade;
     socketInstance = io(SOCKET_URL, {
       path: '/socket.io',
       transports,
       upgrade: allowWsUpgrade,
+      withCredentials: true,
       autoConnect: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
