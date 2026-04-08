@@ -18,12 +18,18 @@ export function getSocket() {
   if (socketInstance?.connected) return socketInstance;
   if (socketInstance) return socketInstance;
   try {
+    // Polling zuerst: Intranet/Proxys blockieren oft WebSocket-Upgrade; optional nur Polling per Build-ENV.
+    const t = String(import.meta.env.VITE_SOCKET_TRANSPORTS || '').trim();
+    let transports = ['polling', 'websocket'];
+    if (t === 'websocket-first') transports = ['websocket', 'polling'];
+    if (t === 'polling-only' || t === 'polling') transports = ['polling'];
     socketInstance = io(SOCKET_URL, {
       path: '/socket.io',
-      transports: ['websocket', 'polling'],
+      transports,
       autoConnect: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 3000
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      timeout: 20000
     });
     return socketInstance;
   } catch {
