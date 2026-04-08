@@ -454,6 +454,39 @@
     color: #5a6c7d;
   }
 
+  &__cell-edit-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  &__highlight-label {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: $font-weight-medium;
+    color: #5a6c7d;
+  }
+
+  &__highlight-label-text {
+    white-space: nowrap;
+  }
+
+  &__highlight-select {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.2rem 0.35rem;
+    font-size: 0.78rem;
+    border: 1px solid #ced4da;
+    border-radius: $border-radius-sm;
+    background: #fff;
+  }
+
   &__divider {
     height: 1px;
     background: #e8e8e8;

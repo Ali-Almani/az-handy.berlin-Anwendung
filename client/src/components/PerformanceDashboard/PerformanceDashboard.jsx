@@ -156,6 +156,16 @@ function adminStatusTdClass(isAdmin, ok) {
   return `performance-dashboard__cell-status-td performance-dashboard__cell-status-td--${suffix}`;
 }
 
+/** Manuell im Bearbeiten-Modus: auto = aus Kennzahl berechnen */
+function resolveHighlightOk(highlight, computedOk) {
+  const h = highlight == null || highlight === '' ? 'auto' : String(highlight);
+  if (h === 'auto') return computedOk;
+  if (h === 'ok') return true;
+  if (h === 'warn') return false;
+  if (h === 'neutral') return null;
+  return computedOk;
+}
+
 const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false, onMetricsLoaded }) => {
   const [metrics, setMetrics] = useState(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
@@ -543,6 +553,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   const label = getMonatRowLabel(key, row);
                   const isPercent = isPercentMonatKind(kind);
                   const status = getMonatStatus(kind, row);
+                  const displayOk = resolveHighlightOk(row?.deltaHochHighlight, status.ok);
                   const isDelta = kind === 'delta';
                   return (
                     <tr key={key}>
@@ -646,28 +657,49 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                           <input type="text" className="performance-dashboard__cell-input" value={row?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.ziel`, e.target.value)} />
                         ) : (row?.ziel ?? '–')}
                       </td>
-                      <td className={adminStatusTdClass(isAdmin, status.ok)}>
+                      <td className={adminStatusTdClass(isAdmin, displayOk)}>
                         {showRowControls ? (
-                          isDelta ? (
-                            <input
-                              type="text"
-                              className="performance-dashboard__cell-input"
-                              placeholder="z. B. 22,31 oder Ziel erreicht"
-                              value={row?.deltaHochrechnung == null ? '' : String(row.deltaHochrechnung)}
-                              onChange={(e) =>
-                                updateEdit(
-                                  `monatsziel.${key}.deltaHochrechnung`,
-                                  e.target.value === '' ? null : e.target.value
-                                )
-                              }
-                            />
-                          ) : (
-                            <input type="text" className="performance-dashboard__cell-input" value={row?.statusOverride ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.statusOverride`, e.target.value)} />
-                          )
+                          <div className="performance-dashboard__cell-edit-stack">
+                            {isDelta ? (
+                              <input
+                                type="text"
+                                className="performance-dashboard__cell-input"
+                                placeholder="z. B. 22,31 oder Ziel erreicht"
+                                value={row?.deltaHochrechnung == null ? '' : String(row.deltaHochrechnung)}
+                                onChange={(e) =>
+                                  updateEdit(
+                                    `monatsziel.${key}.deltaHochrechnung`,
+                                    e.target.value === '' ? null : e.target.value
+                                  )
+                                }
+                              />
+                            ) : (
+                              <input type="text" className="performance-dashboard__cell-input" value={row?.statusOverride ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.statusOverride`, e.target.value)} />
+                            )}
+                            <label className="performance-dashboard__highlight-label">
+                              <span className="performance-dashboard__highlight-label-text">Hintergrund</span>
+                              <select
+                                className="performance-dashboard__highlight-select"
+                                value={row?.deltaHochHighlight == null || row?.deltaHochHighlight === '' ? 'auto' : row.deltaHochHighlight}
+                                onChange={(e) =>
+                                  updateEdit(
+                                    `monatsziel.${key}.deltaHochHighlight`,
+                                    e.target.value === 'auto' ? null : e.target.value
+                                  )
+                                }
+                                aria-label="Hintergrundfarbe Delta zur Hochrechnung"
+                              >
+                                <option value="auto">Automatisch</option>
+                                <option value="ok">Grün</option>
+                                <option value="warn">Rot</option>
+                                <option value="neutral">Ohne</option>
+                              </select>
+                            </label>
+                          </div>
                         ) : isAdmin ? (
                           <span className="performance-dashboard__cell-status-label">{status.text}</span>
                         ) : (
-                          <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
+                          <span className={`performance-dashboard__status performance-dashboard__status--${displayOk === true ? 'ok' : displayOk === false ? 'warn' : 'neutral'}`}>
                             {status.text}
                           </span>
                         )}
@@ -708,6 +740,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   const row = qo[key] || {};
                   const label = getQuartalRowLabel(key, row);
                   const status = getQuartalStatus(row);
+                  const displayRestOk = resolveHighlightOk(row?.restHighlight, status.ok);
                   return (
                     <tr key={key}>
                       <td className="performance-dashboard__cell-label performance-dashboard__cell-label--stack">
@@ -792,19 +825,40 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                           <input type="text" className="performance-dashboard__cell-input" value={row?.ziel ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.ziel`, e.target.value)} />
                         ) : (row?.ziel ?? '–')}
                       </td>
-                      <td className={adminStatusTdClass(isAdmin, status.ok)}>
+                      <td className={adminStatusTdClass(isAdmin, displayRestOk)}>
                         {showRowControls ? (
-                          <input
-                            type="text"
-                            className="performance-dashboard__cell-input"
-                            placeholder="Zahl oder Text, z. B. 36 oder OK"
-                            value={row?.rest ?? row?.fehlen ?? ''}
-                            onChange={(e) => updateEdit(`quartalsziel.${key}.rest`, e.target.value)}
-                          />
+                          <div className="performance-dashboard__cell-edit-stack">
+                            <input
+                              type="text"
+                              className="performance-dashboard__cell-input"
+                              placeholder="Zahl oder Text, z. B. 36 oder OK"
+                              value={row?.rest ?? row?.fehlen ?? ''}
+                              onChange={(e) => updateEdit(`quartalsziel.${key}.rest`, e.target.value)}
+                            />
+                            <label className="performance-dashboard__highlight-label">
+                              <span className="performance-dashboard__highlight-label-text">Hintergrund</span>
+                              <select
+                                className="performance-dashboard__highlight-select"
+                                value={row?.restHighlight == null || row?.restHighlight === '' ? 'auto' : row.restHighlight}
+                                onChange={(e) =>
+                                  updateEdit(
+                                    `quartalsziel.${key}.restHighlight`,
+                                    e.target.value === 'auto' ? null : e.target.value
+                                  )
+                                }
+                                aria-label="Hintergrundfarbe Rest"
+                              >
+                                <option value="auto">Automatisch</option>
+                                <option value="ok">Grün</option>
+                                <option value="warn">Rot</option>
+                                <option value="neutral">Ohne</option>
+                              </select>
+                            </label>
+                          </div>
                         ) : isAdmin ? (
                           <span className="performance-dashboard__cell-status-label">{status.text}</span>
                         ) : (
-                          <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
+                          <span className={`performance-dashboard__status performance-dashboard__status--${displayRestOk === true ? 'ok' : displayRestOk === false ? 'warn' : 'neutral'}`}>
                             {status.text}
                           </span>
                         )}
