@@ -110,7 +110,7 @@ export function useImeisCopyHandlers({
     const isOthersEntry = canUpdateOthersHistory && entry.userName && String(entry.userName).trim() !== String(user?.name || '').trim();
     const isOfficeOthersAction =
       isOthersEntry &&
-      (newAction === 'angenommen' || newAction === 'abgelehnt' || newAction === 'entfernen') &&
+      (newAction === 'angenommen' || newAction === 'abgelehnt') &&
       updateHistoryActionApi;
 
     if (!isOfficeOthersAction) {
@@ -176,7 +176,7 @@ export function useImeisCopyHandlers({
   const handleHistoryModalUndo = useCallback(() => {
     if (historyUndoStack.length === 0) return;
     const undoState = historyUndoStack[historyUndoStack.length - 1];
-    if (undoState.newAction === 'angenommen' || undoState.newAction === 'abgelehnt' || undoState.newAction === 'entfernen') {
+    if (undoState.newAction === 'angenommen' || undoState.newAction === 'abgelehnt') {
       const updatedHistory = [...copyHistory];
       updatedHistory.splice(undoState.index, 0, undoState.entry);
       setCopyHistory(updatedHistory);

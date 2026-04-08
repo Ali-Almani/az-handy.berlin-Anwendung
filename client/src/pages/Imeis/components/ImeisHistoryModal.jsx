@@ -10,9 +10,7 @@ const ImeisHistoryModal = ({
   onUndo,
   canSendReminder = false,
   currentUserName = '',
-  onSendReminder,
-  /** Büro / Teamleiter: Verlauf-Eintrag löschen, Ablehnen, Angenommen (Server) */
-  showOfficeVerlaufActions = false
+  onSendReminder
 }) => {
   const [confirmation, setConfirmation] = useState(null); // { index, action, message }
   const [toast, setToast] = useState(null); // { message, type: 'success' }
@@ -43,19 +41,18 @@ const ImeisHistoryModal = ({
       setConfirmation({
         index: originalIndex,
         action: 'angenommen',
-        message: <>Bist du sicher, dass du den <span style={{ color: 'red' }}>CHECK-OUT</span> bei Partos durchgeführt hast?</>
+        message: (
+          <>
+            CHECK-OUT bei Partos durchgeführt? Die IMEI wird <strong>aus der Liste und dem Verlauf</strong> entfernt.
+          </>
+        )
       });
     } else if (selectedValue === 'abgelehnt') {
       setConfirmation({
         index: originalIndex,
         action: 'abgelehnt',
-        message: 'Bist du sicher, dass der Vertrag bei Partos abgelehnt wurde?'
-      });
-    } else if (selectedValue === 'entfernen') {
-      setConfirmation({
-        index: originalIndex,
-        action: 'entfernen',
-        message: 'Diesen Verlaufseintrag löschen? Die IMEI erscheint wieder in der Liste (ohne Partos-Entscheidung).'
+        message:
+          'Vertrag bei Partos abgelehnt? Der Verlaufseintrag wird entfernt und die IMEI erscheint wieder in der Liste.'
       });
     } else if (selectedValue) {
       onUpdateHistoryAction(originalIndex, selectedValue);
@@ -68,10 +65,8 @@ const ImeisHistoryModal = ({
     setToast({
       message:
         confirmation.action === 'angenommen'
-          ? 'Vertrag wurde bei Partos als angenommen bestätigt.'
-          : confirmation.action === 'entfernen'
-            ? 'Verlaufseintrag entfernt.'
-            : 'Vertrag wurde bei Partos als abgelehnt bestätigt.',
+          ? 'Angenommen: IMEI wurde aus der Liste und dem Verlauf entfernt.'
+          : 'Abgelehnt: Verlauf entfernt, IMEI wieder in der Liste.',
       type: 'success'
     });
     setConfirmation(null);
@@ -171,9 +166,6 @@ const ImeisHistoryModal = ({
                           <option value="">Aktion wählen</option>
                           <option value="angenommen">Angenommen</option>
                           <option value="abgelehnt">Abgelehnt</option>
-                          {showOfficeVerlaufActions ? (
-                            <option value="entfernen">Verlauf löschen (IMEI zurück in Liste)</option>
-                          ) : null}
                         </select>
                         {entry.action === 'checkout' && (
                           <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem', fontStyle: 'italic' }}>
