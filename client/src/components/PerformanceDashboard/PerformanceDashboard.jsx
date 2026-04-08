@@ -149,6 +149,13 @@ function isPercentMonatKind(kind) {
   return kind === 'percentGt' || kind === 'percentLt';
 }
 
+/** Zellen-Hintergrund für Admins: grün / rot / neutral */
+function adminStatusTdClass(isAdmin, ok) {
+  if (!isAdmin) return '';
+  const suffix = ok === true ? 'ok' : ok === false ? 'warn' : 'neutral';
+  return `performance-dashboard__cell-status-td performance-dashboard__cell-status-td--${suffix}`;
+}
+
 const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false, onMetricsLoaded }) => {
   const [metrics, setMetrics] = useState(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
@@ -369,12 +376,17 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   const getQuartalStatus = (qo) => {
     const rest = qo?.rest;
+    if (rest == null || rest === '') return { text: '–', ok: null };
     if (rest === 'OK' || rest === 'Erledigt' || (typeof rest === 'string' && rest.toLowerCase().includes('ok'))) {
-      return { text: 'OK', ok: true };
+      return { text: String(rest).trim(), ok: true };
     }
-    const num = typeof rest === 'number' ? rest : parseInt(rest, 10);
-    if (!Number.isNaN(num) && num > 0) return { text: String(num), ok: false };
-    return { text: String(rest ?? '–'), ok: false };
+    const rawStr = typeof rest === 'string' ? rest.trim().replace(/\s/g, '') : '';
+    const num = typeof rest === 'number' ? rest : parseInt(rawStr, 10);
+    if (!Number.isNaN(num)) {
+      if (num <= 0) return { text: formatDeDisplay(num), ok: true };
+      return { text: formatDeDisplay(num), ok: false };
+    }
+    return { text: String(rest), ok: null };
   };
 
   if (loading) {
@@ -634,7 +646,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                           <input type="text" className="performance-dashboard__cell-input" value={row?.ziel ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.ziel`, e.target.value)} />
                         ) : (row?.ziel ?? '–')}
                       </td>
-                      <td>
+                      <td className={adminStatusTdClass(isAdmin, status.ok)}>
                         {showRowControls ? (
                           isDelta ? (
                             <input
@@ -652,6 +664,8 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                           ) : (
                             <input type="text" className="performance-dashboard__cell-input" value={row?.statusOverride ?? ''} onChange={(e) => updateEdit(`monatsziel.${key}.statusOverride`, e.target.value)} />
                           )
+                        ) : isAdmin ? (
+                          <span className="performance-dashboard__cell-status-label">{status.text}</span>
                         ) : (
                           <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
                             {status.text}
@@ -778,7 +792,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                           <input type="text" className="performance-dashboard__cell-input" value={row?.ziel ?? ''} onChange={(e) => updateEdit(`quartalsziel.${key}.ziel`, e.target.value)} />
                         ) : (row?.ziel ?? '–')}
                       </td>
-                      <td>
+                      <td className={adminStatusTdClass(isAdmin, status.ok)}>
                         {showRowControls ? (
                           <input
                             type="text"
@@ -787,8 +801,10 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                             value={row?.rest ?? row?.fehlen ?? ''}
                             onChange={(e) => updateEdit(`quartalsziel.${key}.rest`, e.target.value)}
                           />
+                        ) : isAdmin ? (
+                          <span className="performance-dashboard__cell-status-label">{status.text}</span>
                         ) : (
-                          <span className={`performance-dashboard__status performance-dashboard__status--${status.ok ? 'ok' : 'warn'}`}>
+                          <span className={`performance-dashboard__status performance-dashboard__status--${status.ok === true ? 'ok' : status.ok === false ? 'warn' : 'neutral'}`}>
                             {status.text}
                           </span>
                         )}
