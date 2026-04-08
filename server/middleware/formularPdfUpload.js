@@ -23,21 +23,46 @@ const storage = multer.diskStorage({
 /** Darf `client_max_body_size` am Reverse-Proxy (z. B. Nginx) nicht überschreiten, sonst 413 bevor Multer greift. */
 export const FORMULAR_CENTER_MAX_FILE_BYTES = 100 * 1024 * 1024;
 
-const PDF_MIME = /^application\/pdf$/i;
-const DOC_MIME = /^application\/msword$/i;
-const DOCX_MIME =
-  /^application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document$/i;
-
 const ALLOWED_EXT = new Set(['.pdf', '.doc', '.docx']);
+
+/** Browser/Proxy hängen oft "; charset=…" o. Ä. an – ohne Normalisierung schlagen strikte Regex-Checks fehl. */
+function baseMime(file) {
+  return String(file.mimetype || '')
+    .trim()
+    .toLowerCase()
+    .split(';')[0]
+    .trim();
+}
+
+function mimeLooksPdf(m) {
+  return m === 'application/pdf';
+}
+
+function mimeLooksWordBinary(m) {
+  return (
+    m === 'application/msword' ||
+    m === 'application/vnd.ms-word' ||
+    m === 'application/vnd.ms-word.document.macroenabled.12' ||
+    m.startsWith('application/vnd.ms-word.')
+  );
+}
+
+function mimeLooksDocx(m) {
+  return (
+    m === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    m.includes('wordprocessingml.document')
+  );
+}
 
 function getSafeExtension(file) {
   const name = String(file.originalname || '').toLowerCase();
   const fromName = path.extname(name);
   if (ALLOWED_EXT.has(fromName)) return fromName;
-  const mime = String(file.mimetype || '').trim().toLowerCase();
-  if (PDF_MIME.test(mime)) return '.pdf';
-  if (DOC_MIME.test(mime)) return '.doc';
-  if (DOCX_MIME.test(mime)) return '.docx';
+  const mime = baseMime(file);
+  if (mimeLooksPdf(mime)) return '.pdf';
+  if (mimeLooksDocx(mime)) return '.docx';
+  if (mime === 'application/zip' && name.endsWith('.docx')) return '.docx';
+  if (mimeLooksWordBinary(mime)) return '.doc';
   if (!mime || mime === 'application/octet-stream') {
     if (name.endsWith('.pdf')) return '.pdf';
     if (name.endsWith('.docx')) return '.docx';
@@ -50,10 +75,12 @@ function isAllowedFormularDocument(file) {
   const name = String(file.originalname || '').toLowerCase();
   const ext = path.extname(name);
   if (ALLOWED_EXT.has(ext)) return true;
-  const mime = String(file.mimetype || '').trim().toLowerCase();
-  if (PDF_MIME.test(mime)) return true;
-  if (DOC_MIME.test(mime)) return true;
-  if (DOCX_MIME.test(mime)) return true;
+  const mime = baseMime(file);
+  if (mimeLooksPdf(mime)) return true;
+  if (mimeLooksWordBinary(mime)) return true;
+  if (mimeLooksDocx(mime)) return true;
+  if (mime === 'application/zip' && name.endsWith('.docx')) return true;
+  if (mime === 'application/octet-stream' && name.match(/\.(pdf|doc|docx)$/)) return true;
   return false;
 }
 
