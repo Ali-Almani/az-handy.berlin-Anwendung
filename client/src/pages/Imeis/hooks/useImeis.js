@@ -101,6 +101,7 @@ export function useImeis() {
   });
 
   useEffect(() => {
+    if (imeis.length === 0) return;
     const manufacturers = new Set();
     imeis.forEach(item => {
       const manufacturer = getManufacturer(item);

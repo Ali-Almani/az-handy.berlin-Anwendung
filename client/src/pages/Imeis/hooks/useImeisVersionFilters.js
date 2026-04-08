@@ -46,6 +46,10 @@ export function useImeisVersionFilters({
       return;
     }
 
+    // Leere Liste kurzzeitig (z. B. API-/Netzwerkfehler beim Poll): Filter nicht zurücksetzen,
+    // sonst springt useImeisMainFilter auf Seite 1 und Pagination wirkt „kaputt“.
+    if (imeis.length === 0) return;
+
     const allManufacturerItems = imeis.filter(item => {
       const manufacturer = getManufacturer(item);
       return manufacturer && manufacturer.trim() === activeManufacturer;
@@ -163,6 +167,7 @@ export function useImeisVersionFilters({
       setActiveProduct(null);
       return;
     }
+    if (imeis.length === 0) return;
     const products = new Set();
     let hasO2AktionProducts = false;
     imeis.forEach(item => {

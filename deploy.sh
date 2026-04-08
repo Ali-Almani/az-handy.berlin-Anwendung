@@ -4,11 +4,29 @@
 # ============================================
 # Verwendung: ./deploy.sh
 # Voraussetzung: .env mit CLIENT_URL, DATABASE_URL
+#
+# Nur Schnelltest (Standard):  ./deploy.sh
+# Zusätzlich Intranet-Static:    DEPLOY_INTRANET=1 ./deploy.sh
+# Oder nur Ziel wählen:          DEPLOY_TARGET=both|schnelltest|intranet ./deploy.sh
+#
+# Pfade (anpassbar):
+#   WEB_ROOT_SCHNELLTEST  (default /var/www/az-schnelltest.berlin)
+#   WEB_ROOT_INTRANET    (default /var/www/az-intranet/html)
 # ============================================
 
 set -e
 PM2_NAME="${PM2_NAME:-az-api}"
-WEB_ROOT="/var/www/az-schnelltest.berlin"
+WEB_ROOT_SCHNELLTEST="${WEB_ROOT_SCHNELLTEST:-/var/www/az-schnelltest.berlin}"
+WEB_ROOT_INTRANET="${WEB_ROOT_INTRANET:-/var/www/az-intranet/html}"
+DEPLOY_TARGET="${DEPLOY_TARGET:-}"
+if [ -z "$DEPLOY_TARGET" ]; then
+  if [ "${DEPLOY_INTRANET:-0}" = "1" ]; then
+    DEPLOY_TARGET="both"
+  else
+    DEPLOY_TARGET="schnelltest"
+  fi
+fi
+
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 cd "$PROJECT_DIR"
@@ -24,9 +42,25 @@ npm run install-client
 echo "🏗️ Baue Frontend..."
 npm run build
 
-echo "📂 Kopiere neues Frontend zu $WEB_ROOT..."
-mkdir -p "$WEB_ROOT"
-cp -r client/dist/* "$WEB_ROOT/"
+deploy_frontend_dir() {
+  local dest="$1"
+  echo "📂 Kopiere neues Frontend zu $dest..."
+  mkdir -p "$dest"
+  cp -r client/dist/* "$dest/"
+}
+
+case "$DEPLOY_TARGET" in
+  intranet)
+    deploy_frontend_dir "$WEB_ROOT_INTRANET"
+    ;;
+  both)
+    deploy_frontend_dir "$WEB_ROOT_SCHNELLTEST"
+    deploy_frontend_dir "$WEB_ROOT_INTRANET"
+    ;;
+  schnelltest|*)
+    deploy_frontend_dir "$WEB_ROOT_SCHNELLTEST"
+    ;;
+esac
 
 echo "🔧 Installiere Backend-Abhängigkeiten..."
 npm run install-server

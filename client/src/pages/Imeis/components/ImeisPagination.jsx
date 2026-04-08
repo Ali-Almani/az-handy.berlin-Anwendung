@@ -4,6 +4,7 @@ const ImeisPagination = ({ currentPage, totalPages, onPageChange }) => {
   return (
     <div className="imeis-pagination">
       <button
+        type="button"
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
         className="btn btn--secondary btn--small"
@@ -14,6 +15,7 @@ const ImeisPagination = ({ currentPage, totalPages, onPageChange }) => {
         Seite <strong>{currentPage}</strong> von <strong>{totalPages}</strong>
       </span>
       <button
+        type="button"
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
         className="btn btn--secondary btn--small"
