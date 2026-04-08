@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import ImeisUserData from '../models/ImeisUserData.js';
 import User from '../models/User.js';
 import { normalizeUserId, resolveAuthUserId, coerceUserId } from '../utils/normalizeUserId.js';
@@ -9,6 +9,59 @@ import * as ReminderResponseNotification from '../models/ReminderResponseNotific
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
+
+const normHistUserName = (s) =>
+  String(s || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+/** Verlauf „Benutzer“ wie im gemischten Modal – exakt, Groß/klein, Mehrfach-Leerzeichen */
+async function resolveTargetUserByName(rawName) {
+  const t = String(rawName || '').trim().replace(/\s+/g, ' ');
+  if (!t) return null;
+  let u = await User.findOne({ where: { name: t } });
+  if (u) return u;
+  const tLow = t.toLowerCase();
+  if (USE_MEMORY_DB) {
+    const all = await User.findAll({});
+    return all.find((x) => normHistUserName(x.name) === tLow) ?? null;
+  }
+  try {
+    const byLower = await User.findOne({
+      where: sqlWhere(fn('LOWER', fn('BTRIM', col('name'))), tLow)
+    });
+    if (byLower) return byLower;
+  } catch (_) {}
+  return await User.findOne({ where: { name: { [Op.iLike]: t } } });
+}
+
+/** Abgelehnt (Büro): Eintrag in jedem copy_history_json mit gleicher IMEI + gleichem Anzeigenamen entfernen */
+const removeCopyHistoryEntriesForImeiAndDisplayName = async (imeiRaw, displayNameRaw) => {
+  const imeiStr = String(imeiRaw || '').trim();
+  const want = normHistUserName(displayNameRaw);
+  if (!imeiStr || !want) return;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+    let arr = [];
+    try {
+      arr = historyJson ? JSON.parse(historyJson) : [];
+    } catch (_) {}
+    if (!Array.isArray(arr)) continue;
+    const next = arr.filter((e) => {
+      if (!e) return true;
+      if (String(e.imei || '').trim() !== imeiStr) return true;
+      return normHistUserName(e.userName) !== want;
+    });
+    if (next.length === arr.length) continue;
+    await ImeisUserData.upsert({
+      user_id: rowUserId,
+      copy_history_json: JSON.stringify(next)
+    });
+  }
+};
 
 /** Sequelize/DB liefert Rollen mitunter nicht als String – für Rechtevergleiche normalisieren */
 const toRoleString = (role) => {
@@ -115,24 +168,6 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
     .filter((e) => e && (e.imei || e.timestamp))
     .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
     .slice(0, 200);
-};
-
-/** Nur Verlauf des Zielnutzers zu dieser IMEI (Abgelehnt im Büro-Verlauf für einen Mitarbeiter) */
-const removeCopyHistoryForUserId = async (targetUserId, imeiToRemove) => {
-  const imeiStr = String(imeiToRemove || '').trim();
-  const uid = coerceUserId(targetUserId);
-  if (!imeiStr || uid == null) return;
-  const row = await ImeisUserData.findOne({ where: { user_id: uid } });
-  if (!row) return;
-  const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
-  let arr = [];
-  try {
-    arr = historyJson ? JSON.parse(historyJson) : [];
-  } catch (_) {}
-  if (!Array.isArray(arr)) return;
-  const next = arr.filter((e) => !e || String(e.imei || '').trim() !== imeiStr);
-  if (next.length === arr.length) return;
-  await ImeisUserData.upsert({ user_id: uid, copy_history_json: JSON.stringify(next) });
 };
 
 /** Verlauf (copy_history) zu dieser IMEI bei allen Benutzern löschen – nötig für gemergten Büro-Verlauf */
@@ -663,7 +698,7 @@ export const updateHistoryAction = async (req, res, next) => {
       return res.status(400).json({ message: 'newAction: angenommen oder abgelehnt erforderlich' });
     }
 
-    const targetUser = await User.findOne({ where: { name: userName } });
+    const targetUser = await resolveTargetUserByName(userName);
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
@@ -676,13 +711,12 @@ export const updateHistoryAction = async (req, res, next) => {
     }
 
     const imeiNorm = String(imei || '').trim();
-    const targetUserId = targetUser.id ?? targetUser._id ?? targetUser.get?.('id');
 
     if (actionNorm === 'angenommen') {
       await removeImeiFromAllLists(imeiNorm);
     }
     if (actionNorm === 'abgelehnt') {
-      await removeCopyHistoryForUserId(targetUserId, imeiNorm);
+      await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, userName);
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {
@@ -735,7 +769,7 @@ export const sendImeiReminder = async (req, res, next) => {
       return res.status(400).json({ message: 'targetUserName und imei erforderlich' });
     }
 
-    const targetUser = await User.findOne({ where: { name: targetUserName } });
+    const targetUser = await resolveTargetUserByName(targetUserName);
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }

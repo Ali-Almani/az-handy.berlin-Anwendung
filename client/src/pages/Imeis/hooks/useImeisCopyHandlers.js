@@ -107,18 +107,19 @@ export function useImeisCopyHandlers({
     if (index < 0 || index >= copyHistory.length) return;
     const entry = copyHistory[index];
     const oldAction = entry.action || null;
-    const isOthersEntry = canUpdateOthersHistory && entry.userName && String(entry.userName).trim() !== String(user?.name || '').trim();
-    const isOfficeOthersAction =
-      isOthersEntry &&
+    /** Büro/Admin/Teamleiter: Angenommen/Abgelehnt immer per Server (auch eigene Zeile – sonst gemischter Verlauf/Liste inkonsistent) */
+    const isOfficeHistoryAction =
+      canUpdateOthersHistory &&
+      entry.userName &&
       (newAction === 'angenommen' || newAction === 'abgelehnt') &&
       updateHistoryActionApi;
 
-    if (!isOfficeOthersAction) {
+    if (!isOfficeHistoryAction) {
       const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
       setHistoryUndoStack((prev) => [...prev, undoState]);
     }
 
-    if (isOfficeOthersAction) {
+    if (isOfficeHistoryAction) {
       try {
         await updateHistoryActionApi(entry.imei, entry.userName, newAction);
         if (newAction === 'angenommen') setRemovedImeiCooldown();
