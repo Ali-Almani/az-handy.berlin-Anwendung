@@ -15,9 +15,8 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const useExt = ext === '.pdf' ? '.pdf' : '.pdf';
-    cb(null, `formular-${Date.now()}-${Math.random().toString(36).slice(2, 10)}${useExt}`);
+    const ext = getSafeExtension(file);
+    cb(null, `formular-${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`);
   }
 });
 
@@ -25,23 +24,50 @@ const storage = multer.diskStorage({
 export const FORMULAR_CENTER_MAX_FILE_BYTES = 100 * 1024 * 1024;
 
 const PDF_MIME = /^application\/pdf$/i;
+const DOC_MIME = /^application\/msword$/i;
+const DOCX_MIME =
+  /^application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document$/i;
 
-function isPdf(file) {
-  const mime = String(file.mimetype || '').trim().toLowerCase();
+const ALLOWED_EXT = new Set(['.pdf', '.doc', '.docx']);
+
+function getSafeExtension(file) {
   const name = String(file.originalname || '').toLowerCase();
+  const fromName = path.extname(name);
+  if (ALLOWED_EXT.has(fromName)) return fromName;
+  const mime = String(file.mimetype || '').trim().toLowerCase();
+  if (PDF_MIME.test(mime)) return '.pdf';
+  if (DOC_MIME.test(mime)) return '.doc';
+  if (DOCX_MIME.test(mime)) return '.docx';
+  if (!mime || mime === 'application/octet-stream') {
+    if (name.endsWith('.pdf')) return '.pdf';
+    if (name.endsWith('.docx')) return '.docx';
+    if (name.endsWith('.doc')) return '.doc';
+  }
+  return '.pdf';
+}
+
+function isAllowedFormularDocument(file) {
+  const name = String(file.originalname || '').toLowerCase();
+  const ext = path.extname(name);
+  if (ALLOWED_EXT.has(ext)) return true;
+  const mime = String(file.mimetype || '').trim().toLowerCase();
   if (PDF_MIME.test(mime)) return true;
-  if (name.endsWith('.pdf') && (!mime || mime === 'application/octet-stream')) return true;
+  if (DOC_MIME.test(mime)) return true;
+  if (DOCX_MIME.test(mime)) return true;
   return false;
 }
 
-export const formularPdfUpload = multer({
+export const formularCenterUpload = multer({
   storage,
   limits: { fileSize: FORMULAR_CENTER_MAX_FILE_BYTES },
   fileFilter: (req, file, cb) => {
-    if (isPdf(file)) {
+    if (isAllowedFormularDocument(file)) {
       cb(null, true);
     } else {
-      cb(new Error('Nur PDF-Dateien sind erlaubt'));
+      cb(new Error('Nur PDF- und Word-Dateien (.pdf, .doc, .docx) sind erlaubt'));
     }
   }
 });
+
+/** @deprecated – Alias; nutze formularCenterUpload */
+export const formularPdfUpload = formularCenterUpload;

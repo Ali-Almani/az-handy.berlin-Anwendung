@@ -3,7 +3,7 @@ import { getFormularCenterItems } from '../../services/formularCenter.service';
 import './FormularCenter.scss';
 
 function safeDownloadName(name) {
-  const n = String(name || 'formular.pdf').trim() || 'formular.pdf';
+  const n = String(name || 'dokument').trim() || 'dokument';
   return n.replace(/[/\\?%*:|"<>]/g, '_');
 }
 
@@ -44,7 +44,7 @@ const FormularCenter = () => {
           ) : items.length > 0 ? (
             <ul className="formular-center-list">
               {items.map((it) => {
-                const label = it.originalName || 'Formular.pdf';
+                const label = it.originalName || 'Dokument';
                 const href = it.url || '#';
                 const fileName = safeDownloadName(label);
                 return (
@@ -59,7 +59,9 @@ const FormularCenter = () => {
                 );
               })}
             </ul>
-          ) : null}
+          ) : (
+            <p className="formular-center-empty">Keine Formulare hinterlegt.</p>
+          )}
         </div>
       </div>
     </div>

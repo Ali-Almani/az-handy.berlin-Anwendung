@@ -1,7 +1,7 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import {
-  formularPdfUpload,
+  formularCenterUpload,
   FORMULAR_CENTER_MAX_FILE_BYTES
 } from '../middleware/formularPdfUpload.js';
 import {
@@ -12,11 +12,11 @@ import {
 
 const router = express.Router();
 
-/** Öffentlich: alle können Liste & PDF-URLs sehen (Dateien unter /uploads ohnehin öffentlich). */
+/** Öffentlich: alle können die Liste und die Download-URLs sehen (Dateien unter /uploads). */
 router.get('/', getFormularCenterItems);
 
 router.post('/upload', authenticateToken, (req, res, next) => {
-  formularPdfUpload.single('file')(req, res, (err) => {
+  formularCenterUpload.single('file')(req, res, (err) => {
     if (err) {
       const code = err.code;
       const maxMb = Math.round(FORMULAR_CENTER_MAX_FILE_BYTES / (1024 * 1024));

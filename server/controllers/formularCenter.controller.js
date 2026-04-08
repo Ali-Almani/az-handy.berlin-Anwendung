@@ -44,7 +44,7 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
     if (!(await isAdminUser(req.user.userId))) {
       return res.status(403).json({
         success: false,
-        message: 'Nur Administratoren können PDFs im Formular Center hochladen'
+        message: 'Nur Administratoren können Dateien im Formular Center hochladen'
       });
     }
     if (!req.file) {

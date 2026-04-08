@@ -16,7 +16,7 @@ import {
 } from '../../services/dashboard.service';
 import {
   getFormularCenterItems,
-  uploadFormularCenterPdf,
+  uploadFormularCenterFile,
   deleteFormularCenterItem
 } from '../../services/formularCenter.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
@@ -191,7 +191,7 @@ const Dashboard = () => {
     setFormularUploadBusy(true);
     setFormularError(null);
     try {
-      await uploadFormularCenterPdf(file);
+      await uploadFormularCenterFile(file);
       await loadFormularCenter();
     } catch (err) {
       const status = err.response?.status;
@@ -203,7 +203,7 @@ const Dashboard = () => {
         msg =
           apiMsg && apiMsg.length <= 160
             ? apiMsg
-            : 'Upload zu groß (413). Nginx „client_max_body_size“ anpassen oder PDF max. 100 MB.';
+            : 'Upload zu groß (413). Nginx „client_max_body_size“ anpassen oder Datei max. 100 MB.';
       }
       setFormularError(msg);
     } finally {
@@ -844,18 +844,18 @@ const Dashboard = () => {
               <div className="card dashboard-formular-center dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Formular Center</h2>
-                  <span className="dashboard-excel-upload__badge">PDF</span>
+                  <span className="dashboard-excel-upload__badge">PDF &amp; Word</span>
                 </div>
                 <div className="card-body">
                   <p className="formular-center-intro">
-                    PDFs, die Sie hier hochladen, erscheinen für alle Benutzer unter „Formular Center“ in der
-                    Navigation.
+                    PDF- und Word-Dateien (.pdf, .doc, .docx), die Sie hier hochladen, erscheinen für alle
+                    Benutzer unter „Formular Center“ in der Navigation.
                   </p>
                   <div className="formular-center-upload dashboard-formular-upload">
                     <input
                       ref={formularFileInputRef}
                       type="file"
-                      accept="application/pdf,.pdf"
+                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                       className="formular-center-file-input"
                       onChange={handleFormularFileChange}
                     />
@@ -866,9 +866,9 @@ const Dashboard = () => {
                         disabled={formularUploadBusy}
                         onClick={() => formularFileInputRef.current?.click()}
                       >
-                        {formularUploadBusy ? 'Wird hochgeladen…' : 'PDF hochladen'}
+                        {formularUploadBusy ? 'Wird hochgeladen…' : 'Datei hochladen'}
                       </button>
-                      <span className="formular-center-upload-hint">max. 100 MB · PDF</span>
+                      <span className="formular-center-upload-hint">max. 100 MB · PDF, Word</span>
                     </div>
                   </div>
                   {formularError && <p className="text-error formular-center-error">{formularError}</p>}
@@ -884,7 +884,7 @@ const Dashboard = () => {
                             rel="noopener noreferrer"
                             className="formular-center-link"
                           >
-                            {it.originalName || 'Formular.pdf'}
+                            {it.originalName || 'Dokument'}
                           </a>
                           <button
                             type="button"
@@ -897,7 +897,9 @@ const Dashboard = () => {
                         </li>
                       ))}
                     </ul>
-                  ) : null}
+                  ) : (
+                    <p className="formular-center-empty">Noch keine Dateien hochgeladen.</p>
+                  )}
                 </div>
               </div>
             )}
