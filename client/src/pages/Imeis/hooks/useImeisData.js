@@ -15,7 +15,12 @@ function processCopyHistory(savedCopyHistory) {
     }
   });
   return Array.from(uniqueHistoryMap.values())
-    .map(entry => ({ ...entry, action: entry.action === 'abgelehnt' ? 'abgelehnt' : 'checkout' }))
+    .map((entry) => {
+      const a = entry.action;
+      const action =
+        a === 'abgelehnt' ? 'abgelehnt' : a === 'angenommen' ? 'angenommen' : 'checkout';
+      return { ...entry, action };
+    })
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
@@ -47,6 +52,11 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
     setActiveManufacturer(null);
     setHistory([]);
   }
+}
+
+/** Einheitlich nach PATCH /history-action oder manuell: Server-Zustand in React übernehmen */
+export function applyImeisServerPayload(data, setters, getManufacturer, isInitialLoad = false) {
+  applyImeisData(data, setters, getManufacturer, isInitialLoad);
 }
 
 export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user, showHistoryModal = false) {

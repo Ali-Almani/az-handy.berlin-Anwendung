@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { loadImeis, deleteAllImeis } from '../../../utils/storage';
-import { persistImeisState, updateHistoryActionApi } from '../../../services/imeis.service';
-import { isBüroMitarbeiter } from '../../../utils/roles';
+import { persistImeisState, updateHistoryActionApi, getImeisDataFromApi } from '../../../services/imeis.service';
+import { isBüroMitarbeiter, isTeamleiterShop } from '../../../utils/roles';
 import { useImeisVersionFilters } from './useImeisVersionFilters';
 import { useImeisCopyHandlers } from './useImeisCopyHandlers';
-import { useImeisData } from './useImeisData';
+import { useImeisData, applyImeisServerPayload } from './useImeisData';
 import { useImeisMainFilter } from './useImeisMainFilter';
 import { useImeisCellHandlers } from './useImeisCellHandlers';
 import {
@@ -100,6 +100,31 @@ export function useImeis() {
     setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells
   });
 
+  const refreshImeisFromApi = useCallback(async () => {
+    try {
+      const data = await getImeisDataFromApi();
+      if (data) {
+        applyImeisServerPayload(
+          data,
+          {
+            setImeis,
+            setCellTextColors,
+            setRowActions,
+            setCopyHistory,
+            setCopyTimestamps,
+            setAvailableSheets,
+            setActiveSheet,
+            setAvailableManufacturers,
+            setActiveManufacturer,
+            setHistory
+          },
+          getManufacturer,
+          false
+        );
+      }
+    } catch (_) {}
+  }, [getManufacturer]);
+
   useEffect(() => {
     if (imeis.length === 0) return;
     const manufacturers = new Set();
@@ -192,7 +217,10 @@ export function useImeis() {
     user, copyHistory, setCopyHistory, copyTimestamps, setCopyTimestamps, rowActions, setRowActions, historyUndoStack, setHistoryUndoStack,
     selectedCells, currentImeis, getManufacturer, getProductFull, setShowRateLimitModal, setRateLimitMessage,
     setSelectedRowForDropdown, setCopySuccess, expandSelection, persistImeis,
-    updateHistoryActionApi, canUpdateOthersHistory: isBüroMitarbeiter(user), setImeis
+    updateHistoryActionApi,
+    canUpdateOthersHistory: isBüroMitarbeiter(user) || isTeamleiterShop(user),
+    setImeis,
+    refreshImeisFromApi
   });
 
   useEffect(() => {

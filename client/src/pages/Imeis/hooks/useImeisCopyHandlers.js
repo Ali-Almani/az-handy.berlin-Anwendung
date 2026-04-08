@@ -27,7 +27,8 @@ export function useImeisCopyHandlers({
   persistImeis,
   updateHistoryActionApi,
   canUpdateOthersHistory = false,
-  setImeis
+  setImeis,
+  refreshImeisFromApi
 }) {
   const checkCopyRateLimit = useCallback(() => {
     if (!user) return { allowed: true, remaining: MAX_COPIES, count: 0 };
@@ -106,30 +107,23 @@ export function useImeisCopyHandlers({
     if (index < 0 || index >= copyHistory.length) return;
     const entry = copyHistory[index];
     const oldAction = entry.action || null;
-    const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
-    setHistoryUndoStack(prev => [...prev, undoState]);
-
     const isOthersEntry = canUpdateOthersHistory && entry.userName && String(entry.userName).trim() !== String(user?.name || '').trim();
-    if (isOthersEntry && (newAction === 'angenommen' || newAction === 'abgelehnt') && updateHistoryActionApi) {
+    const isOfficeOthersAction =
+      isOthersEntry &&
+      (newAction === 'angenommen' || newAction === 'abgelehnt' || newAction === 'entfernen') &&
+      updateHistoryActionApi;
+
+    if (!isOfficeOthersAction) {
+      const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
+      setHistoryUndoStack((prev) => [...prev, undoState]);
+    }
+
+    if (isOfficeOthersAction) {
       try {
         await updateHistoryActionApi(entry.imei, entry.userName, newAction);
         if (newAction === 'angenommen') setRemovedImeiCooldown();
-        const updatedHistory = copyHistory.filter((_, i) => i !== index);
-        setCopyHistory(updatedHistory);
-        if (newAction === 'angenommen' && setImeis) {
-          const imeiStr = String(entry.imei || '').trim();
-          setImeis(prev => prev.filter(item => String(item?.imei || '').trim() !== imeiStr));
-        }
-        if (newAction === 'abgelehnt') {
-          const imeiToReject = entry.imei;
-          const updatedRowActions = { ...rowActions };
-          Object.keys(updatedRowActions).forEach(rowId => {
-            if (rowId.includes(`-${imeiToReject}-`)) delete updatedRowActions[rowId];
-          });
-          setRowActions(updatedRowActions);
-        }
+        await refreshImeisFromApi?.();
       } catch (err) {
-        setHistoryUndoStack(prev => prev.slice(0, -1));
         alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));
       }
       return;
@@ -166,12 +160,23 @@ export function useImeisCopyHandlers({
     updatedHistory[index] = { ...updatedHistory[index], action: newAction || null, userName: user?.name || updatedHistory[index].userName || 'Unbekannt', timestamp: new Date().toISOString() };
     setCopyHistory(updatedHistory);
     persistImeis?.({ copyHistory: updatedHistory });
-  }, [copyHistory, user, rowActions, setCopyHistory, setRowActions, setHistoryUndoStack, canUpdateOthersHistory, updateHistoryActionApi, setImeis]);
+  }, [
+    copyHistory,
+    user,
+    rowActions,
+    setCopyHistory,
+    setRowActions,
+    setHistoryUndoStack,
+    canUpdateOthersHistory,
+    updateHistoryActionApi,
+    setImeis,
+    refreshImeisFromApi
+  ]);
 
   const handleHistoryModalUndo = useCallback(() => {
     if (historyUndoStack.length === 0) return;
     const undoState = historyUndoStack[historyUndoStack.length - 1];
-    if (undoState.newAction === 'angenommen' || undoState.newAction === 'abgelehnt') {
+    if (undoState.newAction === 'angenommen' || undoState.newAction === 'abgelehnt' || undoState.newAction === 'entfernen') {
       const updatedHistory = [...copyHistory];
       updatedHistory.splice(undoState.index, 0, undoState.entry);
       setCopyHistory(updatedHistory);

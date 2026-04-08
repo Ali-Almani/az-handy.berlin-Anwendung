@@ -249,6 +249,7 @@ const Imeis = () => {
         onUpdateHistoryAction={handleUpdateHistoryAction}
         historyUndoStack={historyUndoStack}
         onUndo={handleHistoryModalUndo}
+        showOfficeVerlaufActions={isBüroMitarbeiter(user) || isTeamleiterShop(user)}
         canSendReminder={isBüroMitarbeiter(user) || isTeamleiterShop(user)}
         currentUserName={user?.name}
         onSendReminder={async (entry) => {

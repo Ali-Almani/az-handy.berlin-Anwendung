@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 
-const ImeisHistoryModal = ({ 
-  isOpen, 
-  onClose, 
-  copyHistory, 
+const ImeisHistoryModal = ({
+  isOpen,
+  onClose,
+  copyHistory,
   filterImeis,
   onUpdateHistoryAction,
   historyUndoStack,
   onUndo,
   canSendReminder = false,
   currentUserName = '',
-  onSendReminder
+  onSendReminder,
+  /** Büro / Teamleiter: Verlauf-Eintrag löschen, Ablehnen, Angenommen (Server) */
+  showOfficeVerlaufActions = false
 }) => {
   const [confirmation, setConfirmation] = useState(null); // { index, action, message }
   const [toast, setToast] = useState(null); // { message, type: 'success' }
@@ -49,6 +51,12 @@ const ImeisHistoryModal = ({
         action: 'abgelehnt',
         message: 'Bist du sicher, dass der Vertrag bei Partos abgelehnt wurde?'
       });
+    } else if (selectedValue === 'entfernen') {
+      setConfirmation({
+        index: originalIndex,
+        action: 'entfernen',
+        message: 'Diesen Verlaufseintrag löschen? Die IMEI erscheint wieder in der Liste (ohne Partos-Entscheidung).'
+      });
     } else if (selectedValue) {
       onUpdateHistoryAction(originalIndex, selectedValue);
     }
@@ -58,9 +66,12 @@ const ImeisHistoryModal = ({
     if (!confirmation) return;
     onUpdateHistoryAction(confirmation.index, confirmation.action);
     setToast({
-      message: confirmation.action === 'angenommen' 
-        ? 'Vertrag wurde bei Partos als angenommen bestätigt.' 
-        : 'Vertrag wurde bei Partos als abgelehnt bestätigt.',
+      message:
+        confirmation.action === 'angenommen'
+          ? 'Vertrag wurde bei Partos als angenommen bestätigt.'
+          : confirmation.action === 'entfernen'
+            ? 'Verlaufseintrag entfernt.'
+            : 'Vertrag wurde bei Partos als abgelehnt bestätigt.',
       type: 'success'
     });
     setConfirmation(null);
@@ -135,7 +146,13 @@ const ImeisHistoryModal = ({
                       <td className="imei-value">{entry.imei}</td>
                       <td>
                         <select
-                          value={entry.action === 'angenommen' ? 'angenommen' : entry.action === 'abgelehnt' ? 'abgelehnt' : ''}
+                          value={
+                            entry.action === 'angenommen'
+                              ? 'angenommen'
+                              : entry.action === 'abgelehnt'
+                                ? 'abgelehnt'
+                                : ''
+                          }
                           onChange={(e) => {
                             const selectedValue = e.target.value;
                             handleActionSelect(originalIndex, selectedValue);
@@ -154,6 +171,9 @@ const ImeisHistoryModal = ({
                           <option value="">Aktion wählen</option>
                           <option value="angenommen">Angenommen</option>
                           <option value="abgelehnt">Abgelehnt</option>
+                          {showOfficeVerlaufActions ? (
+                            <option value="entfernen">Verlauf löschen (IMEI zurück in Liste)</option>
+                          ) : null}
                         </select>
                         {entry.action === 'checkout' && (
                           <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem', fontStyle: 'italic' }}>

@@ -616,6 +616,10 @@ export const updateHistoryAction = async (req, res, next) => {
     if (!imei || !userName) {
       return res.status(400).json({ message: 'imei und userName erforderlich' });
     }
+    const actionNorm = String(newAction || '').trim();
+    if (!['angenommen', 'abgelehnt', 'entfernen'].includes(actionNorm)) {
+      return res.status(400).json({ message: 'newAction: angenommen, abgelehnt oder entfernen erforderlich' });
+    }
 
     const targetUser = await User.findOne({ where: { name: userName } });
     if (!targetUser) {
@@ -643,10 +647,11 @@ export const updateHistoryAction = async (req, res, next) => {
     );
     await ImeisUserData.upsert({ user_id: targetUser.id, copy_history_json: JSON.stringify(updatedHistory) });
 
-    if (newAction === 'angenommen') {
+    if (actionNorm === 'angenommen') {
       await removeImeiFromAllLists(imei);
     }
-    if (newAction === 'abgelehnt') {
+    /** abgelehnt / entfernen: IMEI wieder in der Liste (Reservieren/Checkout-Status für diese IMEI löschen) */
+    if (actionNorm === 'abgelehnt' || actionNorm === 'entfernen') {
       const dataOwnerId = await getSharedImeiOwnerId();
       if (dataOwnerId) {
         const [ownerData] = await ImeisUserData.findOrCreate({
@@ -669,7 +674,11 @@ export const updateHistoryAction = async (req, res, next) => {
     const io = req.app?.get?.('io');
     if (io) io.emit('imeis:updated');
 
-    res.json({ success: true, message: 'Aktion aktualisiert', rowActions: newAction === 'abgelehnt' ? {} : undefined });
+    res.json({
+      success: true,
+      message: 'Aktion aktualisiert',
+      rowActions: actionNorm === 'abgelehnt' || actionNorm === 'entfernen' ? {} : undefined
+    });
   } catch (error) {
     next(error);
   }

@@ -79,7 +79,7 @@ const mockApi = {
       (e) => !(e && String(e.imei || '').trim() === imeiStr && String(e.userName || '').trim() === String(userName).trim())
     );
     localStorage.setItem('imeis-copy-history', JSON.stringify(updated));
-    if (newAction === 'abgelehnt') {
+    if (newAction === 'abgelehnt' || newAction === 'entfernen') {
       const rowActions = JSON.parse(localStorage.getItem('imeis-row-actions') || '{}');
       Object.keys(rowActions).forEach((rowId) => {
         if (rowId.includes(`-${imeiStr}-`)) delete rowActions[rowId];
