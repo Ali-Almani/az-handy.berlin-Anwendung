@@ -6,12 +6,16 @@ const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
 
 function processCopyHistory(savedCopyHistory) {
+  /** Pro Eintrag (IMEI+Benutzer+Zeit), nicht nur pro IMEI – sonst „klebt“ der Verlauf nach Büro-Aktion */
   const uniqueHistoryMap = new Map();
-  (savedCopyHistory ?? []).forEach(entry => {
-    const imei = entry.imei;
-    const existingEntry = uniqueHistoryMap.get(imei);
-    if (!existingEntry || new Date(entry.timestamp) > new Date(existingEntry.timestamp)) {
-      uniqueHistoryMap.set(imei, entry);
+  (savedCopyHistory ?? []).forEach((entry) => {
+    const imei = String(entry?.imei || '').trim();
+    const userName = String(entry?.userName || '').trim();
+    const ts = entry?.timestamp ? String(entry.timestamp) : '';
+    const key = `${imei}|${userName}|${ts}`;
+    const existingEntry = uniqueHistoryMap.get(key);
+    if (!existingEntry || new Date(entry.timestamp || 0) > new Date(existingEntry.timestamp || 0)) {
+      uniqueHistoryMap.set(key, entry);
     }
   });
   return Array.from(uniqueHistoryMap.values())

@@ -117,6 +117,28 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
     .slice(0, 200);
 };
 
+/** Verlauf (copy_history) zu dieser IMEI bei allen Benutzern löschen – nötig für gemergten Büro-Verlauf */
+const removeImeiFromAllCopyHistories = async (imeiToRemove) => {
+  const imeiStr = String(imeiToRemove || '').trim();
+  if (!imeiStr) return;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+    let arr = [];
+    try {
+      arr = historyJson ? JSON.parse(historyJson) : [];
+    } catch (_) {}
+    if (!Array.isArray(arr)) continue;
+    const next = arr.filter((e) => !e || String(e.imei || '').trim() !== imeiStr);
+    if (next.length === arr.length) continue;
+    await ImeisUserData.upsert({
+      user_id: rowUserId,
+      copy_history_json: JSON.stringify(next)
+    });
+  }
+};
+
 /** Entfernt ein IMEI aus allen Benutzer-IMEI-Listen (sichtbar für alle Rollen) */
 const removeImeiFromAllLists = async (imeiToRemove) => {
   const imeiStr = String(imeiToRemove || '').trim();
@@ -150,6 +172,7 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
       await ImeisUserData.upsert(upsertPayload);
     }
   }
+  await removeImeiFromAllCopyHistories(imeiStr);
 };
 
 /** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden. Bevorzugt Büro/Admin bei gleicher Anzahl. */
@@ -633,24 +656,15 @@ export const updateHistoryAction = async (req, res, next) => {
       }
     }
 
-    const [targetData] = await ImeisUserData.findOrCreate({
-      where: { user_id: targetUser.id },
-      defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
-    });
-    const historyJson = (targetData.get && targetData.get('copy_history_json')) ?? targetData.copy_history_json;
-    let copyHistory = [];
-    try {
-      copyHistory = historyJson ? JSON.parse(historyJson) : [];
-    } catch (_) {}
-    const updatedHistory = copyHistory.filter(
-      (e) => !(e && String(e.imei || '').trim() === String(imei).trim() && String(e.userName || '').trim() === String(userName).trim())
-    );
-    await ImeisUserData.upsert({ user_id: targetUser.id, copy_history_json: JSON.stringify(updatedHistory) });
+    const imeiNorm = String(imei || '').trim();
 
     if (actionNorm === 'angenommen') {
-      await removeImeiFromAllLists(imei);
+      await removeImeiFromAllLists(imeiNorm);
     }
-    /** abgelehnt: Verlauf-Eintrag ist schon entfernt; Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
+    if (actionNorm === 'abgelehnt') {
+      await removeImeiFromAllCopyHistories(imeiNorm);
+    }
+    /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {
       const dataOwnerId = await getSharedImeiOwnerId();
       if (dataOwnerId) {
