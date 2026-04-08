@@ -228,8 +228,7 @@ const Voucher = () => {
             <>
               {uploaded.length === 0 ? (
                 <p className="voucher-meta" style={{ margin: 0 }}>
-                  Noch keine Voucher-Liste. Administratoren oder das Büro laden eine Excel-Datei unter „Voucher-Upload“
-                  hoch.
+                  Keine Voucher verfügbar.
                 </p>
               ) : (
                 <>
