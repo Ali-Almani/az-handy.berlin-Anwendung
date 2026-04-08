@@ -117,6 +117,24 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
     .slice(0, 200);
 };
 
+/** Nur Verlauf des Zielnutzers zu dieser IMEI (Abgelehnt im Büro-Verlauf für einen Mitarbeiter) */
+const removeCopyHistoryForUserId = async (targetUserId, imeiToRemove) => {
+  const imeiStr = String(imeiToRemove || '').trim();
+  const uid = coerceUserId(targetUserId);
+  if (!imeiStr || uid == null) return;
+  const row = await ImeisUserData.findOne({ where: { user_id: uid } });
+  if (!row) return;
+  const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+  let arr = [];
+  try {
+    arr = historyJson ? JSON.parse(historyJson) : [];
+  } catch (_) {}
+  if (!Array.isArray(arr)) return;
+  const next = arr.filter((e) => !e || String(e.imei || '').trim() !== imeiStr);
+  if (next.length === arr.length) return;
+  await ImeisUserData.upsert({ user_id: uid, copy_history_json: JSON.stringify(next) });
+};
+
 /** Verlauf (copy_history) zu dieser IMEI bei allen Benutzern löschen – nötig für gemergten Büro-Verlauf */
 const removeImeiFromAllCopyHistories = async (imeiToRemove) => {
   const imeiStr = String(imeiToRemove || '').trim();
@@ -632,8 +650,9 @@ export const updateHistoryAction = async (req, res, next) => {
     const role = currentUser?.role ?? null;
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
-    if (!isBüro && !isTeamleiter) {
-      return res.status(403).json({ message: 'Nur Büro Mitarbeiter oder Teamleiter shop dürfen Aktionen für andere aktualisieren' });
+    const isAdminUser = isAdmin(role);
+    if (!isBüro && !isTeamleiter && !isAdminUser) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere aktualisieren' });
     }
     const { imei, userName, newAction } = req.body;
     if (!imei || !userName) {
@@ -648,7 +667,7 @@ export const updateHistoryAction = async (req, res, next) => {
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
-    if (isTeamleiter && !isBüro) {
+    if (isTeamleiter && !isBüro && !isAdminUser) {
       const tlOrt = (currentUser?.einsatz_ort || '').trim();
       const targetOrt = (targetUser?.einsatz_ort || '').trim();
       if (!tlOrt || tlOrt !== targetOrt) {
@@ -657,12 +676,13 @@ export const updateHistoryAction = async (req, res, next) => {
     }
 
     const imeiNorm = String(imei || '').trim();
+    const targetUserId = targetUser.id ?? targetUser._id ?? targetUser.get?.('id');
 
     if (actionNorm === 'angenommen') {
       await removeImeiFromAllLists(imeiNorm);
     }
     if (actionNorm === 'abgelehnt') {
-      await removeImeiFromAllCopyHistories(imeiNorm);
+      await removeCopyHistoryForUserId(targetUserId, imeiNorm);
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {
@@ -706,8 +726,9 @@ export const sendImeiReminder = async (req, res, next) => {
     const role = currentUser?.role ?? null;
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
-    if (!isBüro && !isTeamleiter) {
-      return res.status(403).json({ message: 'Nur Büro Mitarbeiter oder Teamleiter shop dürfen Erinnerungen senden' });
+    const isAdminUser = isAdmin(role);
+    if (!isBüro && !isTeamleiter && !isAdminUser) {
+      return res.status(403).json({ message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Erinnerungen senden' });
     }
     const { targetUserName, imei } = req.body;
     if (!targetUserName || !imei) {
@@ -718,7 +739,7 @@ export const sendImeiReminder = async (req, res, next) => {
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
-    if (isTeamleiter && !isBüro) {
+    if (isTeamleiter && !isBüro && !isAdminUser) {
       const tlOrt = (currentUser?.einsatz_ort || '').trim();
       const targetOrt = (targetUser?.einsatz_ort || '').trim();
       if (!tlOrt || tlOrt !== targetOrt) {

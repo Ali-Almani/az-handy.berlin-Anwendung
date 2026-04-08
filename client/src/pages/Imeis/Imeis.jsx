@@ -249,7 +249,7 @@ const Imeis = () => {
         onUpdateHistoryAction={handleUpdateHistoryAction}
         historyUndoStack={historyUndoStack}
         onUndo={handleHistoryModalUndo}
-        canSendReminder={isBüroMitarbeiter(user) || isTeamleiterShop(user)}
+        canSendReminder={isBüroMitarbeiter(user) || isTeamleiterShop(user) || isAdmin(user)}
         currentUserName={user?.name}
         onSendReminder={async (entry) => {
           await sendImeiReminderApi(entry.userName, entry.imei);
