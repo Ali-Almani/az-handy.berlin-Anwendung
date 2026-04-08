@@ -107,25 +107,31 @@ export function useImeisCopyHandlers({
     if (index < 0 || index >= copyHistory.length) return;
     const entry = copyHistory[index];
     const oldAction = entry.action || null;
-    /** Büro/Admin/Teamleiter: Angenommen/Abgelehnt immer per Server (auch eigene Zeile – sonst gemischter Verlauf/Liste inkonsistent) */
-    const isOfficeHistoryAction =
-      canUpdateOthersHistory &&
+    const isSelfHistoryEntry =
       entry.userName &&
+      String(entry.userName).trim() === String(user?.name || '').trim();
+    /** Server-PATCH: Büro/Fremde oder eigene Zeile (Mitarbeiter) */
+    const isServerHistoryAction =
       (newAction === 'angenommen' || newAction === 'abgelehnt') &&
-      updateHistoryActionApi;
+      updateHistoryActionApi &&
+      entry.userName &&
+      (canUpdateOthersHistory || isSelfHistoryEntry);
 
-    if (!isOfficeHistoryAction) {
+    if (!isServerHistoryAction) {
       const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
       setHistoryUndoStack((prev) => [...prev, undoState]);
     }
 
-    if (isOfficeHistoryAction) {
+    if (isServerHistoryAction) {
       try {
         await updateHistoryActionApi(entry.imei, entry.userName, newAction);
         // Kein setRemovedImeiCooldown: sonst blockiert shouldSkipSync() den Verlauf-Polling-Refresh 5s
         await refreshImeisFromApi?.();
         await new Promise((r) => setTimeout(r, 300));
         await refreshImeisFromApi?.();
+        if (isSelfHistoryEntry && (newAction === 'angenommen' || newAction === 'abgelehnt')) {
+          notifyReminderResponseApi(String(entry.imei || '').trim(), newAction);
+        }
       } catch (err) {
         alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));
       }
@@ -170,7 +176,7 @@ export function useImeisCopyHandlers({
     setCopyHistory,
     setRowActions,
     setHistoryUndoStack,
-    canUpdateOthersHistory,
+    canUpdateOthersHistory, // nur Büro/Admin/Teamleiter; eigene Zeile nutzt isSelfHistoryEntry + PATCH
     updateHistoryActionApi,
     setImeis,
     refreshImeisFromApi

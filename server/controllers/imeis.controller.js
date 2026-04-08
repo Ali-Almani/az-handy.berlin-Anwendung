@@ -718,12 +718,6 @@ export const updateHistoryAction = async (req, res, next) => {
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
-    if (!isBüro && !isTeamleiter && !isAdminUser) {
-      return res.status(403).json({
-        message:
-          'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere aktualisieren'
-      });
-    }
     const { imei, userName, newAction } = req.body;
     if (!imei || !userName) {
       return res.status(400).json({ message: 'imei und userName erforderlich' });
@@ -737,7 +731,17 @@ export const updateHistoryAction = async (req, res, next) => {
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
-    if (isTeamleiter && !isBüro && !isAdminUser) {
+    const targetUserId = coerceUserId(targetUser.id ?? targetUser._id ?? targetUser.get?.('id'));
+    const isSelf = targetUserId != null && String(targetUserId) === String(userId);
+    /** Eigener Verlauf: jeder angemeldete Nutzer darf (PATCH oder alter Client); Fremde nur Büro/Admin/Teamleiter */
+    const allowedOffice = isBüro || isTeamleiter || isAdminUser;
+    if (!isSelf && !allowedOffice) {
+      return res.status(403).json({
+        message:
+          'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere Benutzer aktualisieren'
+      });
+    }
+    if (!isSelf && isTeamleiter && !isBüro && !isAdminUser) {
       const tlOrt = (currentUser?.einsatz_ort || '').trim();
       const targetOrt = (targetUser?.einsatz_ort || '').trim();
       if (!tlOrt || tlOrt !== targetOrt) {
