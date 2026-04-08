@@ -122,7 +122,9 @@ export function useImeisCopyHandlers({
     if (isOfficeHistoryAction) {
       try {
         await updateHistoryActionApi(entry.imei, entry.userName, newAction);
-        if (newAction === 'angenommen') setRemovedImeiCooldown();
+        // Kein setRemovedImeiCooldown: sonst blockiert shouldSkipSync() den Verlauf-Polling-Refresh 5s
+        await refreshImeisFromApi?.();
+        await new Promise((r) => setTimeout(r, 300));
         await refreshImeisFromApi?.();
       } catch (err) {
         alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));

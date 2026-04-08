@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { loadImeis, deleteAllImeis } from '../../../utils/storage';
 import { persistImeisState, updateHistoryActionApi, getImeisDataFromApi } from '../../../services/imeis.service';
-import { isAdmin, isBüroMitarbeiter, isTeamleiterShop } from '../../../utils/roles';
+import { canActAsImeiOfficeForHistory } from '../../../utils/roles';
 import { useImeisVersionFilters } from './useImeisVersionFilters';
 import { useImeisCopyHandlers } from './useImeisCopyHandlers';
 import { useImeisData, applyImeisServerPayload } from './useImeisData';
@@ -218,7 +218,7 @@ export function useImeis() {
     selectedCells, currentImeis, getManufacturer, getProductFull, setShowRateLimitModal, setRateLimitMessage,
     setSelectedRowForDropdown, setCopySuccess, expandSelection, persistImeis,
     updateHistoryActionApi,
-    canUpdateOthersHistory: isBüroMitarbeiter(user) || isTeamleiterShop(user) || isAdmin(user),
+    canUpdateOthersHistory: canActAsImeiOfficeForHistory(user),
     setImeis,
     refreshImeisFromApi
   });

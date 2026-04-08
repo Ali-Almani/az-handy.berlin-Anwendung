@@ -11,6 +11,21 @@ export const ROLES = {
   MITARBEITER_SHOP: 'Mitarbeiter shop'
 };
 
+/** Rollen-Vergleich (analog Server): NBSP, Bindestrich, Unicode */
+const normRole = (role) => {
+  const s = String(role || '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ');
+  try {
+    return s.normalize('NFD').replace(/\p{M}/gu, '');
+  } catch {
+    return s.replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ä/g, 'a');
+  }
+};
+
 // Einsatzorte für Shop-Mitarbeiter (Reihenfolge: Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt)
 export const EINSATZ_ORT_OPTIONS = [
   { value: '', label: '– Keiner –' },
@@ -55,13 +70,29 @@ export const isMitarbeiterShop = (user) => {
 // Prüfe ob Benutzer Teamleiter shop ist
 export const isTeamleiterShop = (user) => {
   if (!user) return false;
-  return user.role === ROLES.TEAMLEITER_SHOP;
+  if (user.role === ROLES.TEAMLEITER_SHOP) return true;
+  const k = normRole(user.role);
+  return k === 'teamleiter shop' || (k.includes('teamleiter') && k.includes('shop'));
 };
 
 // Prüfe ob Benutzer Büro Mitarbeiter ist
 export const isBüroMitarbeiter = (user) => {
   if (!user) return false;
-  return user.role === ROLES.BUERO_MITARBEITER;
+  if (user.role === ROLES.BUERO_MITARBEITER) return true;
+  const k = normRole(user.role);
+  if (k === 'buro mitarbeiter' || k === 'buro') return true;
+  return k.includes('buro') && k.includes('mitarbeiter');
+};
+
+/**
+ * IMEI-Verlauf Server-Aktionen (PATCH …/history-action): nur Rolle zählt.
+ * Nicht {@link isAdmin} mit E-Mail-Fallback — sonst PATCH von „Mitarbeiter“-Konten mit Admin-Mail → 403.
+ */
+export const canActAsImeiOfficeForHistory = (user) => {
+  if (!user) return false;
+  if (isBüroMitarbeiter(user) || isTeamleiterShop(user)) return true;
+  const r = normRole(user.role);
+  return r.includes('admin') || r === 'administrator';
 };
 
 // Prüfe ob Benutzer IMEI-Seite sehen darf – alle eingeloggten Benutzer (gemeinsame Liste nach Büro-Upload)
