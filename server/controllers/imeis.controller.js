@@ -772,9 +772,8 @@ export const notifyReminderResponse = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
-    if (isBüroMitarbeiter(role) || isAdmin(role)) {
-      return res.status(403).json({ message: 'Büro Mitarbeiter und Administratoren senden keine Erinnerungs-Antworten' });
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
     const { imei, action } = req.body;
     if (!imei || !action || !['angenommen', 'abgelehnt'].includes(action)) {
