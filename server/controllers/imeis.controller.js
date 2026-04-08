@@ -70,17 +70,31 @@ const toRoleString = (role) => {
   return String(role);
 };
 
-const isMitarbeiterShop = (role) => toRoleString(role).trim() === 'Mitarbeiter shop';
+/** Vergleich Rollen-Strings (DB/Dropdown, ü/Ü, mehrere Leerzeichen, NBSP) */
+const normalizeRoleKey = (role) => {
+  const s = toRoleString(role)
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+  try {
+    return s.normalize('NFD').replace(/\p{M}/gu, '');
+  } catch {
+    return s.replace(/[ü]/g, 'u').replace(/[ö]/g, 'o').replace(/[ä]/g, 'a');
+  }
+};
 
-const isTeamleiterShop = (role) => toRoleString(role).trim() === 'Teamleiter shop';
+const isMitarbeiterShop = (role) => normalizeRoleKey(role) === 'mitarbeiter shop';
 
-const isBüroMitarbeiter = (role) => toRoleString(role).trim() === 'Büro Mitarbeiter';
+const isTeamleiterShop = (role) => normalizeRoleKey(role) === 'teamleiter shop';
+
+const isBüroMitarbeiter = (role) => normalizeRoleKey(role) === 'buro mitarbeiter';
 
 const isAdmin = (role) => {
   const r = toRoleString(role);
   if (!r) return false;
   const rl = r.toLowerCase();
-  return rl.includes('admin') || r.trim() === 'Administrator';
+  return rl.includes('admin') || r.trim() === 'Administrator' || normalizeRoleKey(role) === 'administrator';
 };
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
@@ -680,9 +694,15 @@ export const saveImeisData = async (req, res, next) => {
 /** Büro Mitarbeiter: Aktion (angenommen/abgelehnt) für alle. Teamleiter shop: nur für Benutzer seiner Kategorie (einsatz_ort). */
 export const updateHistoryAction = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
@@ -755,9 +775,15 @@ export const updateHistoryAction = async (req, res, next) => {
 /** Büro Mitarbeiter: Erinnerung an alle. Teamleiter shop: nur an Benutzer seiner Kategorie (einsatz_ort). */
 export const sendImeiReminder = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
