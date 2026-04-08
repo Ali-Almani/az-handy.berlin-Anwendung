@@ -70,12 +70,13 @@ const toRoleString = (role) => {
   return String(role);
 };
 
-/** Vergleich Rollen-Strings (DB/Dropdown, ü/Ü, mehrere Leerzeichen, NBSP) */
+/** Vergleich Rollen-Strings (DB/Dropdown, ü/Ü, Bindestrich, mehrere Leerzeichen, NBSP) */
 const normalizeRoleKey = (role) => {
   const s = toRoleString(role)
     .replace(/\u00a0/g, ' ')
     .trim()
     .toLowerCase()
+    .replace(/[-_/]+/g, ' ')
     .replace(/\s+/g, ' ');
   try {
     return s.normalize('NFD').replace(/\p{M}/gu, '');
@@ -88,7 +89,18 @@ const isMitarbeiterShop = (role) => normalizeRoleKey(role) === 'mitarbeiter shop
 
 const isTeamleiterShop = (role) => normalizeRoleKey(role) === 'teamleiter shop';
 
-const isBüroMitarbeiter = (role) => normalizeRoleKey(role) === 'buro mitarbeiter';
+/** Büro in DB oft mit Tippvarianten: „Büro Mitarbeiter“, „Büro-Mitarbeiter“, nur „Büro“, Unicode-ü */
+const isBüroMitarbeiter = (role) => {
+  const k = normalizeRoleKey(role);
+  if (!k) return false;
+  if (k === 'buro mitarbeiter' || k === 'buro') return true;
+  if (k.includes('buro') && k.includes('mitarbeiter')) return true;
+  return false;
+};
+
+/** Rolle aus Sequelize-/Memory-User zuverlässig lesen */
+const getUserRole = (user) =>
+  user?.role ?? user?.get?.('role') ?? user?.dataValues?.role ?? null;
 
 const isAdmin = (role) => {
   const r = toRoleString(role);
@@ -296,7 +308,7 @@ export const getImeisData = async (req, res, next) => {
     if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
-    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
+    const role = getUserRole(currentUser);
 
     // Mitarbeiter shop & Büro Mitarbeiter: IMEI-Liste vom Admin oder User mit Daten laden, eigene copyHistory/copyTimestamps behalten
     let sharedOwnerId = null;
@@ -540,7 +552,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   }
   userId = uid;
   const currentUser = await User.findByPk(userId);
-  const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
+  const role = getUserRole(currentUser);
   const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
 
   if (removedImei) {
@@ -702,12 +714,15 @@ export const updateHistoryAction = async (req, res, next) => {
     if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
-    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
+    const role = getUserRole(currentUser);
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
     if (!isBüro && !isTeamleiter && !isAdminUser) {
-      return res.status(403).json({ message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere aktualisieren' });
+      return res.status(403).json({
+        message:
+          'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere aktualisieren'
+      });
     }
     const { imei, userName, newAction } = req.body;
     if (!imei || !userName) {
@@ -783,7 +798,7 @@ export const sendImeiReminder = async (req, res, next) => {
     if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
-    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
+    const role = getUserRole(currentUser);
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
@@ -896,7 +911,7 @@ export const getReminderResponseNotifications = async (req, res, next) => {
     if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
-    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
+    const role = getUserRole(currentUser);
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können diese Benachrichtigungen einsehen' });
     }
@@ -933,7 +948,7 @@ export const createExtraCopyRequest = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    const role = getUserRole(currentUser);
     if (isBüroMitarbeiter(role) || isAdmin(role)) {
       return res.status(403).json({ message: 'Büro Mitarbeiter und Administratoren benötigen keine Genehmigung' });
     }
@@ -959,7 +974,7 @@ export const getExtraCopyRequests = async (req, res, next) => {
     if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
-    const role = currentUser?.role ?? currentUser?.get?.('role') ?? null;
+    const role = getUserRole(currentUser);
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen einsehen' });
     }
@@ -982,7 +997,7 @@ export const approveExtraCopyRequest = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    const role = getUserRole(currentUser);
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen genehmigen' });
     }
@@ -1021,7 +1036,7 @@ export const rejectExtraCopyRequest = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const currentUser = await User.findByPk(userId);
-    const role = currentUser?.role ?? null;
+    const role = getUserRole(currentUser);
     if (!isBüroMitarbeiter(role) && !isAdmin(role)) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter können Anfragen ablehnen' });
     }
