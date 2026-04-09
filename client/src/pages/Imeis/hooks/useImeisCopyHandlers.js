@@ -30,6 +30,8 @@ export function useImeisCopyHandlers({
   setImeis,
   refreshImeisFromApi
 }) {
+  const normHistName = useCallback((s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(), []);
+
   const checkCopyRateLimit = useCallback(() => {
     if (!user) return { allowed: true, remaining: MAX_COPIES, count: 0 };
     const now = Date.now();
@@ -109,15 +111,13 @@ export function useImeisCopyHandlers({
     const oldAction = entry.action || null;
     const isSelfHistoryEntry =
       entry.userName &&
-      String(entry.userName).trim() === String(user?.name || '').trim();
+      normHistName(entry.userName) === normHistName(user?.name || '');
     /** Server-PATCH: Büro/Fremde oder eigene Zeile (Mitarbeiter) */
     const isServerHistoryAction =
       (newAction === 'angenommen' || newAction === 'abgelehnt') &&
       updateHistoryActionApi &&
       entry.userName &&
-      // Nur Büro/Admin/Teamleiter über Server ändern.
-      // Für normale Mitarbeiter läuft es lokal, damit es auch ohne Server-Rechte/403 zuverlässig funktioniert.
-      canUpdateOthersHistory;
+      (canUpdateOthersHistory || isSelfHistoryEntry);
 
     if (!isServerHistoryAction) {
       const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
@@ -182,7 +182,8 @@ export function useImeisCopyHandlers({
     canUpdateOthersHistory, // nur Büro/Admin/Teamleiter; eigene Zeile nutzt isSelfHistoryEntry + PATCH
     updateHistoryActionApi,
     setImeis,
-    refreshImeisFromApi
+    refreshImeisFromApi,
+    normHistName
   ]);
 
   const handleHistoryModalUndo = useCallback(() => {
