@@ -812,22 +812,21 @@ export const updateHistoryAction = async (req, res, next) => {
         resolvedTargetUserId = entityUserId(currentUser);
       }
     }
-    /** Eigener Verlauf: jeder angemeldete Nutzer darf (PATCH oder alter Client); Fremde nur Büro/Admin/Teamleiter */
+    /** Eigener Verlauf: jeder angemeldete Nutzer darf; Fremde nur Büro/Admin/Teamleiter.
+     * Robust: Wenn Name nicht exakt matcht, erlauben wir "self" nur wenn der Eintrag (IMEI+Timestamp)
+     * im eigenen copy_history_json existiert.
+     */
     const allowedOffice = isBüro || isTeamleiter || isAdminUser;
-    if (!isSelf && !allowedOffice) {
-      return res.status(403).json({
-        message:
-          'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere Benutzer aktualisieren'
-      });
-    }
-
-    // Extra-Schutz: normale Benutzer dürfen nur ihre EIGENEN Verlaufseinträge ändern.
-    // Namensvarianten (Leerzeichen/Groß-Klein) sollen nicht zu 403 führen → Besitzprüfung via IMEI+Timestamp.
-    if (!allowedOffice) {
+    if (!allowedOffice && !isSelf) {
       const owns = await userOwnsCopyHistoryEntry(userId, imei, historyTimestamp);
-      if (!owns) {
+      if (owns) {
+        isSelf = true;
+        targetUser = currentUser;
+        resolvedTargetUserId = entityUserId(currentUser);
+      } else {
         return res.status(403).json({
-          message: 'Aktion nicht erlaubt: Verlaufseintrag gehört nicht zu diesem Benutzer'
+          message:
+            'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere Benutzer aktualisieren'
         });
       }
     }
