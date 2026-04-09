@@ -848,9 +848,12 @@ export const updateHistoryAction = async (req, res, next) => {
 
     const imeiNorm = String(imei || '').trim();
     const targetDisplayName = targetUser?.name ?? targetUser?.get?.('name') ?? userName;
+    const did = { action: actionNorm, imei: imeiNorm };
 
     if (actionNorm === 'angenommen') {
       await removeImeiFromAllLists(imeiNorm);
+      did.removedFromLists = true;
+      did.removedFromHistories = true; // removeImeiFromAllLists() entfernt auch copy_history
     }
     if (actionNorm === 'abgelehnt') {
       // Erst exakt per Timestamp (UI-Eintrag), dann Fallback per Anzeigename (alte Clients)
@@ -858,6 +861,7 @@ export const updateHistoryAction = async (req, res, next) => {
       await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, targetDisplayName);
       // Erwartung: IMEI soll aus dem Verlauf komplett verschwinden (für alle Rollen / gemergter Verlauf)
       await removeImeiFromAllCopyHistories(imeiNorm);
+      did.removedFromHistories = true;
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {
@@ -886,7 +890,8 @@ export const updateHistoryAction = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Aktion aktualisiert',
-      rowActions: actionNorm === 'abgelehnt' ? {} : undefined
+      rowActions: actionNorm === 'abgelehnt' ? {} : undefined,
+      did
     });
   } catch (error) {
     next(error);

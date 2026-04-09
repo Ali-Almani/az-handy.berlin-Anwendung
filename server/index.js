@@ -60,7 +60,7 @@ app.get('/api/health', (req, res) => {
     nodeEnv: process.env.NODE_ENV || 'development',
     useMemoryDb: process.env.USE_MEMORY_DB === 'true',
     jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
-    apiPatchLevel: 3
+    apiPatchLevel: 4
   });
 });
 
