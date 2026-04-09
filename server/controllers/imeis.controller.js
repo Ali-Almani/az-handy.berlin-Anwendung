@@ -63,6 +63,43 @@ const removeCopyHistoryEntriesForImeiAndDisplayName = async (imeiRaw, displayNam
   }
 };
 
+/** Aktion im Verlauf setzen (für Büro/Teamleiter-Übersichten) */
+const setCopyHistoryActionForImeiAndDisplayName = async (imeiRaw, displayNameRaw, action, actorName) => {
+  const imeiStr = String(imeiRaw || '').trim();
+  const want = normHistUserName(displayNameRaw);
+  const actionNorm = String(action || '').trim();
+  if (!imeiStr || !want || !actionNorm) return;
+  const now = new Date().toISOString();
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+    let arr = [];
+    try {
+      arr = historyJson ? JSON.parse(historyJson) : [];
+    } catch (_) {}
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    let changed = false;
+    const next = arr.map((e) => {
+      if (!e) return e;
+      if (String(e.imei || '').trim() !== imeiStr) return e;
+      if (normHistUserName(e.userName) !== want) return e;
+      changed = true;
+      return {
+        ...e,
+        action: actionNorm,
+        actionAt: now,
+        actionBy: String(actorName || '').trim() || undefined
+      };
+    });
+    if (!changed) continue;
+    await ImeisUserData.upsert({
+      user_id: rowUserId,
+      copy_history_json: JSON.stringify(next)
+    });
+  }
+};
+
 /** Sequelize/DB liefert Rollen mitunter nicht als String – für Rechtevergleiche normalisieren */
 const toRoleString = (role) => {
   if (role == null || role === '') return '';
@@ -258,6 +295,41 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
     }
   }
   await removeImeiFromAllCopyHistories(imeiStr);
+};
+
+/** Entfernt IMEI aus allen Listen + RowActions, aber behält den Verlauf (Audit) */
+const removeImeiFromAllListsKeepCopyHistory = async (imeiToRemove) => {
+  const imeiStr = String(imeiToRemove || '').trim();
+  if (!imeiStr) return;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const imeisJson = (row.get && row.get('imeis_json')) ?? row.imeis_json;
+    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    let arr = [];
+    try {
+      arr = imeisJson ? JSON.parse(imeisJson) : [];
+    } catch (_) {}
+    let rowActions = {};
+    try {
+      rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
+    } catch (_) {}
+    const filtered = Array.isArray(arr) ? arr.filter((item) => String(item?.imei || '').trim() !== imeiStr) : [];
+    let hadRowAction = false;
+    Object.keys(rowActions).forEach((rowId) => {
+      if (rowId.includes(`-${imeiStr}-`)) {
+        delete rowActions[rowId];
+        hadRowAction = true;
+      }
+    });
+    const imeisChanged = Array.isArray(arr) && filtered.length !== arr.length;
+    if (imeisChanged || hadRowAction) {
+      const upsertPayload = { user_id: rowUserId };
+      if (imeisChanged) upsertPayload.imeis_json = JSON.stringify(filtered);
+      if (hadRowAction) upsertPayload.row_actions_json = JSON.stringify(rowActions);
+      await ImeisUserData.upsert(upsertPayload);
+    }
+  }
 };
 
 /** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden. Bevorzugt Büro/Admin bei gleicher Anzahl. */
@@ -766,11 +838,13 @@ export const updateHistoryAction = async (req, res, next) => {
 
     const imeiNorm = String(imei || '').trim();
 
+    // Aktion im Verlauf markieren, damit Büro/Teamleiter es im (gemergten) Verlauf sehen können
+    const actorName = currentUser?.name ?? currentUser?.get?.('name') ?? '';
+    await setCopyHistoryActionForImeiAndDisplayName(imeiNorm, userName, actionNorm, actorName);
+
     if (actionNorm === 'angenommen') {
-      await removeImeiFromAllLists(imeiNorm);
-    }
-    if (actionNorm === 'abgelehnt') {
-      await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, userName);
+      // Liste soll "aufgeräumt" werden, Verlauf bleibt als Audit erhalten (mit action=angenommen)
+      await removeImeiFromAllListsKeepCopyHistory(imeiNorm);
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {

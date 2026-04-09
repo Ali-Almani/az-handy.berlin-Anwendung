@@ -43,7 +43,7 @@ const ImeisHistoryModal = ({
         action: 'angenommen',
         message: (
           <>
-            CHECK-OUT bei Partos durchgeführt? Die IMEI wird <strong>aus der Liste und dem Verlauf</strong> entfernt.
+            CHECK-OUT bei Partos durchgeführt? Die IMEI wird <strong>aus der Liste</strong> entfernt und im <strong>Verlauf markiert</strong>.
           </>
         )
       });
@@ -52,7 +52,7 @@ const ImeisHistoryModal = ({
         index: originalIndex,
         action: 'abgelehnt',
         message:
-          'Vertrag bei Partos abgelehnt? Der Verlaufseintrag wird entfernt und die IMEI erscheint wieder in der Liste.'
+          'Vertrag bei Partos abgelehnt? Die IMEI erscheint wieder in der Liste und der Verlauf wird als „abgelehnt“ markiert.'
       });
     } else if (selectedValue) {
       onUpdateHistoryAction(originalIndex, selectedValue);
@@ -65,8 +65,8 @@ const ImeisHistoryModal = ({
     setToast({
       message:
         confirmation.action === 'angenommen'
-          ? 'Angenommen: IMEI wurde aus der Liste und dem Verlauf entfernt.'
-          : 'Abgelehnt: Verlauf entfernt, IMEI wieder in der Liste.',
+          ? 'Angenommen: IMEI wurde aus der Liste entfernt und im Verlauf markiert.'
+          : 'Abgelehnt: IMEI wieder in der Liste, Verlauf markiert.',
       type: 'success'
     });
     setConfirmation(null);
