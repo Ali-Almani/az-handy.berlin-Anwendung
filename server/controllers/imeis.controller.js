@@ -165,6 +165,14 @@ const isAdmin = (role) => {
   const rl = r.toLowerCase();
   return rl.includes('admin') || r.trim() === 'Administrator' || normalizeRoleKey(role) === 'administrator';
 };
+
+/** Admin-Fallback: E-Mail (wie Client), falls Rolle falsch/leer ist */
+const isAdminUserEntity = (user) => {
+  const role = getUserRole(user);
+  if (isAdmin(role)) return true;
+  const email = String(user?.email ?? user?.get?.('email') ?? '').trim().toLowerCase();
+  return email === 'admin@az-handy.berlin';
+};
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
 
@@ -774,7 +782,7 @@ export const updateHistoryAction = async (req, res, next) => {
     const role = getUserRole(currentUser);
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
-    const isAdminUser = isAdmin(role);
+    const isAdminUser = isAdminUserEntity(currentUser);
     const { imei, userName, newAction, targetUserId, historyTimestamp } = req.body;
     if (!imei || !userName) {
       return res.status(400).json({ message: 'imei und userName erforderlich' });
@@ -899,7 +907,7 @@ export const sendImeiReminder = async (req, res, next) => {
     const role = getUserRole(currentUser);
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
-    const isAdminUser = isAdmin(role);
+    const isAdminUser = isAdminUserEntity(currentUser);
     if (!isBüro && !isTeamleiter && !isAdminUser) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Erinnerungen senden' });
     }
