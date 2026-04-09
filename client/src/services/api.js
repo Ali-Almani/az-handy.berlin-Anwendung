@@ -215,7 +215,10 @@ const createRealApi = () => {
   api.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401) {
+      const status = error.response?.status;
+      const msg = String(error.response?.data?.message || '');
+      // Backend kann je nach Version 401 oder 403 für abgelaufene Tokens liefern.
+      if (status === 401 || (status === 403 && msg.toLowerCase().includes('expired token'))) {
         localStorage.removeItem('token');
         localStorage.removeItem('loginTimestamp');
         window.location.href = '/login';

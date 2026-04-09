@@ -19,13 +19,14 @@ export const authenticateToken = (req, res, next) => {
   try {
     jwt.verify(token, secret, (err, user) => {
       if (err) {
-        return res.status(403).json({ message: 'Invalid or expired token' });
+        // 401 damit Clients sauber ausloggen/neu anmelden (403 wird oft als "Rechteproblem" interpretiert)
+        return res.status(401).json({ message: 'Invalid or expired token' });
       }
       req.user = user;
       next();
     });
   } catch (e) {
     console.error('authenticateToken verify:', e);
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
