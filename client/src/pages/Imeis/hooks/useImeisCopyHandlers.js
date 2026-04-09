@@ -115,7 +115,9 @@ export function useImeisCopyHandlers({
       (newAction === 'angenommen' || newAction === 'abgelehnt') &&
       updateHistoryActionApi &&
       entry.userName &&
-      (canUpdateOthersHistory || isSelfHistoryEntry);
+      // Nur Büro/Admin/Teamleiter über Server ändern.
+      // Für normale Mitarbeiter läuft es lokal, damit es auch ohne Server-Rechte/403 zuverlässig funktioniert.
+      canUpdateOthersHistory;
 
     if (!isServerHistoryAction) {
       const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
