@@ -724,7 +724,7 @@ export const updateHistoryAction = async (req, res, next) => {
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
-    const { imei, userName, newAction } = req.body;
+    const { imei, userName, newAction, targetUserId } = req.body;
     if (!imei || !userName) {
       return res.status(400).json({ message: 'imei und userName erforderlich' });
     }
@@ -733,19 +733,32 @@ export const updateHistoryAction = async (req, res, next) => {
       return res.status(400).json({ message: 'newAction: angenommen oder abgelehnt erforderlich' });
     }
 
-    let targetUser = await resolveTargetUserByName(userName);
-    if (!targetUser) {
-      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    let targetUser = null;
+    let resolvedTargetUserId = null;
+    // Robust: wenn Client die Ziel-ID mitsendet, bevorzugen (verhindert isSelf-Fehler bei Namensvarianten)
+    if (targetUserId != null && targetUserId !== '') {
+      try {
+        targetUser = await User.findByPk(coerceUserId(targetUserId));
+      } catch (_) {}
+      if (targetUser) {
+        resolvedTargetUserId = entityUserId(targetUser);
+      }
     }
-    let targetUserId = entityUserId(targetUser);
+    if (!targetUser) {
+      targetUser = await resolveTargetUserByName(userName);
+      if (!targetUser) {
+        return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+      }
+      resolvedTargetUserId = entityUserId(targetUser);
+    }
     let isSelf =
-      targetUserId != null && userId != null && String(targetUserId) === String(userId);
+      resolvedTargetUserId != null && userId != null && String(resolvedTargetUserId) === String(userId);
     if (!isSelf && currentUser) {
       const myName = normHistUserName(currentUser.name ?? currentUser.get?.('name'));
       if (myName && myName === normHistUserName(userName)) {
         isSelf = true;
         targetUser = currentUser;
-        targetUserId = entityUserId(currentUser);
+        resolvedTargetUserId = entityUserId(currentUser);
       }
     }
     /** Eigener Verlauf: jeder angemeldete Nutzer darf (PATCH oder alter Client); Fremde nur Büro/Admin/Teamleiter */
@@ -765,12 +778,13 @@ export const updateHistoryAction = async (req, res, next) => {
     }
 
     const imeiNorm = String(imei || '').trim();
+    const targetDisplayName = targetUser?.name ?? targetUser?.get?.('name') ?? userName;
 
     if (actionNorm === 'angenommen') {
       await removeImeiFromAllLists(imeiNorm);
     }
     if (actionNorm === 'abgelehnt') {
-      await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, userName);
+      await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, targetDisplayName);
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {

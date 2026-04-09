@@ -126,7 +126,8 @@ export function useImeisCopyHandlers({
 
     if (isServerHistoryAction) {
       try {
-        await updateHistoryActionApi(entry.imei, entry.userName, newAction);
+        const targetUserId = isSelfHistoryEntry ? user?.id : undefined;
+        await updateHistoryActionApi(entry.imei, entry.userName, newAction, targetUserId);
         // Kein setRemovedImeiCooldown: sonst blockiert shouldSkipSync() den Verlauf-Polling-Refresh 5s
         await refreshImeisFromApi?.();
         await new Promise((r) => setTimeout(r, 300));
