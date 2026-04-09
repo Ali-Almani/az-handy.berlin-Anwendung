@@ -22,6 +22,7 @@ async function resolveTargetUserByName(rawName) {
   if (!t) return null;
   let u = await User.findOne({ where: { name: t } });
   if (u) return u;
+  
   const tLow = t.toLowerCase();
   if (USE_MEMORY_DB) {
     const all = await User.findAll({});
@@ -814,6 +815,8 @@ export const updateHistoryAction = async (req, res, next) => {
       // Erst exakt per Timestamp (UI-Eintrag), dann Fallback per Anzeigename (alte Clients)
       await removeCopyHistoryEntriesForImeiAndTimestamp(imeiNorm, historyTimestamp);
       await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, targetDisplayName);
+      // Erwartung: IMEI soll aus dem Verlauf komplett verschwinden (für alle Rollen / gemergter Verlauf)
+      await removeImeiFromAllCopyHistories(imeiNorm);
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
     if (actionNorm === 'abgelehnt') {
