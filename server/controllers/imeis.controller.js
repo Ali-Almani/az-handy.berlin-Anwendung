@@ -91,6 +91,29 @@ const removeCopyHistoryEntriesForImeiAndTimestamp = async (imeiRaw, tsRaw) => {
   }
 };
 
+/** Prüft, ob der Nutzer diesen Verlaufseintrag wirklich besitzt (IMEI+Timestamp) */
+const userOwnsCopyHistoryEntry = async (userIdRaw, imeiRaw, tsRaw) => {
+  const uid = coerceUserId(userIdRaw);
+  const imeiStr = String(imeiRaw || '').trim();
+  const ts = String(tsRaw || '').trim();
+  if (uid == null || !imeiStr || !ts) return false;
+  const row = await ImeisUserData.findOne({ where: { user_id: uid } });
+  if (!row) return false;
+  const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+  let arr = [];
+  try {
+    arr = historyJson ? JSON.parse(historyJson) : [];
+  } catch (_) {
+    arr = [];
+  }
+  if (!Array.isArray(arr)) return false;
+  return arr.some((e) =>
+    e &&
+    String(e.imei || '').trim() === imeiStr &&
+    String(e.timestamp || '').trim() === ts
+  );
+};
+
 /** Sequelize/DB liefert Rollen mitunter nicht als String – für Rechtevergleiche normalisieren */
 const toRoleString = (role) => {
   if (role == null || role === '') return '';
@@ -796,6 +819,17 @@ export const updateHistoryAction = async (req, res, next) => {
         message:
           'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Aktionen für andere Benutzer aktualisieren'
       });
+    }
+
+    // Extra-Schutz: normale Benutzer dürfen nur ihre EIGENEN Verlaufseinträge ändern.
+    // Namensvarianten (Leerzeichen/Groß-Klein) sollen nicht zu 403 führen → Besitzprüfung via IMEI+Timestamp.
+    if (!allowedOffice) {
+      const owns = await userOwnsCopyHistoryEntry(userId, imei, historyTimestamp);
+      if (!owns) {
+        return res.status(403).json({
+          message: 'Aktion nicht erlaubt: Verlaufseintrag gehört nicht zu diesem Benutzer'
+        });
+      }
     }
     if (!isSelf && isTeamleiter && !isBüro && !isAdminUser) {
       const tlOrt = (currentUser?.einsatz_ort || '').trim();

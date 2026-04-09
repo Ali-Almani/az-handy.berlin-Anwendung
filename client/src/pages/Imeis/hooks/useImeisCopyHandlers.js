@@ -126,7 +126,7 @@ export function useImeisCopyHandlers({
 
     if (isServerHistoryAction) {
       try {
-        const targetUserId = isSelfHistoryEntry ? user?.id : undefined;
+        const targetUserId = canUpdateOthersHistory ? undefined : user?.id;
         await updateHistoryActionApi(entry.imei, entry.userName, newAction, targetUserId, entry.timestamp);
         // UI sofort aktualisieren (Server-Refresh kann durch Cache/Timing verzögert sein)
         const imeiStr = String(entry.imei || '').trim();
