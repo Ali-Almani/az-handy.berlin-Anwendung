@@ -63,6 +63,33 @@ const removeCopyHistoryEntriesForImeiAndDisplayName = async (imeiRaw, displayNam
   }
 };
 
+/** Abgelehnt (robust): Eintrag in jedem copy_history_json mit gleicher IMEI + gleichem Timestamp entfernen */
+const removeCopyHistoryEntriesForImeiAndTimestamp = async (imeiRaw, tsRaw) => {
+  const imeiStr = String(imeiRaw || '').trim();
+  const ts = String(tsRaw || '').trim();
+  if (!imeiStr || !ts) return;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
+    let arr = [];
+    try {
+      arr = historyJson ? JSON.parse(historyJson) : [];
+    } catch (_) {}
+    if (!Array.isArray(arr)) continue;
+    const next = arr.filter((e) => {
+      if (!e) return true;
+      if (String(e.imei || '').trim() !== imeiStr) return true;
+      return String(e.timestamp || '').trim() !== ts;
+    });
+    if (next.length === arr.length) continue;
+    await ImeisUserData.upsert({
+      user_id: rowUserId,
+      copy_history_json: JSON.stringify(next)
+    });
+  }
+};
+
 /** Sequelize/DB liefert Rollen mitunter nicht als String – für Rechtevergleiche normalisieren */
 const toRoleString = (role) => {
   if (role == null || role === '') return '';
@@ -724,7 +751,7 @@ export const updateHistoryAction = async (req, res, next) => {
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdmin(role);
-    const { imei, userName, newAction, targetUserId } = req.body;
+    const { imei, userName, newAction, targetUserId, historyTimestamp } = req.body;
     if (!imei || !userName) {
       return res.status(400).json({ message: 'imei und userName erforderlich' });
     }
@@ -784,6 +811,8 @@ export const updateHistoryAction = async (req, res, next) => {
       await removeImeiFromAllLists(imeiNorm);
     }
     if (actionNorm === 'abgelehnt') {
+      // Erst exakt per Timestamp (UI-Eintrag), dann Fallback per Anzeigename (alte Clients)
+      await removeCopyHistoryEntriesForImeiAndTimestamp(imeiNorm, historyTimestamp);
       await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, targetDisplayName);
     }
     /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */

@@ -41,10 +41,11 @@ export const saveImeisDataToApi = async (payload) => {
   }
 };
 
-export const updateHistoryActionApi = async (imei, userName, newAction, targetUserId) => {
+export const updateHistoryActionApi = async (imei, userName, newAction, targetUserId, historyTimestamp) => {
   try {
     const payload = { imei, userName, newAction };
     if (targetUserId != null && targetUserId !== '') payload.targetUserId = targetUserId;
+    if (historyTimestamp != null && historyTimestamp !== '') payload.historyTimestamp = historyTimestamp;
     const res = await api.patch('/imeis/data/history-action', payload);
     return res.data;
   } catch (err) {
