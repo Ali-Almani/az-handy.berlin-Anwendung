@@ -128,6 +128,25 @@ export function useImeisCopyHandlers({
       try {
         const targetUserId = isSelfHistoryEntry ? user?.id : undefined;
         await updateHistoryActionApi(entry.imei, entry.userName, newAction, targetUserId);
+        // UI sofort aktualisieren (Server-Refresh kann durch Cache/Timing verzögert sein)
+        const imeiStr = String(entry.imei || '').trim();
+        if (newAction === 'angenommen' || newAction === 'abgelehnt') {
+          const updatedHistory = copyHistory.filter((_, i) => i !== index);
+          setCopyHistory(updatedHistory);
+          if (newAction === 'angenommen') {
+            if (setImeis) setImeis((prev) => prev.filter((it) => String(it?.imei || '').trim() !== imeiStr));
+          }
+          const updatedRowActions = { ...rowActions };
+          Object.keys(updatedRowActions).forEach((rowId) => {
+            if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
+          });
+          setRowActions(updatedRowActions);
+          persistImeis?.({
+            copyHistory: updatedHistory,
+            rowActions: updatedRowActions,
+            ...(newAction === 'angenommen' ? { removedImei: imeiStr } : {})
+          });
+        }
         // Kein setRemovedImeiCooldown: sonst blockiert shouldSkipSync() den Verlauf-Polling-Refresh 5s
         await refreshImeisFromApi?.();
         await new Promise((r) => setTimeout(r, 300));
