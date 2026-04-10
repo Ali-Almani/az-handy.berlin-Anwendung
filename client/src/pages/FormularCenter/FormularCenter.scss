@@ -4,6 +4,10 @@
   padding-bottom: $spacing-lg;
 }
 
+.formular-center-page-title {
+  margin: $spacing-sm 0;
+}
+
 .formular-center-card {
   max-width: 52rem;
   margin: 0 auto;
@@ -213,6 +217,10 @@
   color: $text-color;
   flex: 1 1 auto;
   min-width: 8rem;
+}
+
+.formular-center-section-heading--public {
+  margin: $spacing-md $spacing-lg $spacing-sm;
 }
 
 .formular-center-section-controls {

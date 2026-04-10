@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { isAdmin } from '../../utils/roles';
 import { getFormularCenterItems, getFormularCenterDownloadHref } from '../../services/formularCenter.service';
-import FormularCenterAdminPanel from './FormularCenterAdminPanel';
 import './FormularCenter.scss';
 
 function safeDownloadName(name) {
@@ -11,19 +8,11 @@ function safeDownloadName(name) {
 }
 
 const FormularCenter = () => {
-  const { user } = useAuth();
-  const admin = isAdmin(user);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    if (admin) {
-      setSections([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -35,25 +24,17 @@ const FormularCenter = () => {
     } finally {
       setLoading(false);
     }
-  }, [admin]);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  if (admin) {
-    return (
-      <div className="formular-center-page">
-        <FormularCenterAdminPanel loadWhen />
-      </div>
-    );
-  }
-
   return (
     <div className="formular-center-page">
       <div className="card formular-center-card">
         <div className="card-header">
-          <h2 className="card-title">Formular Center</h2>
+          <h2 className="card-title formular-center-page-title">Formular Center</h2>
         </div>
         <div className="card-body">
           {error && <p className="text-error formular-center-error">{error}</p>}
@@ -68,7 +49,9 @@ const FormularCenter = () => {
               <div className="formular-center-sections-public">
                 {sections.map((sec) => (
                   <section key={sec.id} className="formular-center-section-block formular-center-section-block--public">
-                    <h3 className="formular-center-section-heading">{sec.title || 'Bereich'}</h3>
+                    <h3 className="formular-center-section-heading formular-center-section-heading--public">
+                      {sec.title || 'Bereich'}
+                    </h3>
                     {(sec.items || []).length > 0 ? (
                       <ul className="formular-center-list">
                         {(sec.items || []).map((it) => {
