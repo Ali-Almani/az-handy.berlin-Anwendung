@@ -150,3 +150,97 @@
   border-radius: $border-radius-card;
   font-size: 0.95rem;
 }
+
+.formular-center-name-field--new {
+  max-width: 24rem;
+}
+
+.formular-center-new-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  margin: 0 $spacing-md $spacing-lg;
+}
+
+.formular-center-upload--hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.formular-center-upload-hint--block {
+  margin: 0 $spacing-md $spacing-md;
+}
+
+.formular-center-sections-admin,
+.formular-center-sections-public {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.formular-center-section-block {
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  background: #fff;
+  padding: 0;
+  overflow: hidden;
+}
+
+.formular-center-section-block--public {
+  margin: 0 $spacing-md $spacing-md;
+}
+
+.formular-center-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $bg-light;
+  border-bottom: 1px solid $border-color;
+}
+
+.formular-center-section-heading {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: $font-weight-bold;
+  color: $text-color;
+  flex: 1 1 auto;
+  min-width: 8rem;
+}
+
+.formular-center-section-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  justify-content: flex-end;
+}
+
+.formular-center-section-block .formular-center-list {
+  margin: 0;
+  padding: $spacing-sm 0;
+}
+
+.formular-center-section-empty {
+  margin: 0;
+  padding: $spacing-md $spacing-lg;
+  font-size: 0.9rem;
+  color: $text-light;
+}
+
+.formular-center-edit-panel--section {
+  width: 100%;
+}
+
+.formular-center-item-order {
+  display: inline-flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}

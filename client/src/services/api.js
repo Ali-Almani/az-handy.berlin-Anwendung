@@ -24,6 +24,48 @@ function voucherRowsMatchMock(a, b) {
 const createMockApi = () => {
   let voucherMockUserState = { copyHistory: [], copyTimestamps: [], rowActions: {} };
   let voucherMockRows = [];
+  let formularMockSections = [
+    { id: 'mock-sec-1', title: 'Formulare', sortOrder: 0, items: [] }
+  ];
+  let formularMockNextSectionNum = 2;
+
+  const formularMockSort = () => {
+    formularMockSections.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    formularMockSections.forEach((sec) => {
+      const items = sec.items || [];
+      items.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    });
+  };
+
+  const formularMockGetPayload = () => {
+    formularMockSort();
+    return {
+      success: true,
+      sections: formularMockSections.map((sec) => ({
+        id: sec.id,
+        title: sec.title,
+        sortOrder: sec.sortOrder,
+        items: (sec.items || []).map((it, i) => ({
+          id: it.id,
+          originalName: it.originalName,
+          uploadedAt: it.uploadedAt,
+          uploadedByName: it.uploadedByName,
+          sortOrder: it.sortOrder ?? i,
+          url: '#'
+        }))
+      }))
+    };
+  };
+
+  const formularMockFindItem = (itemId) => {
+    for (const sec of formularMockSections) {
+      const items = sec.items || [];
+      const idx = items.findIndex((it) => it.id === itemId);
+      if (idx >= 0) return { sec, items, idx };
+    }
+    return null;
+  };
+
   return {
     post: async (url, data) => {
       if (url === '/auth/login') {
@@ -67,33 +109,104 @@ const createMockApi = () => {
         voucherMockRows.push(JSON.parse(JSON.stringify(payload)));
         return { data: { success: true, count: voucherMockRows.length } };
       }
-      if (url === '/formular-center/upload') {
+      if (url === '/formular-center/sections') {
+        const title = (data && data.title) || 'Neuer Bereich';
+        formularMockSort();
+        const maxOrder = formularMockSections.reduce(
+          (m, s) => Math.max(m, s.sortOrder ?? 0),
+          -1
+        );
+        const id = `mock-sec-${formularMockNextSectionNum++}`;
+        const sortOrder = maxOrder + 1;
+        formularMockSections.push({ id, title, sortOrder, items: [] });
+        return { data: { success: true, section: { id, title, sortOrder, items: [] } } };
+      }
+      const secMove = url?.match(/^\/formular-center\/sections\/([^/]+)\/move$/);
+      if (secMove) {
+        const sectionId = secMove[1];
+        const direction = data?.direction;
+        formularMockSort();
+        const idx = formularMockSections.findIndex((s) => s.id === sectionId);
+        if (idx >= 0) {
+          if (direction === 'up' && idx > 0) {
+            [formularMockSections[idx - 1], formularMockSections[idx]] = [
+              formularMockSections[idx],
+              formularMockSections[idx - 1]
+            ];
+          } else if (direction === 'down' && idx < formularMockSections.length - 1) {
+            [formularMockSections[idx + 1], formularMockSections[idx]] = [
+              formularMockSections[idx],
+              formularMockSections[idx + 1]
+            ];
+          }
+          formularMockSections.forEach((s, i) => {
+            s.sortOrder = i;
+          });
+        }
+        return { data: { success: true } };
+      }
+      const itemMove = url?.match(/^\/formular-center\/items\/([^/]+)\/move$/);
+      if (itemMove) {
+        const itemId = itemMove[1];
+        const direction = data?.direction;
+        const loc = formularMockFindItem(itemId);
+        if (loc) {
+          const { items, idx } = loc;
+          if (direction === 'up' && idx > 0) {
+            [items[idx - 1], items[idx]] = [items[idx], items[idx - 1]];
+          } else if (direction === 'down' && idx < items.length - 1) {
+            [items[idx + 1], items[idx]] = [items[idx], items[idx + 1]];
+          }
+          items.forEach((it, i) => {
+            it.sortOrder = i;
+          });
+        }
+        return { data: { success: true } };
+      }
+      const itemReplaceMatch = url?.match(/^\/formular-center\/items\/([^/]+)\/replace$/);
+      if (itemReplaceMatch) {
+        const itemId = itemReplaceMatch[1];
+        const loc = formularMockFindItem(itemId);
+        if (loc) {
+          loc.items[loc.idx].originalName = 'ersetzt.xlsx';
+          loc.items[loc.idx].uploadedAt = new Date().toISOString();
+        }
+        const it = loc ? loc.items[loc.idx] : null;
         return {
           data: {
             success: true,
-            item: {
-              id: 'mock-fc',
-              originalName: 'beispiel.pdf',
-              uploadedAt: new Date().toISOString(),
-              uploadedByName: 'Mock',
-              url: '#'
-            }
+            item: it
+              ? { ...it, url: '#' }
+              : {
+                  id: itemId,
+                  originalName: 'ersetzt.xlsx',
+                  uploadedAt: new Date().toISOString(),
+                  uploadedByName: 'Mock',
+                  url: '#'
+                }
           }
         };
       }
-      if (url?.match(/^\/formular-center\/[^/]+\/replace$/)) {
-        return {
-          data: {
-            success: true,
-            item: {
-              id: 'mock-fc',
-              originalName: 'ersetzt.xlsx',
-              uploadedAt: new Date().toISOString(),
-              uploadedByName: 'Mock',
-              url: '#'
-            }
-          }
+      if (url === '/formular-center/upload') {
+        let sectionId = 'mock-sec-1';
+        if (data instanceof FormData) {
+          const sid = data.get('sectionId');
+          if (sid) sectionId = String(sid);
+        }
+        const sec = formularMockSections.find((s) => s.id === sectionId);
+        const id = `mock-item-${Date.now()}`;
+        const item = {
+          id,
+          originalName: 'beispiel.pdf',
+          uploadedAt: new Date().toISOString(),
+          uploadedByName: 'Mock',
+          sortOrder: sec ? (sec.items || []).length : 0
         };
+        if (sec) {
+          if (!sec.items) sec.items = [];
+          sec.items.push(item);
+        }
+        return { data: { success: true, item: { ...item, url: '#' } } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -134,7 +247,7 @@ const createMockApi = () => {
         };
       }
       if (url === '/formular-center') {
-        return { data: { success: true, items: [] } };
+        return { data: formularMockGetPayload() };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
@@ -190,24 +303,48 @@ const createMockApi = () => {
         const id = url.replace('/imeis/reminder-response-notifications/', '').replace('/read', '');
         return await mockApi.markReminderResponseNotificationRead(token, id);
       }
-      if (url?.match(/^\/formular-center\/[^/]+$/) && !url.includes('/download/')) {
+      const secPatch = url?.match(/^\/formular-center\/sections\/([^/]+)$/);
+      if (secPatch) {
+        const sectionId = secPatch[1];
+        const sec = formularMockSections.find((s) => s.id === sectionId);
+        if (sec && data?.title != null) sec.title = data.title;
+        return { data: { success: true } };
+      }
+      if (url?.match(/^\/formular-center\/items\/[^/]+$/) && !url.includes('/download/')) {
+        const itemId = url.replace('/formular-center/items/', '');
+        const loc = formularMockFindItem(itemId);
+        if (loc && data?.originalName != null) {
+          loc.items[loc.idx].originalName = data.originalName;
+        }
+        const it = loc ? loc.items[loc.idx] : null;
         return {
           data: {
             success: true,
-            item: {
-              id: url.replace('/formular-center/', ''),
-              originalName: data?.originalName || '',
-              uploadedAt: new Date().toISOString(),
-              uploadedByName: 'Mock',
-              url: '#'
-            }
+            item: it
+              ? { ...it, url: '#' }
+              : {
+                  id: itemId,
+                  originalName: data?.originalName || '',
+                  uploadedAt: new Date().toISOString(),
+                  uploadedByName: 'Mock',
+                  url: '#'
+                }
           }
         };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     delete: async (url) => {
-      if (url?.startsWith('/formular-center/')) {
+      const secDel = url?.match(/^\/formular-center\/sections\/([^/]+)$/);
+      if (secDel) {
+        const i = formularMockSections.findIndex((s) => s.id === secDel[1]);
+        if (i >= 0) formularMockSections.splice(i, 1);
+        return { data: { success: true } };
+      }
+      const itemDel = url?.match(/^\/formular-center\/items\/([^/]+)$/);
+      if (itemDel) {
+        const loc = formularMockFindItem(itemDel[1]);
+        if (loc) loc.items.splice(loc.idx, 1);
         return { data: { success: true } };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
