@@ -265,11 +265,6 @@ export default function FormularCenterAdminPanel({ loadWhen = true }) {
         <span className="dashboard-excel-upload__badge">Verwaltung · PDF, Word, Excel</span>
       </div>
       <div className="card-body">
-        <p className="formular-center-intro">
-          Legen Sie <strong>Bereiche mit Titel</strong> an und ordnen Sie diese mit den Pfeilen. Pro Bereich laden Sie
-          Dateien hoch; die Reihenfolge der Dateien ist ebenfalls änderbar. Die öffentliche Seite „Formular Center“ im
-          Menü zeigt allen Nutzern (inkl. Administratoren) nur Downloads – die Verwaltung erfolgt hier im Dashboard.
-        </p>
         <div className="formular-center-new-section">
           <label className="sr-only" htmlFor="formular-new-section-title">
             Neuer Bereichstitel
