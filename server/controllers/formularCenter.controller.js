@@ -18,43 +18,103 @@ async function isAdminUser(userId) {
   }
 }
 
+function sortSections(sections) {
+  return [...(sections || [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+}
+
+/** Legacy { items: [] } → { sections: [{ title, items }] } */
+function normalizeFormularPayload(raw) {
+  if (!raw || typeof raw !== 'object') return { sections: [], migrated: false };
+  const hasSections = Array.isArray(raw.sections) && raw.sections.length > 0;
+  const legacyItems = Array.isArray(raw.items) ? raw.items.filter((it) => it && it.id && it.fileName) : [];
+
+  if (hasSections) {
+    const sections = raw.sections.map((s, i) => ({
+      id: String(s.id || `sec-${i}`),
+      title: String(s.title || 'Bereich').trim() || 'Bereich',
+      sortOrder: Number.isFinite(Number(s.sortOrder)) ? Number(s.sortOrder) : i,
+      items: Array.isArray(s.items) ? s.items.filter((it) => it && it.id && it.fileName) : []
+    }));
+    return { sections: sortSections(sections), migrated: false };
+  }
+
+  if (legacyItems.length > 0) {
+    return {
+      sections: [
+        {
+          id: `sec-migrated-${Date.now()}`,
+          title: 'Formulare',
+          sortOrder: 0,
+          items: legacyItems
+        }
+      ],
+      migrated: true
+    };
+  }
+
+  return { sections: [], migrated: false };
+}
+
+function loadFormularStore() {
+  const raw = loadJson(FORMULAR_CENTER_FILE);
+  const { sections, migrated } = normalizeFormularPayload(raw);
+  if (migrated) {
+    saveJson(FORMULAR_CENTER_FILE, { sections });
+  }
+  return { sections };
+}
+
+function saveFormularStore(sections) {
+  saveJson(FORMULAR_CENTER_FILE, { sections });
+}
+
+function findItemLocation(sections, itemId) {
+  const sid = String(itemId);
+  for (let si = 0; si < sections.length; si++) {
+    const items = sections[si].items || [];
+    const ii = items.findIndex((it) => it && String(it.id) === sid);
+    if (ii !== -1) return { sectionIndex: si, itemIndex: ii, section: sections[si], item: items[ii] };
+  }
+  return null;
+}
+
+function mapItemToResponse(it) {
+  return {
+    id: it.id,
+    originalName: it.originalName || it.fileName,
+    uploadedAt: it.uploadedAt,
+    uploadedByName: it.uploadedByName || '',
+    url: `/api/formular-center/download/${encodeURIComponent(it.id)}`
+  };
+}
+
 export const getFormularCenterItems = async (req, res, next) => {
   try {
-    const data = loadJson(FORMULAR_CENTER_FILE) || {};
-    const raw = Array.isArray(data.items) ? data.items : [];
-    /**
-     * Download nur über /api/formular-center/download/:id — gleicher Pfad wie andere API-Routen.
-     * Reine /uploads-Links scheitern oft in Production (nur /api zum Node proxied, sonst liefert das Frontend HTML/JSON).
-     */
-    const items = raw
-      .filter((it) => it && it.id && it.fileName)
-      .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))
-      .map((it) => ({
-        id: it.id,
-        originalName: it.originalName || it.fileName,
-        uploadedAt: it.uploadedAt,
-        uploadedByName: it.uploadedByName || '',
-        url: `/api/formular-center/download/${encodeURIComponent(it.id)}`
-      }));
-    return res.json({ success: true, items });
+    const { sections } = loadFormularStore();
+    const out = sortSections(sections).map((s) => ({
+      id: s.id,
+      title: s.title,
+      sortOrder: s.sortOrder ?? 0,
+      items: (s.items || []).map(mapItemToResponse)
+    }));
+    return res.json({ success: true, sections: out });
   } catch (e) {
     next(e);
   }
 };
 
-/** Öffentlicher Download (gleiche wie Liste): korrekte Datei mit Content-Disposition vom API-Server */
 export const downloadFormularCenterFile = async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!id) {
       return res.status(400).json({ success: false, message: 'ID fehlt' });
     }
-    const data = loadJson(FORMULAR_CENTER_FILE) || {};
-    const items = Array.isArray(data.items) ? data.items : [];
-    const found = items.find((it) => it && String(it.id) === String(id));
-    if (!found || !found.fileName) {
+    const { sections } = loadFormularStore();
+    const loc = findItemLocation(sections, id);
+    if (!loc || !loc.item?.fileName) {
       return res.status(404).json({ success: false, message: 'Datei nicht gefunden' });
     }
+    const found = loc.item;
     const filePath = path.join(getDataDir(), 'uploads', UPLOAD_SUBDIR, found.fileName);
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ success: false, message: 'Datei nicht gefunden' });
@@ -77,6 +137,162 @@ export const downloadFormularCenterFile = async (req, res, next) => {
   }
 };
 
+/** Administrator: neuen Bereich (Titel) anlegen */
+export const createFormularSection = async (req, res, next) => {
+  try {
+    if (!(await isAdminUser(req.user.userId))) {
+      return res.status(403).json({ success: false, message: 'Nur Administratoren' });
+    }
+    const title = String(req.body?.title ?? '').trim();
+    if (!title || title.length > 200) {
+      return res.status(400).json({ success: false, message: 'Titel erforderlich (max. 200 Zeichen)' });
+    }
+    const { sections } = loadFormularStore();
+    const sorted = sortSections(sections);
+    const maxOrder = sorted.reduce((m, s) => Math.max(m, s.sortOrder ?? 0), -1);
+    const section = {
+      id: `sec-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      title,
+      sortOrder: maxOrder + 1,
+      items: []
+    };
+    sorted.push(section);
+    saveFormularStore(sorted);
+    return res.json({
+      success: true,
+      section: { id: section.id, title: section.title, sortOrder: section.sortOrder, items: [] }
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Administrator: Bereichstitel ändern */
+export const patchFormularSection = async (req, res, next) => {
+  try {
+    if (!(await isAdminUser(req.user.userId))) {
+      return res.status(403).json({ success: false, message: 'Nur Administratoren' });
+    }
+    const { sectionId } = req.params;
+    const title = String(req.body?.title ?? '').trim();
+    if (!title || title.length > 200) {
+      return res.status(400).json({ success: false, message: 'Titel erforderlich (max. 200 Zeichen)' });
+    }
+    const { sections } = loadFormularStore();
+    const s = sections.find((x) => x && String(x.id) === String(sectionId));
+    if (!s) {
+      return res.status(404).json({ success: false, message: 'Bereich nicht gefunden' });
+    }
+    s.title = title;
+    saveFormularStore(sections);
+    return res.json({
+      success: true,
+      section: { id: s.id, title: s.title, sortOrder: s.sortOrder ?? 0, items: (s.items || []).map(mapItemToResponse) }
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Administrator: Bereich löschen inkl. Dateien */
+export const deleteFormularSection = async (req, res, next) => {
+  try {
+    if (!(await isAdminUser(req.user.userId))) {
+      return res.status(403).json({ success: false, message: 'Nur Administratoren' });
+    }
+    const { sectionId } = req.params;
+    const { sections } = loadFormularStore();
+    const s = sections.find((x) => x && String(x.id) === String(sectionId));
+    if (!s) {
+      return res.status(404).json({ success: false, message: 'Bereich nicht gefunden' });
+    }
+    for (const it of s.items || []) {
+      const fp = path.join(getDataDir(), 'uploads', UPLOAD_SUBDIR, it.fileName);
+      try {
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      } catch (_) {}
+    }
+    const nextSections = sections.filter((x) => String(x.id) !== String(sectionId));
+    const sorted = sortSections(nextSections);
+    sorted.forEach((sec, i) => {
+      sec.sortOrder = i;
+    });
+    saveFormularStore(sorted);
+    return res.json({ success: true });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Administrator: Bereich nach oben/unten */
+export const moveFormularSection = async (req, res, next) => {
+  try {
+    if (!(await isAdminUser(req.user.userId))) {
+      return res.status(403).json({ success: false, message: 'Nur Administratoren' });
+    }
+    const { sectionId } = req.params;
+    const direction = String(req.body?.direction || '').toLowerCase();
+    if (direction !== 'up' && direction !== 'down') {
+      return res.status(400).json({ success: false, message: 'direction: up oder down' });
+    }
+    const { sections } = loadFormularStore();
+    const sorted = sortSections(sections);
+    const idx = sorted.findIndex((s) => String(s.id) === String(sectionId));
+    if (idx === -1) {
+      return res.status(404).json({ success: false, message: 'Bereich nicht gefunden' });
+    }
+    const j = direction === 'up' ? idx - 1 : idx + 1;
+    if (j < 0 || j >= sorted.length) {
+      return res.json({ success: true, sections: sorted.map((s) => ({ id: s.id, title: s.title, sortOrder: s.sortOrder, items: (s.items || []).map(mapItemToResponse) })) });
+    }
+    [sorted[idx], sorted[j]] = [sorted[j], sorted[idx]];
+    sorted.forEach((s, i) => {
+      s.sortOrder = i;
+    });
+    saveFormularStore(sorted);
+    const out = sorted.map((s) => ({
+      id: s.id,
+      title: s.title,
+      sortOrder: s.sortOrder,
+      items: (s.items || []).map(mapItemToResponse)
+    }));
+    return res.json({ success: true, sections: out });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Administrator: Datei innerhalb des Bereichs nach oben/unten */
+export const moveFormularItem = async (req, res, next) => {
+  try {
+    if (!(await isAdminUser(req.user.userId))) {
+      return res.status(403).json({ success: false, message: 'Nur Administratoren' });
+    }
+    const { itemId } = req.params;
+    const direction = String(req.body?.direction || '').toLowerCase();
+    if (direction !== 'up' && direction !== 'down') {
+      return res.status(400).json({ success: false, message: 'direction: up oder down' });
+    }
+    const { sections } = loadFormularStore();
+    const loc = findItemLocation(sections, itemId);
+    if (!loc) {
+      return res.status(404).json({ success: false, message: 'Datei nicht gefunden' });
+    }
+    const items = [...(loc.section.items || [])];
+    const idx = loc.itemIndex;
+    const j = direction === 'up' ? idx - 1 : idx + 1;
+    if (j < 0 || j >= items.length) {
+      return res.json({ success: true });
+    }
+    [items[idx], items[j]] = [items[j], items[idx]];
+    loc.section.items = items;
+    saveFormularStore(sections);
+    return res.json({ success: true });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const uploadFormularCenterPdf = async (req, res, next) => {
   try {
     if (!(await isAdminUser(req.user.userId))) {
@@ -87,6 +303,21 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
     }
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Keine Datei' });
+    }
+    const sectionId = String(req.body?.sectionId ?? '').trim();
+    if (!sectionId) {
+      try {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      } catch (_) {}
+      return res.status(400).json({ success: false, message: 'Bereich (sectionId) erforderlich' });
+    }
+    const { sections } = loadFormularStore();
+    const sec = sections.find((s) => s && String(s.id) === String(sectionId));
+    if (!sec) {
+      try {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      } catch (_) {}
+      return res.status(404).json({ success: false, message: 'Bereich nicht gefunden' });
     }
     const currentUser = await User.findByPk(req.user.userId);
     const uploaderName = (
@@ -104,10 +335,9 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
       uploadedByUserId: req.user.userId,
       uploadedByName: uploaderName
     };
-    const data = loadJson(FORMULAR_CENTER_FILE) || {};
-    const items = Array.isArray(data.items) ? [...data.items] : [];
-    items.unshift(entry);
-    saveJson(FORMULAR_CENTER_FILE, { items });
+    if (!Array.isArray(sec.items)) sec.items = [];
+    sec.items.unshift(entry);
+    saveFormularStore(sections);
     return res.json({
       success: true,
       item: {
@@ -115,7 +345,8 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
         originalName: entry.originalName,
         uploadedAt: entry.uploadedAt,
         uploadedByName: entry.uploadedByName,
-        url: `/api/formular-center/download/${encodeURIComponent(entry.id)}`
+        url: `/api/formular-center/download/${encodeURIComponent(entry.id)}`,
+        sectionId: sec.id
       }
     });
   } catch (e) {
@@ -123,7 +354,6 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
   }
 };
 
-/** Administrator: Anzeigename ändern (Datei auf der Platte unverändert) */
 export const patchFormularCenterItem = async (req, res, next) => {
   try {
     if (!(await isAdminUser(req.user.userId))) {
@@ -141,14 +371,14 @@ export const patchFormularCenterItem = async (req, res, next) => {
         message: 'Anzeigename erforderlich (1–500 Zeichen)'
       });
     }
-    const data = loadJson(FORMULAR_CENTER_FILE) || {};
-    const items = Array.isArray(data.items) ? data.items : [];
-    const found = items.find((it) => it && String(it.id) === String(id));
-    if (!found) {
+    const { sections } = loadFormularStore();
+    const loc = findItemLocation(sections, id);
+    if (!loc) {
       return res.status(404).json({ success: false, message: 'Eintrag nicht gefunden' });
     }
-    found.originalName = name;
-    saveJson(FORMULAR_CENTER_FILE, { items });
+    loc.item.originalName = name;
+    saveFormularStore(sections);
+    const found = loc.item;
     return res.json({
       success: true,
       item: {
@@ -164,7 +394,6 @@ export const patchFormularCenterItem = async (req, res, next) => {
   }
 };
 
-/** Administrator: Datei ersetzen (gleiche ID in der Liste) */
 export const replaceFormularCenterFile = async (req, res, next) => {
   try {
     if (!(await isAdminUser(req.user.userId))) {
@@ -177,16 +406,15 @@ export const replaceFormularCenterFile = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Keine Datei' });
     }
-    const data = loadJson(FORMULAR_CENTER_FILE) || {};
-    const items = Array.isArray(data.items) ? [...data.items] : [];
-    const idx = items.findIndex((it) => it && String(it.id) === String(id));
-    if (idx === -1) {
+    const { sections } = loadFormularStore();
+    const loc = findItemLocation(sections, id);
+    if (!loc) {
       try {
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       } catch (_) {}
       return res.status(404).json({ success: false, message: 'Eintrag nicht gefunden' });
     }
-    const found = items[idx];
+    const found = loc.item;
     const oldPath = path.join(getDataDir(), 'uploads', UPLOAD_SUBDIR, found.fileName);
     try {
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -203,8 +431,7 @@ export const replaceFormularCenterFile = async (req, res, next) => {
     found.uploadedAt = new Date().toISOString();
     found.uploadedByUserId = req.user.userId;
     found.uploadedByName = uploaderName;
-    items[idx] = found;
-    saveJson(FORMULAR_CENTER_FILE, { items });
+    saveFormularStore(sections);
     return res.json({
       success: true,
       item: {
@@ -232,14 +459,14 @@ export const deleteFormularCenterItem = async (req, res, next) => {
     if (!id) {
       return res.status(400).json({ success: false, message: 'ID fehlt' });
     }
-    const data = loadJson(FORMULAR_CENTER_FILE) || {};
-    let items = Array.isArray(data.items) ? data.items : [];
-    const found = items.find((it) => it && String(it.id) === String(id));
-    if (!found) {
+    const { sections } = loadFormularStore();
+    const loc = findItemLocation(sections, id);
+    if (!loc) {
       return res.status(404).json({ success: false, message: 'Eintrag nicht gefunden' });
     }
-    items = items.filter((it) => String(it.id) !== String(id));
-    saveJson(FORMULAR_CENTER_FILE, { items });
+    const found = loc.item;
+    loc.section.items = (loc.section.items || []).filter((it) => String(it.id) !== String(id));
+    saveFormularStore(sections);
     const filePath = path.join(getDataDir(), 'uploads', UPLOAD_SUBDIR, found.fileName);
     try {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);

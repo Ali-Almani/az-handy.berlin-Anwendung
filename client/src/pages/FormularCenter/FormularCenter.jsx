@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { isAdmin } from '../../utils/roles';
 import { getFormularCenterItems, getFormularCenterDownloadHref } from '../../services/formularCenter.service';
+import FormularCenterAdminPanel from './FormularCenterAdminPanel';
 import './FormularCenter.scss';
 
 function safeDownloadName(name) {
@@ -8,11 +11,19 @@ function safeDownloadName(name) {
 }
 
 const FormularCenter = () => {
+  const { user } = useAuth();
+  const admin = isAdmin(user);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
+    if (admin) {
+      setSections([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -24,11 +35,19 @@ const FormularCenter = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [admin]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  if (admin) {
+    return (
+      <div className="formular-center-page">
+        <FormularCenterAdminPanel loadWhen />
+      </div>
+    );
+  }
 
   return (
     <div className="formular-center-page">

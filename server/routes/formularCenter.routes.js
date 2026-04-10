@@ -1,16 +1,18 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import {
-  formularCenterUpload,
-  FORMULAR_CENTER_MAX_FILE_BYTES
-} from '../middleware/formularPdfUpload.js';
+import { formularCenterUpload, FORMULAR_CENTER_MAX_FILE_BYTES } from '../middleware/formularPdfUpload.js';
 import {
   getFormularCenterItems,
   uploadFormularCenterPdf,
   deleteFormularCenterItem,
   downloadFormularCenterFile,
   patchFormularCenterItem,
-  replaceFormularCenterFile
+  replaceFormularCenterFile,
+  createFormularSection,
+  patchFormularSection,
+  deleteFormularSection,
+  moveFormularSection,
+  moveFormularItem
 } from '../controllers/formularCenter.controller.js';
 
 const router = express.Router();
@@ -35,14 +37,19 @@ const formularUploadMiddleware = (req, res, next) => {
   formularCenterUpload.single('file')(req, res, (err) => handleFormularMulterError(err, req, res, next));
 };
 
-/** Öffentlich: alle können die Liste sehen; Download über API mit korrekten Inhaltstypen. */
 router.get('/', getFormularCenterItems);
 router.get('/download/:id', downloadFormularCenterFile);
 
 router.post('/upload', authenticateToken, formularUploadMiddleware, uploadFormularCenterPdf);
-router.post('/:id/replace', authenticateToken, formularUploadMiddleware, replaceFormularCenterFile);
-router.patch('/:id', authenticateToken, patchFormularCenterItem);
 
-router.delete('/:id', authenticateToken, deleteFormularCenterItem);
+router.post('/sections', authenticateToken, createFormularSection);
+router.patch('/sections/:sectionId', authenticateToken, patchFormularSection);
+router.delete('/sections/:sectionId', authenticateToken, deleteFormularSection);
+router.post('/sections/:sectionId/move', authenticateToken, moveFormularSection);
+
+router.post('/items/:itemId/move', authenticateToken, moveFormularItem);
+router.post('/items/:itemId/replace', authenticateToken, formularUploadMiddleware, replaceFormularCenterFile);
+router.patch('/items/:itemId', authenticateToken, patchFormularCenterItem);
+router.delete('/items/:itemId', authenticateToken, deleteFormularCenterItem);
 
 export default router;
