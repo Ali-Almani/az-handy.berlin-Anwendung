@@ -164,7 +164,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-sm;
-  margin: $spacing-md $spacing-md $spacing-lg;
+  margin-top: $spacing-md;
+  margin-bottom: $spacing-lg;
+  margin-left: $spacing-lg;
+  margin-right: $spacing-lg;
 }
 
 .formular-center-upload--hidden {
