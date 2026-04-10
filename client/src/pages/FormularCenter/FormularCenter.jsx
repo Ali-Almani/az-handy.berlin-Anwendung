@@ -42,6 +42,11 @@ const FormularCenter = () => {
           {loading ? (
             <p>Lade Formulare…</p>
           ) : items.length > 0 ? (
+            <>
+              <p className="formular-center-hint">
+                PDF, Word und Excel: zum Bearbeiten z.&nbsp;B. „Herunterladen“ wählen und die Datei in der
+                passenden App öffnen.
+              </p>
             <ul className="formular-center-list">
               {items.map((it) => {
                 const label = it.originalName || 'Dokument';
@@ -59,6 +64,7 @@ const FormularCenter = () => {
                 );
               })}
             </ul>
+            </>
           ) : (
             <p className="formular-center-empty">Keine Formulare hinterlegt.</p>
           )}

@@ -81,6 +81,20 @@ const createMockApi = () => {
           }
         };
       }
+      if (url?.match(/^\/formular-center\/[^/]+\/replace$/)) {
+        return {
+          data: {
+            success: true,
+            item: {
+              id: 'mock-fc',
+              originalName: 'ersetzt.xlsx',
+              uploadedAt: new Date().toISOString(),
+              uploadedByName: 'Mock',
+              url: '#'
+            }
+          }
+        };
+      }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },
     get: async (url) => {
@@ -175,6 +189,20 @@ const createMockApi = () => {
         const token = localStorage.getItem('token');
         const id = url.replace('/imeis/reminder-response-notifications/', '').replace('/read', '');
         return await mockApi.markReminderResponseNotificationRead(token, id);
+      }
+      if (url?.match(/^\/formular-center\/[^/]+$/) && !url.includes('/download/')) {
+        return {
+          data: {
+            success: true,
+            item: {
+              id: url.replace('/formular-center/', ''),
+              originalName: data?.originalName || '',
+              uploadedAt: new Date().toISOString(),
+              uploadedByName: 'Mock',
+              url: '#'
+            }
+          }
+        };
       }
       throw new Error(`Mock API: Route ${url} not implemented`);
     },

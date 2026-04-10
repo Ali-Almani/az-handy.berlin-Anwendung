@@ -52,6 +52,13 @@
   margin: $spacing-md 0;
 }
 
+.formular-center-hint {
+  margin: 0 $spacing-md $spacing-md;
+  font-size: 0.9rem;
+  color: $text-light;
+  line-height: 1.45;
+}
+
 .formular-center-list {
   list-style: none;
   margin: 0;
@@ -101,4 +108,45 @@
 
 .formular-center-delete {
   margin-left: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.formular-center-item--dashboard {
+  flex-direction: column;
+  align-items: stretch;
+  gap: $spacing-md;
+}
+
+.formular-center-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.formular-center-edit-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.formular-center-name-field {
+  flex: 1 1 14rem;
+  min-width: 10rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  font-size: 0.95rem;
 }

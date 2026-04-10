@@ -141,11 +141,8 @@ export function useImeisCopyHandlers({
             if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
           });
           setRowActions(updatedRowActions);
-          persistImeis?.({
-            copyHistory: updatedHistory,
-            rowActions: updatedRowActions,
-            ...(newAction === 'angenommen' ? { removedImei: imeiStr } : {})
-          });
+          // NICHT persistImeis() aufrufen: Das würde per PUT /imeis/data lokale (evtl. gemergte)
+          // Zustände zurückschreiben und kann die Server-Änderung wieder überschreiben.
         }
         // Kein setRemovedImeiCooldown: sonst blockiert shouldSkipSync() den Verlauf-Polling-Refresh 5s
         await refreshImeisFromApi?.();

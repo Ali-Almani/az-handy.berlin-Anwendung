@@ -18,7 +18,9 @@ import {
   getFormularCenterItems,
   uploadFormularCenterFile,
   deleteFormularCenterItem,
-  getFormularCenterDownloadHref
+  getFormularCenterDownloadHref,
+  updateFormularCenterItemMeta,
+  replaceFormularCenterFile
 } from '../../services/formularCenter.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
@@ -39,6 +41,9 @@ const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
 const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
 const SEC_FORMULAR = 'formular';
+
+const FORMULAR_FILE_ACCEPT =
+  '.pdf,.doc,.docx,.xlsx,.xls,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
 
 const DashSidebarIcon = ({ children }) => (
   <span className="dashboard-admin-nav__icon" aria-hidden>
@@ -72,11 +77,17 @@ const Dashboard = () => {
   const [bueroSection, setBueroSection] = useState(SEC_EXCEL);
   const alteNewsPanelId = useId();
   const formularFileInputRef = useRef(null);
+  const formularReplaceInputRef = useRef(null);
+  const formularReplaceTargetIdRef = useRef(null);
   const [formularItems, setFormularItems] = useState([]);
   const [formularLoading, setFormularLoading] = useState(false);
   const [formularError, setFormularError] = useState(null);
   const [formularUploadBusy, setFormularUploadBusy] = useState(false);
   const [formularDeleteId, setFormularDeleteId] = useState(null);
+  const [formularEditingId, setFormularEditingId] = useState(null);
+  const [formularEditName, setFormularEditName] = useState('');
+  const [formularMetaBusy, setFormularMetaBusy] = useState(false);
+  const [formularReplaceBusyId, setFormularReplaceBusyId] = useState(null);
 
   const loadFormularCenter = useCallback(async () => {
     setFormularLoading(true);
@@ -219,11 +230,70 @@ const Dashboard = () => {
     setFormularError(null);
     try {
       await deleteFormularCenterItem(id);
+      if (formularEditingId === id) {
+        setFormularEditingId(null);
+        setFormularEditName('');
+      }
       await loadFormularCenter();
     } catch (err) {
       setFormularError(err.response?.data?.message || err.message || 'Löschen fehlgeschlagen.');
     } finally {
       setFormularDeleteId(null);
+    }
+  };
+
+  const handleFormularSaveMeta = async () => {
+    if (!formularEditingId) return;
+    const name = formularEditName.trim();
+    if (!name) {
+      setFormularError('Bitte einen Anzeigename eingeben.');
+      return;
+    }
+    setFormularMetaBusy(true);
+    setFormularError(null);
+    try {
+      await updateFormularCenterItemMeta(formularEditingId, { originalName: name });
+      setFormularEditingId(null);
+      setFormularEditName('');
+      await loadFormularCenter();
+    } catch (err) {
+      setFormularError(err.response?.data?.message || err.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setFormularMetaBusy(false);
+    }
+  };
+
+  const handleFormularReplacePick = (id) => {
+    formularReplaceTargetIdRef.current = id;
+    formularReplaceInputRef.current?.click();
+  };
+
+  const handleFormularReplaceFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const targetId = formularReplaceTargetIdRef.current;
+    formularReplaceTargetIdRef.current = null;
+    if (!file || !targetId) return;
+    setFormularReplaceBusyId(targetId);
+    setFormularError(null);
+    try {
+      await replaceFormularCenterFile(targetId, file);
+      await loadFormularCenter();
+    } catch (err) {
+      const status = err.response?.status;
+      const data = err.response?.data;
+      const apiMsg =
+        data && typeof data === 'object' && typeof data.message === 'string' ? data.message : null;
+      let msg = apiMsg || err.message || 'Datei konnte nicht ersetzt werden.';
+      if (status === 413) {
+        msg =
+          apiMsg && apiMsg.length <= 160
+            ? apiMsg
+            : 'Upload zu groß (413). Nginx „client_max_body_size“ anpassen oder Datei max. 100 MB.';
+      }
+      setFormularError(msg);
+    } finally {
+      setFormularReplaceBusyId(null);
     }
   };
 
@@ -845,18 +915,26 @@ const Dashboard = () => {
               <div className="card dashboard-formular-center dashboard-admin-panel">
                 <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
                   <h2 className="card-title">Formular Center</h2>
-                  <span className="dashboard-excel-upload__badge">PDF &amp; Word</span>
+                  <span className="dashboard-excel-upload__badge">PDF, Word, Excel</span>
                 </div>
                 <div className="card-body">
                   <p className="formular-center-intro">
-                    PDF- und Word-Dateien (.pdf, .doc, .docx), die Sie hier hochladen, erscheinen für alle
-                    Benutzer unter „Formular Center“ in der Navigation.
+                    PDF-, Word- und Excel-Dateien (.pdf, .doc, .docx, .xlsx, .xls), die Sie hier hochladen,
+                    erscheinen für alle Benutzer unter „Formular Center“. Bearbeiten: Anzeigename ändern oder
+                    Datei ersetzen; zum Inhalt bearbeiten (z.&nbsp;B. Excel) Nutzer die Datei herunterladen.
                   </p>
                   <div className="formular-center-upload dashboard-formular-upload">
                     <input
+                      ref={formularReplaceInputRef}
+                      type="file"
+                      accept={FORMULAR_FILE_ACCEPT}
+                      className="formular-center-file-input"
+                      onChange={handleFormularReplaceFileChange}
+                    />
+                    <input
                       ref={formularFileInputRef}
                       type="file"
-                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      accept={FORMULAR_FILE_ACCEPT}
                       className="formular-center-file-input"
                       onChange={handleFormularFileChange}
                     />
@@ -869,7 +947,7 @@ const Dashboard = () => {
                       >
                         {formularUploadBusy ? 'Wird hochgeladen…' : 'Datei hochladen'}
                       </button>
-                      <span className="formular-center-upload-hint">max. 100 MB · PDF, Word</span>
+                      <span className="formular-center-upload-hint">max. 100 MB · PDF, Word, Excel</span>
                     </div>
                   </div>
                   {formularError && <p className="text-error formular-center-error">{formularError}</p>}
@@ -878,23 +956,87 @@ const Dashboard = () => {
                   ) : formularItems.length > 0 ? (
                     <ul className="formular-center-list">
                       {formularItems.map((it) => (
-                        <li key={it.id} className="formular-center-item">
-                          <a
-                            href={getFormularCenterDownloadHref(it.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="formular-center-link"
-                          >
-                            {it.originalName || 'Dokument'}
-                          </a>
-                          <button
-                            type="button"
-                            className="btn btn--danger btn--small formular-center-delete"
-                            disabled={formularDeleteId === it.id}
-                            onClick={() => handleFormularDelete(it.id)}
-                          >
-                            {formularDeleteId === it.id ? '…' : 'Löschen'}
-                          </button>
+                        <li key={it.id} className="formular-center-item formular-center-item--dashboard">
+                          {formularEditingId === it.id ? (
+                            <div className="formular-center-edit-panel">
+                              <label className="sr-only" htmlFor={`fc-name-${it.id}`}>
+                                Anzeigename
+                              </label>
+                              <input
+                                id={`fc-name-${it.id}`}
+                                type="text"
+                                className="formular-center-name-field"
+                                value={formularEditName}
+                                onChange={(ev) => setFormularEditName(ev.target.value)}
+                                maxLength={500}
+                                disabled={formularMetaBusy}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn--primary btn--small"
+                                disabled={formularMetaBusy}
+                                onClick={() => handleFormularSaveMeta()}
+                              >
+                                {formularMetaBusy ? '…' : 'Speichern'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn--secondary btn--small"
+                                disabled={formularMetaBusy}
+                                onClick={() => {
+                                  setFormularEditingId(null);
+                                  setFormularEditName('');
+                                }}
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <a
+                                href={getFormularCenterDownloadHref(it.id)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="formular-center-link"
+                              >
+                                {it.originalName || 'Dokument'}
+                              </a>
+                              <span className="formular-center-dashboard-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn--outline btn--small"
+                                  disabled={Boolean(formularDeleteId) || Boolean(formularReplaceBusyId)}
+                                  onClick={() => {
+                                    setFormularEditingId(it.id);
+                                    setFormularEditName(it.originalName || '');
+                                    setFormularError(null);
+                                  }}
+                                >
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--outline btn--small"
+                                  disabled={
+                                    formularDeleteId === it.id ||
+                                    formularReplaceBusyId === it.id ||
+                                    Boolean(formularEditingId)
+                                  }
+                                  onClick={() => handleFormularReplacePick(it.id)}
+                                >
+                                  {formularReplaceBusyId === it.id ? '…' : 'Datei ersetzen'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--danger btn--small formular-center-delete"
+                                  disabled={formularDeleteId === it.id}
+                                  onClick={() => handleFormularDelete(it.id)}
+                                >
+                                  {formularDeleteId === it.id ? '…' : 'Löschen'}
+                                </button>
+                              </span>
+                            </>
+                          )}
                         </li>
                       ))}
                     </ul>
