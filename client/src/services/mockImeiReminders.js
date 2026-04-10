@@ -34,18 +34,24 @@ const saveNotifications = (arr) => {
 };
 
 /** Büro sendet Erinnerung – speichern für Benutzer-Anzeige und spätere Benachrichtigung */
-export const mockSendReminder = (mockUsers, token, { targetUserName, imei }) => {
+export const mockSendReminder = (mockUsers, token, { targetUserName, imei, targetUserId }) => {
   const fromUserId = parseToken(token);
   const fromUser = mockUsers.find((u) => u.id === fromUserId);
   const fromUserName = fromUser?.name ?? 'Büro';
-  const targetUser = mockUsers.find((u) => String(u.name || '').trim() === String(targetUserName || '').trim());
-  const targetUserId = targetUser?.id ?? null;
+  let targetUser = null;
+  if (targetUserId != null && targetUserId !== '') {
+    targetUser = mockUsers.find((u) => String(u.id) === String(targetUserId));
+  }
+  if (!targetUser && targetUserName) {
+    targetUser = mockUsers.find((u) => String(u.name || '').trim() === String(targetUserName || '').trim());
+  }
+  const resolvedTargetUserId = targetUser?.id ?? null;
   const reminders = loadReminders();
   const id = `r-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   reminders.push({
     id,
-    target_user_id: targetUserId,
-    target_user_name: targetUserName,
+    target_user_id: resolvedTargetUserId,
+    target_user_name: targetUser?.name ?? targetUserName,
     imei: String(imei || '').trim(),
     from_user_id: fromUserId,
     from_user_name: fromUserName,

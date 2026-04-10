@@ -54,9 +54,11 @@ export const updateHistoryActionApi = async (imei, userName, newAction, targetUs
   }
 };
 
-export const sendImeiReminderApi = async (targetUserName, imei) => {
+export const sendImeiReminderApi = async (targetUserName, imei, targetUserId) => {
   try {
-    const res = await api.post('/imeis/reminder', { targetUserName, imei });
+    const body = { targetUserName, imei };
+    if (targetUserId != null && targetUserId !== '') body.targetUserId = targetUserId;
+    const res = await api.post('/imeis/reminder', body);
     return res.data;
   } catch (err) {
     console.error('Error sending reminder:', err);

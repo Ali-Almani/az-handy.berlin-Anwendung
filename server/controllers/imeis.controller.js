@@ -212,16 +212,22 @@ const getMergedCopyHistory = async () => {
   const all = await ImeisUserData.findAll();
   const merged = [];
   for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
     if (historyJson) {
       try {
         const arr = JSON.parse(historyJson);
-        if (Array.isArray(arr)) merged.push(...arr);
+        if (Array.isArray(arr)) {
+          for (const e of arr) {
+            if (e && (e.imei || e.timestamp)) {
+              merged.push({ ...e, historyOwnerUserId: rowUserId });
+            }
+          }
+        }
       } catch (_) {}
     }
   }
   return merged
-    .filter((e) => e && (e.imei || e.timestamp))
     .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
     .slice(0, 200);
 };
@@ -247,16 +253,22 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   });
   const merged = [];
   for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
     if (historyJson) {
       try {
         const arr = JSON.parse(historyJson);
-        if (Array.isArray(arr)) merged.push(...arr);
+        if (Array.isArray(arr)) {
+          for (const e of arr) {
+            if (e && (e.imei || e.timestamp)) {
+              merged.push({ ...e, historyOwnerUserId: rowUserId });
+            }
+          }
+        }
       } catch (_) {}
     }
   }
   return merged
-    .filter((e) => e && (e.imei || e.timestamp))
     .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
     .slice(0, 200);
 };
@@ -916,12 +928,20 @@ export const sendImeiReminder = async (req, res, next) => {
     if (!isBüro && !isTeamleiter && !isAdminUser) {
       return res.status(403).json({ message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Erinnerungen senden' });
     }
-    const { targetUserName, imei } = req.body;
-    if (!targetUserName || !imei) {
-      return res.status(400).json({ message: 'targetUserName und imei erforderlich' });
+    const { targetUserName, imei, targetUserId: targetUserIdBody } = req.body;
+    if (!imei || String(imei).trim() === '') {
+      return res.status(400).json({ message: 'imei erforderlich' });
     }
+    const tidRaw = targetUserIdBody != null && targetUserIdBody !== '' ? targetUserIdBody : null;
+    const tid = tidRaw != null ? coerceUserId(tidRaw) ?? String(tidRaw).trim() : null;
 
-    const targetUser = await resolveTargetUserByName(targetUserName);
+    let targetUser = null;
+    if (tid) {
+      targetUser = await User.findByPk(tid);
+    }
+    if (!targetUser && targetUserName) {
+      targetUser = await resolveTargetUserByName(targetUserName);
+    }
     if (!targetUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
@@ -934,7 +954,7 @@ export const sendImeiReminder = async (req, res, next) => {
     }
 
     const targetId = targetUser.id ?? targetUser._id ?? targetUser.get?.('id');
-    const targetName = targetUser.name ?? targetUser.get?.('name') ?? targetUserName;
+    const targetName = targetUser.name ?? targetUser.get?.('name') ?? targetUserName ?? '';
     const fromName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Büro';
     const fromId = currentUser?.id ?? currentUser?.get?.('id') ?? userId;
 
@@ -949,7 +969,7 @@ export const sendImeiReminder = async (req, res, next) => {
 /** Eigene IMEI-Erinnerungen abrufen */
 export const getMyImeiReminders = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user) ?? req.user?.userId;
     const reminders = ImeiReminder.getRemindersForUser(userId);
     res.json({ success: true, reminders });
   } catch (error) {
@@ -960,7 +980,7 @@ export const getMyImeiReminders = async (req, res, next) => {
 /** IMEI-Erinnerung als gelesen markieren */
 export const markImeiReminderRead = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveAuthUserId(req.user) ?? req.user?.userId;
     const { id } = req.params;
     if (!id) return res.status(400).json({ message: 'ID erforderlich' });
     const ok = ImeiReminder.markReminderRead(id, userId);

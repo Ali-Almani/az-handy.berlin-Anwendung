@@ -10,6 +10,7 @@ const ImeisHistoryModal = ({
   onUndo,
   canSendReminder = false,
   currentUserName = '',
+  currentUserId = null,
   onSendReminder
 }) => {
   const [confirmation, setConfirmation] = useState(null); // { index, action, message }
@@ -77,9 +78,14 @@ const ImeisHistoryModal = ({
   };
 
   const handleSendReminder = async (entry) => {
-    if (!onSendReminder || !entry?.userName || !entry?.imei) return;
-    const isOwnEntry = String(entry.userName || '').trim() === String(currentUserName || '').trim();
-    if (isOwnEntry) return;
+    if (!onSendReminder || !entry?.imei) return;
+    if (!entry?.userName && entry?.historyOwnerUserId == null) return;
+    const sameName = String(entry.userName || '').trim() === String(currentUserName || '').trim();
+    const sameId =
+      currentUserId != null &&
+      entry?.historyOwnerUserId != null &&
+      String(entry.historyOwnerUserId) === String(currentUserId);
+    if (sameName || sameId) return;
     setSendingReminderFor(entry.imei);
     try {
       await onSendReminder(entry);
@@ -176,7 +182,13 @@ const ImeisHistoryModal = ({
                       <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{entry.product || entry.manufacturer || '-'}</td>
                       <td>
                         {entry.userName}
-                        {canSendReminder && String(entry.userName || '').trim() !== String(currentUserName || '').trim() && (
+                        {canSendReminder &&
+                          !(
+                            String(entry.userName || '').trim() === String(currentUserName || '').trim() ||
+                            (currentUserId != null &&
+                              entry?.historyOwnerUserId != null &&
+                              String(entry.historyOwnerUserId) === String(currentUserId))
+                          ) && (
                           <button
                             type="button"
                             className="imeis-history-reminder-btn"
