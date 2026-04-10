@@ -125,10 +125,6 @@ const ExcelUpload = ({ embedded = false }) => {
             <label htmlFor="excel-file-input" className="form-label">
               IMEs Excel-Datei auswählen (.xlsx, .xls, .csv)
             </label>
-            <p className="form-help">
-              Als Administrator oder Büro wird der Dateiinhalt an die bestehende IMEI-Liste angehängt; bereits vorhandene
-              IMEIs werden übersprungen (wie bei Voucher-Upload).
-            </p>
             <div className="file-input-wrapper">
               <input
                 id="excel-file-input"
