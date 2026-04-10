@@ -1,4 +1,11 @@
 import api from './api';
+import { resolveApiBasePath } from '../utils/runtimeApiBase';
+
+/** Download-URL inkl. API-Basis (Production: oft nur /api proxied, nicht /uploads). */
+export function getFormularCenterDownloadHref(itemId) {
+  const base = resolveApiBasePath().replace(/\/$/, '');
+  return `${base}/formular-center/download/${encodeURIComponent(String(itemId || ''))}`;
+}
 
 export const getFormularCenterItems = () => api.get('/formular-center');
 

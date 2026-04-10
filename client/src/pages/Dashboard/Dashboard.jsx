@@ -17,7 +17,8 @@ import {
 import {
   getFormularCenterItems,
   uploadFormularCenterFile,
-  deleteFormularCenterItem
+  deleteFormularCenterItem,
+  getFormularCenterDownloadHref
 } from '../../services/formularCenter.service';
 import { canAccessDashboard, canShowExcelUpload, canShowDashboardNotes } from '../../utils/roles';
 import { isAdmin } from '../../utils/roles';
@@ -879,7 +880,7 @@ const Dashboard = () => {
                       {formularItems.map((it) => (
                         <li key={it.id} className="formular-center-item">
                           <a
-                            href={it.url}
+                            href={getFormularCenterDownloadHref(it.id)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="formular-center-link"

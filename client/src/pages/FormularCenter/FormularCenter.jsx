@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getFormularCenterItems } from '../../services/formularCenter.service';
+import { getFormularCenterItems, getFormularCenterDownloadHref } from '../../services/formularCenter.service';
 import './FormularCenter.scss';
 
 function safeDownloadName(name) {
@@ -45,7 +45,7 @@ const FormularCenter = () => {
             <ul className="formular-center-list">
               {items.map((it) => {
                 const label = it.originalName || 'Dokument';
-                const href = it.url || '#';
+                const href = it.id ? getFormularCenterDownloadHref(it.id) : '#';
                 const fileName = safeDownloadName(label);
                 return (
                   <li key={it.id} className="formular-center-item">

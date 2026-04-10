@@ -7,13 +7,15 @@ import {
 import {
   getFormularCenterItems,
   uploadFormularCenterPdf,
-  deleteFormularCenterItem
+  deleteFormularCenterItem,
+  downloadFormularCenterFile
 } from '../controllers/formularCenter.controller.js';
 
 const router = express.Router();
 
-/** Öffentlich: alle können die Liste und die Download-URLs sehen (Dateien unter /uploads). */
+/** Öffentlich: alle können die Liste sehen; Download über API mit korrekten PDF-/Word-Headern. */
 router.get('/', getFormularCenterItems);
+router.get('/download/:id', downloadFormularCenterFile);
 
 router.post('/upload', authenticateToken, (req, res, next) => {
   formularCenterUpload.single('file')(req, res, (err) => {

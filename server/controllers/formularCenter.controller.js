@@ -22,7 +22,10 @@ export const getFormularCenterItems = async (req, res, next) => {
   try {
     const data = loadJson(FORMULAR_CENTER_FILE) || {};
     const raw = Array.isArray(data.items) ? data.items : [];
-    /** Relativ zum Seiten-Origin: funktioniert für alle Nutzer hinter Proxy/Vite, ohne falsches Host/Protokoll. */
+    /**
+     * Download nur über /api/formular-center/download/:id — gleicher Pfad wie andere API-Routen.
+     * Reine /uploads-Links scheitern oft in Production (nur /api zum Node proxied, sonst liefert das Frontend HTML/JSON).
+     */
     const items = raw
       .filter((it) => it && it.id && it.fileName)
       .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))
@@ -31,9 +34,35 @@ export const getFormularCenterItems = async (req, res, next) => {
         originalName: it.originalName || it.fileName,
         uploadedAt: it.uploadedAt,
         uploadedByName: it.uploadedByName || '',
-        url: `/uploads/${UPLOAD_SUBDIR}/${it.fileName}`
+        url: `/api/formular-center/download/${encodeURIComponent(it.id)}`
       }));
     return res.json({ success: true, items });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** Öffentlicher Download (gleiche wie Liste): korrekte Datei mit Content-Disposition vom API-Server */
+export const downloadFormularCenterFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID fehlt' });
+    }
+    const data = loadJson(FORMULAR_CENTER_FILE) || {};
+    const items = Array.isArray(data.items) ? data.items : [];
+    const found = items.find((it) => it && String(it.id) === String(id));
+    if (!found || !found.fileName) {
+      return res.status(404).json({ success: false, message: 'Datei nicht gefunden' });
+    }
+    const filePath = path.join(getDataDir(), 'uploads', UPLOAD_SUBDIR, found.fileName);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'Datei nicht gefunden' });
+    }
+    const downloadName = found.originalName || found.fileName || 'dokument';
+    return res.download(filePath, downloadName, (err) => {
+      if (err && !res.headersSent) next(err);
+    });
   } catch (e) {
     next(e);
   }
@@ -77,7 +106,7 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
         originalName: entry.originalName,
         uploadedAt: entry.uploadedAt,
         uploadedByName: entry.uploadedByName,
-        url: `/uploads/${UPLOAD_SUBDIR}/${entry.fileName}`
+        url: `/api/formular-center/download/${encodeURIComponent(entry.id)}`
       }
     });
   } catch (e) {
