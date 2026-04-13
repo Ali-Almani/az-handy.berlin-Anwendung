@@ -424,6 +424,12 @@ export const getImeisData = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
     const role = getUserRole(currentUser);
+    const debugEnabled = String(req.query?.debug || '') === '1';
+    const debug = debugEnabled ? {
+      userId: String(userId),
+      role: String(role ?? ''),
+      einsatz_ort: currentUser?.einsatz_ort ?? currentUser?.get?.('einsatz_ort') ?? null
+    } : null;
 
     // Mitarbeiter shop & Büro Mitarbeiter: IMEI-Liste vom Admin oder User mit Daten laden, eigene copyHistory/copyTimestamps behalten
     let sharedOwnerId = null;
@@ -436,6 +442,15 @@ export const getImeisData = async (req, res, next) => {
     // INTEGER (PostgreSQL) oder String-UUID (Memory): normalizeUserId würde UUID zu null machen
     dataUserId = coerceUserId(dataUserId) ?? userId;
     const sameDataUser = String(dataUserId) === String(userId);
+    if (debug) {
+      debug.sharedOwnerId = sharedOwnerId != null ? String(sharedOwnerId) : null;
+      debug.dataUserId = String(dataUserId);
+      debug.sameDataUser = sameDataUser;
+      debug.isTeamleiterShop = isTeamleiterShop(role);
+      debug.isMitarbeiterShop = isMitarbeiterShop(role);
+      debug.isBuero = isBüroMitarbeiter(role);
+      debug.usesSharedData = Boolean(shouldUseSharedImeiData(role) && sharedOwnerId && String(sharedOwnerId) !== String(userId));
+    }
 
     if (USE_MEMORY_DB) {
       const [data] = await ImeisUserData.findOrCreate({
@@ -502,7 +517,8 @@ export const getImeisData = async (req, res, next) => {
         cellColors,
         rowActions,
         copyHistory,
-        copyTimestamps
+        copyTimestamps,
+        ...(debug ? { debug } : {})
       });
     }
 
@@ -581,7 +597,8 @@ export const getImeisData = async (req, res, next) => {
       cellColors,
       rowActions,
       copyHistory,
-      copyTimestamps
+      copyTimestamps,
+      ...(debug ? { debug } : {})
     });
   } catch (error) {
     console.error('getImeisData:', error);
@@ -670,41 +687,66 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const role = getUserRole(currentUser);
   const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
 
-  // Server-Schutz: Wenn ein Nutzer "reservieren" setzt, aber der Client den Verlauf nicht korrekt persistiert,
-  // ergänzen wir einen Verlaufseintrag aus rowActions. (Nur für eigene Reservierungen.)
+  // Server-Schutz: "reservieren/dereserviert" muss im Verlauf erscheinen (Teamleiter-Verlauf basiert auf copy_history_json).
+  // Wir synthesizen fehlende Einträge aus rowActions (nur für eigene Aktionen dieses Users),
+  // auch wenn der Client bereits copyHistory mitsendet (weil manche Clients "reservieren" sonst verlieren).
   let augmentedCopyHistory = copyHistory;
   try {
-    if (rowActions && typeof rowActions === 'object' && !Array.isArray(rowActions) && copyHistory === undefined) {
+    if (rowActions && typeof rowActions === 'object' && !Array.isArray(rowActions)) {
       const myName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim();
       if (myName) {
-        const [ownData] = await ImeisUserData.findOrCreate({
-          where: { user_id: userId },
-          defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
-        });
-        const existingRaw = (ownData.get && ownData.get('copy_history_json')) ?? ownData.copy_history_json;
-        let existingArr = [];
-        try { existingArr = existingRaw ? JSON.parse(existingRaw) : []; } catch (_) { existingArr = []; }
-        if (!Array.isArray(existingArr)) existingArr = [];
-        const existingKey = new Set(existingArr.map((e) => `${String(e?.imei || '').trim()}|${normHistUserName(e?.userName)}|${String(e?.timestamp || '').trim()}|${String(e?.action || '')}`));
+        const baseHistory =
+          copyHistory !== undefined
+            ? (Array.isArray(copyHistory) ? copyHistory : [])
+            : (() => {
+                return [];
+              })();
+        let existingArr = baseHistory;
+        // Falls Client kein copyHistory mitsendet, verwenden wir den aktuellen gespeicherten Zustand als Basis
+        if (copyHistory === undefined) {
+          const [ownData] = await ImeisUserData.findOrCreate({
+            where: { user_id: userId },
+            defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+          });
+          const existingRaw = (ownData.get && ownData.get('copy_history_json')) ?? ownData.copy_history_json;
+          try {
+            existingArr = existingRaw ? JSON.parse(existingRaw) : [];
+          } catch (_) {
+            existingArr = [];
+          }
+          if (!Array.isArray(existingArr)) existingArr = [];
+        }
+
+        const existingKey = new Set(
+          (existingArr || []).map(
+            (e) =>
+              `${String(e?.imei || '').trim()}|${normHistUserName(e?.userName)}|${String(e?.timestamp || '').trim()}|${String(e?.action || '').trim()}`
+          )
+        );
 
         const additions = [];
         Object.entries(rowActions).forEach(([rowId, act]) => {
           if (!act || typeof act !== 'object') return;
-          if (String(act.action || '').trim() !== 'reservieren') return;
-          if (String(act.userName || '').trim() !== myName) return;
+          const actName = String(act.userName || '').trim();
+          if (actName !== myName) return;
+          const action = String(act.action || '').trim();
+          if (action !== 'reservieren' && action !== 'dereserviert') return;
           // rowId enthält IMEI: `${sheet}-${imei}-${row}`
           const parts = String(rowId || '').split('-');
           if (parts.length < 3) return;
           const imei = String(parts[1] || '').trim();
           if (!imei) return;
           const ts = String(act.timestamp || new Date().toISOString()).trim();
-          const key = `${imei}|${normHistUserName(myName)}|${ts}|reservieren`;
+          const key = `${imei}|${normHistUserName(myName)}|${ts}|${action}`;
           if (existingKey.has(key)) return;
           existingKey.add(key);
-          additions.push({ imei, product: '-', action: 'reservieren', timestamp: ts, userName: myName });
+          additions.push({ imei, product: '-', action, timestamp: ts, userName: myName });
         });
+
         if (additions.length > 0) {
-          augmentedCopyHistory = [...additions, ...existingArr].slice(0, 200);
+          augmentedCopyHistory = [...additions, ...(existingArr || [])]
+            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+            .slice(0, 200);
         }
       }
     }
