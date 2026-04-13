@@ -21,8 +21,14 @@ function processCopyHistory(savedCopyHistory) {
   return Array.from(uniqueHistoryMap.values())
     .map((entry) => {
       const a = entry.action;
+      // Wichtig: Aktionen wie "reservieren"/"dereserviert" im Verlauf NICHT auf "checkout" normalisieren
       const action =
-        a === 'abgelehnt' ? 'abgelehnt' : a === 'angenommen' ? 'angenommen' : 'checkout';
+        a === 'abgelehnt' ? 'abgelehnt'
+          : a === 'angenommen' ? 'angenommen'
+            : a === 'reservieren' ? 'reservieren'
+              : a === 'dereserviert' ? 'dereserviert'
+                : a === 'checkout' ? 'checkout'
+                  : 'checkout';
       return { ...entry, action };
     })
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
