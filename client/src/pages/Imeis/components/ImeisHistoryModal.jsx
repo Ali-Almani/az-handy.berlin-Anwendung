@@ -178,6 +178,16 @@ const ImeisHistoryModal = ({
                             (aktuell: Check out)
                           </div>
                         )}
+                        {entry.action === 'reservieren' && (
+                          <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                            (aktuell: Reservieren)
+                          </div>
+                        )}
+                        {entry.action === 'dereserviert' && (
+                          <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                            (aktuell: Dereserviert)
+                          </div>
+                        )}
                       </td>
                       <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{entry.product || entry.manufacturer || '-'}</td>
                       <td>

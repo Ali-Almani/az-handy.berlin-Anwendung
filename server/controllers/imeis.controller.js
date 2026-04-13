@@ -235,13 +235,28 @@ const getMergedCopyHistory = async () => {
 /** Merge copy_history nur von Benutzern mit gleichem einsatz_ort (Teamleiter shop sieht Verlauf seiner Kategorie) */
 const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   if (!einsatzOrt || typeof einsatzOrt !== 'string') return [];
-  const usersInCategory = await User.findAll({
-    where: { einsatz_ort: einsatzOrt.trim() },
-    attributes: ['id']
-  });
+  const targetKey = String(einsatzOrt).trim().toLowerCase();
+  if (!targetKey) return [];
+
+  let usersInCategory = [];
+  if (USE_MEMORY_DB) {
+    // Memory: keine SQL-Funktionen → robust in JS normalisieren
+    const allUsers = await User.findAll({ attributes: ['id', 'einsatz_ort'] });
+    usersInCategory = (allUsers || []).filter((u) => {
+      const ort = (u?.einsatz_ort ?? u?.get?.('einsatz_ort') ?? '').toString().trim().toLowerCase();
+      return ort && ort === targetKey;
+    });
+  } else {
+    // PostgreSQL: trim + case-insensitive match (verhindert „KM127 “ vs „km127“ Probleme)
+    usersInCategory = await User.findAll({
+      where: sqlWhere(fn('LOWER', fn('BTRIM', col('einsatz_ort'))), targetKey),
+      attributes: ['id']
+    });
+  }
+
   const ids = [
     ...new Set(
-      usersInCategory
+      (usersInCategory || [])
         .map((u) => u.id ?? u.get?.('id'))
         .filter((id) => id != null && Number.isFinite(Number(id)))
         .map((id) => Number(id))

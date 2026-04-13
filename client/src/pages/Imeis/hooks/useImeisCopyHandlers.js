@@ -32,6 +32,21 @@ export function useImeisCopyHandlers({
 }) {
   const normHistName = useCallback((s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(), []);
 
+  const addHistoryEntry = useCallback((entry) => {
+    if (!entry?.imei) return;
+    const imeiToStore = String(entry.imei || '').trim();
+    const nextEntry = {
+      imei: imeiToStore,
+      product: entry.product ?? '-',
+      action: entry.action ?? null,
+      timestamp: entry.timestamp ?? new Date().toISOString(),
+      userName: entry.userName ?? user?.name ?? 'Unbekannt'
+    };
+    const updatedHistory = [nextEntry, ...(copyHistory || []).filter((e) => String(e?.imei || '').trim() !== imeiToStore)].slice(0, 100);
+    setCopyHistory(updatedHistory);
+    persistImeis?.({ copyHistory: updatedHistory });
+  }, [copyHistory, persistImeis, setCopyHistory, user?.name]);
+
   const checkCopyRateLimit = useCallback(() => {
     if (!user) return { allowed: true, remaining: MAX_COPIES, count: 0 };
     const now = Date.now();
@@ -77,10 +92,13 @@ export function useImeisCopyHandlers({
           if (productLower.startsWith(manufacturer.toLowerCase())) productForHistory = productForHistory.substring(manufacturer.length).trim();
           productForHistory = productForHistory.replace(new RegExp(`\\b${manufacturer}\\b`, 'gi'), '').trim().replace(/\s+/g, ' ').trim();
         }
-        const historyEntry = { imei: imeiToCopy, product: productForHistory || '-', action: 'checkout', timestamp: new Date().toISOString(), userName: user?.name || 'Unbekannt' };
-        const updatedHistory = [historyEntry, ...copyHistory.filter(entry => entry.imei !== imeiToCopy)].slice(0, 100);
-        setCopyHistory(updatedHistory);
-        persistImeis?.({ copyHistory: updatedHistory });
+        addHistoryEntry({
+          imei: imeiToCopy,
+          product: productForHistory || '-',
+          action: 'checkout',
+          timestamp: new Date().toISOString(),
+          userName: user?.name || 'Unbekannt'
+        });
         setCopySuccess?.(true);
         setTimeout(() => setCopySuccess?.(false), 2000);
         setSelectedRowForDropdown(null);
@@ -89,21 +107,36 @@ export function useImeisCopyHandlers({
       console.error('Error copying IMEI to clipboard:', error);
       alert('Fehler beim Kopieren in die Zwischenablage: ' + error.message);
     }
-  }, [getProductFull, getManufacturer, user, copyHistory, checkCopyRateLimit, registerCopyAction, setCopyHistory, setSelectedRowForDropdown, showRateLimitError]);
+  }, [getProductFull, getManufacturer, user, checkCopyRateLimit, registerCopyAction, setSelectedRowForDropdown, showRateLimitError, addHistoryEntry, setCopySuccess]);
 
   const handleDropdownSelect = useCallback(async (item, action) => {
-    const rateLimit = checkCopyRateLimit();
-    if (!rateLimit.allowed) {
-      showRateLimitError();
-      return;
-    }
     const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
     const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: new Date().toISOString() };
     const updatedActions = { ...rowActions, [rowId]: actionData };
     setRowActions(updatedActions);
     persistImeis?.({ rowActions: updatedActions });
+
+    // „Reservieren“ soll im Verlauf erscheinen, aber NICHT als Copy/Checkout zählen.
+    if (action === 'reservieren') {
+      const productFull = getProductFull(item);
+      addHistoryEntry({
+        imei: String(item?.imei || '').trim(),
+        product: productFull || '-',
+        action: 'reservieren',
+        timestamp: new Date().toISOString(),
+        userName: user?.name || 'Unbekannt'
+      });
+      return;
+    }
+
+    // Für alle Copy-Aktionen: Rate-Limit prüfen + kopieren (checkout Verlauf)
+    const rateLimit = checkCopyRateLimit();
+    if (!rateLimit.allowed) {
+      showRateLimitError();
+      return;
+    }
     await handleCopyRow(item);
-  }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError]);
+  }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError, persistImeis, setRowActions, getProductFull, addHistoryEntry]);
 
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {
     if (index < 0 || index >= copyHistory.length) return;
