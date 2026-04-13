@@ -64,10 +64,8 @@ export function useImeisMainFilter({
     if (searchTerm.trim() !== '') {
       filtered = filtered.filter(item => item.imei.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-    filtered = filtered.filter(item => {
-      const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
-      return rowActions[rowId]?.action !== 'reservieren';
-    });
+    // Reservierte Zeilen dürfen NICHT aus der Liste verschwinden:
+    // sonst kann der Benutzer nicht mehr dereservieren und es wirkt wie "Reservieren geht nicht".
     setFilteredImeis(filtered);
 
     if (filtered.length > 0) {
