@@ -258,10 +258,19 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
       return ort && ort === targetKey;
     });
   } else {
-    // PostgreSQL: trim + case-insensitive match (verhindert „KM127 “ vs „km127“ Probleme)
+    // PostgreSQL: trim + case-insensitive + entfernt Leerzeichen/Bindestriche/Unterstriche
     usersInCategory = await User.findAll({
       where: sqlWhere(
-        fn('LOWER', fn('REPLACE', fn('BTRIM', col('einsatz_ort')), ' ', '')),
+        fn(
+          'LOWER',
+          fn(
+            'REGEXP_REPLACE',
+            fn('BTRIM', col('einsatz_ort')),
+            '[\\s\\-_]+',
+            '',
+            'g'
+          )
+        ),
         targetKey
       ),
       attributes: ['id']
@@ -661,6 +670,46 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const role = getUserRole(currentUser);
   const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
 
+  // Server-Schutz: Wenn ein Nutzer "reservieren" setzt, aber der Client den Verlauf nicht korrekt persistiert,
+  // ergänzen wir einen Verlaufseintrag aus rowActions. (Nur für eigene Reservierungen.)
+  let augmentedCopyHistory = copyHistory;
+  try {
+    if (rowActions && typeof rowActions === 'object' && !Array.isArray(rowActions) && copyHistory === undefined) {
+      const myName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim();
+      if (myName) {
+        const [ownData] = await ImeisUserData.findOrCreate({
+          where: { user_id: userId },
+          defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+        });
+        const existingRaw = (ownData.get && ownData.get('copy_history_json')) ?? ownData.copy_history_json;
+        let existingArr = [];
+        try { existingArr = existingRaw ? JSON.parse(existingRaw) : []; } catch (_) { existingArr = []; }
+        if (!Array.isArray(existingArr)) existingArr = [];
+        const existingKey = new Set(existingArr.map((e) => `${String(e?.imei || '').trim()}|${normHistUserName(e?.userName)}|${String(e?.timestamp || '').trim()}|${String(e?.action || '')}`));
+
+        const additions = [];
+        Object.entries(rowActions).forEach(([rowId, act]) => {
+          if (!act || typeof act !== 'object') return;
+          if (String(act.action || '').trim() !== 'reservieren') return;
+          if (String(act.userName || '').trim() !== myName) return;
+          // rowId enthält IMEI: `${sheet}-${imei}-${row}`
+          const parts = String(rowId || '').split('-');
+          if (parts.length < 3) return;
+          const imei = String(parts[1] || '').trim();
+          if (!imei) return;
+          const ts = String(act.timestamp || new Date().toISOString()).trim();
+          const key = `${imei}|${normHistUserName(myName)}|${ts}|reservieren`;
+          if (existingKey.has(key)) return;
+          existingKey.add(key);
+          additions.push({ imei, product: '-', action: 'reservieren', timestamp: ts, userName: myName });
+        });
+        if (additions.length > 0) {
+          augmentedCopyHistory = [...additions, ...existingArr].slice(0, 200);
+        }
+      }
+    }
+  } catch (_) {}
+
   if (removedImei) {
     await removeImeiFromAllLists(removedImei);
   }
@@ -682,7 +731,8 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     ...(!isMitarbeiter && !canEditSharedImeiList && imeis !== undefined && { imeis_json: JSON.stringify(imeis) }),
     ...(!isMitarbeiter && !canEditSharedImeiList && cellColors !== undefined && { cell_colors_json: JSON.stringify(cellColors) }),
     ...(!isMitarbeiter && !usesSharedData && rowActions !== undefined && { row_actions_json: JSON.stringify(rowActions) }),
-    ...(copyHistory !== undefined && !clearingMasterList && { copy_history_json: JSON.stringify(copyHistory) }),
+    ...((augmentedCopyHistory !== undefined ? augmentedCopyHistory : copyHistory) !== undefined &&
+      !clearingMasterList && { copy_history_json: JSON.stringify(augmentedCopyHistory !== undefined ? augmentedCopyHistory : copyHistory) }),
     ...(copyTimestamps !== undefined && !clearingMasterList && { copy_timestamps_json: JSON.stringify(copyTimestamps) })
   };
 
