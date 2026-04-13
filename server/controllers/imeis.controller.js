@@ -176,6 +176,16 @@ const isAdminUserEntity = (user) => {
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
 
+/** Einsatzort/Standort-Key normalisieren (z.B. "KM 127" == "KM127") */
+const normalizeEinsatzOrtKey = (ort) => {
+  return String(ort ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_/]+/g, '')
+    .replace(/\s+/g, '');
+};
+
 const safeJsonParse = (raw, fallback) => {
   try {
     if (raw == null || raw === '') return fallback;
@@ -235,7 +245,7 @@ const getMergedCopyHistory = async () => {
 /** Merge copy_history nur von Benutzern mit gleichem einsatz_ort (Teamleiter shop sieht Verlauf seiner Kategorie) */
 const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   if (!einsatzOrt || typeof einsatzOrt !== 'string') return [];
-  const targetKey = String(einsatzOrt).trim().toLowerCase();
+  const targetKey = normalizeEinsatzOrtKey(einsatzOrt);
   if (!targetKey) return [];
 
   let usersInCategory = [];
@@ -243,13 +253,17 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
     // Memory: keine SQL-Funktionen → robust in JS normalisieren
     const allUsers = await User.findAll({ attributes: ['id', 'einsatz_ort'] });
     usersInCategory = (allUsers || []).filter((u) => {
-      const ort = (u?.einsatz_ort ?? u?.get?.('einsatz_ort') ?? '').toString().trim().toLowerCase();
+      const ortRaw = u?.einsatz_ort ?? u?.get?.('einsatz_ort') ?? '';
+      const ort = normalizeEinsatzOrtKey(ortRaw);
       return ort && ort === targetKey;
     });
   } else {
     // PostgreSQL: trim + case-insensitive match (verhindert „KM127 “ vs „km127“ Probleme)
     usersInCategory = await User.findAll({
-      where: sqlWhere(fn('LOWER', fn('BTRIM', col('einsatz_ort'))), targetKey),
+      where: sqlWhere(
+        fn('LOWER', fn('REPLACE', fn('BTRIM', col('einsatz_ort')), ' ', '')),
+        targetKey
+      ),
       attributes: ['id']
     });
   }
@@ -866,8 +880,8 @@ export const updateHistoryAction = async (req, res, next) => {
       }
     }
     if (!isSelf && isTeamleiter && !isBüro && !isAdminUser) {
-      const tlOrt = (currentUser?.einsatz_ort || '').trim();
-      const targetOrt = (targetUser?.einsatz_ort || '').trim();
+      const tlOrt = normalizeEinsatzOrtKey(currentUser?.einsatz_ort);
+      const targetOrt = normalizeEinsatzOrtKey(targetUser?.einsatz_ort);
       if (!tlOrt || tlOrt !== targetOrt) {
         return res.status(403).json({ message: 'Teamleiter dürfen nur Aktionen für Benutzer ihrer Kategorie (einsatz_ort) aktualisieren' });
       }
@@ -961,8 +975,8 @@ export const sendImeiReminder = async (req, res, next) => {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
     if (isTeamleiter && !isBüro && !isAdminUser) {
-      const tlOrt = (currentUser?.einsatz_ort || '').trim();
-      const targetOrt = (targetUser?.einsatz_ort || '').trim();
+      const tlOrt = normalizeEinsatzOrtKey(currentUser?.einsatz_ort);
+      const targetOrt = normalizeEinsatzOrtKey(targetUser?.einsatz_ort);
       if (!tlOrt || tlOrt !== targetOrt) {
         return res.status(403).json({ message: 'Teamleiter dürfen nur Erinnerungen an Benutzer ihrer Kategorie (einsatz_ort) senden' });
       }
