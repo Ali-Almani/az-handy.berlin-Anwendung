@@ -362,7 +362,7 @@ export const patchFormularCenterItem = async (req, res, next) => {
         message: 'Nur Administratoren können Einträge bearbeiten'
       });
     }
-    const { id } = req.params;
+    const id = req.params?.itemId ?? req.params?.id;
     const { originalName } = req.body || {};
     const name = String(originalName ?? '').trim();
     if (!name || name.length > 500) {
@@ -402,7 +402,7 @@ export const replaceFormularCenterFile = async (req, res, next) => {
         message: 'Nur Administratoren können Dateien ersetzen'
       });
     }
-    const { id } = req.params;
+    const id = req.params?.itemId ?? req.params?.id;
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Keine Datei' });
     }
@@ -455,7 +455,7 @@ export const deleteFormularCenterItem = async (req, res, next) => {
         message: 'Nur Administratoren können Einträge löschen'
       });
     }
-    const { id } = req.params;
+    const id = req.params?.itemId ?? req.params?.id;
     if (!id) {
       return res.status(400).json({ success: false, message: 'ID fehlt' });
     }
