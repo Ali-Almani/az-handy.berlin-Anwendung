@@ -27,7 +27,7 @@ const ImeisFilters = ({
     } else if (manufacturerLower.includes('google')) {
       productName = `Pixel ${version}`;
     } else if (manufacturerLower.includes('samsung')) {
-      productName = version.startsWith('S') ? `Galaxy ${version}` : `Galaxy S${version}`;
+      productName = (version.startsWith('S') || version.startsWith('A')) ? `Galaxy ${version}` : `Galaxy S${version}`;
     } else {
       productName = `${manufacturer} ${version}`;
     }

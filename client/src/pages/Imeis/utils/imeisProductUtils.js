@@ -30,7 +30,16 @@ export const extractProductVersion = (productName) => {
   const pixelMatch = productStr.match(/pixel[\s\-_]?(\d+)/i);
   if (pixelMatch) return pixelMatch[1];
   const galaxySMatch = productStr.match(/galaxy[\s\-_]?s[\s\-_]?(\d+)/i);
-  if (galaxySMatch) return `S${galaxySMatch[1]}`;
+  if (galaxySMatch) {
+    const n = Number(galaxySMatch[1]);
+    // Datenquelle hat teils falsche "S"-Bezeichnungen (S17..S56). Gewünscht:
+    // S17..S21 => A17..A21, ab S22 bleibt S.
+    if (Number.isFinite(n) && n >= 17 && n < 22) return `A${n}`;
+    if (Number.isFinite(n)) return `S${n}`;
+    return `S${galaxySMatch[1]}`;
+  }
+  const galaxyAMatch = productStr.match(/galaxy[\s\-_]?a[\s\-_]?(\d+)/i);
+  if (galaxyAMatch) return `A${galaxyAMatch[1]}`;
   const galaxyNoteMatch = productStr.match(/galaxy[\s\-_]?note[\s\-_]?(\d+)/i);
   if (galaxyNoteMatch) return `Note ${galaxyNoteMatch[1]}`;
   const generalMatch = productStr.match(/(?:iphone|pixel|galaxy|xiaomi|oneplus|oppo|vivo|realme|huawei|honor|motorola|nokia)[\s\-_]?(\d+)/i);

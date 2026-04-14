@@ -21,7 +21,7 @@ const ImeisStats = ({
     } else if (manufacturerLower.includes('google')) {
       versionName = `Pixel ${activeVersion}`;
     } else if (manufacturerLower.includes('samsung')) {
-      versionName = activeVersion.startsWith('S') ? `Galaxy ${activeVersion}` : `Galaxy S${activeVersion}`;
+      versionName = (activeVersion.startsWith('S') || activeVersion.startsWith('A')) ? `Galaxy ${activeVersion}` : `Galaxy S${activeVersion}`;
     } else {
       versionName = `${activeManufacturer} ${activeVersion}`;
     }
