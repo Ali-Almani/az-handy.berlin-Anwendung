@@ -138,13 +138,11 @@ export const canUseImeiAdvancedActions = (user) => {
          role === ROLES.BUERO_MITARBEITER;
 };
 
-// Prüfe ob Benutzer Bestand-Button sehen darf (nur Admin und Teamleiter – nicht Büro/Mitarbeiter shop)
+// Prüfe ob Benutzer Bestand-Button sehen darf (nur Administrator)
 export const canSeeBestand = (user) => {
   if (!user) return false;
   const role = user.role;
-  return role === ROLES.ADMINISTRATOR ||
-         role === 'admin' ||
-         role === ROLES.TEAMLEITER_SHOP;
+  return role === ROLES.ADMINISTRATOR || role === 'admin';
 };
 
 // Prüfe ob Benutzer Dashboard sehen darf (Navbar + Route: nur Administrator und Büro Mitarbeiter)
