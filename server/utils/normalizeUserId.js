@@ -18,9 +18,9 @@ export function coerceUserId(raw) {
   // Wichtig: In PostgreSQL ist user_id (und i.d.R. users.id) INTEGER.
   // Wenn ein alter Client-Token noch eine UUID enthält, darf das nicht zu DB-Fehlern führen.
   // UUIDs akzeptieren wir daher nur im In-Memory-Modus.
-  const useMemoryDb =
-    process.env.USE_MEMORY_DB === 'true' ||
-    (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
+  // Hinweis: Nicht "automatisch" über fehlende DB-Env ableiten, weil PM2 ohne --update-env
+  // alte/fehlende Variablen haben kann und dann fälschlich UUIDs durchlässt.
+  const useMemoryDb = process.env.USE_MEMORY_DB === 'true';
   return useMemoryDb ? s : null;
 }
 
