@@ -116,8 +116,17 @@ export function useImeisCopyHandlers({
     setRowActions(updatedActions);
     persistImeis?.({ rowActions: updatedActions });
 
-    // „Reservieren“ soll im Verlauf erscheinen, aber NICHT als Copy/Checkout zählen.
+    // „Reservieren“: soll in Verlauf erscheinen, IMEI kopieren, aber NICHT als Copy/Checkout zählen.
     if (action === 'reservieren') {
+      const imeiToCopy = String(item?.imei || '').trim();
+      if (imeiToCopy) {
+        try {
+          await navigator.clipboard.writeText(imeiToCopy);
+          setCopySuccess?.(true);
+          setTimeout(() => setCopySuccess?.(false), 2000);
+          setSelectedRowForDropdown?.(null);
+        } catch (_) {}
+      }
       const productFull = getProductFull(item);
       addHistoryEntry({
         imei: String(item?.imei || '').trim(),

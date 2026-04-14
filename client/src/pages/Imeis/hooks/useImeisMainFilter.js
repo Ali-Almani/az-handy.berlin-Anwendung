@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 
 export function useImeisMainFilter({
-  user,
   imeis,
   activeSheet,
   activeManufacturer,
@@ -65,16 +64,10 @@ export function useImeisMainFilter({
     if (searchTerm.trim() !== '') {
       filtered = filtered.filter(item => item.imei.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-    // Reservieren:
-    // - Für andere Benutzer soll die Zeile aus der Liste verschwinden (damit sie "weg" ist).
-    // - Der Benutzer, der reserviert hat, muss sie weiter sehen (sonst kann er nicht dereservieren).
+    // Reservieren: reservierte Zeilen sollen für ALLE Benutzer aus der Liste verschwinden.
     filtered = filtered.filter((item) => {
       const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
-      const act = rowActions?.[rowId];
-      if (!act || act.action !== 'reservieren') return true;
-      const reservedBy = String(act.userName || '').trim();
-      const me = String(user?.name || '').trim();
-      return reservedBy !== '' && me !== '' && reservedBy === me;
+      return rowActions?.[rowId]?.action !== 'reservieren';
     });
     setFilteredImeis(filtered);
 
@@ -110,5 +103,5 @@ export function useImeisMainFilter({
       setSelectedCells(new Set());
     }
     prevFilterRef.current = filterKey;
-  }, [user?.name, activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells]);
+  }, [activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells]);
 }

@@ -94,7 +94,6 @@ export function useImeis() {
   }, [showColorPicker]);
 
   useImeisMainFilter({
-    user,
     imeis, activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB,
     searchTerm, rowActions, getManufacturer, getProduct, getProductFull, hasO2Aktion,
     extractProductVersion, extractProductVariant, extractGB,
