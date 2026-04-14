@@ -156,6 +156,7 @@ const Imeis = () => {
             onShowZustand={onShowZustand}
             showAdvancedActions={canUseImeiAdvancedActions(user)}
             showBestand={canSeeBestand(user)}
+            showDeleteAll={isAdmin(user) || isBüroMitarbeiter(user)}
           />
 
           {false && availableSheets.length > 0 && (

@@ -12,6 +12,7 @@ const ImeisControls = ({
   onShowZustand,
   showAdvancedActions = true,
   showBestand = true,
+  showDeleteAll = true,
   itemsPerPage,
   onItemsPerPageChange,
   currentPage,
@@ -63,12 +64,14 @@ const ImeisControls = ({
           </button>
           {showAdvancedActions && imeisLength > 0 && (
             <>
-              <button
-                onClick={onDeleteAll}
-                className="btn btn--danger btn--small"
-              >
-                Alle löschen
-              </button>
+              {showDeleteAll && (
+                <button
+                  onClick={onDeleteAll}
+                  className="btn btn--danger btn--small"
+                >
+                  Alle löschen
+                </button>
+              )}
               {showBestand && (
                 <button
                   onClick={onShowZustand}
