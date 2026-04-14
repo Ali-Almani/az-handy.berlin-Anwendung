@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 export const authenticateToken = (req, res, next) => {
   const secret = process.env.JWT_SECRET;
@@ -22,7 +23,12 @@ export const authenticateToken = (req, res, next) => {
         // 401 damit Clients sauber ausloggen/neu anmelden (403 wird oft als "Rechteproblem" interpretiert)
         return res.status(401).json({ message: 'Invalid or expired token' });
       }
-      req.user = user;
+      const uid = resolveAuthUserId(user);
+      if (uid == null) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
+      // Stelle sicher: downstream-Code benutzt immer eine normalisierte ID
+      req.user = { ...user, userId: uid, id: uid };
       next();
     });
   } catch (e) {
