@@ -277,12 +277,13 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
     });
   }
 
+  // IDs können in PostgreSQL UUIDs sein (nicht nur Integer). Daher NICHT auf Number() filtern/casten.
   const ids = [
     ...new Set(
       (usersInCategory || [])
-        .map((u) => u.id ?? u.get?.('id'))
-        .filter((id) => id != null && Number.isFinite(Number(id)))
-        .map((id) => Number(id))
+        .map((u) => coerceUserId(u?.id ?? u?.get?.('id')))
+        .filter((id) => id != null && String(id).trim() !== '')
+        .map((id) => String(id))
     )
   ];
   if (ids.length === 0) return [];
