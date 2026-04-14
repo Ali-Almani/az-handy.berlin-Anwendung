@@ -372,6 +372,28 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
 
 /** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden. Bevorzugt Büro/Admin bei gleicher Anzahl. */
 const getSharedImeiOwnerId = async () => {
+  // Fix: In PostgreSQL soll die "gemeinsame" IMEI-Liste stabil vom Admin-Account kommen,
+  // sonst springt der Owner je nach IMEI-Anzahl zwischen Benutzern (z.B. User 38 statt Admin 42).
+  // Wenn admin@az-handy.berlin IMEIs hat, immer diese ID verwenden.
+  try {
+    const admin = await User.findOne({ where: { email: 'admin@az-handy.berlin' } });
+    const adminId = coerceUserId(admin?.id ?? admin?._id ?? admin?.get?.('id'));
+    if (adminId != null) {
+      const row = await ImeisUserData.findOne({ where: { user_id: adminId } });
+      const imeisJson = (row?.get && row.get('imeis_json')) ?? row?.imeis_json;
+      let arr = [];
+      try {
+        if (Array.isArray(imeisJson)) arr = imeisJson;
+        else arr = imeisJson ? JSON.parse(String(imeisJson)) : [];
+      } catch (_) {
+        arr = [];
+      }
+      if (Array.isArray(arr) && arr.length > 0) return adminId;
+    }
+  } catch (_) {
+    // fallback to heuristic below
+  }
+
   const all = await ImeisUserData.findAll();
   let best = null;
   let bestCount = 0;
