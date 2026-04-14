@@ -6,13 +6,13 @@ const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
 
 function processCopyHistory(savedCopyHistory) {
-  /** Pro Eintrag (IMEI+Benutzer+Zeit), nicht nur pro IMEI – sonst „klebt“ der Verlauf nach Büro-Aktion */
+  /** Dedup robust: IMEI+Benutzer+Aktion (Timestamp kann minimal abweichen durch Sync/Synthese) */
   const uniqueHistoryMap = new Map();
   (savedCopyHistory ?? []).forEach((entry) => {
     const imei = String(entry?.imei || '').trim();
     const userName = String(entry?.userName || '').trim();
-    const ts = entry?.timestamp ? String(entry.timestamp) : '';
-    const key = `${imei}|${userName}|${ts}`;
+    const action = String(entry?.action || '').trim();
+    const key = `${imei}|${userName}|${action}`;
     const existingEntry = uniqueHistoryMap.get(key);
     if (!existingEntry || new Date(entry.timestamp || 0) > new Date(existingEntry.timestamp || 0)) {
       uniqueHistoryMap.set(key, entry);

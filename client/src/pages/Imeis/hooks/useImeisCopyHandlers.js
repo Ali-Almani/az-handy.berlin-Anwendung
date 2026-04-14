@@ -111,7 +111,10 @@ export function useImeisCopyHandlers({
 
   const handleDropdownSelect = useCallback(async (item, action) => {
     const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
-    const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: new Date().toISOString() };
+    // Timestamp einmal erzeugen und für rowAction + Verlauf wiederverwenden,
+    // damit Server-Synthese (aus rowActions) keinen doppelten Verlaufseintrag erzeugt.
+    const ts = new Date().toISOString();
+    const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: ts };
     const updatedActions = { ...rowActions, [rowId]: actionData };
     setRowActions(updatedActions);
     persistImeis?.({ rowActions: updatedActions });
@@ -132,7 +135,7 @@ export function useImeisCopyHandlers({
         imei: String(item?.imei || '').trim(),
         product: productFull || '-',
         action: 'reservieren',
-        timestamp: new Date().toISOString(),
+        timestamp: ts,
         userName: user?.name || 'Unbekannt'
       });
       return;
