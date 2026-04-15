@@ -112,11 +112,16 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
       }
     };
 
-    syncFromServer();
-    const intervalId = setInterval(syncFromServer, POLL_INTERVAL_MS);
-
     // Echtzeit: Sofort aktualisieren wenn Büro Excel hochlädt, alle löscht etc.
     const socket = getSocket();
+    const hasSocket = Boolean(socket);
+    const socketIsRealtime =
+      hasSocket && (socket.connected || socket.io?.engine?.transport?.name === 'websocket');
+
+    // Fallback-Polling: nur wenn kein Socket verfügbar ist (oder noch nicht verbunden)
+    syncFromServer();
+    const intervalId = socketIsRealtime ? null : setInterval(syncFromServer, POLL_INTERVAL_MS);
+
     const onImeisUpdated = () => {
       getImeisDataFromApi().then((data) => {
         if (data) applyImeisData(data, setters, getManufacturer, false);
@@ -124,6 +129,8 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     };
     if (socket) {
       socket.on('imeis:updated', onImeisUpdated);
+      // Wenn Socket sich (re)verbindet, sofort einmal refreshen (verhindert 1–2s Poll-Lag)
+      socket.on('connect', onImeisUpdated);
       if (!socket.connected) socket.connect();
     }
 
@@ -134,8 +141,11 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      clearInterval(intervalId);
-      if (socket) socket.off('imeis:updated', onImeisUpdated);
+      if (intervalId) clearInterval(intervalId);
+      if (socket) {
+        socket.off('imeis:updated', onImeisUpdated);
+        socket.off('connect', onImeisUpdated);
+      }
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [user?.id]);

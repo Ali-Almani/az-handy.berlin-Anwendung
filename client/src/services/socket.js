@@ -33,8 +33,10 @@ export function getSocket() {
     const forcePolling = hostRequiresPollingOnly();
     // Polling zuerst: Intranet/Proxys blockieren oft WebSocket-Upgrade; optional nur Polling per Build-ENV.
     const t = String(import.meta.env.VITE_SOCKET_TRANSPORTS || '').trim();
-    let transports = ['polling', 'websocket'];
-    if (t === 'websocket-first' && !forcePolling) transports = ['websocket', 'polling'];
+    // Default: WebSocket-first (minimiert Latenz für Echtzeit-Verlauf). Fallback auf Polling bleibt aktiv.
+    let transports = ['websocket', 'polling'];
+    // Opt-in: explizit Polling-first (alte Proxys), oder Polling-only (az-intranet / ENV)
+    if (t === 'polling-first') transports = ['polling', 'websocket'];
     if (t === 'polling-only' || t === 'polling' || forcePolling) transports = ['polling'];
     // Standard Prod (z. B. Schnelltest): Polling zuerst, dann WebSocket-Upgrade — sonst fehlen oft Echtzeit-Events.
     // Nur auf az-intranet (forcePolling) / oder VITE_SOCKET_NO_UPGRADE: kein Upgrade → keine wss://-Fehler in der Konsole.
@@ -45,6 +47,7 @@ export function getSocket() {
       path: '/socket.io',
       transports,
       upgrade: allowWsUpgrade,
+      rememberUpgrade: true,
       withCredentials: true,
       autoConnect: true,
       reconnectionAttempts: 10,

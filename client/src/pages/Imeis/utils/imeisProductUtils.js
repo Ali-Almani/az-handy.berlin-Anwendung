@@ -32,9 +32,9 @@ export const extractProductVersion = (productName) => {
   const galaxySMatch = productStr.match(/galaxy[\s\-_]?s[\s\-_]?(\d+)/i);
   if (galaxySMatch) {
     const n = Number(galaxySMatch[1]);
-    // Datenquelle hat teils falsche "S"-Bezeichnungen (S17..S56). Gewünscht:
-    // S17..S21 => A17..A21, ab S22 bleibt S.
-    if (Number.isFinite(n) && n >= 17 && n < 22) return `A${n}`;
+    // Datenquelle hat teils falsche "S"-Bezeichnungen (S6..S56). Gewünscht:
+    // S6..S21 => A6..A21, ab S22 bleibt S.
+    if (Number.isFinite(n) && n >= 6 && n < 22) return `A${n}`;
     if (Number.isFinite(n)) return `S${n}`;
     return `S${galaxySMatch[1]}`;
   }
