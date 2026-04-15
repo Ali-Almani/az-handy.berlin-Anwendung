@@ -252,7 +252,7 @@ const Imeis = () => {
         onUndo={handleHistoryModalUndo}
         canSendReminder={canActAsImeiOfficeForHistory(user)}
         currentUserName={user?.name}
-        currentUserId={user?.id}
+        currentUserId={user?.id ?? user?.userId}
         onSendReminder={async (entry) => {
           await sendImeiReminderApi(entry.userName, entry.imei, entry.historyOwnerUserId);
         }}

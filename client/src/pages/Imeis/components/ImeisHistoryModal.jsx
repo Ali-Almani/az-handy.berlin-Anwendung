@@ -80,12 +80,13 @@ const ImeisHistoryModal = ({
   const handleSendReminder = async (entry) => {
     if (!onSendReminder || !entry?.imei) return;
     if (!entry?.userName && entry?.historyOwnerUserId == null) return;
-    const sameName = String(entry.userName || '').trim() === String(currentUserName || '').trim();
-    const sameId =
-      currentUserId != null &&
-      entry?.historyOwnerUserId != null &&
-      String(entry.historyOwnerUserId) === String(currentUserId);
-    if (sameName || sameId) return;
+    const hasIds = currentUserId != null && entry?.historyOwnerUserId != null;
+    const isSelfById = hasIds && String(entry.historyOwnerUserId) === String(currentUserId);
+    const isSelfByName =
+      !hasIds &&
+      String(entry.userName || '').trim() !== '' &&
+      String(entry.userName || '').trim() === String(currentUserName || '').trim();
+    if (isSelfById || isSelfByName) return;
     setSendingReminderFor(entry.imei);
     try {
       await onSendReminder(entry);
@@ -192,13 +193,15 @@ const ImeisHistoryModal = ({
                       <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{entry.product || entry.manufacturer || '-'}</td>
                       <td>
                         {entry.userName}
-                        {canSendReminder &&
-                          !(
-                            String(entry.userName || '').trim() === String(currentUserName || '').trim() ||
-                            (currentUserId != null &&
-                              entry?.historyOwnerUserId != null &&
-                              String(entry.historyOwnerUserId) === String(currentUserId))
-                          ) && (
+                        {canSendReminder && (() => {
+                          const hasIds = currentUserId != null && entry?.historyOwnerUserId != null;
+                          const isSelfById = hasIds && String(entry.historyOwnerUserId) === String(currentUserId);
+                          const isSelfByName =
+                            !hasIds &&
+                            String(entry.userName || '').trim() !== '' &&
+                            String(entry.userName || '').trim() === String(currentUserName || '').trim();
+                          return !(isSelfById || isSelfByName);
+                        })() && (
                           <button
                             type="button"
                             className="imeis-history-reminder-btn"
