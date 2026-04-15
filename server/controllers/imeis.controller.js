@@ -220,6 +220,8 @@ const safeJsonParse = (raw, fallback) => {
 /** Merge copy_history aus allen Benutzern für Verlauf (Büro Mitarbeiter sieht gesamte Historie) */
 const getMergedCopyHistory = async () => {
   const all = await ImeisUserData.findAll();
+  // Cache: user_id -> name (damit "Benutzer" im Verlauf immer sichtbar ist)
+  const userNameById = new Map();
   const merged = [];
   for (const row of all) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
@@ -230,7 +232,23 @@ const getMergedCopyHistory = async () => {
         if (Array.isArray(arr)) {
           for (const e of arr) {
             if (e && (e.imei || e.timestamp)) {
-              merged.push({ ...e, historyOwnerUserId: rowUserId });
+              let userName = e.userName;
+              if (!userName) {
+                const k = String(rowUserId ?? '');
+                if (k) {
+                  if (!userNameById.has(k)) {
+                    try {
+                      const u = await User.findByPk(rowUserId);
+                      const n = String(u?.name ?? u?.get?.('name') ?? '').trim();
+                      userNameById.set(k, n || null);
+                    } catch (_) {
+                      userNameById.set(k, null);
+                    }
+                  }
+                  userName = userNameById.get(k) || userName;
+                }
+              }
+              merged.push({ ...e, userName, historyOwnerUserId: rowUserId });
             }
           }
         }
@@ -290,6 +308,8 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   const all = await ImeisUserData.findAll({
     where: { user_id: { [Op.in]: ids } }
   });
+  // Cache: user_id -> name (damit "Benutzer" im Verlauf immer sichtbar ist)
+  const userNameById = new Map();
   const merged = [];
   for (const row of all) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
@@ -300,7 +320,23 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
         if (Array.isArray(arr)) {
           for (const e of arr) {
             if (e && (e.imei || e.timestamp)) {
-              merged.push({ ...e, historyOwnerUserId: rowUserId });
+              let userName = e.userName;
+              if (!userName) {
+                const k = String(rowUserId ?? '');
+                if (k) {
+                  if (!userNameById.has(k)) {
+                    try {
+                      const u = await User.findByPk(rowUserId);
+                      const n = String(u?.name ?? u?.get?.('name') ?? '').trim();
+                      userNameById.set(k, n || null);
+                    } catch (_) {
+                      userNameById.set(k, null);
+                    }
+                  }
+                  userName = userNameById.get(k) || userName;
+                }
+              }
+              merged.push({ ...e, userName, historyOwnerUserId: rowUserId });
             }
           }
         }
