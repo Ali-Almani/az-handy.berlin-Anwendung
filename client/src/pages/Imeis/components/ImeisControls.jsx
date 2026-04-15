@@ -22,10 +22,10 @@ const ImeisControls = ({
 }) => {
   return (
     <div className="imeis-controls">
-      <div className="imeis-search" style={{ display: 'none' }}>
+      <div className="imeis-search">
         <input
           type="text"
-          placeholder="IMEI suchen..."
+          placeholder="Hersteller / Produkt suchen..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="form-input"

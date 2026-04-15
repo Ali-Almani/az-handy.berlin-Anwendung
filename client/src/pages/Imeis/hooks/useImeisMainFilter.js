@@ -62,7 +62,18 @@ export function useImeisMainFilter({
       }
     }
     if (searchTerm.trim() !== '') {
-      filtered = filtered.filter(item => item.imei.toLowerCase().includes(searchTerm.toLowerCase()));
+      const q = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(item => {
+        const imei = String(item?.imei || '').toLowerCase();
+        if (imei.includes(q)) return true;
+        const manufacturer = String(getManufacturer?.(item) || '').toLowerCase();
+        if (manufacturer.includes(q)) return true;
+        const product = String(getProduct?.(item) || '').toLowerCase();
+        if (product.includes(q)) return true;
+        const productFull = String(getProductFull?.(item) || '').toLowerCase();
+        if (productFull.includes(q)) return true;
+        return false;
+      });
     }
     // Reservieren: reservierte Zeilen sollen für ALLE Benutzer aus der Liste verschwinden.
     filtered = filtered.filter((item) => {
