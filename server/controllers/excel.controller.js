@@ -594,11 +594,17 @@ export const updateVoucherHistoryAction = async (req, res, next) => {
         message: 'Nur Büro Mitarbeiter, Administrator oder Teamleiter shop dürfen Verlauf-Aktionen für andere Benutzer setzen'
       });
     }
-    const { userName, newAction, nummer, timestamp, sheet, row } = req.body || {};
-    if (!userName || !newAction || (newAction !== 'angenommen' && newAction !== 'abgelehnt')) {
-      return res.status(400).json({ success: false, message: 'userName, newAction (angenommen|abgelehnt) erforderlich' });
+    const { userName, historyOwnerUserId, newAction, nummer, timestamp, sheet, row } = req.body || {};
+    if (!newAction || (newAction !== 'angenommen' && newAction !== 'abgelehnt')) {
+      return res.status(400).json({ success: false, message: 'newAction (angenommen|abgelehnt) erforderlich' });
     }
-    const targetUser = await User.findOne({ where: { name: userName } });
+    let targetUser = null;
+    if (historyOwnerUserId != null && String(historyOwnerUserId).trim() !== '') {
+      targetUser = await User.findByPk(historyOwnerUserId);
+    }
+    if (!targetUser && userName) {
+      targetUser = await User.findOne({ where: { name: userName } });
+    }
     if (!targetUser) {
       return res.status(404).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
@@ -618,7 +624,13 @@ export const updateVoucherHistoryAction = async (req, res, next) => {
     let copyHistory = Array.isArray(prev.copyHistory) ? [...prev.copyHistory] : [];
     const ts = timestamp != null ? String(timestamp) : '';
     const idx = copyHistory.findIndex((e) => {
-      if (!e || String(e.userName || '').trim() !== String(userName).trim()) return false;
+      if (!e) return false;
+      // prefer userId match when available; fallback to username for legacy entries
+      if (historyOwnerUserId != null && String(historyOwnerUserId).trim() !== '') {
+        if (String(e.historyOwnerUserId ?? '').trim() !== String(historyOwnerUserId).trim()) return false;
+      } else if (userName) {
+        if (String(e.userName || '').trim() !== String(userName).trim()) return false;
+      }
       if (String(e.nummer || '') !== String(nummer ?? '')) return false;
       if (ts) return String(e.timestamp || '') === ts;
       const s = sheet != null ? String(sheet) : '';

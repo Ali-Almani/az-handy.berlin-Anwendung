@@ -107,6 +107,7 @@ export function useVoucherCopyHandlers({
         action: 'checkout',
         timestamp: new Date().toISOString(),
         userName: user?.name || 'Unbekannt',
+        historyOwnerUserId: user?.id ?? null,
         sheet: row.sheet || 'default',
         row: row.row,
         rowSnapshot
@@ -198,6 +199,7 @@ export function useVoucherCopyHandlers({
         try {
           await updateVoucherHistoryActionApi({
             userName: entry.userName,
+            historyOwnerUserId: entry.historyOwnerUserId ?? null,
             newAction,
             nummer: entry.nummer,
             timestamp: entry.timestamp,
