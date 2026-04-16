@@ -159,6 +159,19 @@ const Voucher = () => {
     document.body.removeChild(link);
   }, [filteredRows, displayCols, nummerKey, rowActions, voucherRowId, activeTab]);
 
+  const handleClearHistoryLocal = useCallback(async () => {
+    setCopyHistory([]);
+    setCopyTimestamps([]);
+    setHistoryUndoStack([]);
+    try {
+      await putVoucherUserStateApi({ copyHistory: [], copyTimestamps: [], rowActions });
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || err.message || 'Speichern fehlgeschlagen.');
+      await load();
+    }
+  }, [rowActions, load]);
+
   const handleDeleteAllLocal = useCallback(async () => {
     const adminOrBuero = isAdmin(user) || isBüroMitarbeiter(user);
     if (
@@ -469,6 +482,7 @@ const Voucher = () => {
                       onUpdateHistoryAction={handleUpdateHistoryAction}
                       historyUndoStack={historyUndoStack}
                       onUndo={handleHistoryModalUndo}
+                      onClearHistory={handleClearHistoryLocal}
                     />
                   </>
                 </>

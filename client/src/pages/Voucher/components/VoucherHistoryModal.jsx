@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 
-const VoucherHistoryModal = ({ isOpen, onClose, copyHistory, onUpdateHistoryAction, historyUndoStack, onUndo }) => {
+const VoucherHistoryModal = ({
+  isOpen,
+  onClose,
+  copyHistory,
+  onUpdateHistoryAction,
+  historyUndoStack,
+  onUndo,
+  onClearHistory
+}) => {
   const [confirmation, setConfirmation] = useState(null);
   const [toast, setToast] = useState(null);
   const [toastProgress, setToastProgress] = useState(100);
@@ -68,6 +76,17 @@ const VoucherHistoryModal = ({ isOpen, onClose, copyHistory, onUpdateHistoryActi
 
   const handleConfirmNo = () => {
     setConfirmation(null);
+  };
+
+  const handleClearHistory = async () => {
+    if (!onClearHistory) return;
+    if (!window.confirm('Voucher-Verlauf wirklich komplett löschen?')) return;
+    try {
+      await Promise.resolve(onClearHistory());
+      setToast({ message: 'Voucher-Verlauf wurde gelöscht.', type: 'success' });
+    } catch (e) {
+      setToast({ message: e?.message || 'Löschen fehlgeschlagen.', type: 'error' });
+    }
   };
 
   if (!isOpen) return null;
@@ -150,6 +169,15 @@ const VoucherHistoryModal = ({ isOpen, onClose, copyHistory, onUpdateHistoryActi
           )}
         </div>
         <div className="imeis-history-modal-footer">
+          <button
+            type="button"
+            onClick={handleClearHistory}
+            className="btn btn--danger btn--small"
+            disabled={list.length === 0}
+            style={{ marginRight: '0.5rem' }}
+          >
+            Verlauf löschen
+          </button>
           <button
             type="button"
             onClick={onUndo}
