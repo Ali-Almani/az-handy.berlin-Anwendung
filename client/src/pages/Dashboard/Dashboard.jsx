@@ -33,6 +33,7 @@ const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
 const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
 const SEC_FORMULAR = 'formular';
+const SEC_FORMULAR_PROVISION = 'formular-provision';
 
 const DashSidebarIcon = ({ children }) => (
   <span className="dashboard-admin-nav__icon" aria-hidden>
@@ -64,6 +65,8 @@ const Dashboard = () => {
   const [openAlteNewsEntryIds, setOpenAlteNewsEntryIds] = useState({});
   const [adminSection, setAdminSection] = useState(SEC_KENNZAHLEN);
   const [bueroSection, setBueroSection] = useState(SEC_EXCEL);
+  const [formularNavOpen, setFormularNavOpen] = useState(false);
+  const [formularFocusSectionTitle, setFormularFocusSectionTitle] = useState(null);
   const alteNewsPanelId = useId();
 
   useEffect(() => {
@@ -415,9 +418,9 @@ const Dashboard = () => {
                     type="button"
                     className={navBtnClass(SEC_FORMULAR)}
                     onClick={() => {
-                      setAdminSection(SEC_FORMULAR);
+                      setFormularNavOpen((o) => !o);
                     }}
-                    aria-current={adminSection === SEC_FORMULAR ? 'page' : undefined}
+                    aria-expanded={formularNavOpen}
                   >
                     <DashSidebarIcon>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -428,6 +431,36 @@ const Dashboard = () => {
                     <span className="dashboard-admin-nav__label">Formular</span>
                   </button>
                 </li>
+                {formularNavOpen && (
+                  <>
+                    <li className="dashboard-admin-nav__sub">
+                      <button
+                        type="button"
+                        className={navBtnClass(SEC_FORMULAR)}
+                        onClick={() => {
+                          setFormularFocusSectionTitle(null);
+                          setAdminSection(SEC_FORMULAR);
+                        }}
+                        aria-current={adminSection === SEC_FORMULAR ? 'page' : undefined}
+                      >
+                        <span className="dashboard-admin-nav__label">Formular Center</span>
+                      </button>
+                    </li>
+                    <li className="dashboard-admin-nav__sub">
+                      <button
+                        type="button"
+                        className={navBtnClass(SEC_FORMULAR_PROVISION)}
+                        onClick={() => {
+                          setFormularFocusSectionTitle('Provision');
+                          setAdminSection(SEC_FORMULAR_PROVISION);
+                        }}
+                        aria-current={adminSection === SEC_FORMULAR_PROVISION ? 'page' : undefined}
+                      >
+                        <span className="dashboard-admin-nav__label">Provision</span>
+                      </button>
+                    </li>
+                  </>
+                )}
                 {canShowExcelUpload(user) && (
                   <>
                     <li>
@@ -774,6 +807,15 @@ const Dashboard = () => {
               <FormularCenterAdminPanel
                 loadWhen={adminSection === SEC_FORMULAR}
                 focusSectionTitle={null}
+                excludeSectionTitles={['Provision']}
+              />
+            )}
+
+            {adminSection === SEC_FORMULAR_PROVISION && (
+              <FormularCenterAdminPanel
+                loadWhen={adminSection === SEC_FORMULAR_PROVISION}
+                focusSectionTitle={formularFocusSectionTitle || 'Provision'}
+                onlySectionTitle="Provision"
               />
             )}
 
