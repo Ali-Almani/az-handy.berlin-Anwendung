@@ -33,7 +33,6 @@ const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
 const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
 const SEC_FORMULAR = 'formular';
-const SEC_FORMULAR_PROVISION = 'formular-provision';
 
 const DashSidebarIcon = ({ children }) => (
   <span className="dashboard-admin-nav__icon" aria-hidden>
@@ -65,7 +64,6 @@ const Dashboard = () => {
   const [openAlteNewsEntryIds, setOpenAlteNewsEntryIds] = useState({});
   const [adminSection, setAdminSection] = useState(SEC_KENNZAHLEN);
   const [bueroSection, setBueroSection] = useState(SEC_EXCEL);
-  const [formularFocusSectionTitle, setFormularFocusSectionTitle] = useState(null);
   const alteNewsPanelId = useId();
 
   useEffect(() => {
@@ -417,7 +415,6 @@ const Dashboard = () => {
                     type="button"
                     className={navBtnClass(SEC_FORMULAR)}
                     onClick={() => {
-                      setFormularFocusSectionTitle(null);
                       setAdminSection(SEC_FORMULAR);
                     }}
                     aria-current={adminSection === SEC_FORMULAR ? 'page' : undefined}
@@ -428,20 +425,7 @@ const Dashboard = () => {
                         <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       </svg>
                     </DashSidebarIcon>
-                    <span className="dashboard-admin-nav__label">Formular Center</span>
-                  </button>
-                </li>
-                <li className="dashboard-admin-nav__sub">
-                  <button
-                    type="button"
-                    className={navBtnClass(SEC_FORMULAR_PROVISION)}
-                    onClick={() => {
-                      setFormularFocusSectionTitle('Provision');
-                      setAdminSection(SEC_FORMULAR_PROVISION);
-                    }}
-                    aria-current={adminSection === SEC_FORMULAR_PROVISION ? 'page' : undefined}
-                  >
-                    <span className="dashboard-admin-nav__label">Provision</span>
+                    <span className="dashboard-admin-nav__label">Formular</span>
                   </button>
                 </li>
                 {canShowExcelUpload(user) && (
@@ -790,15 +774,6 @@ const Dashboard = () => {
               <FormularCenterAdminPanel
                 loadWhen={adminSection === SEC_FORMULAR}
                 focusSectionTitle={null}
-                excludeSectionTitles={['Provision']}
-              />
-            )}
-
-            {adminSection === SEC_FORMULAR_PROVISION && (
-              <FormularCenterAdminPanel
-                loadWhen={adminSection === SEC_FORMULAR_PROVISION}
-                focusSectionTitle={formularFocusSectionTitle || 'Provision'}
-                onlySectionTitle="Provision"
               />
             )}
 
