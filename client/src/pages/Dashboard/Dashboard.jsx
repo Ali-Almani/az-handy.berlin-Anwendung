@@ -307,8 +307,12 @@ const Dashboard = () => {
     }
   };
 
-  const navBtnClass = (section) =>
-    `dashboard-admin-nav__item${adminSection === section ? ' is-active' : ''}`;
+  const navBtnClass = (section) => {
+    const isFormularGroupActive =
+      section === SEC_FORMULAR && (adminSection === SEC_FORMULAR || adminSection === SEC_FORMULAR_PROVISION);
+    const active = adminSection === section || isFormularGroupActive;
+    return `dashboard-admin-nav__item${active ? ' is-active' : ''}`;
+  };
 
   const navBtnBueroClass = (section) =>
     `dashboard-admin-nav__item${bueroSection === section ? ' is-active' : ''}`;
@@ -420,7 +424,7 @@ const Dashboard = () => {
                     onClick={() => {
                       setFormularNavOpen((o) => !o);
                     }}
-                    aria-expanded={formularNavOpen}
+                    aria-expanded={formularNavOpen || adminSection === SEC_FORMULAR_PROVISION}
                   >
                     <DashSidebarIcon>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -431,7 +435,7 @@ const Dashboard = () => {
                     <span className="dashboard-admin-nav__label">Formular</span>
                   </button>
                 </li>
-                {formularNavOpen && (
+                {(formularNavOpen || adminSection === SEC_FORMULAR_PROVISION) && (
                   <>
                     <li className="dashboard-admin-nav__sub">
                       <button

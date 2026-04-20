@@ -88,6 +88,11 @@
   word-break: break-word;
 }
 
+.formular-center-item-desc {
+  font-weight: $font-weight-normal;
+  color: $text-light;
+}
+
 .formular-center-item-actions {
   display: flex;
   flex-wrap: wrap;

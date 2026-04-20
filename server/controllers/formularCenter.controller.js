@@ -109,6 +109,7 @@ function mapItemToResponse(it) {
   return {
     id: it.id,
     originalName: it.originalName || it.fileName,
+    description: it.description || '',
     uploadedAt: it.uploadedAt,
     uploadedByName: it.uploadedByName || '',
     url: `/api/formular-center/download/${encodeURIComponent(it.id)}`
@@ -357,6 +358,7 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
     const entry = {
       id,
       originalName: req.file.originalname || req.file.filename,
+      description: '',
       fileName: req.file.filename,
       uploadedAt: new Date().toISOString(),
       uploadedByUserId: req.user.userId,
@@ -390,12 +392,19 @@ export const patchFormularCenterItem = async (req, res, next) => {
       });
     }
     const id = req.params?.itemId ?? req.params?.id;
-    const { originalName } = req.body || {};
+    const { originalName, description } = req.body || {};
     const name = String(originalName ?? '').trim();
     if (!name || name.length > 500) {
       return res.status(400).json({
         success: false,
         message: 'Anzeigename erforderlich (1–500 Zeichen)'
+      });
+    }
+    const desc = description == null ? null : String(description).trim();
+    if (desc != null && desc.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Beschreibung zu lang (max. 1000 Zeichen)'
       });
     }
     const { sections } = loadFormularStore();
@@ -404,6 +413,7 @@ export const patchFormularCenterItem = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Eintrag nicht gefunden' });
     }
     loc.item.originalName = name;
+    if (desc != null) loc.item.description = desc;
     saveFormularStore(sections);
     const found = loc.item;
     return res.json({
@@ -411,6 +421,7 @@ export const patchFormularCenterItem = async (req, res, next) => {
       item: {
         id: found.id,
         originalName: found.originalName,
+        description: found.description || '',
         uploadedAt: found.uploadedAt,
         uploadedByName: found.uploadedByName || '',
         url: `/api/formular-center/download/${encodeURIComponent(found.id)}`

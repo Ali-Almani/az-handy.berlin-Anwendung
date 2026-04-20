@@ -39,6 +39,7 @@ export default function FormularCenterAdminPanel({
   const [formularDeleteId, setFormularDeleteId] = useState(null);
   const [formularEditingId, setFormularEditingId] = useState(null);
   const [formularEditName, setFormularEditName] = useState('');
+  const [formularEditDescription, setFormularEditDescription] = useState('');
   const [formularMetaBusy, setFormularMetaBusy] = useState(false);
   const [formularReplaceBusyId, setFormularReplaceBusyId] = useState(null);
   const [formularNewSectionTitle, setFormularNewSectionTitle] = useState('');
@@ -162,12 +163,14 @@ export default function FormularCenterAdminPanel({
       setFormularError('Bitte einen Anzeigename eingeben.');
       return;
     }
+    const description = String(formularEditDescription || '').trim();
     setFormularMetaBusy(true);
     setFormularError(null);
     try {
-      await updateFormularCenterItemMeta(formularEditingId, { originalName: name });
+      await updateFormularCenterItemMeta(formularEditingId, { originalName: name, description });
       setFormularEditingId(null);
       setFormularEditName('');
+      setFormularEditDescription('');
       await loadFormularCenter();
     } catch (err) {
       setFormularError(err.response?.data?.message || err.message || 'Speichern fehlgeschlagen.');
@@ -465,6 +468,19 @@ export default function FormularCenterAdminPanel({
                             maxLength={500}
                             disabled={formularMetaBusy}
                           />
+                          <label className="sr-only" htmlFor={`fc-desc-${it.id}`}>
+                            Beschreibung
+                          </label>
+                          <input
+                            id={`fc-desc-${it.id}`}
+                            type="text"
+                            className="formular-center-name-field"
+                            value={formularEditDescription}
+                            onChange={(ev) => setFormularEditDescription(ev.target.value)}
+                            maxLength={1000}
+                            placeholder="Beschreibung (optional)"
+                            disabled={formularMetaBusy}
+                          />
                           <button
                             type="button"
                             className="btn btn--primary btn--small"
@@ -480,6 +496,7 @@ export default function FormularCenterAdminPanel({
                             onClick={() => {
                               setFormularEditingId(null);
                               setFormularEditName('');
+                              setFormularEditDescription('');
                             }}
                           >
                             Abbrechen
@@ -523,6 +540,9 @@ export default function FormularCenterAdminPanel({
                           >
                             {it.originalName || 'Dokument'}
                           </a>
+                          {String(it.description || '').trim() && (
+                            <span className="formular-center-item-desc">– {String(it.description || '').trim()}</span>
+                          )}
                           <span className="formular-center-dashboard-actions">
                             <button
                               type="button"
@@ -535,6 +555,7 @@ export default function FormularCenterAdminPanel({
                               onClick={() => {
                                 setFormularEditingId(it.id);
                                 setFormularEditName(it.originalName || '');
+                                setFormularEditDescription(it.description || '');
                                 setFormularError(null);
                               }}
                             >

@@ -56,11 +56,15 @@ const FormularCenter = () => {
                       <ul className="formular-center-list">
                         {(sec.items || []).map((it) => {
                           const label = it.originalName || 'Dokument';
+                          const desc = String(it.description || '').trim();
                           const href = it.id ? getFormularCenterDownloadHref(it.id) : '#';
                           const fileName = safeDownloadName(label);
                           return (
                             <li key={it.id} className="formular-center-item">
-                              <span className="formular-center-item-name">{label}</span>
+                              <span className="formular-center-item-name">
+                                {label}
+                                {desc && <span className="formular-center-item-desc"> – {desc}</span>}
+                              </span>
                               <span className="formular-center-item-actions">
                                 <a
                                   href={href}

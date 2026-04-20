@@ -36,8 +36,8 @@ export const uploadFormularCenterPdf = uploadFormularCenterFile;
 export const deleteFormularCenterItem = (id) =>
   api.delete(`/formular-center/items/${encodeURIComponent(id)}`);
 
-export const updateFormularCenterItemMeta = (id, { originalName }) =>
-  api.patch(`/formular-center/items/${encodeURIComponent(id)}`, { originalName });
+export const updateFormularCenterItemMeta = (id, { originalName, description }) =>
+  api.patch(`/formular-center/items/${encodeURIComponent(id)}`, { originalName, description });
 
 export const replaceFormularCenterFile = (id, file) => {
   const formData = new FormData();
