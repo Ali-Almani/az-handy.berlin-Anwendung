@@ -22,6 +22,32 @@ function sortSections(sections) {
   return [...(sections || [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 }
 
+function ensureDefaultSections(sections, titles) {
+  const list = Array.isArray(sections) ? [...sections] : [];
+  const wanted = (titles || []).map((t) => String(t || '').trim()).filter(Boolean);
+  if (wanted.length === 0) return { sections: list, changed: false };
+
+  const hasTitle = (title) =>
+    list.some((s) => String(s?.title ?? '').trim().toLowerCase() === String(title).trim().toLowerCase());
+
+  let changed = false;
+  let nextOrder = -1;
+
+  for (const title of wanted) {
+    if (hasTitle(title)) continue;
+    list.push({
+      id: `sec-default-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      title,
+      sortOrder: nextOrder++,
+      items: []
+    });
+    changed = true;
+  }
+
+  if (!changed) return { sections: list, changed: false };
+  return { sections: sortSections(list).map((s, i) => ({ ...s, sortOrder: i })), changed: true };
+}
+
 /** Legacy { items: [] } → { sections: [{ title, items }] } */
 function normalizeFormularPayload(raw) {
   if (!raw || typeof raw !== 'object') return { sections: [], migrated: false };
@@ -58,10 +84,11 @@ function normalizeFormularPayload(raw) {
 function loadFormularStore() {
   const raw = loadJson(FORMULAR_CENTER_FILE);
   const { sections, migrated } = normalizeFormularPayload(raw);
-  if (migrated) {
-    saveJson(FORMULAR_CENTER_FILE, { sections });
+  const { sections: withDefaults, changed } = ensureDefaultSections(sections, ['Provision']);
+  if (migrated || changed) {
+    saveJson(FORMULAR_CENTER_FILE, { sections: withDefaults });
   }
-  return { sections };
+  return { sections: withDefaults };
 }
 
 function saveFormularStore(sections) {
