@@ -19,13 +19,14 @@ const FORMULAR_FILE_ACCEPT =
 
 /**
  * Verwaltung: Bereiche (Titel), Reihenfolge, Dateien.
- * @param {{ loadWhen?: boolean }} props – im Dashboard nur laden, wenn der Tab aktiv ist
+ * @param {{ loadWhen?: boolean, focusSectionTitle?: string | null }} props – im Dashboard nur laden, wenn der Tab aktiv ist
  */
-export default function FormularCenterAdminPanel({ loadWhen = true }) {
+export default function FormularCenterAdminPanel({ loadWhen = true, focusSectionTitle = null }) {
   const formularFileInputRef = useRef(null);
   const formularReplaceInputRef = useRef(null);
   const formularReplaceTargetIdRef = useRef(null);
   const formularUploadTargetSectionIdRef = useRef(null);
+  const focusedOnceRef = useRef(false);
   const [formularSections, setFormularSections] = useState([]);
   const [formularLoading, setFormularLoading] = useState(false);
   const [formularError, setFormularError] = useState(null);
@@ -62,6 +63,23 @@ export default function FormularCenterAdminPanel({ loadWhen = true }) {
     if (!loadWhen) return;
     loadFormularCenter();
   }, [loadWhen, loadFormularCenter]);
+
+  useEffect(() => {
+    if (!loadWhen) return;
+    if (!focusSectionTitle) return;
+    if (formularLoading) return;
+    if (!formularSections || formularSections.length === 0) return;
+    if (focusedOnceRef.current) return;
+
+    const wanted = String(focusSectionTitle).trim().toLowerCase();
+    if (!wanted) return;
+    const esc = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape : (v) => String(v).replace(/"/g, '\\"');
+    const el = document.querySelector(`[data-fc-section-title="${esc(wanted)}"]`);
+    if (el && typeof el.scrollIntoView === 'function') {
+      focusedOnceRef.current = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [loadWhen, focusSectionTitle, formularLoading, formularSections]);
 
   const handleFormularPickUpload = (sectionId) => {
     formularUploadTargetSectionIdRef.current = sectionId;
@@ -313,7 +331,11 @@ export default function FormularCenterAdminPanel({ loadWhen = true }) {
         ) : formularSections.length > 0 ? (
           <div className="formular-center-sections-admin">
             {formularSections.map((sec, secIdx) => (
-              <section key={sec.id} className="formular-center-section-block">
+              <section
+                key={sec.id}
+                className="formular-center-section-block"
+                data-fc-section-title={String(sec.title || '').trim().toLowerCase()}
+              >
                 <div className="formular-center-section-header">
                   {formularEditingSectionId === sec.id ? (
                     <div className="formular-center-edit-panel formular-center-edit-panel--section">
