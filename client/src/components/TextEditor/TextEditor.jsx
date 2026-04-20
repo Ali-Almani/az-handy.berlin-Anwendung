@@ -63,18 +63,19 @@ const TextEditor = ({
   }, [initialContent]);
 
   useEffect(() => {
-    if (isEditing && editorRef.current) {
-      editorRef.current.focus();
-      if (content) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        range.selectNodeContents(editorRef.current);
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-  }, [isEditing, content]);
+    if (!isEditing) return;
+    if (!editorRef.current) return;
+    // Beim Eintritt in den Edit-Modus initialisieren; danach DOM nicht dauernd überschreiben,
+    // sonst springt der Cursor beim Tippen ans Ende.
+    editorRef.current.innerHTML = content || '';
+    editorRef.current.focus();
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(editorRef.current);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, [isEditing]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -106,6 +107,9 @@ const TextEditor = ({
   const handleCancel = () => {
     setContent(lastSavedContent);
     setIsEditing(false);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = lastSavedContent || '';
+    }
   };
 
   const insertHeading = (level) => {
@@ -176,7 +180,6 @@ const TextEditor = ({
             className="text-editor-content"
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            dangerouslySetInnerHTML={{ __html: content }}
             data-placeholder={placeholder}
             suppressContentEditableWarning={true}
           />
