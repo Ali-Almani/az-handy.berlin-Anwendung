@@ -787,13 +787,18 @@ const Dashboard = () => {
             )}
 
             {adminSection === SEC_FORMULAR && (
-              <FormularCenterAdminPanel loadWhen={adminSection === SEC_FORMULAR} focusSectionTitle={null} />
+              <FormularCenterAdminPanel
+                loadWhen={adminSection === SEC_FORMULAR}
+                focusSectionTitle={null}
+                excludeSectionTitles={['Provision']}
+              />
             )}
 
             {adminSection === SEC_FORMULAR_PROVISION && (
               <FormularCenterAdminPanel
                 loadWhen={adminSection === SEC_FORMULAR_PROVISION}
                 focusSectionTitle={formularFocusSectionTitle || 'Provision'}
+                onlySectionTitle="Provision"
               />
             )}
 

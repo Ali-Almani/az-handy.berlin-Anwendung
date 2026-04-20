@@ -19,9 +19,14 @@ const FORMULAR_FILE_ACCEPT =
 
 /**
  * Verwaltung: Bereiche (Titel), Reihenfolge, Dateien.
- * @param {{ loadWhen?: boolean, focusSectionTitle?: string | null }} props – im Dashboard nur laden, wenn der Tab aktiv ist
+ * @param {{ loadWhen?: boolean, focusSectionTitle?: string | null, onlySectionTitle?: string | null, excludeSectionTitles?: string[] }} props – im Dashboard nur laden, wenn der Tab aktiv ist
  */
-export default function FormularCenterAdminPanel({ loadWhen = true, focusSectionTitle = null }) {
+export default function FormularCenterAdminPanel({
+  loadWhen = true,
+  focusSectionTitle = null,
+  onlySectionTitle = null,
+  excludeSectionTitles = []
+}) {
   const formularFileInputRef = useRef(null);
   const formularReplaceInputRef = useRef(null);
   const formularReplaceTargetIdRef = useRef(null);
@@ -64,11 +69,27 @@ export default function FormularCenterAdminPanel({ loadWhen = true, focusSection
     loadFormularCenter();
   }, [loadWhen, loadFormularCenter]);
 
+  const wantedOnlyTitle = String(onlySectionTitle || '')
+    .trim()
+    .toLowerCase();
+  const excludedTitles = (Array.isArray(excludeSectionTitles) ? excludeSectionTitles : [])
+    .map((t) => String(t || '').trim().toLowerCase())
+    .filter(Boolean);
+
+  const visibleFormularSections = (formularSections || []).filter((sec) => {
+    const t = String(sec?.title || '')
+      .trim()
+      .toLowerCase();
+    if (wantedOnlyTitle) return t === wantedOnlyTitle;
+    if (excludedTitles.length > 0) return !excludedTitles.includes(t);
+    return true;
+  });
+
   useEffect(() => {
     if (!loadWhen) return;
     if (!focusSectionTitle) return;
     if (formularLoading) return;
-    if (!formularSections || formularSections.length === 0) return;
+    if (!visibleFormularSections || visibleFormularSections.length === 0) return;
     if (focusedOnceRef.current) return;
 
     const wanted = String(focusSectionTitle).trim().toLowerCase();
@@ -79,7 +100,7 @@ export default function FormularCenterAdminPanel({ loadWhen = true, focusSection
       focusedOnceRef.current = true;
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [loadWhen, focusSectionTitle, formularLoading, formularSections]);
+  }, [loadWhen, focusSectionTitle, formularLoading, visibleFormularSections]);
 
   const handleFormularPickUpload = (sectionId) => {
     formularUploadTargetSectionIdRef.current = sectionId;
@@ -328,9 +349,9 @@ export default function FormularCenterAdminPanel({ loadWhen = true, focusSection
         {formularError && <p className="text-error formular-center-error">{formularError}</p>}
         {formularLoading ? (
           <p>Lade Formulare…</p>
-        ) : formularSections.length > 0 ? (
+        ) : visibleFormularSections.length > 0 ? (
           <div className="formular-center-sections-admin">
-            {formularSections.map((sec, secIdx) => (
+            {visibleFormularSections.map((sec, secIdx) => (
               <section
                 key={sec.id}
                 className="formular-center-section-block"
@@ -387,7 +408,7 @@ export default function FormularCenterAdminPanel({ loadWhen = true, focusSection
                           className="btn btn--outline btn--small"
                           title="Bereich nach unten"
                           disabled={
-                            secIdx >= formularSections.length - 1 ||
+                            secIdx >= visibleFormularSections.length - 1 ||
                             Boolean(formularSectionMoveBusy) ||
                             Boolean(formularSectionDeleteId)
                           }
