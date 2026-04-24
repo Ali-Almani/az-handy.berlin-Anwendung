@@ -1390,3 +1390,6 @@ export const markExtraCopyNotificationRead = async (req, res, next) => {
     next(error);
   }
 };
+
+/** Gleiche Rollenlogik wie bei canEditSharedImeiList (z. B. Excel-Append vs. nur eigene Zeile) */
+export { isBüroMitarbeiter, isAdmin, getUserRole };

@@ -1,5 +1,11 @@
 import ExcelJS from 'exceljs';
-import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.controller.js';
+import {
+  saveImeisDataToStorage,
+  appendImeisFromExcelUpload,
+  isBüroMitarbeiter,
+  isAdmin,
+  getUserRole
+} from './imeis.controller.js';
 import User from '../models/User.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
@@ -141,10 +147,8 @@ async function userCanAppendImeiExcel(userId) {
   try {
     const u = await User.findByPk(userId);
     if (!u) return false;
-    const role = String(u.role ?? u.get?.('role') ?? u.dataValues?.role ?? '').trim();
-    if (role === 'Büro Mitarbeiter') return true;
-    const rl = role.toLowerCase();
-    return rl.includes('admin') || role === 'Administrator';
+    const role = getUserRole(u);
+    return isBüroMitarbeiter(role) || isAdmin(role);
   } catch {
     return false;
   }
