@@ -4,6 +4,7 @@ const ImeisStats = ({
   activeVariant,
   activeProduct,
   activeGB,
+  totalImeisLength,
   filteredImeisLength,
   searchTerm,
   startIndex,
@@ -12,6 +13,7 @@ const ImeisStats = ({
   onItemsPerPageChange,
   onPageReset
 }) => {
+  const total = totalImeisLength ?? filteredImeisLength;
   const getVersionDisplayName = () => {
     if (!activeManufacturer || !activeVersion) return '';
     const manufacturerLower = activeManufacturer.toLowerCase();
@@ -53,10 +55,27 @@ const ImeisStats = ({
                 )}
               </>
             )}
-            <> | IMEIs: <strong>{filteredImeisLength}</strong></>
+            <>
+              {' '}
+              | IMEIs: <strong>{total}</strong>
+              {total !== filteredImeisLength && (
+                <>
+                  {' '}
+                  (sichtbar: <strong>{filteredImeisLength}</strong>)
+                </>
+              )}
+            </>
           </>
         ) : (
-          <>IMEIs: <strong>{filteredImeisLength}</strong></>
+          <>
+            IMEIs: <strong>{total}</strong>
+            {total !== filteredImeisLength && (
+              <>
+                {' '}
+                (sichtbar: <strong>{filteredImeisLength}</strong>)
+              </>
+            )}
+          </>
         )}
         {searchTerm && (
           <> | Gefunden: <strong>{filteredImeisLength}</strong></>

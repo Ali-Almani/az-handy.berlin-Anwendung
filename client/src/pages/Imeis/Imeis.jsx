@@ -197,6 +197,7 @@ const Imeis = () => {
             activeVariant={activeVariant}
             activeProduct={activeProduct}
             activeGB={activeGB}
+            totalImeisLength={imeis.length}
             filteredImeisLength={filteredImeis.length}
             searchTerm={searchTerm}
             startIndex={startIndex}
