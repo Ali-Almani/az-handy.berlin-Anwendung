@@ -212,6 +212,103 @@ function pickImeiColumnIndex(headers, rowArrays) {
   return -1;
 }
 
+const MAX_SHEET_HEADER_PROBE = 22;
+
+function headersFromRowArray(rowArray) {
+  return rowArray.map((cell, idx) => {
+    const v = String(cell ?? '').trim();
+    return v || `Spalte${idx + 1}`;
+  });
+}
+
+function sheetRowIsEmpty(rowArray) {
+  return rowArray.every((val) => !val || String(val).trim() === '');
+}
+
+/** Alle nicht-leeren Zeilen: rowNumber, rowArray, fmtByCol (1-basierte Spaltennummer → Format). */
+function collectNonEmptySheetRows(worksheet) {
+  let maxCol = 1;
+  worksheet.eachRow((row) => {
+    const n = row.lastColumn?.number ?? row.cellCount ?? 0;
+    if (n > maxCol) maxCol = n;
+  });
+  const out = [];
+  worksheet.eachRow((row, rowNumber) => {
+    const rowArray = new Array(maxCol).fill('');
+    const fmtByCol = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      if (colNumber < 1 || colNumber > rowArray.length) return;
+      const cellValue = excelCellToPlainString(cell);
+      rowArray[colNumber - 1] = cellValue;
+      if (cell.font && cell.font.color) {
+        const textColor = exceljsColorToHex(cell.font.color);
+        if (textColor && textColor !== '#000000') {
+          fmtByCol[colNumber] = { textColor: textColor };
+        }
+      }
+    });
+    if (sheetRowIsEmpty(rowArray)) return;
+    out.push({ rowNumber, rowArray, fmtByCol });
+  });
+  return out;
+}
+
+function buildRowDataFromHeaders(headers, rowArray, fmtByCol) {
+  const rowData = {};
+  const rowDataFormats = {};
+  const len = Math.max(headers.length, rowArray.length);
+  for (let j = 0; j < len; j++) {
+    const headerName = headers[j] || `Spalte${j + 1}`;
+    const val = rowArray[j] ?? '';
+    rowData[headerName] = val;
+    const fmt = fmtByCol[j + 1];
+    if (fmt) rowDataFormats[headerName] = fmt;
+  }
+  return { rowData, rowDataFormats };
+}
+
+function evaluateSheetParseWithHeaderAt(sheetRows, headerIdx) {
+  if (headerIdx < 0 || headerIdx >= sheetRows.length) return null;
+  const headers = headersFromRowArray(sheetRows[headerIdx].rowArray);
+  const dataEntries = sheetRows.slice(headerIdx + 1);
+  if (dataEntries.length === 0) return null;
+  const rowArrays = dataEntries.map((e) => e.rowArray);
+  const pickCol = pickImeiColumnIndex(headers, rowArrays);
+  let imeiHits = 0;
+  for (const e of dataEntries) {
+    let v = '';
+    if (pickCol !== -1 && e.rowArray[pickCol]) v = String(e.rowArray[pickCol]).trim();
+    else if (e.rowArray[0]) v = String(e.rowArray[0]).trim();
+    if (cellLooksLikeImeiString(v)) imeiHits += 1;
+  }
+  let score = imeiHits;
+  if (pickCol >= 0 && pickCol < sheetRows[headerIdx].rowArray.length) {
+    const hv = sheetRows[headerIdx].rowArray[pickCol];
+    if (cellLooksLikeImeiString(hv)) score -= 3;
+  }
+  return {
+    score,
+    imeiHits,
+    headers,
+    pickCol,
+    dataEntries
+  };
+}
+
+/** Wenn Zeile 1 ein Titel ist und echte Überschriften in Zeile 2 stehen, hi=0 sonst falsche IMEI-Spalte. */
+function bestSheetParseConfig(sheetRows) {
+  let best = null;
+  const limit = Math.min(MAX_SHEET_HEADER_PROBE, sheetRows.length);
+  for (let hi = 0; hi < limit; hi++) {
+    const ev = evaluateSheetParseWithHeaderAt(sheetRows, hi);
+    if (!ev) continue;
+    if (!best || ev.score > best.score || (ev.score === best.score && ev.imeiHits > best.imeiHits)) {
+      best = { headerIdx: hi, ...ev };
+    }
+  }
+  return best;
+}
+
 const exceljsColorToHex = (color) => {
   if (!color) return null;
   
@@ -380,76 +477,31 @@ export const processExcelFile = async (req, res) => {
 
     workbook.eachSheet((worksheet, sheetId) => {
       const sheetName = worksheet.name;
-      const headerRow = worksheet.getRow(1);
-      const headerLastCol = headerRow.lastColumn?.number ?? headerRow.cellCount ?? 0;
-      const headers = Array.from({ length: Math.max(headerLastCol, 1) }, (_, i) => `Spalte${i + 1}`);
-      if (headerRow) {
-        headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          const headerValue = excelCellToPlainString(cell);
-          const headerName = (headerValue && headerValue.trim()) || `Spalte${colNumber}`;
-          if (colNumber > headers.length) {
-            while (headers.length < colNumber) headers.push(`Spalte${headers.length + 1}`);
-          }
-          headers[colNumber - 1] = headerName;
-        });
-      }
+      const sheetRows = collectNonEmptySheetRows(worksheet);
+      const cfg = bestSheetParseConfig(sheetRows);
+      if (!cfg) return;
 
-      const pendingSheetRows = [];
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-
-        const rowData = {};
-        const rowDataFormats = {};
-        const lastCol = Math.max(headers.length, row.lastColumn?.number ?? row.cellCount ?? 0);
-        const rowArray = new Array(lastCol).fill('');
-
-        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          if (colNumber < 1 || colNumber > rowArray.length) return;
-          const cellValue = excelCellToPlainString(cell);
-          rowArray[colNumber - 1] = cellValue;
-          const headerName = headers[colNumber - 1] || `Spalte${colNumber}`;
-          rowData[headerName] = cellValue;
-
-          if (cell.font && cell.font.color) {
-            const textColor = exceljsColorToHex(cell.font.color);
-            if (textColor && textColor !== '#000000') {
-              rowDataFormats[headerName] = { textColor: textColor };
-            }
-          }
-        });
-
-        const isEmptyRow = rowArray.every((val) => !val || val.toString().trim() === '');
-        if (isEmptyRow) {
-          return;
-        }
-
-        pendingSheetRows.push({ rowNumber, rowArray, rowData, rowDataFormats });
-      });
-
-      const sheetImeiCol = pickImeiColumnIndex(
-        headers,
-        pendingSheetRows.map((p) => p.rowArray)
-      );
-      for (const p of pendingSheetRows) {
+      const { headers, pickCol, dataEntries } = cfg;
+      for (const e of dataEntries) {
         let imeiValue = '';
-        if (sheetImeiCol !== -1 && p.rowArray[sheetImeiCol]) {
-          imeiValue = p.rowArray[sheetImeiCol].toString().trim();
-        } else if (p.rowArray[0]) {
-          imeiValue = p.rowArray[0].toString().trim();
+        if (pickCol !== -1 && e.rowArray[pickCol]) {
+          imeiValue = String(e.rowArray[pickCol]).trim();
+        } else if (e.rowArray[0]) {
+          imeiValue = String(e.rowArray[0]).trim();
         }
-
-        if (imeiValue) {
-          imeis.push({
-            imei: imeiValue,
-            row: p.rowNumber,
-            sheet: sheetName,
-            sheetIndex: sheetId - 1,
-            data: p.rowArray,
-            rowData: p.rowData,
-            rowDataFormats: p.rowDataFormats,
-            columnOrder: headers
-          });
-        }
+        if (!imeiValue) continue;
+        if (!cellLooksLikeImeiString(imeiValue)) continue;
+        const { rowData, rowDataFormats } = buildRowDataFromHeaders(headers, e.rowArray, e.fmtByCol);
+        imeis.push({
+          imei: imeiValue,
+          row: e.rowNumber,
+          sheet: sheetName,
+          sheetIndex: sheetId - 1,
+          data: e.rowArray,
+          rowData,
+          rowDataFormats,
+          columnOrder: headers
+        });
       }
     });
 
