@@ -665,28 +665,39 @@ function normalizeImeiDedupKey(imei) {
 }
 
 /**
- * Neue Upload-Zeilen an bestehende IMEI-Liste anhängen (wie Voucher). Duplikate nach IMEI-Wert überspringen.
+ * Upload-Zeilen einarbeiten: neue IMEIs anhängen; bei bereits vorhandener IMEI die Zeile mit
+ * Excel-Daten aktualisieren (Blatt, row, rowData, …), damit neue Lieferlisten sichtbar werden.
  */
 export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
   const existing = Array.isArray(existingImeis) ? [...existingImeis] : [];
-  const seen = new Set();
-  for (const item of existing) {
-    const k = normalizeImeiDedupKey(item?.imei);
-    if (k) seen.add(k);
+  const keyToIndex = new Map();
+  for (let i = 0; i < existing.length; i++) {
+    const k = normalizeImeiDedupKey(existing[i]?.imei);
+    if (k && !keyToIndex.has(k)) keyToIndex.set(k, i);
   }
   const merged = [...existing];
   let added = 0;
-  let skippedDuplicate = 0;
+  let updatedFromUpload = 0;
   const addedRows = [];
   for (const item of incomingImeis) {
     if (!item || typeof item !== 'object') continue;
     const k = normalizeImeiDedupKey(item?.imei);
     if (!k) continue;
-    if (seen.has(k)) {
-      skippedDuplicate += 1;
+    const idx = keyToIndex.get(k);
+    if (idx !== undefined) {
+      const prev = merged[idx];
+      merged[idx] = {
+        ...prev,
+        ...item,
+        imei:
+          item.imei != null && String(item.imei).trim() !== ''
+            ? String(item.imei).trim()
+            : prev?.imei
+      };
+      updatedFromUpload += 1;
       continue;
     }
-    seen.add(k);
+    keyToIndex.set(k, merged.length);
     merged.push(item);
     addedRows.push(item);
     added += 1;
@@ -695,7 +706,8 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
     merged,
     addedRows,
     added,
-    skippedDuplicate,
+    skippedDuplicate: 0,
+    updatedFromUpload,
     previousCount: existing.length
   };
 }
@@ -718,7 +730,10 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
       } catch (_) {}
     }
   }
-  const { merged, added, skippedDuplicate, previousCount, addedRows } = mergeImeiRowsAppend(existing, incoming);
+  const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows } = mergeImeiRowsAppend(
+    existing,
+    incoming
+  );
   // Immer dieselbe user_id-Zeile wie die Quelle der bestehenden Liste (vermeidet Schreiben nur beim Uploader).
   await saveImeisDataToStorage(baseUserId, { imeis: merged }, app);
   return {
@@ -726,6 +741,7 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     addedRows,
     added,
     skippedDuplicate,
+    updatedFromUpload,
     previousCount,
     total: merged.length
   };

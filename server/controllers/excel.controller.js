@@ -413,18 +413,17 @@ async function saveImeisAfterExcelParse(req, imeis) {
   const append = await userCanAppendImeiExcel(uploaderId);
   if (append) {
     const parsePreview = imeis.slice(0, 5).map((r) => maskImeiPreview(r?.imei));
-    const { merged, added, skippedDuplicate, previousCount, addedRows, total } = await appendImeisFromExcelUpload(
-      uploaderId,
-      imeis,
-      req.app
-    );
+    const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows, total } =
+      await appendImeisFromExcelUpload(uploaderId, imeis, req.app);
     let message;
-    if (added === 0 && skippedDuplicate > 0) {
-      message = `Keine neuen IMEIs: alle ${skippedDuplicate} aus der Datei waren bereits in der Liste (${total} IMEIs gesamt).`;
-    } else if (skippedDuplicate > 0) {
-      message = `${added} IMEI(s) hinzugefügt, ${skippedDuplicate} Duplikat(e) übersprungen (${total} gesamt, vorher ${previousCount}).`;
-    } else {
+    if (added === 0 && (updatedFromUpload ?? 0) > 0) {
+      message = `${updatedFromUpload} IMEI-Zeile(n) mit Daten aus der Datei aktualisiert (${total} IMEIs gesamt, vorher ${previousCount}).`;
+    } else if (added > 0 && (updatedFromUpload ?? 0) > 0) {
+      message = `${added} neue IMEI(s) hinzugefügt, ${updatedFromUpload} bestehende aktualisiert (${total} gesamt, vorher ${previousCount}).`;
+    } else if (added > 0) {
       message = `${added} IMEI(s) zur IMEI-Liste hinzugefügt (${total} gesamt, vorher ${previousCount}).`;
+    } else {
+      message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }
     return {
       success: true,
@@ -433,6 +432,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
       mergedCount: total,
       added,
       skippedDuplicate,
+      updatedFromUpload: updatedFromUpload ?? 0,
       previousCount,
       saved: true,
       parsedFromFile: imeis.length,
