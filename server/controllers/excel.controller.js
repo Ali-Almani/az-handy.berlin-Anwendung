@@ -125,6 +125,93 @@ function excelCellToPlainString(cell) {
   return String(cell.value).trim();
 }
 
+function cellLooksLikeImeiString(val) {
+  const s = String(val ?? '').trim();
+  if (!s) return false;
+  const digits = s.replace(/\D/g, '');
+  return digits.length >= 14 && digits.length <= 17;
+}
+
+/**
+ * Erkennt die IMEI-Spalte zuverlässiger als includes('imei'): Spalten wie „IMEI vorhanden“
+ * (Ja/Nein) liefern sonst für viele Zeilen denselben Wert → alles als Duplikat.
+ */
+function scoreImeiHeader(header) {
+  const h = String(header ?? '').trim().toLowerCase();
+  if (!h) return 0;
+
+  const mentionsImei = h.includes('imei');
+  const mentionsSerial = /seriennummer/.test(h) || /^serial\b/.test(h) || h.includes('serial-nr');
+  if (!mentionsImei && !mentionsSerial) return 0;
+
+  if (mentionsImei) {
+    if (
+      /(vorhanden|ohne\s*imei|kein\s*imei|imei\s*ok|ohneimei|imei-status|imei\s*check|hat\s*imei|mit\s*imei)/.test(h)
+    ) {
+      return -1;
+    }
+  }
+
+  if (/^imei$/.test(h)) return 100;
+  if (/^imei[\s._-]*(nr|nummer|no\.?|#)/.test(h) || /^(nr|nummer)[\s._-]*imei/.test(h)) return 95;
+  if (/gerät(e)?[\s._-]*imei|imei[\s._-]*gerät/.test(h)) return 93;
+  if (/\bhaupt[\s._-]*imei\b/.test(h) || /^imei1$/.test(h)) return 91;
+  if (/seriennummer/.test(h) || /^serial\b/.test(h)) return 78;
+  if (mentionsImei) {
+    if (/imei\s*2|zweit|sim\s*2|secondary|second/.test(h)) return 56;
+    return 72;
+  }
+  return 0;
+}
+
+function imeiColumnContentFraction(colIndex, rowArrays) {
+  let hits = 0;
+  let nonempty = 0;
+  for (const ra of rowArrays) {
+    if (!Array.isArray(ra) || colIndex < 0 || colIndex >= ra.length) continue;
+    const v = ra[colIndex];
+    if (v === undefined || v === null || String(v).trim() === '') continue;
+    nonempty += 1;
+    if (cellLooksLikeImeiString(v)) hits += 1;
+  }
+  if (nonempty === 0) return 0;
+  return hits / nonempty;
+}
+
+function pickImeiColumnIndex(headers, rowArrays) {
+  const nCols = Math.max(
+    headers.length,
+    ...rowArrays.map((r) => (Array.isArray(r) ? r.length : 0)),
+    0
+  );
+  let best = -1;
+  let bestCombined = -1;
+  for (let j = 0; j < nCols; j++) {
+    const hs = scoreImeiHeader(headers[j]);
+    if (hs < 0) continue;
+    const frac = imeiColumnContentFraction(j, rowArrays);
+    if (hs === 0 && frac < 0.25) continue;
+    const combined = hs * 1000 + frac * 500;
+    if (combined > bestCombined) {
+      bestCombined = combined;
+      best = j;
+    }
+  }
+  if (best >= 0) return best;
+
+  best = -1;
+  bestCombined = -1;
+  for (let j = 0; j < nCols; j++) {
+    const frac = imeiColumnContentFraction(j, rowArrays);
+    if (frac > bestCombined) {
+      bestCombined = frac;
+      best = j;
+    }
+  }
+  if (bestCombined >= 0.15) return best;
+  return -1;
+}
+
 const exceljsColorToHex = (color) => {
   if (!color) return null;
   
@@ -229,8 +316,7 @@ export const processExcelFile = async (req, res) => {
       }
 
       const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-      const imeis = [];
-
+      const pendingCsv = [];
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
         const rowData = {};
@@ -243,20 +329,36 @@ export const processExcelFile = async (req, res) => {
           rowArray.push(cellValue);
         });
 
-        const imeiValue = rowArray[0] ? rowArray[0].toString().trim() : '';
+        const isEmptyRow = rowArray.every((val) => !val || val.toString().trim() === '');
+        if (isEmptyRow) continue;
+        pendingCsv.push({ row: i + 1, rowArray, rowData });
+      }
+
+      const csvImeiCol = pickImeiColumnIndex(
+        headers,
+        pendingCsv.map((p) => p.rowArray)
+      );
+      const imeis = [];
+      for (const p of pendingCsv) {
+        let imeiValue = '';
+        if (csvImeiCol !== -1 && p.rowArray[csvImeiCol]) {
+          imeiValue = p.rowArray[csvImeiCol].toString().trim();
+        } else if (p.rowArray[0]) {
+          imeiValue = p.rowArray[0].toString().trim();
+        }
         if (imeiValue) {
           imeis.push({
             imei: imeiValue,
-            row: i + 1,
+            row: p.row,
             sheet: 'Sheet1',
             sheetIndex: 0,
-            data: rowArray,
-            rowData: rowData,
+            data: p.rowArray,
+            rowData: p.rowData,
             rowDataFormats: {},
             columnOrder: headers
           });
+        }
       }
-    }
 
     const saveDirectlyCsv = req.body?.saveDirectly === 'true' || req.body?.saveDirectly === true;
     if (saveDirectlyCsv && req.user?.userId && imeis.length > 0) {
@@ -292,10 +394,7 @@ export const processExcelFile = async (req, res) => {
         });
       }
 
-      const imeiColumnIndex = headers.findIndex(
-        (header) => header && header.toString().toLowerCase().includes('imei')
-      );
-
+      const pendingSheetRows = [];
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
 
@@ -324,26 +423,34 @@ export const processExcelFile = async (req, res) => {
           return;
         }
 
+        pendingSheetRows.push({ rowNumber, rowArray, rowData, rowDataFormats });
+      });
+
+      const sheetImeiCol = pickImeiColumnIndex(
+        headers,
+        pendingSheetRows.map((p) => p.rowArray)
+      );
+      for (const p of pendingSheetRows) {
         let imeiValue = '';
-        if (imeiColumnIndex !== -1 && rowArray[imeiColumnIndex]) {
-          imeiValue = rowArray[imeiColumnIndex].toString().trim();
-        } else if (rowArray[0]) {
-          imeiValue = rowArray[0].toString().trim();
+        if (sheetImeiCol !== -1 && p.rowArray[sheetImeiCol]) {
+          imeiValue = p.rowArray[sheetImeiCol].toString().trim();
+        } else if (p.rowArray[0]) {
+          imeiValue = p.rowArray[0].toString().trim();
         }
 
         if (imeiValue) {
           imeis.push({
             imei: imeiValue,
-            row: rowNumber,
+            row: p.rowNumber,
             sheet: sheetName,
             sheetIndex: sheetId - 1,
-            data: rowArray,
-            rowData: rowData,
-            rowDataFormats: rowDataFormats,
+            data: p.rowArray,
+            rowData: p.rowData,
+            rowDataFormats: p.rowDataFormats,
             columnOrder: headers
           });
         }
-      });
+      }
     });
 
     // saveDirectly: Server speichert direkt – vermeidet 413 bei großem JSON-Payload
