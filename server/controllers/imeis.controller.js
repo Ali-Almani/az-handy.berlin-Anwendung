@@ -627,7 +627,13 @@ export const getImeisData = async (req, res, next) => {
 };
 
 function normalizeImeiDedupKey(imei) {
-  return String(imei ?? '').trim();
+  const raw = String(imei ?? '').trim().replace(/\s+/g, '');
+  if (!raw) return '';
+  // Exponentialdarstellung nicht auf Ziffern reduzieren (würde falsch mappen)
+  if (/[eE][+-]?\d+/.test(raw)) return raw;
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length >= 14) return digits;
+  return raw;
 }
 
 /**

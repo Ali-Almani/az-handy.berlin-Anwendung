@@ -108,6 +108,23 @@ async function mergeVoucherCopyHistoriesForEinsatzOrt(map, einsatzOrt) {
     .slice(0, 200);
 }
 
+/**
+ * Anzeigetext aus Excel-Zelle (wichtig für IMEI: lange Ganzzahlen sonst Rundung / Exponentialdarstellung).
+ */
+function excelCellToPlainString(cell) {
+  if (!cell) return '';
+  if (cell.value instanceof Date) {
+    const d = cell.value.getDate();
+    const m = cell.value.getMonth() + 1;
+    const y = cell.value.getFullYear();
+    return `${d}.${m}.${y}`;
+  }
+  const text = cell.text != null ? String(cell.text).trim() : '';
+  if (text !== '') return text;
+  if (cell.value === null || cell.value === undefined) return '';
+  return String(cell.value).trim();
+}
+
 const exceljsColorToHex = (color) => {
   if (!color) return null;
   
@@ -261,19 +278,22 @@ export const processExcelFile = async (req, res) => {
 
     workbook.eachSheet((worksheet, sheetId) => {
       const sheetName = worksheet.name;
-      const headers = [];
-      
       const headerRow = worksheet.getRow(1);
+      const headerLastCol = headerRow.lastColumn?.number ?? headerRow.cellCount ?? 0;
+      const headers = Array.from({ length: Math.max(headerLastCol, 1) }, (_, i) => `Spalte${i + 1}`);
       if (headerRow) {
         headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          const headerValue = cell.value ? cell.value.toString() : '';
-          const headerName = headerValue.trim() || `Spalte${colNumber}`;
-          headers.push(headerName);
+          const headerValue = excelCellToPlainString(cell);
+          const headerName = (headerValue && headerValue.trim()) || `Spalte${colNumber}`;
+          if (colNumber > headers.length) {
+            while (headers.length < colNumber) headers.push(`Spalte${headers.length + 1}`);
+          }
+          headers[colNumber - 1] = headerName;
         });
       }
 
       const imeiColumnIndex = headers.findIndex(
-        header => header && header.toString().toLowerCase().includes('imei')
+        (header) => header && header.toString().toLowerCase().includes('imei')
       );
 
       worksheet.eachRow((row, rowNumber) => {
@@ -281,24 +301,15 @@ export const processExcelFile = async (req, res) => {
 
         const rowData = {};
         const rowDataFormats = {};
-        const rowArray = [];
+        const lastCol = Math.max(headers.length, row.lastColumn?.number ?? row.cellCount ?? 0);
+        const rowArray = new Array(lastCol).fill('');
 
         row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          let cellValue = '';
-          if (cell.value !== null && cell.value !== undefined) {
-            if (cell.value instanceof Date) {
-              const d = cell.value.getDate();
-              const m = cell.value.getMonth() + 1;
-              const y = cell.value.getFullYear();
-              cellValue = `${d}.${m}.${y}`;
-            } else {
-              cellValue = cell.value.toString();
-            }
-          }
-
+          if (colNumber < 1 || colNumber > rowArray.length) return;
+          const cellValue = excelCellToPlainString(cell);
+          rowArray[colNumber - 1] = cellValue;
           const headerName = headers[colNumber - 1] || `Spalte${colNumber}`;
           rowData[headerName] = cellValue;
-          rowArray.push(cellValue);
 
           if (cell.font && cell.font.color) {
             const textColor = exceljsColorToHex(cell.font.color);
@@ -308,7 +319,7 @@ export const processExcelFile = async (req, res) => {
           }
         });
 
-        const isEmptyRow = rowArray.every(val => !val || val.toString().trim() === '');
+        const isEmptyRow = rowArray.every((val) => !val || val.toString().trim() === '');
         if (isEmptyRow) {
           return;
         }
@@ -817,12 +828,17 @@ export const processVoucherExcelFile = async (req, res) => {
 
       workbook.eachSheet((worksheet, sheetId) => {
         const sheetName = worksheet.name;
-        const headers = [];
         const headerRow = worksheet.getRow(1);
+        const vHeaderLastCol = headerRow.lastColumn?.number ?? headerRow.cellCount ?? 0;
+        const headers = Array.from({ length: Math.max(vHeaderLastCol, 1) }, (_, i) => `Spalte${i + 1}`);
         if (headerRow) {
           headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-            const headerValue = cell.value ? cell.value.toString() : '';
-            headers.push(headerValue.trim() || `Spalte${colNumber}`);
+            const headerValue = excelCellToPlainString(cell);
+            const headerName = (headerValue && headerValue.trim()) || `Spalte${colNumber}`;
+            if (colNumber > headers.length) {
+              while (headers.length < colNumber) headers.push(`Spalte${headers.length + 1}`);
+            }
+            headers[colNumber - 1] = headerName;
           });
         }
 
@@ -830,22 +846,14 @@ export const processVoucherExcelFile = async (req, res) => {
           if (rowNumber === 1) return;
           const rowData = {};
           const rowDataFormats = {};
-          const rowArray = [];
+          const lastCol = Math.max(headers.length, row.lastColumn?.number ?? row.cellCount ?? 0);
+          const rowArray = new Array(lastCol).fill('');
           row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-            let cellValue = '';
-            if (cell.value !== null && cell.value !== undefined) {
-              if (cell.value instanceof Date) {
-                const d = cell.value.getDate();
-                const m = cell.value.getMonth() + 1;
-                const y = cell.value.getFullYear();
-                cellValue = `${d}.${m}.${y}`;
-              } else {
-                cellValue = cell.value.toString();
-              }
-            }
+            if (colNumber < 1 || colNumber > rowArray.length) return;
+            const cellValue = excelCellToPlainString(cell);
+            rowArray[colNumber - 1] = cellValue;
             const headerName = headers[colNumber - 1] || `Spalte${colNumber}`;
             rowData[headerName] = cellValue;
-            rowArray.push(cellValue);
             if (cell.font && cell.font.color) {
               const textColor = exceljsColorToHex(cell.font.color);
               if (textColor && textColor !== '#000000') {
