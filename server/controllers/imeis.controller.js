@@ -6,6 +6,13 @@ import * as ImeiReminder from '../models/ImeiReminder.memory.js';
 import * as ExtraCopyRequest from '../models/ExtraCopyRequest.memory.js';
 import * as ExtraCopyNotification from '../models/ExtraCopyNotification.memory.js';
 import * as ReminderResponseNotification from '../models/ReminderResponseNotification.memory.js';
+import {
+  isMitarbeiterShop,
+  isTeamleiterShop,
+  isBüroMitarbeiter,
+  getUserRole,
+  isAdmin
+} from '../utils/imeiOfficeRoles.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -114,57 +121,11 @@ const userOwnsCopyHistoryEntry = async (userIdRaw, imeiRaw, tsRaw) => {
   );
 };
 
-/** Sequelize/DB liefert Rollen mitunter nicht als String – für Rechtevergleiche normalisieren */
-const toRoleString = (role) => {
-  if (role == null || role === '') return '';
-  if (typeof role === 'string') return role;
-  return String(role);
-};
-
-/** Vergleich Rollen-Strings (DB/Dropdown, ü/Ü, Bindestrich, mehrere Leerzeichen, NBSP) */
-const normalizeRoleKey = (role) => {
-  const s = toRoleString(role)
-    .replace(/\u00a0/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/[-_/]+/g, ' ')
-    .replace(/\s+/g, ' ');
-  try {
-    return s.normalize('NFD').replace(/\p{M}/gu, '');
-  } catch {
-    return s.replace(/[ü]/g, 'u').replace(/[ö]/g, 'o').replace(/[ä]/g, 'a');
-  }
-};
-
-const isMitarbeiterShop = (role) => normalizeRoleKey(role) === 'mitarbeiter shop';
-
-const isTeamleiterShop = (role) => normalizeRoleKey(role) === 'teamleiter shop';
-
-/** Büro in DB oft mit Tippvarianten: „Büro Mitarbeiter“, „Büro-Mitarbeiter“, nur „Büro“, Unicode-ü */
-const isBüroMitarbeiter = (role) => {
-  const k = normalizeRoleKey(role);
-  if (!k) return false;
-  if (k === 'buro mitarbeiter' || k === 'buro') return true;
-  if (k.includes('buro') && k.includes('mitarbeiter')) return true;
-  return false;
-};
-
-/** Rolle aus Sequelize-/Memory-User zuverlässig lesen */
-const getUserRole = (user) =>
-  user?.role ?? user?.get?.('role') ?? user?.dataValues?.role ?? null;
-
 /** ID aus Sequelize-/Memory-User zuverlässig lesen (für isSelf) */
 const entityUserId = (u) =>
   coerceUserId(
     u?.id ?? u?._id ?? u?.get?.('id') ?? u?.dataValues?.id
   );
-
-const isAdmin = (role) => {
-  const r = toRoleString(role);
-  if (!r) return false;
-  const rl = r.toLowerCase();
-  return rl.includes('admin') || r.trim() === 'Administrator' || normalizeRoleKey(role) === 'administrator';
-};
 
 /** Admin-Fallback: E-Mail (wie Client), falls Rolle falsch/leer ist */
 const isAdminUserEntity = (user) => {
@@ -724,7 +685,8 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     }
   }
   const { merged, added, skippedDuplicate, previousCount, addedRows } = mergeImeiRowsAppend(existing, incoming);
-  await saveImeisDataToStorage(uploaderUserId, { imeis: merged }, app);
+  // Immer dieselbe user_id-Zeile wie die Quelle der bestehenden Liste (vermeidet Schreiben nur beim Uploader).
+  await saveImeisDataToStorage(baseUserId, { imeis: merged }, app);
   return {
     merged,
     addedRows,
@@ -1390,6 +1352,3 @@ export const markExtraCopyNotificationRead = async (req, res, next) => {
     next(error);
   }
 };
-
-/** Gleiche Rollenlogik wie bei canEditSharedImeiList (z. B. Excel-Append vs. nur eigene Zeile) */
-export { isBüroMitarbeiter, isAdmin, getUserRole };

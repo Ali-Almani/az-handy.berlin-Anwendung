@@ -1,11 +1,6 @@
 import ExcelJS from 'exceljs';
-import {
-  saveImeisDataToStorage,
-  appendImeisFromExcelUpload,
-  isBüroMitarbeiter,
-  isAdmin,
-  getUserRole
-} from './imeis.controller.js';
+import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.controller.js';
+import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRoles.js';
 import User from '../models/User.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
