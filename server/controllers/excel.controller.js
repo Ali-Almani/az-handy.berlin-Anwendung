@@ -113,16 +113,54 @@ async function mergeVoucherCopyHistoriesForEinsatzOrt(map, einsatzOrt) {
  */
 function excelCellToPlainString(cell) {
   if (!cell) return '';
-  if (cell.value instanceof Date) {
-    const d = cell.value.getDate();
-    const m = cell.value.getMonth() + 1;
-    const y = cell.value.getFullYear();
+  const v = cell.value;
+  if (v instanceof Date) {
+    const d = v.getDate();
+    const m = v.getMonth() + 1;
+    const y = v.getFullYear();
     return `${d}.${m}.${y}`;
+  }
+  if (v && typeof v === 'object' && !Array.isArray(v)) {
+    if (Array.isArray(v.richText)) {
+      const rt = v.richText.map((p) => (p && p.text) || '').join('').trim();
+      if (rt !== '') return rt;
+    }
+    if (Object.prototype.hasOwnProperty.call(v, 'result') && v.result != null && v.result !== '') {
+      const r = v.result;
+      if (r instanceof Date) {
+        const d = r.getDate();
+        const m = r.getMonth() + 1;
+        const y = r.getFullYear();
+        return `${d}.${m}.${y}`;
+      }
+      const fromText = cell.text != null ? String(cell.text).trim() : '';
+      if (fromText !== '') return fromText;
+      return String(r).trim();
+    }
+    if (typeof v.text === 'string' && v.text.trim() !== '') {
+      return v.text.trim();
+    }
+    if (v.hyperlink != null && v.text != null) {
+      return String(v.text).trim();
+    }
   }
   const text = cell.text != null ? String(cell.text).trim() : '';
   if (text !== '') return text;
-  if (cell.value === null || cell.value === undefined) return '';
-  return String(cell.value).trim();
+  if (v === null || v === undefined) return '';
+  return String(v).trim();
+}
+
+/** Luhn auf genau 15 Ziffern inkl. Prüfziffer (wie IMEI). */
+function imeiLuhnValid15(val) {
+  const d = String(val ?? '').replace(/\D/g, '');
+  if (d.length !== 15) return false;
+  const arr = d.split('').reverse().map((c) => parseInt(c, 10));
+  const sum = arr.reduce((acc, digit, idx) => {
+    if (idx % 2 === 0) return acc + digit;
+    const doubled = digit * 2;
+    return acc + (doubled > 9 ? doubled - 9 : doubled);
+  }, 0);
+  return sum % 10 === 0;
 }
 
 function cellLooksLikeImeiString(val) {
@@ -130,6 +168,14 @@ function cellLooksLikeImeiString(val) {
   if (!s) return false;
   const digits = s.replace(/\D/g, '');
   return digits.length >= 14 && digits.length <= 17;
+}
+
+/** 0 = keine IMEI, 1 = Länge plausibel, 2 = 15 Ziffern + gültige Luhn (starkes Signal). */
+function cellImeiPlausibility(val) {
+  if (!cellLooksLikeImeiString(val)) return 0;
+  const d = String(val ?? '').replace(/\D/g, '');
+  if (d.length === 15 && imeiLuhnValid15(d)) return 2;
+  return 1;
 }
 
 /**
@@ -164,18 +210,19 @@ function scoreImeiHeader(header) {
   return 0;
 }
 
-function imeiColumnContentFraction(colIndex, rowArrays) {
-  let hits = 0;
+/** Mittlere Plausibilität 0–2 (Luhn-treue IMEI-Spalten schlagen 14-stellige Artikelnummern). */
+function imeiColumnQualityAvg(colIndex, rowArrays) {
+  let sum = 0;
   let nonempty = 0;
   for (const ra of rowArrays) {
     if (!Array.isArray(ra) || colIndex < 0 || colIndex >= ra.length) continue;
     const v = ra[colIndex];
     if (v === undefined || v === null || String(v).trim() === '') continue;
     nonempty += 1;
-    if (cellLooksLikeImeiString(v)) hits += 1;
+    sum += cellImeiPlausibility(v);
   }
   if (nonempty === 0) return 0;
-  return hits / nonempty;
+  return sum / nonempty;
 }
 
 function pickImeiColumnIndex(headers, rowArrays) {
@@ -189,9 +236,9 @@ function pickImeiColumnIndex(headers, rowArrays) {
   for (let j = 0; j < nCols; j++) {
     const hs = scoreImeiHeader(headers[j]);
     if (hs < 0) continue;
-    const frac = imeiColumnContentFraction(j, rowArrays);
-    if (hs === 0 && frac < 0.25) continue;
-    const combined = hs * 1000 + frac * 500;
+    const q = imeiColumnQualityAvg(j, rowArrays);
+    if (hs === 0 && q < 0.35) continue;
+    const combined = hs * 1000 + q * 400;
     if (combined > bestCombined) {
       bestCombined = combined;
       best = j;
@@ -202,13 +249,13 @@ function pickImeiColumnIndex(headers, rowArrays) {
   best = -1;
   bestCombined = -1;
   for (let j = 0; j < nCols; j++) {
-    const frac = imeiColumnContentFraction(j, rowArrays);
-    if (frac > bestCombined) {
-      bestCombined = frac;
+    const q = imeiColumnQualityAvg(j, rowArrays);
+    if (q > bestCombined) {
+      bestCombined = q;
       best = j;
     }
   }
-  if (bestCombined >= 0.15) return best;
+  if (bestCombined >= 0.2) return best;
   return -1;
 }
 
@@ -275,16 +322,19 @@ function evaluateSheetParseWithHeaderAt(sheetRows, headerIdx) {
   const rowArrays = dataEntries.map((e) => e.rowArray);
   const pickCol = pickImeiColumnIndex(headers, rowArrays);
   let imeiHits = 0;
+  let plausSum = 0;
   for (const e of dataEntries) {
     let v = '';
     if (pickCol !== -1 && e.rowArray[pickCol]) v = String(e.rowArray[pickCol]).trim();
     else if (e.rowArray[0]) v = String(e.rowArray[0]).trim();
-    if (cellLooksLikeImeiString(v)) imeiHits += 1;
+    const p = cellImeiPlausibility(v);
+    plausSum += p;
+    if (p > 0) imeiHits += 1;
   }
-  let score = imeiHits;
+  let score = plausSum;
   if (pickCol >= 0 && pickCol < sheetRows[headerIdx].rowArray.length) {
     const hv = sheetRows[headerIdx].rowArray[pickCol];
-    if (cellLooksLikeImeiString(hv)) score -= 3;
+    if (cellImeiPlausibility(hv) > 0) score -= 4;
   }
   return {
     score,
@@ -350,12 +400,19 @@ async function userCanAppendImeiExcel(userId) {
   }
 }
 
+function maskImeiPreview(val) {
+  const d = String(val ?? '').replace(/\D/g, '');
+  if (d.length < 8) return '(zu kurz)';
+  return `${d.slice(0, 6)}…${d.slice(-2)}`;
+}
+
 /** Büro/Admin: an bestehende Liste anhängen; sonst bisheriges Verhalten (ersetzen). */
 async function saveImeisAfterExcelParse(req, imeis) {
   const uploaderId = req.user?.userId;
   if (!uploaderId || imeis.length === 0) return null;
   const append = await userCanAppendImeiExcel(uploaderId);
   if (append) {
+    const parsePreview = imeis.slice(0, 5).map((r) => maskImeiPreview(r?.imei));
     const { merged, added, skippedDuplicate, previousCount, addedRows, total } = await appendImeisFromExcelUpload(
       uploaderId,
       imeis,
@@ -377,7 +434,9 @@ async function saveImeisAfterExcelParse(req, imeis) {
       added,
       skippedDuplicate,
       previousCount,
-      saved: true
+      saved: true,
+      parsedFromFile: imeis.length,
+      parsePreview
     };
   }
   await saveImeisDataToStorage(uploaderId, { imeis }, req.app);

@@ -73,13 +73,17 @@ const ExcelUpload = ({ embedded = false }) => {
         }
         imeis = addedRows;
         setUploadedImeis(addedRows);
+        let detailMsg =
+          response.message ||
+          (addedRows.length > 0
+            ? `${addedRows.length} neue IMEI(s) verarbeitet.`
+            : 'Liste unverändert (nur Duplikate in der Datei).');
+        if (Array.isArray(response.parsePreview) && response.parsePreview.length > 0) {
+          detailMsg = `${detailMsg} Stichprobe aus der Datei (maskiert): ${response.parsePreview.join(', ')}.`;
+        }
         setUploadStatus({
           type: 'success',
-          message:
-            response.message ||
-            (addedRows.length > 0
-              ? `${addedRows.length} neue IMEI(s) verarbeitet.`
-              : 'Liste unverändert (nur Duplikate in der Datei).')
+          message: detailMsg
         });
         const fresh = await getImeisDataFromApi();
         if (fresh?.imeis?.length) {
