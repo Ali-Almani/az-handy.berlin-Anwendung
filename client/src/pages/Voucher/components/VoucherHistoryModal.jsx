@@ -7,7 +7,8 @@ const VoucherHistoryModal = ({
   onUpdateHistoryAction,
   historyUndoStack,
   onUndo,
-  onClearHistory
+  onClearHistory,
+  showClearHistoryButton = false
 }) => {
   const [confirmation, setConfirmation] = useState(null);
   const [toast, setToast] = useState(null);
@@ -169,15 +170,17 @@ const VoucherHistoryModal = ({
           )}
         </div>
         <div className="imeis-history-modal-footer">
-          <button
-            type="button"
-            onClick={handleClearHistory}
-            className="btn btn--danger btn--small"
-            disabled={list.length === 0}
-            style={{ marginRight: '0.5rem' }}
-          >
-            Verlauf löschen
-          </button>
+          {showClearHistoryButton && (
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              className="btn btn--danger btn--small"
+              disabled={list.length === 0}
+              style={{ marginRight: '0.5rem' }}
+            >
+              Verlauf löschen
+            </button>
+          )}
           <button
             type="button"
             onClick={onUndo}

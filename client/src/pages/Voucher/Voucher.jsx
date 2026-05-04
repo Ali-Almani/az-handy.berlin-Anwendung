@@ -494,6 +494,7 @@ const Voucher = () => {
                       historyUndoStack={historyUndoStack}
                       onUndo={handleHistoryModalUndo}
                       onClearHistory={handleClearHistoryLocal}
+                      showClearHistoryButton={canExportVoucher}
                     />
                   </>
                 </>
