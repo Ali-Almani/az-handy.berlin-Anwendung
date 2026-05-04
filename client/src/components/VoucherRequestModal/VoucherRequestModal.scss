@@ -76,3 +76,11 @@
   justify-content: flex-end;
   margin-top: 1.25rem;
 }
+
+.voucher-request-modal__textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 6rem;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}

@@ -42,7 +42,66 @@ function userCanProcessRequests(role) {
   return isBüroMitarbeiter(role) || roleIsAdmin(role);
 }
 
-/** Feld-Personal (nicht Zentrale, nicht Büro/Admin): Voucher-Zeile an Büro vorschlagen */
+const COL_VOCHER_ART = 'Voucher Art';
+const COL_BENUTZER = 'Benutzer';
+const COL_NUMMER = 'Nummer';
+
+/** Eine Liste-Zeile inkl. Spalte Benutzer (Feldpersonal / genehmigte Anfragen). */
+function buildVoucherRowFromParts({ voucherTabId, nummer, requesterUserName, rowNumber }) {
+  const opt = VOUCHER_ART_OPTIONS[voucherTabId];
+  if (!opt) return null;
+  const n = String(nummer ?? '').trim();
+  if (!n) return null;
+  const benutzer = String(requesterUserName ?? '').trim();
+  const columnOrder = [COL_VOCHER_ART, COL_BENUTZER, COL_NUMMER];
+  const rowData = {
+    [COL_VOCHER_ART]: opt.label,
+    [COL_BENUTZER]: benutzer,
+    [COL_NUMMER]: n
+  };
+  const data = [opt.label, benutzer, n];
+  return {
+    row: Number(rowNumber),
+    sheet: opt.sheet,
+    sheetIndex: 0,
+    data,
+    rowData,
+    rowDataFormats: {},
+    columnOrder
+  };
+}
+
+function parseNummerListe(body) {
+  const raw = body || {};
+  if (Array.isArray(raw.nummern)) {
+    return raw.nummern.map((x) => String(x ?? '').trim()).filter(Boolean);
+  }
+  const single = String(raw.nummer ?? '').trim();
+  if (!single) return [];
+  if (single.includes('\n') || single.includes('\r')) {
+    return single
+      .split(/[\r\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [single];
+}
+
+function buildVoucherRowFromRequest(reqRow) {
+  const tabId = reqRow.voucher_tab_id;
+  const row =
+    1000000 +
+    Math.floor(Math.random() * 8999999) +
+    Number(reqRow.id || 0) * 17;
+  return buildVoucherRowFromParts({
+    voucherTabId: tabId,
+    nummer: reqRow.nummer,
+    requesterUserName: reqRow.requester_user_name,
+    rowNumber: row
+  });
+}
+
+/** Feld-Personal (nicht Zentrale, nicht Büro/Admin): Voucher-Zeilen direkt in die gemeinsame Liste eintragen */
 export const createVoucherManualRequest = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -66,25 +125,65 @@ export const createVoucherManualRequest = async (req, res, next) => {
         message: 'Für den Einsatzort Zentrale ist diese Funktion nicht vorgesehen.'
       });
     }
-    const { voucherTabId, nummer } = req.body || {};
+    const { voucherTabId } = req.body || {};
     const tab = String(voucherTabId || '').trim();
     if (!VoucherManualRequest.isValidTabId(tab)) {
       return res.status(400).json({ success: false, message: 'Ungültige Voucher-Art' });
     }
-    const opt = VOUCHER_ART_OPTIONS[tab];
-    const userName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Unbekannt';
-    const result = VoucherManualRequest.addRequest({
-      requesterUserId: userId,
-      requesterUserName: userName,
-      voucherTabId: tab,
-      voucherArtLabel: opt.label,
-      nummer
-    });
-    if (result.error) {
-      return res.status(400).json({ success: false, message: result.error });
+    const nums = parseNummerListe(req.body);
+    if (nums.length === 0) {
+      return res.status(400).json({ success: false, message: 'Mindestens eine Nummer angeben.' });
     }
-    emit(req, 'voucherManualRequests:updated', {});
-    return res.json({ success: true, message: 'Anfrage an das Büro gesendet', id: result.id });
+    const userName = currentUser?.name ?? currentUser?.get?.('name') ?? 'Unbekannt';
+    const rowBase =
+      1_900_000 +
+      (Math.floor(Date.now() / 1000) % 500_000) * 97 +
+      (Number(userId) || 0) * 41;
+    const newRows = nums
+      .map((nummer, idx) =>
+        buildVoucherRowFromParts({
+          voucherTabId: tab,
+          nummer,
+          requesterUserName: userName,
+          rowNumber: rowBase + idx * 13
+        })
+      )
+      .filter(Boolean);
+    if (newRows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Keine gültigen Voucher-Zeilen.' });
+    }
+    const vdata = loadJson(VOUCHERS_FILE) || {};
+    const existingRows = Array.isArray(vdata.rows) ? vdata.rows : [];
+    const { merged, added, skippedDuplicate } = mergeVoucherRowsAppend(existingRows, newRows);
+    if (added === 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          skippedDuplicate > 0
+            ? 'Alle angegebenen Nummern sind bereits in der Liste.'
+            : 'Voucher konnten nicht hinzugefügt werden.',
+        added: 0,
+        skippedDuplicate
+      });
+    }
+    saveJson(VOUCHERS_FILE, {
+      ...vdata,
+      rows: merged,
+      updatedAt: new Date().toISOString(),
+      updatedByUserId: userId
+    });
+    emit(req, 'vouchers:updated', {});
+    const msgParts = [`${added} Voucher eingetragen`];
+    if (skippedDuplicate > 0) {
+      msgParts.push(`${skippedDuplicate} übersprungen (bereits vorhanden)`);
+    }
+    return res.json({
+      success: true,
+      message: msgParts.join('. ') + '.',
+      added,
+      skippedDuplicate,
+      skippedInvalid: nums.length - newRows.length
+    });
   } catch (e) {
     next(e);
   }
@@ -127,34 +226,6 @@ export const getVoucherManualRequests = async (req, res, next) => {
     return res.json({ success: true, requests: [] });
   }
 };
-
-function buildVoucherRowFromRequest(reqRow) {
-  const tabId = reqRow.voucher_tab_id;
-  const opt = VOUCHER_ART_OPTIONS[tabId];
-  if (!opt) return null;
-  const nummer = String(reqRow.nummer || '').trim();
-  const colArt = 'Voucher Art';
-  const colNum = 'Nummer';
-  const columnOrder = [colArt, colNum];
-  const rowData = {
-    [colArt]: opt.label,
-    [colNum]: nummer
-  };
-  const data = [opt.label, nummer];
-  const row =
-    1000000 +
-    Math.floor(Math.random() * 8999999) +
-    Number(reqRow.id || 0) * 17;
-  return {
-    row,
-    sheet: opt.sheet,
-    sheetIndex: 0,
-    data,
-    rowData,
-    rowDataFormats: {},
-    columnOrder
-  };
-}
 
 export const approveVoucherManualRequest = async (req, res, next) => {
   try {

@@ -275,8 +275,8 @@ const Documentation = () => {
           <section className="doc-section" id="voucher">
             <h2>Voucher</h2>
             <p>
-              Voucher funktionieren ähnlich wie IMEIs: abrufen und reservieren. Bei genehmigtem Antrag
-              bitte den Voucher bestätigen; bei Ablehnung dem System mitteilen – der Voucher geht wieder in
+              Voucher funktionieren ähnlich wie IMEIs: abrufen und reservieren. Bei genehmigtem Antrag über den
+              Verlauf bitte den Voucher bestätigen; bei Ablehnung dem System mitteilen – der Voucher geht wieder in
               den Pool.
             </p>
             <DocFigure
@@ -285,8 +285,11 @@ const Documentation = () => {
               caption="Abb. 7: Voucher-Verwaltung"
             />
             <p>
-              Mitarbeitende, die Voucher <strong>zur Liste hinzufügen</strong> möchten, nutzen dafür die
-              Dashboard-Funktion. Derzeit ist dies v. a. <strong>Shopleitenden</strong> vorbehalten.
+              Über die Funktion <strong>Voucher eintragen</strong> können berechtigte Mitarbeitende mehrere PINs
+              gleichzeitig (eine Zeile pro Nummer) in die gemeinsame Liste schreiben. Der eigene Kontoname wird dabei
+              automatisch in der Spalte „Benutzer“ gespeichert – eine Freigabe im Büro ist dafür nicht nötig. Das Büro
+              kann weiterhin alte oder einmalige Einträge aus dem Anfragen-Modal bearbeiten, falls dort noch Aufträge
+              liegen.
             </p>
           </section>
 

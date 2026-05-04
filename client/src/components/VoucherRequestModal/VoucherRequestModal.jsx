@@ -10,7 +10,7 @@ const OPTIONS = [
 
 const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
   const [voucherTabId, setVoucherTabId] = useState('o2_ff');
-  const [nummer, setNummer] = useState('');
+  const [nummerList, setNummerList] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +18,7 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
 
   const reset = () => {
     setVoucherTabId('o2_ff');
-    setNummer('');
+    setNummerList('');
     setError('');
   };
 
@@ -30,23 +30,29 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const n = nummer.trim();
-    if (!n) {
-      setError('Bitte eine Nummer eingeben.');
+    const lines = nummerList
+      .split(/[\r\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (lines.length === 0) {
+      setError('Bitte mindestens eine Nummer eingeben (eine Zeile pro Nummer).');
       return;
     }
     setLoading(true);
     try {
-      const res = await createVoucherManualRequestApi({ voucherTabId, nummer: n });
+      const res = await createVoucherManualRequestApi({
+        voucherTabId,
+        nummer: lines.join('\n')
+      });
       if (!res?.success) {
-        setError(res?.message || 'Anfrage konnte nicht gesendet werden.');
+        setError(res?.message || 'Eintragen fehlgeschlagen.');
         return;
       }
       onSuccess?.(res);
       reset();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Fehler beim Senden.');
+      setError(err.response?.data?.message || err.message || 'Fehler beim Eintragen.');
     } finally {
       setLoading(false);
     }
@@ -63,7 +69,8 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
         <form className="voucher-request-modal__body" onSubmit={handleSubmit}>
           <p className="voucher-request-modal__hint">
-            „Melih prüft Ihre Angaben und trägt den Voucher nach Genehmigung in die passende Kategorie ein.“
+            Einträge erscheinen sofort in der gemeinsamen Voucher-Liste. Ihr Kontoname wird automatisch in der Spalte
+            „Benutzer“ (neben „Voucher Art“) eingetragen – Sie tragen hier nur die Nummern ein.
           </p>
           <div className="form-group">
             <label htmlFor="voucher-request-art" className="form-label">
@@ -83,17 +90,18 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="voucher-request-nummer" className="form-label">
-              Nummer
+            <label htmlFor="voucher-request-nummern" className="form-label">
+              Nummern
             </label>
-            <input
-              id="voucher-request-nummer"
-              type="text"
-              className="form-input"
-              value={nummer}
-              onChange={(e) => setNummer(e.target.value)}
-              placeholder="Voucher- bzw. PIN-Nummer"
+            <textarea
+              id="voucher-request-nummern"
+              className="form-input voucher-request-modal__textarea"
+              value={nummerList}
+              onChange={(e) => setNummerList(e.target.value)}
+              placeholder="Eine PIN/Voucher-Nummer pro Zeile — mehrere gleichzeitig möglich"
               autoComplete="off"
+              rows={6}
+              spellCheck={false}
             />
           </div>
           {error && <div className="voucher-request-modal__error">{error}</div>}
@@ -102,7 +110,7 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
               Abbrechen
             </button>
             <button type="submit" className="btn btn--primary" disabled={loading}>
-              {loading ? 'Senden…' : 'Anfrage senden'}
+              {loading ? 'Speichern…' : 'In Liste eintragen'}
             </button>
           </div>
         </form>

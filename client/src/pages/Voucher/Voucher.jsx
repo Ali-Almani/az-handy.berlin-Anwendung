@@ -37,7 +37,18 @@ const Voucher = () => {
 
   const columnOrderFirst = useMemo(() => {
     if (!uploaded.length) return [];
-    return uploaded[0].columnOrder?.length ? uploaded[0].columnOrder : Object.keys(uploaded[0].rowData || {});
+    const seen = new Set();
+    const ordered = [];
+    for (const r of uploaded) {
+      const keys = r.columnOrder?.length ? r.columnOrder : Object.keys(r.rowData || {});
+      for (const k of keys) {
+        const key = String(k ?? '');
+        if (!key.trim() || seen.has(key)) continue;
+        seen.add(key);
+        ordered.push(k);
+      }
+    }
+    return ordered;
   }, [uploaded]);
 
   const voucherArtKey = useMemo(() => findVoucherArtKey(columnOrderFirst), [columnOrderFirst]);

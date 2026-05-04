@@ -115,6 +115,9 @@ const Layout = ({ children }) => {
       <VoucherRequestModal
         isOpen={showVoucherRequestModal}
         onClose={() => setShowVoucherRequestModal(false)}
+        onSuccess={(res) => {
+          if (res?.message) window.alert(res.message);
+        }}
       />
       <VoucherManualRequestsModal
         isOpen={showVoucherManualRequestsModal}
