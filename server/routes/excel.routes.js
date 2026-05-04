@@ -16,6 +16,7 @@ import {
   rejectVoucherManualRequest
 } from '../controllers/voucherManualRequest.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { forbidPartnerRole } from '../middleware/forbidPartnerRole.js';
 
 const router = express.Router();
 
@@ -40,17 +41,17 @@ const upload = multer({
   }
 });
 
-router.get('/vouchers', authenticateToken, getVouchers);
-router.put('/voucher-user-state', authenticateToken, putVoucherUserState);
-router.patch('/voucher-history-action', authenticateToken, updateVoucherHistoryAction);
-router.post('/voucher-remove-row', authenticateToken, removeVoucherListRow);
-router.post('/voucher-restore-row', authenticateToken, restoreVoucherListRow);
-router.post('/upload', authenticateToken, upload.single('file'), processExcelFile);
-router.post('/voucher-upload', authenticateToken, upload.single('file'), processVoucherExcelFile);
+router.get('/vouchers', authenticateToken, forbidPartnerRole, getVouchers);
+router.put('/voucher-user-state', authenticateToken, forbidPartnerRole, putVoucherUserState);
+router.patch('/voucher-history-action', authenticateToken, forbidPartnerRole, updateVoucherHistoryAction);
+router.post('/voucher-remove-row', authenticateToken, forbidPartnerRole, removeVoucherListRow);
+router.post('/voucher-restore-row', authenticateToken, forbidPartnerRole, restoreVoucherListRow);
+router.post('/upload', authenticateToken, forbidPartnerRole, upload.single('file'), processExcelFile);
+router.post('/voucher-upload', authenticateToken, forbidPartnerRole, upload.single('file'), processVoucherExcelFile);
 
-router.post('/voucher-manual-request', authenticateToken, createVoucherManualRequest);
-router.get('/voucher-manual-requests', authenticateToken, getVoucherManualRequests);
-router.post('/voucher-manual-request/:id/approve', authenticateToken, approveVoucherManualRequest);
-router.post('/voucher-manual-request/:id/reject', authenticateToken, rejectVoucherManualRequest);
+router.post('/voucher-manual-request', authenticateToken, forbidPartnerRole, createVoucherManualRequest);
+router.get('/voucher-manual-requests', authenticateToken, forbidPartnerRole, getVoucherManualRequests);
+router.post('/voucher-manual-request/:id/approve', authenticateToken, forbidPartnerRole, approveVoucherManualRequest);
+router.post('/voucher-manual-request/:id/reject', authenticateToken, forbidPartnerRole, rejectVoucherManualRequest);
 
 export default router;

@@ -1,10 +1,11 @@
 import { useState, useEffect, useId } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
-import { isAdmin } from '../../utils/roles';
+import { isAdmin, isPartner } from '../../utils/roles';
 import { getSiteNews } from '../../services/dashboard.service';
 import { getSocket } from '../../services/socket';
 import Login from '../Auth/Login';
+import { Navigate } from 'react-router-dom';
 import './Home.scss';
 
 const siteNewsSeenKey = (userId) => `siteNewsLastSeen:${userId}`;
@@ -28,7 +29,7 @@ const Home = () => {
   const [newsIsUnread, setNewsIsUnread] = useState(false);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isPartner(user)) return;
 
     const loadNews = async () => {
       try {
@@ -74,12 +75,15 @@ const Home = () => {
     return () => {
       if (socket) socket.off('siteNews:updated', onSiteNews);
     };
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
 
   if (!user) {
     return <Login />;
   }
 
+  if (isPartner(user)) {
+    return <Navigate to="/formular-center" replace />;
+  }
   const hasNews = siteNewsHtml && String(siteNewsHtml).replace(/<[^>]+>/g, '').trim().length > 0;
 
   const handleNewsAccordionToggle = () => {

@@ -12,6 +12,7 @@ import Voucher from './pages/Voucher/Voucher';
 import Documentation from './pages/Documentation/Documentation';
 import FormularCenter from './pages/FormularCenter/FormularCenter';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import PartnerRestrictedRoute from './components/PartnerRestrictedRoute/PartnerRestrictedRoute';
 
 function App() {
   return (
@@ -24,7 +25,9 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <PartnerRestrictedRoute>
+                <Dashboard />
+              </PartnerRestrictedRoute>
             </ProtectedRoute>
           }
         />
@@ -32,7 +35,9 @@ function App() {
           path="/archiv-anweisung"
           element={
             <ProtectedRoute>
-              <ArchivAnweisung />
+              <PartnerRestrictedRoute>
+                <ArchivAnweisung />
+              </PartnerRestrictedRoute>
             </ProtectedRoute>
           }
         />
@@ -40,7 +45,9 @@ function App() {
           path="/archiv-news"
           element={
             <ProtectedRoute>
-              <ArchivNews />
+              <PartnerRestrictedRoute>
+                <ArchivNews />
+              </PartnerRestrictedRoute>
             </ProtectedRoute>
           }
         />
@@ -56,7 +63,9 @@ function App() {
           path="/imeis"
           element={
             <ProtectedRoute>
-              <Imeis />
+              <PartnerRestrictedRoute>
+                <Imeis />
+              </PartnerRestrictedRoute>
             </ProtectedRoute>
           }
         />
@@ -64,7 +73,9 @@ function App() {
           path="/voucher"
           element={
             <ProtectedRoute>
-              <Voucher />
+              <PartnerRestrictedRoute>
+                <Voucher />
+              </PartnerRestrictedRoute>
             </ProtectedRoute>
           }
         />
@@ -72,7 +83,9 @@ function App() {
           path="/benutzerhandbuch"
           element={
             <ProtectedRoute>
-              <Documentation />
+              <PartnerRestrictedRoute>
+                <Documentation />
+              </PartnerRestrictedRoute>
             </ProtectedRoute>
           }
         />

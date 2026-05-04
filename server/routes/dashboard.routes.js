@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
+import { forbidPartnerRole } from '../middleware/forbidPartnerRole.js';
 import { newsUpload } from '../middleware/newsUpload.js';
 import {
   getNote,
@@ -24,6 +25,7 @@ import {
 const router = express.Router();
 
 router.use(authenticateToken);
+router.use(forbidPartnerRole);
 
 router.get('/site-news', getSiteNews);
 router.put('/site-news', saveSiteNews);

@@ -11,6 +11,7 @@ const ROLES = [
   'Shops',
   'Buchhaltung',
   'Einkauf',
+  'Partner',
   'Teamleiter shop',
   'Mitarbeiter shop'
 ];

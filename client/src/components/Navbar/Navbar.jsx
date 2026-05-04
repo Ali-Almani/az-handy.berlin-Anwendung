@@ -7,6 +7,7 @@ import {
   canAccessDashboard,
   isAdmin,
   isBüroMitarbeiter,
+  isPartner,
   canSubmitVoucherManualRequest
 } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
@@ -58,6 +59,8 @@ const Navbar = ({
 
   const archivPathActive =
     location.pathname === '/archiv-news' || location.pathname === '/archiv-anweisung';
+
+  const partnerUser = Boolean(user && isPartner(user));
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 993px)');
@@ -236,7 +239,7 @@ const Navbar = ({
   };
 
   const renderArchivItem = (containerRef, triggerId, submenuId, enableHover = false) => {
-    if (!user || isAdmin(user)) return null;
+    if (!user || isAdmin(user) || isPartner(user)) return null;
     return (
       <li
         className="navbar-nav-archiv"
@@ -366,6 +369,28 @@ const Navbar = ({
       </li>
     ) : null;
 
+  const renderFormularCenterNavItem = () => (
+    <li>
+      <NavLink to="/formular-center" className={navLinkClassName} onClick={closeMobileMenu} end>
+        <span className="navbar-link-inner">
+          <span className="navbar-link-icon" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M9.5 1.5H4a1 1 0 00-1 1v11a1 1 0 001 1h8a1 1 0 001-1V5.5L9.5 1.5z"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinejoin="round"
+              />
+              <path d="M9.5 1.5V5h3.5" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+              <path d="M5 9h6M5 11.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </span>
+          Formular Center
+        </span>
+      </NavLink>
+    </li>
+  );
+
   const renderDashboardItem = () =>
     canAccessDashboard(user) ? (
       <li>
@@ -382,7 +407,9 @@ const Navbar = ({
       </li>
     ) : null;
 
-  const navLinksDesktop = (
+  const navLinksDesktop = partnerUser ? (
+    <>{renderFormularCenterNavItem()}</>
+  ) : (
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
@@ -391,7 +418,9 @@ const Navbar = ({
     </>
   );
 
-  const navLinksMobile = (
+  const navLinksMobile = partnerUser ? (
+    <>{renderFormularCenterNavItem()}</>
+  ) : (
     <>
       {renderImeisItem()}
       {renderVoucherItem()}
@@ -436,6 +465,8 @@ const Navbar = ({
                         {getInitials(user.name)}
                       </div>
                     )}
+                  {!partnerUser && (
+                    <>
                   {hasReminderBadge && (
                     <span
                       className="navbar-avatar-badge"
@@ -496,6 +527,8 @@ const Navbar = ({
                       {voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}
                     </span>
                   )}
+                    </>
+                  )}
                   </span>
                   <span className="navbar-greeting">Hey</span>
                   <span className="navbar-username-inline">{user.name}</span>
@@ -508,6 +541,8 @@ const Navbar = ({
                         <div className="navbar-dropdown-email">{user.email}</div>
                       </div>
                     </div>
+                    {!partnerUser && (
+                      <>
                     {hasReminderBadge && onOpenVerlauf && (
                       <button
                         type="button"
@@ -569,6 +604,9 @@ const Navbar = ({
                         Voucher eintragen
                       </button>
                     )}
+                      </>
+                    )}
+                    {!partnerUser && (
                     <Link
                       to="/formular-center"
                       className="navbar-dropdown-item"
@@ -588,6 +626,8 @@ const Navbar = ({
                       </span>
                       Formular Center
                     </Link>
+                    )}
+                    {!partnerUser && (
                     <Link
                       to="/benutzerhandbuch"
                       className="navbar-dropdown-item"
@@ -601,6 +641,7 @@ const Navbar = ({
                       </span>
                       Benutzerhandbuch
                     </Link>
+                    )}
                     <Link
                       to="/settings"
                       className="navbar-dropdown-item"
@@ -655,6 +696,8 @@ const Navbar = ({
                   ) : (
                     <div className="navbar-avatar-placeholder">{getInitials(user.name)}</div>
                   )}
+                {!partnerUser && (
+                  <>
                 {hasReminderBadge && (
                   <span className="navbar-avatar-badge" title="Erinnerung: Verlauf prüfen" onClick={(e) => { e.stopPropagation(); handleOpenVerlauf(); }} role="button" tabIndex={0}>
                     {reminderCount > 9 ? '9+' : reminderCount}
@@ -686,6 +729,8 @@ const Navbar = ({
                     {voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}
                   </span>
                 )}
+                  </>
+                )}
                 </span>
                 <span className="navbar-greeting">Hey</span>
                 <span className="navbar-username-inline">{user.name}</span>
@@ -698,6 +743,8 @@ const Navbar = ({
                       <div className="navbar-dropdown-email">{user.email}</div>
                     </div>
                   </div>
+                  {!partnerUser && (
+                    <>
                   {hasReminderBadge && onOpenVerlauf && (
                     <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenVerlauf}>
                       <span className="navbar-avatar-badge navbar-avatar-badge--small">{reminderCount > 9 ? '9+' : reminderCount}</span>
@@ -739,6 +786,9 @@ const Navbar = ({
                       Voucher eintragen
                     </button>
                   )}
+                    </>
+                  )}
+                  {!partnerUser && (
                   <Link
                     to="/formular-center"
                     className="navbar-dropdown-item"
@@ -758,10 +808,13 @@ const Navbar = ({
                     </span>
                     Formular Center
                   </Link>
+                  )}
+                  {!partnerUser && (
                   <Link to="/benutzerhandbuch" className="navbar-dropdown-item" onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}>
                     <span className="navbar-dropdown-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2V3z" stroke="currentColor" strokeWidth="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.5"/></svg></span>
                     Benutzerhandbuch
                   </Link>
+                  )}
                   <Link to="/settings" className="navbar-dropdown-item" onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}>
                     <span className="navbar-dropdown-icon">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>

@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
+import { forbidPartnerRole } from '../middleware/forbidPartnerRole.js';
 import {
   getImeisData,
   saveImeisData,
@@ -21,6 +22,7 @@ import {
 const router = express.Router();
 
 router.use(authenticateToken);
+router.use(forbidPartnerRole);
 
 router.get('/data', getImeisData);
 router.put('/data', saveImeisData);

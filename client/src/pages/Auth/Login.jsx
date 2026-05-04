@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { loginUser } from '../../services/auth.service';
+import { ROLES } from '../../utils/roles';
 import PasswordField from '../../components/PasswordField/PasswordField';
 import './Auth.scss';
 
@@ -36,8 +37,18 @@ const Login = () => {
       localStorage.setItem('loginTimestamp', Date.now().toString());
       const userData = response.data.user;
       setUser(userData);
-      // Nach Login zur Startseite (Kennzahlen) – oder zur ursprünglichen URL wenn redirect-Parameter gesetzt
-      const targetPath = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/';
+      const isPartnerUser = String(userData.role || '').trim() === ROLES.PARTNER;
+      let targetPath =
+        redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : '/';
+      if (isPartnerUser) {
+        const pathOnly = (targetPath.split('?')[0] || '').trim();
+        const allowed =
+          pathOnly === '/formular-center' ||
+          pathOnly.startsWith('/formular-center/') ||
+          pathOnly === '/settings' ||
+          pathOnly.startsWith('/settings/');
+        if (!allowed) targetPath = '/formular-center';
+      }
       navigate(targetPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login fehlgeschlagen');

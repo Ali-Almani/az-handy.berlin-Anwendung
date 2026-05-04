@@ -3,7 +3,7 @@ import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { normalizeUserId, coerceUserId } from '../utils/normalizeUserId.js';
 
-const generateToken = (userId) => {
+const generateToken = (userId, role) => {
   const secret = process.env.JWT_SECRET;
   if (secret == null || String(secret).trim() === '') {
     const err = new Error('JWT_SECRET ist in der Server-.env nicht gesetzt');
@@ -16,7 +16,10 @@ const generateToken = (userId) => {
     err.statusCode = 500;
     throw err;
   }
-  return jwt.sign({ userId: uid }, secret, { expiresIn: '7d' });
+  const payload = { userId: uid };
+  const r = role != null ? String(role).trim() : '';
+  if (r) payload.role = r;
+  return jwt.sign(payload, secret, { expiresIn: '7d' });
 };
 
 export const register = async (req, res, next) => {
@@ -34,7 +37,7 @@ export const register = async (req, res, next) => {
     }
 
     const user = await User.create({ name, email: email.toLowerCase(), password });
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.role);
 
     res.status(201).json({
       success: true,
@@ -90,12 +93,13 @@ export const login = async (req, res, next) => {
     }
 
     const userId = user.id ?? user.get?.('id');
-    const token = generateToken(userId);
     const userEmail = (user.email || '').toLowerCase();
     let role = String(user.role ?? user.get?.('role') ?? '').trim();
     if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
       role = 'Administrator';
     }
+
+    const token = generateToken(userId, role);
 
     const uidOut = userId ?? user._id ?? user.get?.('id');
     res.json({

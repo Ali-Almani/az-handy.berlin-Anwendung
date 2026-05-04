@@ -7,6 +7,7 @@ export const ROLES = {
   SHOPS: 'Shops',
   BUCHHALTUNG: 'Buchhaltung',
   EINKAUF: 'Einkauf',
+  PARTNER: 'Partner',
   TEAMLEITER_SHOP: 'Teamleiter shop',
   MITARBEITER_SHOP: 'Mitarbeiter shop'
 };
@@ -48,7 +49,8 @@ export const ROLE_OPTIONS = [
   { value: ROLES.MARKETING, label: 'Marketing' },
   { value: ROLES.CALLCENTER, label: 'Callcenter' },
   { value: ROLES.BUCHHALTUNG, label: 'Buchhaltung' },
-  { value: ROLES.EINKAUF, label: 'Einkauf' }
+  { value: ROLES.EINKAUF, label: 'Einkauf' },
+  { value: ROLES.PARTNER, label: 'Partner' }
 ];
 
 // Prüfe ob Benutzer Admin ist (inkl. Tippfehler "Adminstrator" und alle admin-Varianten)
@@ -82,6 +84,13 @@ export const isBüroMitarbeiter = (user) => {
   const k = normRole(user.role);
   if (k === 'buro mitarbeiter' || k === 'buro') return true;
   return k.includes('buro') && k.includes('mitarbeiter');
+};
+
+/** Rolle Partner: in der Oberfläche nur Formular Center (plus Einstellungen). */
+export const isPartner = (user) => {
+  if (!user) return false;
+  if (user.role === ROLES.PARTNER) return true;
+  return normRole(user.role) === 'partner';
 };
 
 /**
