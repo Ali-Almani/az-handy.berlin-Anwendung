@@ -217,7 +217,7 @@ const MitarbeiterProfile = () => {
               </div>
 
               <div className="mitarbeiter-form-group">
-                <label htmlFor="mitarbeiter-ort" className="mitarbeiter-form-label">Einsatzort (Arbeit)</label>
+                <label htmlFor="mitarbeiter-ort" className="mitarbeiter-form-label">Einsatzort</label>
                 <select
                   id="mitarbeiter-ort"
                   className="mitarbeiter-form-input"
@@ -265,7 +265,7 @@ const MitarbeiterProfile = () => {
             )}
             <h2 className="mitarbeiter-profile__name">{profile.name}</h2>
             <p className="mitarbeiter-profile__meta">
-              <strong>Einsatzort (Arbeit):</strong>{' '}
+              <strong>Einsatzort:</strong>{' '}
               {profile.einsatz_ort?.trim() ? profile.einsatz_ort : '– Keiner hinterlegt –'}
             </p>
             <p className="mitarbeiter-profile__meta">
