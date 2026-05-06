@@ -220,37 +220,84 @@
 }
 
 .mitarbeiter-table-wrap {
-  overflow-x: auto;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-md;
-  background: $bg-color;
   width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: min(70vh, 560px);
+  max-height: min(70dvh, 560px);
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid $border-color;
+  border-radius: 2px;
+  position: relative;
+  min-height: 0;
+  background: $bg-color;
+}
+
+@media (min-width: $breakpoint-md) {
+  .mitarbeiter-table-wrap {
+    max-height: min(74dvh, 820px);
+    overscroll-behavior: contain;
+  }
+}
+
+@media (min-width: $breakpoint-lg) {
+  .mitarbeiter-table-wrap {
+    max-height: min(78dvh, 880px);
+  }
 }
 
 .mitarbeiter-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  border: 1px solid $border-color;
+  background: $bg-color;
+  margin: 0;
 
-  th,
-  td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid $border-color;
-  }
-
-  th {
-    font-weight: 600;
+  thead {
     background: $bg-light;
-    color: $text-color;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    th {
+      padding: 0.6rem 0.75rem;
+      text-align: left;
+      font-weight: $font-weight-bold;
+      color: $text-color;
+      font-size: 0.9rem;
+      border: 1px solid $border-color;
+      background: $bg-light;
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
   }
 
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
+  tbody {
+    tr {
+      transition: background 0.2s;
 
-  tbody tr:hover td {
-    background: mix(#fff, $primary-color, 96%);
+      &:nth-child(odd) {
+        background: #fff;
+      }
+
+      &:nth-child(even) {
+        background: #f8f9fa;
+      }
+
+      &:hover {
+        background: #e9ecef !important;
+      }
+    }
+
+    td {
+      padding: 0.6rem 0.75rem;
+      color: $text-color;
+      font-size: 0.9rem;
+      position: relative;
+      white-space: nowrap;
+      border: 1px solid $border-color;
+    }
   }
 
   a {
