@@ -5,13 +5,22 @@ const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Admin
 
 const ALLOWED_EINSATZ_ORT = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
 
+const directoryIsPartner = (uu) => {
+  const r = String(uu.role ?? '').trim().replace(/\u00a0/g, ' ');
+  if (r === 'Partner') return true;
+  return r.toLowerCase() === 'partner';
+};
+
+const isExcludedFromDirectory = (name) => String(name || '').trim().toLowerCase() === 'ali test';
+
 const toDirectoryUser = (user) => {
   const uu = user.toJSON ? user.toJSON() : user;
   return {
     id: uu.id ?? uu._id,
     name: uu.name,
     avatar: uu.avatar || null,
-    einsatz_ort: uu.einsatz_ort || null
+    einsatz_ort: uu.einsatz_ort || null,
+    isPartner: directoryIsPartner(uu)
   };
 };
 
@@ -103,9 +112,15 @@ export const getDirectoryUsers = async (req, res, next) => {
     if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
     const usersRaw = User.findAll ? await User.findAll() : [];
     const list = Array.isArray(usersRaw) ? usersRaw : (usersRaw.rows || []);
+    const users = list
+      .filter((u) => {
+        const raw = u.toJSON ? u.toJSON() : u;
+        return !isExcludedFromDirectory(raw.name);
+      })
+      .map((u) => toDirectoryUser(u));
     res.json({
       success: true,
-      users: list.map((u) => toDirectoryUser(u))
+      users
     });
   } catch (error) {
     next(error);

@@ -181,12 +181,18 @@ export const mockGetUserDirectory = async (mockUsers, token) => {
   await delay(400);
   const userId = parseToken(token);
   if (!userId) throw authError();
-  const users = mockUsers.map((u) => ({
-    id: u.id,
-    name: u.name,
-    avatar: u.avatar || null,
-    einsatz_ort: u.einsatz_ort || null
-  }));
+  const users = mockUsers
+    .filter((u) => String(u.name || '').trim().toLowerCase() !== 'ali test')
+    .map((u) => {
+      const r = String(u.role || '').trim();
+      return {
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar || null,
+        einsatz_ort: u.einsatz_ort || null,
+        isPartner: r === 'Partner' || r.toLowerCase() === 'partner'
+      };
+    });
   return { data: { success: true, users } };
 };
 
@@ -196,6 +202,7 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
   if (!userId) throw authError();
   const u = mockUsers.find((x) => String(x.id) === String(id));
   if (!u) throw notFoundError();
+  const r = String(u.role || '').trim();
   return {
     data: {
       success: true,
@@ -203,7 +210,8 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
         id: u.id,
         name: u.name,
         avatar: u.avatar || null,
-        einsatz_ort: u.einsatz_ort || null
+        einsatz_ort: u.einsatz_ort || null,
+        isPartner: r === 'Partner' || r.toLowerCase() === 'partner'
       }
     }
   };

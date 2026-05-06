@@ -1,5 +1,19 @@
+@import '../../styles/variables';
+
 .mitarbeiter-page {
   padding: 1.5rem 0 2.5rem;
+}
+
+.mitarbeiter-page.mitarbeiter-profile {
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+
+  .mitarbeiter-page__header {
+    text-align: center;
+  }
 }
 
 .mitarbeiter-page__header {
@@ -9,25 +23,23 @@
     font-size: 1.5rem;
     font-weight: 600;
     margin: 0 0 0.35rem;
+    color: $primary-color;
   }
 
   p {
     margin: 0;
-    color: var(--text-muted, #5c6570);
+    color: $text-light;
     font-size: 0.95rem;
   }
 }
 
-.mitarbeiter-profile {
-  max-width: 36rem;
-}
-
 .mitarbeiter-profile__card {
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border-color, #e4e7eb);
+  background: $bg-color;
+  border: 1px solid $border-color;
   border-radius: 12px;
   padding: 1.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: $shadow-sm;
+  text-align: center;
 }
 
 .mitarbeiter-profile__avatar {
@@ -37,7 +49,7 @@
   object-fit: cover;
   display: block;
   margin: 0 auto 1.25rem;
-  border: 3px solid var(--border-color, #e4e7eb);
+  border: 3px solid $border-color;
 }
 
 .mitarbeiter-profile__avatar-placeholder {
@@ -50,8 +62,8 @@
   justify-content: center;
   font-size: 2.5rem;
   font-weight: 600;
-  background: var(--primary-soft, #eef2ff);
-  color: var(--primary, #4f46e5);
+  background: mix(#fff, $primary-color, 90%);
+  color: $primary-color;
 }
 
 .mitarbeiter-profile__name {
@@ -59,11 +71,12 @@
   font-size: 1.35rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
+  color: $text-color;
 }
 
 .mitarbeiter-profile__meta {
   text-align: center;
-  color: var(--text-muted, #5c6570);
+  color: $text-light;
   font-size: 0.95rem;
   margin-bottom: 0.35rem;
 }
@@ -76,12 +89,20 @@
   display: inline-block;
   margin-top: 1.25rem;
   font-size: 0.95rem;
+  color: $primary-color;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .mitarbeiter-profile__form {
   display: flex;
   flex-direction: column;
   gap: 1.15rem;
+  text-align: left;
 }
 
 .mitarbeiter-form-group {
@@ -93,15 +114,15 @@
 .mitarbeiter-form-label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-color, #1f2937);
+  color: $text-color;
 }
 
 .mitarbeiter-form-input {
   padding: 0.55rem 0.75rem;
   font-size: 1rem;
-  border: 1px solid var(--border-color, #e4e7eb);
-  border-radius: 8px;
-  background: var(--card-bg, #fff);
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  background: $bg-color;
 }
 
 .mitarbeiter-form-message {
@@ -152,8 +173,8 @@
 .mitarbeiter-avatar-edit-hint {
   display: block;
   font-size: 0.85rem;
-  color: var(--primary, #4f46e5);
-  opacity: 0.85;
+  color: $primary-color;
+  opacity: 0.9;
 }
 
 .mitarbeiter-avatar-input {
@@ -178,7 +199,7 @@
 }
 
 .mitarbeiter-btn--primary {
-  background: var(--primary, #4f46e5);
+  background: $primary-color;
   color: #fff;
 
   &:disabled {
@@ -188,8 +209,8 @@
 }
 
 .mitarbeiter-btn--secondary {
-  background: #f3f4f6;
-  color: #374151;
+  background: $bg-light;
+  color: $text-color;
   align-self: center;
 
   &:disabled {
@@ -198,11 +219,34 @@
   }
 }
 
+.mitarbeiter-subheading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $text-light;
+  margin: 1.5rem 0 0.65rem;
+  text-align: center;
+}
+
+.mitarbeiter-section--compact {
+  margin-top: 0.25rem;
+}
+
 .mitarbeiter-table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--border-color, #e4e7eb);
-  border-radius: 10px;
-  background: var(--card-bg, #fff);
+  border: 1px solid $border-color;
+  border-radius: $border-radius-md;
+  background: $bg-color;
+}
+
+.mitarbeiter-table-wrap--main {
+  width: 100%;
+  max-width: none;
+}
+
+.mitarbeiter-table-wrap--compact {
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .mitarbeiter-table {
@@ -214,12 +258,13 @@
   td {
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 1px solid var(--border-color, #e4e7eb);
+    border-bottom: 1px solid $border-color;
   }
 
   th {
     font-weight: 600;
-    background: var(--table-head-bg, #f6f7f9);
+    background: $bg-light;
+    color: $text-color;
   }
 
   tbody tr:last-child td {
@@ -227,17 +272,27 @@
   }
 
   tbody tr:hover td {
-    background: var(--table-row-hover, #fafbfc);
+    background: mix(#fff, $primary-color, 96%);
   }
 
   a {
-    color: inherit;
+    color: $text-color;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: $font-weight-medium;
 
     &:hover {
+      color: $primary-color;
       text-decoration: underline;
     }
+  }
+}
+
+.mitarbeiter-table--compact {
+  font-size: 0.8125rem;
+
+  th,
+  td {
+    padding: 0.45rem 0.6rem;
   }
 }
 
@@ -265,8 +320,8 @@
   justify-content: center;
   font-size: 0.85rem;
   font-weight: 600;
-  background: var(--primary-soft, #eef2ff);
-  color: var(--primary, #4f46e5);
+  background: mix(#fff, $primary-color, 90%);
+  color: $primary-color;
 }
 
 .mitarbeiter-loading,
@@ -274,7 +329,7 @@
 .mitarbeiter-error {
   padding: 2rem;
   text-align: center;
-  color: var(--text-muted, #5c6570);
+  color: $text-light;
 }
 
 .mitarbeiter-error {
