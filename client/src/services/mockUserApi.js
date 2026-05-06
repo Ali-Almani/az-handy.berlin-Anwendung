@@ -56,10 +56,29 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
       }
     } catch (_) {}
   }
+  if (updates.einsatz_ort !== undefined) {
+    const allowed = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
+    const v = updates.einsatz_ort === null || updates.einsatz_ort === '' ? null : String(updates.einsatz_ort).trim();
+    if (v && !allowed.has(v)) throw badRequestError('Ungültiger Einsatzort');
+    mockUsers[userIndex].einsatz_ort = v;
+  }
   const u = mockUsers[userIndex];
   const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`mock-avatar-${userId}`) : null;
   const avatar = u.avatar || storedAvatar || null;
-  return { data: { success: true, message: 'Profil erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role, avatar } } };
+  return {
+    data: {
+      success: true,
+      message: 'Profil erfolgreich aktualisiert',
+      user: {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        avatar,
+        einsatz_ort: u.einsatz_ort || null
+      }
+    }
+  };
 };
 
 export const mockUpdatePassword = async (mockUsers, token, passwordData) => {
@@ -166,8 +185,7 @@ export const mockGetUserDirectory = async (mockUsers, token) => {
     id: u.id,
     name: u.name,
     avatar: u.avatar || null,
-    einsatz_ort: u.einsatz_ort || null,
-    role: u.role
+    einsatz_ort: u.einsatz_ort || null
   }));
   return { data: { success: true, users } };
 };
@@ -185,8 +203,7 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
         id: u.id,
         name: u.name,
         avatar: u.avatar || null,
-        einsatz_ort: u.einsatz_ort || null,
-        role: u.role
+        einsatz_ort: u.einsatz_ort || null
       }
     }
   };

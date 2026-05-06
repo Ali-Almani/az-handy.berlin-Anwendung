@@ -3,19 +3,15 @@ import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
 
+const ALLOWED_EINSATZ_ORT = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
+
 const toDirectoryUser = (user) => {
   const uu = user.toJSON ? user.toJSON() : user;
-  const userEmail = (uu.email || '').toLowerCase();
-  let role = (uu.role || '').trim();
-  if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
-    role = 'Administrator';
-  }
   return {
     id: uu.id ?? uu._id,
     name: uu.name,
     avatar: uu.avatar || null,
-    einsatz_ort: uu.einsatz_ort || null,
-    role
+    einsatz_ort: uu.einsatz_ort || null
   };
 };
 
@@ -54,7 +50,7 @@ export const updateProfile = async (req, res, next) => {
   try {
     const uid = resolveAuthUserId(req.user);
     if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
-    const { name, email, avatar } = req.body;
+    const { name, email, avatar, einsatz_ort } = req.body;
     const user = await User.findByPk(uid);
 
     if (!user) {
@@ -73,6 +69,13 @@ export const updateProfile = async (req, res, next) => {
       user.email = email.toLowerCase().trim();
     }
     if (avatar !== undefined) user.avatar = avatar || null;
+    if (einsatz_ort !== undefined) {
+      const v = einsatz_ort === null || einsatz_ort === '' ? null : String(einsatz_ort).trim();
+      if (v && !ALLOWED_EINSATZ_ORT.has(v)) {
+        return res.status(400).json({ message: 'Ungültiger Einsatzort' });
+      }
+      user.einsatz_ort = v || null;
+    }
 
     await user.save();
 
@@ -84,7 +87,8 @@ export const updateProfile = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar || null
+        avatar: user.avatar || null,
+        einsatz_ort: user.einsatz_ort || null
       }
     });
   } catch (error) {

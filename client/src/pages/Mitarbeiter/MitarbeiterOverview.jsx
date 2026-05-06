@@ -37,7 +37,6 @@ const MitarbeiterOverview = () => {
     <div className="mitarbeiter-page">
       <header className="mitarbeiter-page__header">
         <h1>Mitarbeiter Übersicht</h1>
-        <p>Name, Profilbild, Einsatzort und Rolle – sortiert wie in der Benutzerverwaltung.</p>
       </header>
       {error && <div className="mitarbeiter-error">{error}</div>}
       {loading ? (
@@ -51,7 +50,6 @@ const MitarbeiterOverview = () => {
               <tr>
                 <th>Name</th>
                 <th>Einsatzort</th>
-                <th>Rolle</th>
               </tr>
             </thead>
             <tbody>
@@ -70,11 +68,6 @@ const MitarbeiterOverview = () => {
                     </Link>
                   </td>
                   <td>{u.einsatz_ort?.trim() ? u.einsatz_ort : '–'}</td>
-                  <td>
-                    <span className={`role-badge role-badge--${String(u.role || '').replace(/\s+/g, '-')}`}>
-                      {u.role || '–'}
-                    </span>
-                  </td>
                 </tr>
               ))}
             </tbody>
