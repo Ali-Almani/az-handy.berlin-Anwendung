@@ -112,7 +112,8 @@ export const login = async (req, res, next) => {
         email: user.email ?? user.get?.('email'),
         role,
         avatar: user.avatar ?? user.get?.('avatar') ?? null,
-        einsatz_ort: user.einsatz_ort ?? user.get?.('einsatz_ort') ?? null
+        einsatz_ort: user.einsatz_ort ?? user.get?.('einsatz_ort') ?? null,
+        telefon: user.telefon ?? user.get?.('telefon') ?? null
       }
     });
   } catch (error) {

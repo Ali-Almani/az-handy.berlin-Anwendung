@@ -20,6 +20,7 @@ const toPlainUser = (u) => ({
   role: u.role,
   avatar: u.avatar ?? null,
   einsatz_ort: u.einsatz_ort ?? null,
+  telefon: u.telefon ?? null,
   createdAt: u.createdAt,
   updatedAt: u.updatedAt
 });
@@ -49,6 +50,7 @@ const loadUsers = () => {
         role: u.role,
         avatar: u.avatar ?? null,
         einsatz_ort: u.einsatz_ort ?? null,
+        telefon: u.telefon ?? null,
         createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
         updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
       });
@@ -92,6 +94,7 @@ class InMemoryUser {
     this.role = data.role || 'user';
     this.avatar = data.avatar ?? null;
     this.einsatz_ort = data.einsatz_ort ?? null;
+    this.telefon = data.telefon ?? null;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }

@@ -5,6 +5,13 @@ import { getDirectoryUser, updateUserProfile } from '../../services/user.service
 import { EINSATZ_ORT_OPTIONS } from '../../utils/roles';
 import './Mitarbeiter.scss';
 
+const telHref = (raw) => {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const digits = s.replace(/[^\d+]/g, '');
+  return digits ? `tel:${digits}` : `tel:${s}`;
+};
+
 const MitarbeiterProfile = () => {
   const { userId } = useParams();
   const { user: authUser, setUser, loading: authLoading } = useAuth();
@@ -13,6 +20,7 @@ const MitarbeiterProfile = () => {
   const [error, setError] = useState('');
   const [formName, setFormName] = useState('');
   const [formEinsatzOrt, setFormEinsatzOrt] = useState('');
+  const [formTelefon, setFormTelefon] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
@@ -52,6 +60,7 @@ const MitarbeiterProfile = () => {
     if (!profile || !isOwnProfile) return;
     setFormName(profile.name || '');
     setFormEinsatzOrt(profile.einsatz_ort || '');
+    setFormTelefon(profile.telefon || '');
     setAvatarFile(null);
     setAvatarPreview(profile.avatar || null);
     setFormError('');
@@ -117,7 +126,8 @@ const MitarbeiterProfile = () => {
     try {
       const payload = {
         name,
-        einsatz_ort: formEinsatzOrt || null
+        einsatz_ort: formEinsatzOrt || null,
+        telefon: formTelefon.trim() || null
       };
       if (avatarFile && avatarPreview) payload.avatar = avatarPreview;
       const response = await updateUserProfile(payload);
@@ -130,7 +140,8 @@ const MitarbeiterProfile = () => {
           ...p,
           name: u.name,
           ...(u.avatar !== undefined ? { avatar: u.avatar } : {}),
-          ...(u.einsatz_ort !== undefined ? { einsatz_ort: u.einsatz_ort } : {})
+          ...(u.einsatz_ort !== undefined ? { einsatz_ort: u.einsatz_ort } : {}),
+          ...(u.telefon !== undefined ? { telefon: u.telefon } : {})
         };
       });
       if (response.data.user.avatar !== undefined) {
@@ -221,6 +232,20 @@ const MitarbeiterProfile = () => {
                 </select>
               </div>
 
+              <div className="mitarbeiter-form-group">
+                <label htmlFor="mitarbeiter-telefon" className="mitarbeiter-form-label">Telefon</label>
+                <input
+                  id="mitarbeiter-telefon"
+                  type="tel"
+                  className="mitarbeiter-form-input"
+                  value={formTelefon}
+                  onChange={(ev) => setFormTelefon(ev.target.value)}
+                  autoComplete="tel"
+                  maxLength={40}
+                  placeholder="z. B. 030 12345678"
+                />
+              </div>
+
               <button type="submit" className="mitarbeiter-btn mitarbeiter-btn--primary" disabled={saving || avatarLoading}>
                 {saving ? 'Speichern…' : avatarLoading ? 'Bild wird geladen…' : 'Speichern'}
               </button>
@@ -242,6 +267,16 @@ const MitarbeiterProfile = () => {
             <p className="mitarbeiter-profile__meta">
               <strong>Einsatzort (Arbeit):</strong>{' '}
               {profile.einsatz_ort?.trim() ? profile.einsatz_ort : '– Keiner hinterlegt –'}
+            </p>
+            <p className="mitarbeiter-profile__meta">
+              <strong>Telefon:</strong>{' '}
+              {profile.telefon?.trim() ? (
+                <a href={telHref(profile.telefon)} className="mitarbeiter-tel-link">
+                  {profile.telefon.trim()}
+                </a>
+              ) : (
+                '–'
+              )}
             </p>
             <Link to="/mitarbeiter" className="mitarbeiter-profile__back">
               ← Zur Übersicht

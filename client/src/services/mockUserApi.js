@@ -29,6 +29,7 @@ export const mockGetProfile = async (mockUsers, token) => {
         role: user.role,
         avatar,
         einsatz_ort: user.einsatz_ort || null,
+        telefon: user.telefon || null,
         createdAt: user.createdAt
       }
     }
@@ -62,6 +63,10 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
     if (v && !allowed.has(v)) throw badRequestError('Ungültiger Einsatzort');
     mockUsers[userIndex].einsatz_ort = v;
   }
+  if (updates.telefon !== undefined) {
+    const t = updates.telefon === null || updates.telefon === '' ? null : String(updates.telefon).trim().slice(0, 40);
+    mockUsers[userIndex].telefon = t || null;
+  }
   const u = mockUsers[userIndex];
   const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`mock-avatar-${userId}`) : null;
   const avatar = u.avatar || storedAvatar || null;
@@ -75,7 +80,8 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
         email: u.email,
         role: u.role,
         avatar,
-        einsatz_ort: u.einsatz_ort || null
+        einsatz_ort: u.einsatz_ort || null,
+        telefon: u.telefon || null
       }
     }
   };
@@ -102,9 +108,9 @@ export const mockCreateUserByAdmin = async (mockUsers, token, userData) => {
   const adminUser = mockUsers.find(u => u.id === adminId);
   if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können Benutzer erstellen');
   if (mockUsers.find(u => u.email === userData.email)) throw badRequestError('E-Mail wird bereits verwendet');
-  const newUser = { id: `user-${Date.now()}`, name: userData.name, email: userData.email, password: userData.password, role: userData.role || 'Marketing Mitarbeiter', avatar: userData.avatar || null, einsatz_ort: userData.einsatz_ort || null, createdAt: new Date().toISOString() };
+  const newUser = { id: `user-${Date.now()}`, name: userData.name, email: userData.email, password: userData.password, role: userData.role || 'Marketing Mitarbeiter', avatar: userData.avatar || null, einsatz_ort: userData.einsatz_ort || null, telefon: userData.telefon ? String(userData.telefon).trim().slice(0, 40) || null : null, createdAt: new Date().toISOString() };
   mockUsers.push(newUser);
-  return { data: { success: true, message: 'Benutzer erfolgreich erstellt', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, avatar: newUser.avatar || null, einsatz_ort: newUser.einsatz_ort || null } } };
+  return { data: { success: true, message: 'Benutzer erfolgreich erstellt', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, avatar: newUser.avatar || null, einsatz_ort: newUser.einsatz_ort || null, telefon: newUser.telefon || null } } };
 };
 
 export const mockGetAllUsers = async (mockUsers, token) => {
@@ -113,7 +119,7 @@ export const mockGetAllUsers = async (mockUsers, token) => {
   if (!adminId) throw authError();
   const adminUser = mockUsers.find(u => u.id === adminId);
   if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können alle Benutzer sehen');
-  const users = mockUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar || null, einsatz_ort: u.einsatz_ort || null, createdAt: u.createdAt }));
+  const users = mockUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar || null, einsatz_ort: u.einsatz_ort || null, telefon: u.telefon || null, createdAt: u.createdAt }));
   return { data: { success: true, users } };
 };
 
@@ -156,12 +162,15 @@ export const mockUpdateUserByAdmin = async (mockUsers, token, userId, updates) =
   if (updates.role) mockUsers[userIndex].role = updates.role;
   if (updates.name) mockUsers[userIndex].name = updates.name;
   if (updates.einsatz_ort !== undefined) mockUsers[userIndex].einsatz_ort = updates.einsatz_ort || null;
+  if (updates.telefon !== undefined) {
+    mockUsers[userIndex].telefon = updates.telefon === null || updates.telefon === '' ? null : String(updates.telefon).trim().slice(0, 40) || null;
+  }
   if (updates.email) {
     if (mockUsers.some(u => u.email === updates.email && u.id !== userId)) throw badRequestError('E-Mail wird bereits verwendet');
     mockUsers[userIndex].email = updates.email;
   }
   const u = mockUsers[userIndex];
-  return { data: { success: true, message: 'Benutzer erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role } } };
+  return { data: { success: true, message: 'Benutzer erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role, telefon: u.telefon || null, einsatz_ort: u.einsatz_ort || null } } };
 };
 
 export const mockDeleteUser = async (mockUsers, token, userId) => {
@@ -182,17 +191,20 @@ export const mockGetUserDirectory = async (mockUsers, token) => {
   const userId = parseToken(token);
   if (!userId) throw authError();
   const users = mockUsers
-    .filter((u) => String(u.name || '').trim().toLowerCase() !== 'ali test')
-    .map((u) => {
+    .filter((u) => {
+      if (String(u.name || '').trim().toLowerCase() === 'ali test') return false;
       const r = String(u.role || '').trim();
-      return {
-        id: u.id,
-        name: u.name,
-        avatar: u.avatar || null,
-        einsatz_ort: u.einsatz_ort || null,
-        isPartner: r === 'Partner' || r.toLowerCase() === 'partner'
-      };
-    });
+      if (r === 'Partner' || r.toLowerCase() === 'partner') return false;
+      if (!String(u.einsatz_ort || '').trim()) return false;
+      return true;
+    })
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      avatar: u.avatar || null,
+      einsatz_ort: u.einsatz_ort || null,
+      telefon: u.telefon || null
+    }));
   return { data: { success: true, users } };
 };
 
@@ -202,7 +214,6 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
   if (!userId) throw authError();
   const u = mockUsers.find((x) => String(x.id) === String(id));
   if (!u) throw notFoundError();
-  const r = String(u.role || '').trim();
   return {
     data: {
       success: true,
@@ -211,7 +222,7 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
         name: u.name,
         avatar: u.avatar || null,
         einsatz_ort: u.einsatz_ort || null,
-        isPartner: r === 'Partner' || r.toLowerCase() === 'partner'
+        telefon: u.telefon || null
       }
     }
   };

@@ -57,6 +57,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(64),
     allowNull: true,
     comment: 'Einsatzort-Kategorie: Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt'
+  },
+  telefon: {
+    type: DataTypes.STRING(40),
+    allowNull: true
   }
 }, {
   tableName: 'users',

@@ -219,34 +219,12 @@
   }
 }
 
-.mitarbeiter-subheading {
-  font-size: 1rem;
-  font-weight: 600;
-  color: $text-light;
-  margin: 1.5rem 0 0.65rem;
-  text-align: center;
-}
-
-.mitarbeiter-section--compact {
-  margin-top: 0.25rem;
-}
-
 .mitarbeiter-table-wrap {
   overflow-x: auto;
   border: 1px solid $border-color;
   border-radius: $border-radius-md;
   background: $bg-color;
-}
-
-.mitarbeiter-table-wrap--main {
   width: 100%;
-  max-width: none;
-}
-
-.mitarbeiter-table-wrap--compact {
-  max-width: 22rem;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .mitarbeiter-table {
@@ -285,14 +263,14 @@
       text-decoration: underline;
     }
   }
-}
 
-.mitarbeiter-table--compact {
-  font-size: 0.8125rem;
+  a.mitarbeiter-tel-link {
+    color: $primary-color;
+    white-space: nowrap;
 
-  th,
-  td {
-    padding: 0.45rem 0.6rem;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
@@ -300,6 +278,16 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
+}
+
+a.mitarbeiter-tel-link {
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .mitarbeiter-avatar-tn {

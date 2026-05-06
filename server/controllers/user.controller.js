@@ -4,6 +4,14 @@ import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
 
 const ALLOWED_EINSATZ_ORT = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
+const TELEFON_MAX_LEN = 40;
+
+const normalizeTelefonInput = (v) => {
+  if (v === undefined) return undefined;
+  if (v === null || v === '') return null;
+  const s = String(v).trim().slice(0, TELEFON_MAX_LEN);
+  return s || null;
+};
 
 const directoryIsPartner = (uu) => {
   const r = String(uu.role ?? '').trim().replace(/\u00a0/g, ' ');
@@ -20,7 +28,7 @@ const toDirectoryUser = (user) => {
     name: uu.name,
     avatar: uu.avatar || null,
     einsatz_ort: uu.einsatz_ort || null,
-    isPartner: directoryIsPartner(uu)
+    telefon: uu.telefon || null
   };
 };
 
@@ -47,6 +55,7 @@ export const getProfile = async (req, res, next) => {
         role,
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
+        telefon: user.telefon || null,
         createdAt: user.createdAt
       }
     });
@@ -59,7 +68,7 @@ export const updateProfile = async (req, res, next) => {
   try {
     const uid = resolveAuthUserId(req.user);
     if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
-    const { name, email, avatar, einsatz_ort } = req.body;
+    const { name, email, avatar, einsatz_ort, telefon } = req.body;
     const user = await User.findByPk(uid);
 
     if (!user) {
@@ -85,6 +94,9 @@ export const updateProfile = async (req, res, next) => {
       }
       user.einsatz_ort = v || null;
     }
+    if (telefon !== undefined) {
+      user.telefon = normalizeTelefonInput(telefon);
+    }
 
     await user.save();
 
@@ -97,7 +109,8 @@ export const updateProfile = async (req, res, next) => {
         email: user.email,
         role: user.role,
         avatar: user.avatar || null,
-        einsatz_ort: user.einsatz_ort || null
+        einsatz_ort: user.einsatz_ort || null,
+        telefon: user.telefon || null
       }
     });
   } catch (error) {
@@ -105,7 +118,7 @@ export const updateProfile = async (req, res, next) => {
   }
 };
 
-/** Öffentliches Verzeichnis für alle angemeldeten Nutzer (inkl. Partner): ohne E-Mail. */
+/** Öffentliches Verzeichnis: nur Mitarbeiter mit Einsatzort (keine Partner, kein „Ali Test“). */
 export const getDirectoryUsers = async (req, res, next) => {
   try {
     const uid = resolveAuthUserId(req.user);
@@ -115,7 +128,10 @@ export const getDirectoryUsers = async (req, res, next) => {
     const users = list
       .filter((u) => {
         const raw = u.toJSON ? u.toJSON() : u;
-        return !isExcludedFromDirectory(raw.name);
+        if (isExcludedFromDirectory(raw.name)) return false;
+        if (directoryIsPartner(raw)) return false;
+        if (!String(raw.einsatz_ort || '').trim()) return false;
+        return true;
       })
       .map((u) => toDirectoryUser(u));
     res.json({
@@ -174,7 +190,7 @@ export const createUserByAdmin = async (req, res, next) => {
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer erstellen' });
     }
-    const { name, email, password, role, avatar, einsatz_ort } = req.body;
+    const { name, email, password, role, avatar, einsatz_ort, telefon } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, E-Mail und Passwort sind erforderlich' });
     }
@@ -182,12 +198,29 @@ export const createUserByAdmin = async (req, res, next) => {
     if (existing) {
       return res.status(400).json({ message: 'E-Mail wird bereits verwendet' });
     }
-    const user = await User.create({ name, email: email.toLowerCase(), password, role: role || 'Marketing', avatar: avatar || null, einsatz_ort: einsatz_ort || null });
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password,
+      role: role || 'Marketing',
+      avatar: avatar || null,
+      einsatz_ort: einsatz_ort || null,
+      telefon: normalizeTelefonInput(telefon) ?? null
+    });
     const createdAt = user.createdAt ?? user.created_at ?? new Date();
     res.status(201).json({
       success: true,
       message: 'Benutzer erfolgreich erstellt',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, einsatz_ort: user.einsatz_ort || null, createdAt }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || null,
+        einsatz_ort: user.einsatz_ort || null,
+        telefon: user.telefon || null,
+        createdAt
+      }
     });
   } catch (error) {
     next(error);
@@ -203,7 +236,7 @@ export const updateUserByAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer bearbeiten' });
     }
     const { id } = req.params;
-    const { role, name, email, avatar, einsatz_ort } = req.body;
+    const { role, name, email, avatar, einsatz_ort, telefon } = req.body;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
@@ -228,11 +261,20 @@ export const updateUserByAdmin = async (req, res, next) => {
     }
     if (avatar !== undefined) user.avatar = avatar || null;
     if (einsatz_ort !== undefined) user.einsatz_ort = einsatz_ort || null;
+    if (telefon !== undefined) user.telefon = normalizeTelefonInput(telefon);
     await user.save();
     res.json({
       success: true,
       message: 'Benutzer erfolgreich aktualisiert',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar || null, einsatz_ort: user.einsatz_ort || null }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || null,
+        einsatz_ort: user.einsatz_ort || null,
+        telefon: user.telefon || null
+      }
     });
   } catch (error) {
     next(error);

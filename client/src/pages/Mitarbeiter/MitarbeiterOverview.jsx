@@ -4,26 +4,43 @@ import { getUserDirectory } from '../../services/user.service';
 import { sortUsersByEinsatzOrt } from '../../utils/roles';
 import './Mitarbeiter.scss';
 
-const isAliTest = (u) => String(u?.name || '').trim().toLowerCase() === 'ali test';
+const telHref = (raw) => {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const digits = s.replace(/[^\d+]/g, '');
+  return digits ? `tel:${digits}` : `tel:${s}`;
+};
 
 const renderRows = (rows) =>
-  rows.map((u) => (
-    <tr key={u.id}>
-      <td>
-        <Link to={`/mitarbeiter/${u.id}`} className="mitarbeiter-cell-user">
-          {u.avatar ? (
-            <img src={u.avatar} alt="" className="mitarbeiter-avatar-tn" />
+  rows.map((u) => {
+    const tel = u.telefon?.trim() ? u.telefon.trim() : '';
+    return (
+      <tr key={u.id}>
+        <td>
+          <Link to={`/mitarbeiter/${u.id}`} className="mitarbeiter-cell-user">
+            {u.avatar ? (
+              <img src={u.avatar} alt="" className="mitarbeiter-avatar-tn" />
+            ) : (
+              <span className="mitarbeiter-avatar-tn-placeholder">
+                {(u.name || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span>{u.name}</span>
+          </Link>
+        </td>
+        <td>{u.einsatz_ort?.trim() ? u.einsatz_ort : '–'}</td>
+        <td>
+          {tel ? (
+            <a href={telHref(tel)} className="mitarbeiter-tel-link">
+              {tel}
+            </a>
           ) : (
-            <span className="mitarbeiter-avatar-tn-placeholder">
-              {(u.name || '?').charAt(0).toUpperCase()}
-            </span>
+            '–'
           )}
-          <span>{u.name}</span>
-        </Link>
-      </td>
-      <td>{u.einsatz_ort?.trim() ? u.einsatz_ort : '–'}</td>
-    </tr>
-  ));
+        </td>
+      </tr>
+    );
+  });
 
 const MitarbeiterOverview = () => {
   const [users, setUsers] = useState([]);
@@ -52,14 +69,7 @@ const MitarbeiterOverview = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const { mainUsers, compactUsers } = useMemo(() => {
-    const sorted = sortUsersByEinsatzOrt(users.filter((u) => !isAliTest(u)));
-    const mainUsersInner = sorted.filter((u) => !u.isPartner && Boolean(String(u.einsatz_ort || '').trim()));
-    const compactUsersInner = sorted.filter((u) => u.isPartner || !String(u.einsatz_ort || '').trim());
-    return { mainUsers: mainUsersInner, compactUsers: compactUsersInner };
-  }, [users]);
-
-  const hasAny = mainUsers.length > 0 || compactUsers.length > 0;
+  const sorted = useMemo(() => sortUsersByEinsatzOrt(users), [users]);
 
   return (
     <div className="mitarbeiter-page">
@@ -69,40 +79,21 @@ const MitarbeiterOverview = () => {
       {error && <div className="mitarbeiter-error">{error}</div>}
       {loading ? (
         <div className="mitarbeiter-loading">Lädt…</div>
-      ) : !hasAny ? (
+      ) : sorted.length === 0 ? (
         <div className="mitarbeiter-empty">Keine Einträge gefunden.</div>
       ) : (
-        <>
-          {mainUsers.length > 0 && (
-            <div className="mitarbeiter-table-wrap mitarbeiter-table-wrap--main">
-              <table className="mitarbeiter-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Einsatzort</th>
-                  </tr>
-                </thead>
-                <tbody>{renderRows(mainUsers)}</tbody>
-              </table>
-            </div>
-          )}
-          {compactUsers.length > 0 && (
-            <section className="mitarbeiter-section mitarbeiter-section--compact">
-              <h2 className="mitarbeiter-subheading">Partner / ohne Einsatzort</h2>
-              <div className="mitarbeiter-table-wrap mitarbeiter-table-wrap--compact">
-                <table className="mitarbeiter-table mitarbeiter-table--compact">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Einsatzort</th>
-                    </tr>
-                  </thead>
-                  <tbody>{renderRows(compactUsers)}</tbody>
-                </table>
-              </div>
-            </section>
-          )}
-        </>
+        <div className="mitarbeiter-table-wrap">
+          <table className="mitarbeiter-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Einsatzort</th>
+                <th>Telefon</th>
+              </tr>
+            </thead>
+            <tbody>{renderRows(sorted)}</tbody>
+          </table>
+        </div>
       )}
     </div>
   );

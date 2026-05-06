@@ -6,12 +6,14 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [einsatzOrt, setEinsatzOrt] = useState('');
+  const [telefon, setTelefon] = useState('');
 
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
       setRole(user.role || 'Marketing');
       setEinsatzOrt(user.einsatz_ort || '');
+      setTelefon(user.telefon || '');
     }
   }, [user]);
 
@@ -25,6 +27,8 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
     if (!isAdminAccount && email !== user.email) updates.email = email;
     if (role !== user.role) updates.role = role;
     if (einsatzOrt !== (user.einsatz_ort || '')) updates.einsatz_ort = einsatzOrt || null;
+    const prevTel = user.telefon || '';
+    if (telefon.trim() !== prevTel) updates.telefon = telefon.trim() || null;
     if (Object.keys(updates).length > 0) onSave(user.id, updates);
     onClose();
   };
@@ -56,6 +60,10 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
                 <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Telefon</label>
+            <input type="tel" className="form-input" value={telefon} onChange={(e) => setTelefon(e.target.value)} maxLength={40} />
           </div>
           <div className="user-edit-modal-actions">
             <button type="button" className="btn btn--outline" onClick={onClose}>Abbrechen</button>

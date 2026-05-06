@@ -41,6 +41,10 @@ const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmi
             {EINSATZ_ORT_OPTIONS.map(opt => <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>)}
           </select>
         </div>
+        <div className="form-group">
+          <label htmlFor="new-telefon" className="form-label">Telefon (optional)</label>
+          <input id="new-telefon" type="tel" name="telefon" className="form-input" value={newUserData.telefon || ''} onChange={onInputChange} maxLength={40} autoComplete="off" />
+        </div>
       </div>
       <div className="form-group">
         <label className="form-label">Profilbild (optional)</label>
