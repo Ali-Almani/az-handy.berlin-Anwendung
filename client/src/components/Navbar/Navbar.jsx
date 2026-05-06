@@ -431,10 +431,10 @@ const Navbar = ({
     </>
   ) : (
     <>
+      {renderDashboardItem()}
       {renderImeisItem()}
       {renderVoucherItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId, useHoverDropdowns)}
-      {renderDashboardItem()}
       {renderMitarbeiterNavItem()}
     </>
   );
@@ -446,10 +446,10 @@ const Navbar = ({
     </>
   ) : (
     <>
+      {renderDashboardItem()}
       {renderImeisItem()}
       {renderVoucherItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
-      {renderDashboardItem()}
       {renderMitarbeiterNavItem()}
     </>
   );
