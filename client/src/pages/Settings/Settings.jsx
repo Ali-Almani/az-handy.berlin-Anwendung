@@ -66,7 +66,6 @@ const Settings = () => {
     <div className="settings">
       <div className="settings-header">
         <h1>Einstellungen</h1>
-        <p>Passwort und Kontosicherheit.</p>
       </div>
       {error && <div className="alert alert--error">{error}</div>}
       {success && <div className="alert alert--success">{success}</div>}
