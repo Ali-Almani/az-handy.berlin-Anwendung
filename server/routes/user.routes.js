@@ -5,6 +5,8 @@ import {
   getProfile,
   updateProfile,
   updatePassword,
+  getDirectoryUsers,
+  getDirectoryUserById,
   getAllUsers,
   createUserByAdmin,
   updateUserByAdmin,
@@ -20,6 +22,9 @@ router.use(authenticateToken);
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.put('/password', updatePassword);
+
+router.get('/directory', getDirectoryUsers);
+router.get('/directory/:id', getDirectoryUserById);
 
 router.use(forbidPartnerRole);
 

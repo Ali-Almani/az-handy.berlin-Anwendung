@@ -47,6 +47,22 @@ export const getAllUsers = () => {
   return api.get('/users');
 };
 
+export const getUserDirectory = () => {
+  if (USE_MOCK_API) {
+    const token = localStorage.getItem('token');
+    return mockApi.getUserDirectory(token);
+  }
+  return api.get('/users/directory');
+};
+
+export const getDirectoryUser = (userId) => {
+  if (USE_MOCK_API) {
+    const token = localStorage.getItem('token');
+    return mockApi.getDirectoryUser(token, userId);
+  }
+  return api.get(`/users/directory/${userId}`);
+};
+
 export const updateUserByAdmin = (userId, userData) => {
   if (USE_MOCK_API) {
     const token = localStorage.getItem('token');

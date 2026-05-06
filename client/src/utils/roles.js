@@ -40,6 +40,20 @@ export const EINSATZ_ORT_OPTIONS = [
   { value: 'Haupt', label: 'Haupt' }
 ];
 
+const EINSATZ_ORT_ORDER = EINSATZ_ORT_OPTIONS.filter((o) => o.value).map((o) => o.value);
+
+/** Sortierung wie in der Benutzerverwaltung: zuerst nach Einsatzort, dann Name. */
+export const sortUsersByEinsatzOrt = (users) => {
+  return [...users].sort((a, b) => {
+    const aOrt = (a.einsatz_ort || '').trim();
+    const bOrt = (b.einsatz_ort || '').trim();
+    const aIdx = aOrt ? EINSATZ_ORT_ORDER.indexOf(aOrt) : 999;
+    const bIdx = bOrt ? EINSATZ_ORT_ORDER.indexOf(bOrt) : 999;
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+};
+
 // Rollen als Array für Dropdown
 export const ROLE_OPTIONS = [
   { value: ROLES.ADMINISTRATOR, label: 'Administrator' },

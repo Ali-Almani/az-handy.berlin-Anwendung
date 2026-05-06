@@ -11,6 +11,8 @@ import Imeis from './pages/Imeis/Imeis';
 import Voucher from './pages/Voucher/Voucher';
 import Documentation from './pages/Documentation/Documentation';
 import FormularCenter from './pages/FormularCenter/FormularCenter';
+import MitarbeiterOverview from './pages/Mitarbeiter/MitarbeiterOverview';
+import MitarbeiterProfile from './pages/Mitarbeiter/MitarbeiterProfile';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import PartnerRestrictedRoute from './components/PartnerRestrictedRoute/PartnerRestrictedRoute';
 
@@ -56,6 +58,22 @@ function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mitarbeiter"
+          element={
+            <ProtectedRoute>
+              <MitarbeiterOverview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mitarbeiter/:userId"
+          element={
+            <ProtectedRoute>
+              <MitarbeiterProfile />
             </ProtectedRoute>
           }
         />

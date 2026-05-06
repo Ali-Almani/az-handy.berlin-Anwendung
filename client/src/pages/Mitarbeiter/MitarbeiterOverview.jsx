@@ -1,0 +1,88 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getUserDirectory } from '../../services/user.service';
+import { sortUsersByEinsatzOrt } from '../../utils/roles';
+import './Mitarbeiter.scss';
+
+const MitarbeiterOverview = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const res = await getUserDirectory();
+        if (!cancelled) {
+          setUsers(res.data.users || []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.response?.data?.message || err.message || 'Daten konnten nicht geladen werden');
+          setUsers([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const sorted = sortUsersByEinsatzOrt(users);
+
+  return (
+    <div className="mitarbeiter-page">
+      <header className="mitarbeiter-page__header">
+        <h1>Mitarbeiter Übersicht</h1>
+        <p>Name, Profilbild, Einsatzort und Rolle – sortiert wie in der Benutzerverwaltung.</p>
+      </header>
+      {error && <div className="mitarbeiter-error">{error}</div>}
+      {loading ? (
+        <div className="mitarbeiter-loading">Lädt…</div>
+      ) : sorted.length === 0 ? (
+        <div className="mitarbeiter-empty">Keine Einträge gefunden.</div>
+      ) : (
+        <div className="mitarbeiter-table-wrap">
+          <table className="mitarbeiter-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Einsatzort</th>
+                <th>Rolle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((u) => (
+                <tr key={u.id}>
+                  <td>
+                    <Link to={`/mitarbeiter/${u.id}`} className="mitarbeiter-cell-user">
+                      {u.avatar ? (
+                        <img src={u.avatar} alt="" className="mitarbeiter-avatar-tn" />
+                      ) : (
+                        <span className="mitarbeiter-avatar-tn-placeholder">
+                          {(u.name || '?').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span>{u.name}</span>
+                    </Link>
+                  </td>
+                  <td>{u.einsatz_ort?.trim() ? u.einsatz_ort : '–'}</td>
+                  <td>
+                    <span className={`role-badge role-badge--${String(u.role || '').replace(/\s+/g, '-')}`}>
+                      {u.role || '–'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MitarbeiterOverview;

@@ -20,7 +20,18 @@ export const mockGetProfile = async (mockUsers, token) => {
   const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`mock-avatar-${userId}`) : null;
   const avatar = user.avatar || storedAvatar || null;
   return {
-    data: { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar, createdAt: user.createdAt } }
+    data: {
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar,
+        einsatz_ort: user.einsatz_ort || null,
+        createdAt: user.createdAt
+      }
+    }
   };
 };
 
@@ -145,4 +156,38 @@ export const mockDeleteUser = async (mockUsers, token, userId) => {
   if (userIndex === -1) throw notFoundError();
   mockUsers.splice(userIndex, 1);
   return { data: { success: true, message: 'Benutzer erfolgreich gelöscht' } };
+};
+
+export const mockGetUserDirectory = async (mockUsers, token) => {
+  await delay(400);
+  const userId = parseToken(token);
+  if (!userId) throw authError();
+  const users = mockUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    avatar: u.avatar || null,
+    einsatz_ort: u.einsatz_ort || null,
+    role: u.role
+  }));
+  return { data: { success: true, users } };
+};
+
+export const mockGetDirectoryUser = async (mockUsers, token, id) => {
+  await delay(300);
+  const userId = parseToken(token);
+  if (!userId) throw authError();
+  const u = mockUsers.find((x) => String(x.id) === String(id));
+  if (!u) throw notFoundError();
+  return {
+    data: {
+      success: true,
+      user: {
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar || null,
+        einsatz_ort: u.einsatz_ort || null,
+        role: u.role
+      }
+    }
+  };
 };

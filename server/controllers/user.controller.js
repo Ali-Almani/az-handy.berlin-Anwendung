@@ -3,6 +3,22 @@ import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
 
+const toDirectoryUser = (user) => {
+  const uu = user.toJSON ? user.toJSON() : user;
+  const userEmail = (uu.email || '').toLowerCase();
+  let role = (uu.role || '').trim();
+  if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
+    role = 'Administrator';
+  }
+  return {
+    id: uu.id ?? uu._id,
+    name: uu.name,
+    avatar: uu.avatar || null,
+    einsatz_ort: uu.einsatz_ort || null,
+    role
+  };
+};
+
 export const getProfile = async (req, res, next) => {
   try {
     const uid = resolveAuthUserId(req.user);
@@ -71,6 +87,37 @@ export const updateProfile = async (req, res, next) => {
         avatar: user.avatar || null
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Öffentliches Verzeichnis für alle angemeldeten Nutzer (inkl. Partner): ohne E-Mail. */
+export const getDirectoryUsers = async (req, res, next) => {
+  try {
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const usersRaw = User.findAll ? await User.findAll() : [];
+    const list = Array.isArray(usersRaw) ? usersRaw : (usersRaw.rows || []);
+    res.json({
+      success: true,
+      users: list.map((u) => toDirectoryUser(u))
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDirectoryUserById = async (req, res, next) => {
+  try {
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+    res.json({ success: true, user: toDirectoryUser(user) });
   } catch (error) {
     next(error);
   }
