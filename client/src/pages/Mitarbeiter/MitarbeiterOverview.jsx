@@ -72,7 +72,7 @@ const MitarbeiterOverview = () => {
   const sorted = useMemo(() => sortUsersByEinsatzOrt(users), [users]);
 
   return (
-    <div className="mitarbeiter-page">
+    <div className="mitarbeiter-page mitarbeiter-page--overview">
       <header className="mitarbeiter-page__header">
         <h1>Mitarbeiter Übersicht</h1>
       </header>
