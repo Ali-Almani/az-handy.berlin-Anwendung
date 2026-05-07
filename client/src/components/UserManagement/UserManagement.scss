@@ -260,17 +260,21 @@
             width: 7%;
           }
           &:nth-child(3) {
-            width: 46%;
+            width: 10%;
           }
           &:nth-child(4) {
-            width: 11%;
+            width: 40%;
           }
           &:nth-child(5) {
             width: 9%;
             white-space: nowrap;
           }
           &:nth-child(6) {
-            width: 12%;
+            width: 11%;
+            white-space: nowrap;
+          }
+          &:nth-child(7) {
+            width: 8%;
             white-space: nowrap;
           }
         }
