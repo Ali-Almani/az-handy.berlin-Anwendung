@@ -40,6 +40,19 @@ export const EINSATZ_ORT_OPTIONS = [
   { value: 'Haupt', label: 'Haupt' }
 ];
 
+/** T-Shirt-Größen (Einstellungen, Rolle Mitarbeiter shop) */
+export const TSHIRT_GROESSE_OPTIONS = [
+  { value: '', label: '– Bitte wählen –' },
+  { value: 'S', label: 'S' },
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+  { value: 'XL', label: 'XL' },
+  { value: '2XL', label: '2XL' },
+  { value: '3XL', label: '3XL' },
+  { value: '4XL', label: '4XL' },
+  { value: '5XL', label: '5XL' }
+];
+
 const EINSATZ_ORT_ORDER = EINSATZ_ORT_OPTIONS.filter((o) => o.value).map((o) => o.value);
 
 /** Sortierung wie in der Benutzerverwaltung: zuerst nach Einsatzort, dann Name. */
@@ -81,6 +94,13 @@ export const isAdmin = (user) => {
 export const isMitarbeiterShop = (user) => {
   if (!user) return false;
   return user.role === ROLES.MITARBEITER_SHOP;
+};
+
+/** Rolle Marketing (exakt, inkl. NBSP-Normalisierung über trim-Vergleich auf ROLES) */
+export const isMarketing = (user) => {
+  if (!user) return false;
+  const r = String(user.role || '').replace(/\u00a0/g, ' ').trim();
+  return r === ROLES.MARKETING;
 };
 
 // Prüfe ob Benutzer Teamleiter shop ist

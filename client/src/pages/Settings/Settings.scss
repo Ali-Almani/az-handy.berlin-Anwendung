@@ -63,6 +63,16 @@
     gap: 1rem;
   }
 
+  .settings-section--tshirt {
+    .settings-form {
+      gap: 0.75rem;
+    }
+
+    select.form-input {
+      max-width: 280px;
+    }
+  }
+
   .settings-section--password {
     .settings-form {
       gap: 0.5rem;

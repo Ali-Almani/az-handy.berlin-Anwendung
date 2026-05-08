@@ -61,6 +61,11 @@ const User = sequelize.define('User', {
   telefon: {
     type: DataTypes.STRING(40),
     allowNull: true
+  },
+  tshirt_groesse: {
+    type: DataTypes.STRING(8),
+    allowNull: true,
+    comment: 'T-Shirt-Größe (nur Mitarbeiter shop): S, M, L, XL, 2XL–5XL'
   }
 }, {
   tableName: 'users',

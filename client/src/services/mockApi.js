@@ -6,6 +6,7 @@ import {
   mockCreateUserByAdmin,
   mockGetAllUsers,
   mockGetUserDirectory,
+  mockGetMitarbeiterShopTshirtGroessen,
   mockGetDirectoryUser,
   mockUpdateUserByAdmin,
   mockSetPasswordByAdmin,
@@ -19,7 +20,7 @@ const mockUsers = [
   { id: 'admin-1', name: 'Ali Almani', email: 'admin@az-handy.berlin', password: 'Admin123!', role: 'Administrator', einsatz_ort: 'Zentrale', telefon: '+49 30 123456', createdAt: new Date().toISOString() },
   { id: 'buero-1', name: 'M. Somer', email: 'm.somer@az-handy.berlin', password: '!azHandy.berlin20260203?', role: 'Büro Mitarbeiter', einsatz_ort: 'Zentrale', telefon: null, createdAt: new Date().toISOString() },
   { id: 'user-1', name: 'Test Benutzer', email: 'test@example.com', password: 'test123', role: 'Marketing', einsatz_ort: 'Sonne', telefon: '0171 0000000', createdAt: new Date().toISOString() },
-  { id: 'mitarbeiter-1', name: 'Mitarbeiter Shop', email: 'mitarbeiter@az-handy.berlin', password: 'Test123!', role: 'Mitarbeiter shop', einsatz_ort: 'KM127', telefon: null, createdAt: new Date().toISOString() }
+  { id: 'mitarbeiter-1', name: 'Mitarbeiter Shop', email: 'mitarbeiter@az-handy.berlin', password: 'Test123!', role: 'Mitarbeiter shop', einsatz_ort: 'KM127', telefon: null, tshirt_groesse: 'L', createdAt: new Date().toISOString() }
 ];
 
 export const mockGetAdminName = () => {
@@ -36,6 +37,7 @@ const mockApi = {
   async createUserByAdmin(token, userData) { return mockCreateUserByAdmin(mockUsers, token, userData); },
   async getAllUsers(token) { return mockGetAllUsers(mockUsers, token); },
   async getUserDirectory(token) { return mockGetUserDirectory(mockUsers, token); },
+  async getMitarbeiterShopTshirtGroessen(token) { return mockGetMitarbeiterShopTshirtGroessen(mockUsers, token); },
   async getDirectoryUser(token, userId) { return mockGetDirectoryUser(mockUsers, token, userId); },
   async updateUserByAdmin(token, userId, userData) { return mockUpdateUserByAdmin(mockUsers, token, userId, userData); },
   async setPasswordByAdmin(token, userId, newPassword) { return mockSetPasswordByAdmin(mockUsers, token, userId, newPassword); },

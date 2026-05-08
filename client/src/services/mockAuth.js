@@ -15,7 +15,16 @@ export const mockLogin = async (mockUsers, credentials) => {
       success: true,
       message: 'Login erfolgreich',
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role === 'admin' ? 'Administrator' : user.role, avatar: user.avatar || null }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role === 'admin' ? 'Administrator' : user.role,
+        avatar: user.avatar || null,
+        einsatz_ort: user.einsatz_ort || null,
+        telefon: user.telefon || null,
+        tshirt_groesse: user.tshirt_groesse ?? null
+      }
     }
   };
 };

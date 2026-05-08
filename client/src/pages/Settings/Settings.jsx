@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { updatePassword, restoreAdmin } from '../../services/user.service';
-import { isAdmin } from '../../utils/roles';
+import { updatePassword, restoreAdmin, updateUserProfile } from '../../services/user.service';
+import { isAdmin, isMitarbeiterShop, TSHIRT_GROESSE_OPTIONS } from '../../utils/roles';
 import PasswordForm from './components/PasswordForm';
 import './Settings.scss';
 
@@ -11,6 +11,16 @@ const Settings = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [tshirtGroesse, setTshirtGroesse] = useState('');
+  const [tshirtSaving, setTshirtSaving] = useState(false);
+  const [tshirtError, setTshirtError] = useState('');
+  const [tshirtSuccess, setTshirtSuccess] = useState('');
+
+  useEffect(() => {
+    if (user && isMitarbeiterShop(user)) {
+      setTshirtGroesse(user.tshirt_groesse ? String(user.tshirt_groesse) : '');
+    }
+  }, [user?.id, user?.tshirt_groesse]);
 
   const clearMessages = () => {
     setError('');
@@ -62,6 +72,24 @@ const Settings = () => {
     }
   };
 
+  const handleTshirtSubmit = async (e) => {
+    e.preventDefault();
+    if (!user || !isMitarbeiterShop(user)) return;
+    setTshirtSaving(true);
+    setTshirtError('');
+    setTshirtSuccess('');
+    try {
+      const payload = { tshirt_groesse: tshirtGroesse.trim() || null };
+      const res = await updateUserProfile(payload);
+      setUser(res.data.user);
+      setTshirtSuccess('T-Shirt-Größe gespeichert.');
+    } catch (err) {
+      setTshirtError(err.response?.data?.message || 'Speichern fehlgeschlagen.');
+    } finally {
+      setTshirtSaving(false);
+    }
+  };
+
   return (
     <div className="settings">
       <div className="settings-header">
@@ -78,6 +106,41 @@ const Settings = () => {
         </div>
       )}
       <div className="settings-content">
+        {user && isMitarbeiterShop(user) && (
+          <div className="settings-section settings-section--tshirt">
+            <div className="settings-section-header">
+              <h2>T-Shirt-Größe</h2>
+              <p>Ihre Shirt-Größe für Bestellungen oder Ausgaben im Shop</p>
+            </div>
+            {tshirtError && <div className="alert alert--error">{tshirtError}</div>}
+            {tshirtSuccess && <div className="alert alert--success">{tshirtSuccess}</div>}
+            <form onSubmit={handleTshirtSubmit} className="settings-form">
+              <div className="form-group">
+                <label htmlFor="tshirtGroesse" className="form-label">Größe</label>
+                <select
+                  id="tshirtGroesse"
+                  name="tshirtGroesse"
+                  className="form-input"
+                  value={tshirtGroesse}
+                  onChange={(ev) => {
+                    setTshirtGroesse(ev.target.value);
+                    setTshirtError('');
+                    setTshirtSuccess('');
+                  }}
+                >
+                  {TSHIRT_GROESSE_OPTIONS.map((opt) => (
+                    <option key={opt.value || '__empty'} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="btn btn--primary" disabled={tshirtSaving}>
+                {tshirtSaving ? 'Speichern…' : 'Speichern'}
+              </button>
+            </form>
+          </div>
+        )}
         <div className="settings-section settings-section--password">
           <div className="settings-section-header">
             <h2>Passwort ändern</h2>

@@ -7,6 +7,7 @@ import {
   updatePassword,
   getDirectoryUsers,
   getDirectoryUserById,
+  getMitarbeiterShopTshirtGroessenForMarketing,
   getAllUsers,
   createUserByAdmin,
   updateUserByAdmin,
@@ -25,6 +26,7 @@ router.put('/password', updatePassword);
 
 router.get('/directory', getDirectoryUsers);
 router.get('/directory/:id', getDirectoryUserById);
+router.get('/mitarbeiter-shop-tshirt-groessen', getMitarbeiterShopTshirtGroessenForMarketing);
 
 router.use(forbidPartnerRole);
 

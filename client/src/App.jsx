@@ -13,6 +13,7 @@ import Documentation from './pages/Documentation/Documentation';
 import FormularCenter from './pages/FormularCenter/FormularCenter';
 import MitarbeiterOverview from './pages/Mitarbeiter/MitarbeiterOverview';
 import MitarbeiterProfile from './pages/Mitarbeiter/MitarbeiterProfile';
+import MarketingShopTshirtGroessen from './pages/MarketingShopTshirtGroessen/MarketingShopTshirtGroessen';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import PartnerRestrictedRoute from './components/PartnerRestrictedRoute/PartnerRestrictedRoute';
 
@@ -74,6 +75,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MitarbeiterProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marketing/tshirt-groessen"
+          element={
+            <ProtectedRoute>
+              <MarketingShopTshirtGroessen />
             </ProtectedRoute>
           }
         />

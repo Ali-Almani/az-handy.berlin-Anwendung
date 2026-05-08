@@ -11,6 +11,9 @@ const notFoundError = (msg = 'Benutzer nicht gefunden') => ({ response: { status
 const forbiddenError = (msg) => ({ response: { status: 403, data: { message: msg } } });
 const badRequestError = (msg) => ({ response: { status: 400, data: { message: msg } } });
 
+const ALLOWED_TSHIRT = new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']);
+const isMitarbeiterShopRole = (role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Mitarbeiter shop';
+
 export const mockGetProfile = async (mockUsers, token) => {
   await delay(500);
   const userId = parseToken(token);
@@ -30,6 +33,7 @@ export const mockGetProfile = async (mockUsers, token) => {
         avatar,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
+        tshirt_groesse: user.tshirt_groesse ?? null,
         createdAt: user.createdAt
       }
     }
@@ -67,6 +71,13 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
     const t = updates.telefon === null || updates.telefon === '' ? null : String(updates.telefon).trim().slice(0, 40);
     mockUsers[userIndex].telefon = t || null;
   }
+  if (updates.tshirt_groesse !== undefined) {
+    const me = mockUsers[userIndex];
+    if (!isMitarbeiterShopRole(me.role)) throw forbiddenError('T-Shirt-Größe ist nur für die Rolle „Mitarbeiter shop“.');
+    const tv = updates.tshirt_groesse === null || updates.tshirt_groesse === '' ? null : String(updates.tshirt_groesse).trim();
+    if (tv && !ALLOWED_TSHIRT.has(tv)) throw badRequestError('Ungültige T-Shirt-Größe');
+    mockUsers[userIndex].tshirt_groesse = tv || null;
+  }
   const u = mockUsers[userIndex];
   const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`mock-avatar-${userId}`) : null;
   const avatar = u.avatar || storedAvatar || null;
@@ -81,7 +92,8 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
         role: u.role,
         avatar,
         einsatz_ort: u.einsatz_ort || null,
-        telefon: u.telefon || null
+        telefon: u.telefon || null,
+        tshirt_groesse: u.tshirt_groesse ?? null
       }
     }
   };
@@ -205,6 +217,26 @@ export const mockGetUserDirectory = async (mockUsers, token) => {
       einsatz_ort: u.einsatz_ort || null,
       telefon: u.telefon || null
     }));
+  return { data: { success: true, users } };
+};
+
+export const mockGetMitarbeiterShopTshirtGroessen = async (mockUsers, token) => {
+  await delay(400);
+  const userId = parseToken(token);
+  if (!userId) throw authError();
+  const me = mockUsers.find((u) => u.id === userId);
+  if (!me || String(me.role || '').replace(/\u00a0/g, ' ').trim() !== 'Marketing') {
+    throw forbiddenError('Nur für die Rolle Marketing');
+  }
+  const users = mockUsers
+    .filter((u) => String(u.role || '').replace(/\u00a0/g, ' ').trim() === 'Mitarbeiter shop')
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      einsatz_ort: u.einsatz_ort || null,
+      tshirt_groesse: u.tshirt_groesse ?? null
+    }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de'));
   return { data: { success: true, users } };
 };
 

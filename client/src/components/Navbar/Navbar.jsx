@@ -8,7 +8,8 @@ import {
   isAdmin,
   isBüroMitarbeiter,
   isPartner,
-  canSubmitVoucherManualRequest
+  canSubmitVoucherManualRequest,
+  isMarketing
 } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import './Navbar.scss';
@@ -424,6 +425,23 @@ const Navbar = ({
     </li>
   );
 
+  const renderMarketingTshirtNavItem = () =>
+    user && isMarketing(user) ? (
+      <li>
+        <NavLink to="/marketing/tshirt-groessen" className={navLinkClassName} onClick={closeMobileMenu}>
+          <span className="navbar-link-inner">
+            <span className="navbar-link-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 3h12l2 4v6l-3 3v8H7v-8l-3-3V7l2-4z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                <path d="M6 7h12M9 11h6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+              </svg>
+            </span>
+            T-Shirt-Größen
+          </span>
+        </NavLink>
+      </li>
+    ) : null;
+
   const navLinksDesktop = partnerUser ? (
     <>
       {renderFormularCenterNavItem()}
@@ -436,6 +454,7 @@ const Navbar = ({
       {renderVoucherItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId, useHoverDropdowns)}
       {renderMitarbeiterNavItem()}
+      {renderMarketingTshirtNavItem()}
     </>
   );
 
@@ -451,6 +470,7 @@ const Navbar = ({
       {renderVoucherItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
       {renderMitarbeiterNavItem()}
+      {renderMarketingTshirtNavItem()}
     </>
   );
 

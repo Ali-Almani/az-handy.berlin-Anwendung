@@ -4,7 +4,12 @@ import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
 
 const ALLOWED_EINSATZ_ORT = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
+const ALLOWED_TSHIRT_GROESSEN = new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']);
 const TELEFON_MAX_LEN = 40;
+
+const isMitarbeiterShopUser = (role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Mitarbeiter shop';
+
+const isMarketingUserRole = (role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Marketing';
 
 const normalizeTelefonInput = (v) => {
   if (v === undefined) return undefined;
@@ -56,6 +61,7 @@ export const getProfile = async (req, res, next) => {
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
+        tshirt_groesse: user.tshirt_groesse || null,
         createdAt: user.createdAt
       }
     });
@@ -68,7 +74,7 @@ export const updateProfile = async (req, res, next) => {
   try {
     const uid = resolveAuthUserId(req.user);
     if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
-    const { name, email, avatar, einsatz_ort, telefon } = req.body;
+    const { name, email, avatar, einsatz_ort, telefon, tshirt_groesse } = req.body;
     const user = await User.findByPk(uid);
 
     if (!user) {
@@ -97,6 +103,16 @@ export const updateProfile = async (req, res, next) => {
     if (telefon !== undefined) {
       user.telefon = normalizeTelefonInput(telefon);
     }
+    if (tshirt_groesse !== undefined) {
+      if (!isMitarbeiterShopUser(user.role)) {
+        return res.status(403).json({ message: 'T-Shirt-Größe ist nur für die Rolle „Mitarbeiter shop“.' });
+      }
+      const tv = tshirt_groesse === null || tshirt_groesse === '' ? null : String(tshirt_groesse).trim();
+      if (tv && !ALLOWED_TSHIRT_GROESSEN.has(tv)) {
+        return res.status(400).json({ message: 'Ungültige T-Shirt-Größe' });
+      }
+      user.tshirt_groesse = tv || null;
+    }
 
     await user.save();
 
@@ -110,9 +126,44 @@ export const updateProfile = async (req, res, next) => {
         role: user.role,
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
-        telefon: user.telefon || null
+        telefon: user.telefon || null,
+        tshirt_groesse: user.tshirt_groesse || null
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMitarbeiterShopTshirtGroessenForMarketing = async (req, res, next) => {
+  try {
+    const uid = resolveAuthUserId(req.user);
+    if (uid == null) return res.status(401).json({ message: 'Nicht angemeldet' });
+    const currentUser = await User.findByPk(uid);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+    if (!isMarketingUserRole(currentUser.role)) {
+      return res.status(403).json({ message: 'Nur für die Rolle Marketing' });
+    }
+    const rows = User.findAll
+      ? await User.findAll({
+        where: { role: 'Mitarbeiter shop' },
+        attributes: ['id', 'name', 'einsatz_ort', 'tshirt_groesse'],
+        order: [['name', 'ASC']]
+      })
+      : [];
+    const list = Array.isArray(rows) ? rows : (rows.rows || []);
+    const users = list.map((u) => {
+      const uu = u.toJSON ? u.toJSON() : u;
+      return {
+        id: uu.id,
+        name: uu.name,
+        einsatz_ort: uu.einsatz_ort || null,
+        tshirt_groesse: uu.tshirt_groesse || null
+      };
+    });
+    res.json({ success: true, users });
   } catch (error) {
     next(error);
   }
