@@ -49,7 +49,7 @@ const MarketingShopTshirtGroessen = () => {
   return (
     <div className="mitarbeiter-page mitarbeiter-page--overview">
       <header className="mitarbeiter-page__header">
-        <h1>T-Shirt-Größen – Mitarbeiter Shop</h1>
+        <h1>Uniform – Mitarbeiter Shop</h1>
       </header>
       {error && <div className="mitarbeiter-error">{error}</div>}
       {loading ? (
@@ -63,7 +63,7 @@ const MarketingShopTshirtGroessen = () => {
               <tr>
                 <th>Name</th>
                 <th>Einsatzort</th>
-                <th>T-Shirt-Größe</th>
+                <th>Uniform-Größe</th>
               </tr>
             </thead>
             <tbody>

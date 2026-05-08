@@ -63,7 +63,7 @@ export const getDirectoryUser = (userId) => {
   return api.get(`/users/directory/${userId}`);
 };
 
-/** Liste aller Mitarbeiter shop mit T-Shirt-Größe – nur Rolle Marketing (Server prüft). */
+/** Liste aller Mitarbeiter shop mit Uniform-Größe – nur Rolle Marketing (Server prüft). */
 export const getMitarbeiterShopTshirtGroessenForMarketing = () => {
   if (USE_MOCK_API) {
     const token = localStorage.getItem('token');

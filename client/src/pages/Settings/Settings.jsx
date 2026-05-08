@@ -82,7 +82,7 @@ const Settings = () => {
       const payload = { tshirt_groesse: tshirtGroesse.trim() || null };
       const res = await updateUserProfile(payload);
       setUser(res.data.user);
-      setTshirtSuccess('T-Shirt-Größe gespeichert.');
+      setTshirtSuccess('Uniform-Größe gespeichert.');
     } catch (err) {
       setTshirtError(err.response?.data?.message || 'Speichern fehlgeschlagen.');
     } finally {
@@ -109,8 +109,8 @@ const Settings = () => {
         {user && isMitarbeiterShop(user) && (
           <div className="settings-section settings-section--tshirt">
             <div className="settings-section-header">
-              <h2>T-Shirt-Größe</h2>
-              <p>Ihre Shirt-Größe für Bestellungen</p>
+              <h2>Uniform-Größe</h2>
+              <p>Ihre Uniform-Größe für Bestellungen</p>
             </div>
             {tshirtError && <div className="alert alert--error">{tshirtError}</div>}
             {tshirtSuccess && <div className="alert alert--success">{tshirtSuccess}</div>}

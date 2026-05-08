@@ -40,7 +40,7 @@ export const EINSATZ_ORT_OPTIONS = [
   { value: 'Haupt', label: 'Haupt' }
 ];
 
-/** T-Shirt-Größen (Einstellungen, Rolle Mitarbeiter shop) */
+/** Uniform-Größen / Größenoptionen (Einstellungen, Rolle Mitarbeiter shop) */
 export const TSHIRT_GROESSE_OPTIONS = [
   { value: '', label: '– Bitte wählen –' },
   { value: 'S', label: 'S' },

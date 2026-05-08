@@ -73,9 +73,9 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
   }
   if (updates.tshirt_groesse !== undefined) {
     const me = mockUsers[userIndex];
-    if (!isMitarbeiterShopRole(me.role)) throw forbiddenError('T-Shirt-Größe ist nur für die Rolle „Mitarbeiter shop“.');
+    if (!isMitarbeiterShopRole(me.role)) throw forbiddenError('Uniform-Größe ist nur für die Rolle „Mitarbeiter shop“.');
     const tv = updates.tshirt_groesse === null || updates.tshirt_groesse === '' ? null : String(updates.tshirt_groesse).trim();
-    if (tv && !ALLOWED_TSHIRT.has(tv)) throw badRequestError('Ungültige T-Shirt-Größe');
+    if (tv && !ALLOWED_TSHIRT.has(tv)) throw badRequestError('Ungültige Uniform-Größe');
     mockUsers[userIndex].tshirt_groesse = tv || null;
   }
   const u = mockUsers[userIndex];

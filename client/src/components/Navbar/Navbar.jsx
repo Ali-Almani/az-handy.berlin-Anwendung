@@ -436,7 +436,7 @@ const Navbar = ({
                 <path d="M6 7h12M9 11h6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
               </svg>
             </span>
-            T-Shirt-Größen
+            Uniform
           </span>
         </NavLink>
       </li>

@@ -105,11 +105,11 @@ export const updateProfile = async (req, res, next) => {
     }
     if (tshirt_groesse !== undefined) {
       if (!isMitarbeiterShopUser(user.role)) {
-        return res.status(403).json({ message: 'T-Shirt-Größe ist nur für die Rolle „Mitarbeiter shop“.' });
+        return res.status(403).json({ message: 'Uniform-Größe ist nur für die Rolle „Mitarbeiter shop“.' });
       }
       const tv = tshirt_groesse === null || tshirt_groesse === '' ? null : String(tshirt_groesse).trim();
       if (tv && !ALLOWED_TSHIRT_GROESSEN.has(tv)) {
-        return res.status(400).json({ message: 'Ungültige T-Shirt-Größe' });
+        return res.status(400).json({ message: 'Ungültige Uniform-Größe' });
       }
       user.tshirt_groesse = tv || null;
     }

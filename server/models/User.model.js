@@ -65,7 +65,7 @@ const User = sequelize.define('User', {
   tshirt_groesse: {
     type: DataTypes.STRING(8),
     allowNull: true,
-    comment: 'T-Shirt-Größe (nur Mitarbeiter shop): S, M, L, XL, 2XL–5XL'
+    comment: 'Uniform-Größe (nur Mitarbeiter shop): S, M, L, XL, 2XL–5XL'
   }
 }, {
   tableName: 'users',
