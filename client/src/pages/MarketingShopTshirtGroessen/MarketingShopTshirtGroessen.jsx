@@ -50,9 +50,6 @@ const MarketingShopTshirtGroessen = () => {
     <div className="mitarbeiter-page mitarbeiter-page--overview">
       <header className="mitarbeiter-page__header">
         <h1>T-Shirt-Größen – Mitarbeiter Shop</h1>
-        <p className="marketing-tshirt-intro">
-          Übersicht aller Kolleginnen und Kollegen mit der Rolle „Mitarbeiter shop“. Größen pflegen die Betroffenen unter Einstellungen.
-        </p>
       </header>
       {error && <div className="mitarbeiter-error">{error}</div>}
       {loading ? (

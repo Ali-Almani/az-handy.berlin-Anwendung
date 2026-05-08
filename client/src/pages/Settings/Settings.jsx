@@ -110,7 +110,7 @@ const Settings = () => {
           <div className="settings-section settings-section--tshirt">
             <div className="settings-section-header">
               <h2>T-Shirt-Größe</h2>
-              <p>Ihre Shirt-Größe für Bestellungen oder Ausgaben im Shop</p>
+              <p>Ihre Shirt-Größe für Bestellungen</p>
             </div>
             {tshirtError && <div className="alert alert--error">{tshirtError}</div>}
             {tshirtSuccess && <div className="alert alert--success">{tshirtSuccess}</div>}
