@@ -47,65 +47,59 @@ const FormularCenter = () => {
           {loading ? (
             <p>Lade Formulare…</p>
           ) : sections.length > 0 ? (
-            <>
-              <p className="formular-center-hint">
-                PDF, Word und Excel: zum Bearbeiten „Herunterladen“ wählen und in der passenden App öffnen. Videos (MP4)
-                können direkt hier abgespielt oder heruntergeladen werden.
-              </p>
-              <div className="formular-center-sections-public">
-                {sections.map((sec) => (
-                  <section key={sec.id} className="formular-center-section-block formular-center-section-block--public">
-                    <h3 className="formular-center-section-heading formular-center-section-heading--public">
-                      {sec.title || 'Bereich'}
-                    </h3>
-                    {(sec.items || []).length > 0 ? (
-                      <ul className="formular-center-list">
-                        {(sec.items || []).map((it) => {
-                          const label = it.originalName || 'Dokument';
-                          const desc = String(it.description || '').trim();
-                          const href = it.id ? getFormularCenterDownloadHref(it.id) : '#';
-                          const fileName = safeDownloadName(label);
-                          const isVideo = itemIsVideo(it);
-                          return (
-                            <li
-                              key={it.id}
-                              className={`formular-center-item${isVideo ? ' formular-center-item--video' : ''}`}
-                            >
-                              <span className="formular-center-item-name">
-                                {label}
-                                {desc && <span className="formular-center-item-desc"> – {desc}</span>}
-                              </span>
-                              {isVideo && (
-                                <video
-                                  className="formular-center-video"
-                                  controls
-                                  preload="metadata"
-                                  playsInline
-                                  src={href}
-                                >
-                                  Video wird von Ihrem Browser nicht unterstützt.
-                                </video>
-                              )}
-                              <span className="formular-center-item-actions">
-                                <a
-                                  href={href}
-                                  download={fileName}
-                                  className="formular-center-link formular-center-link--download"
-                                >
-                                  Herunterladen
-                                </a>
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className="formular-center-section-empty">In diesem Bereich sind noch keine Dateien.</p>
-                    )}
-                  </section>
-                ))}
-              </div>
-            </>
+            <div className="formular-center-sections-public">
+              {sections.map((sec) => (
+                <section key={sec.id} className="formular-center-section-block formular-center-section-block--public">
+                  <h3 className="formular-center-section-heading formular-center-section-heading--public">
+                    {sec.title || 'Bereich'}
+                  </h3>
+                  {(sec.items || []).length > 0 ? (
+                    <ul className="formular-center-list">
+                      {(sec.items || []).map((it) => {
+                        const label = it.originalName || 'Dokument';
+                        const desc = String(it.description || '').trim();
+                        const href = it.id ? getFormularCenterDownloadHref(it.id) : '#';
+                        const fileName = safeDownloadName(label);
+                        const isVideo = itemIsVideo(it);
+                        return (
+                          <li
+                            key={it.id}
+                            className={`formular-center-item${isVideo ? ' formular-center-item--video' : ''}`}
+                          >
+                            <span className="formular-center-item-name">
+                              {label}
+                              {desc && <span className="formular-center-item-desc"> – {desc}</span>}
+                            </span>
+                            {isVideo && (
+                              <video
+                                className="formular-center-video"
+                                controls
+                                preload="metadata"
+                                playsInline
+                                src={href}
+                              >
+                                Video wird von Ihrem Browser nicht unterstützt.
+                              </video>
+                            )}
+                            <span className="formular-center-item-actions">
+                              <a
+                                href={href}
+                                download={fileName}
+                                className="formular-center-link formular-center-link--download"
+                              >
+                                Herunterladen
+                              </a>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="formular-center-section-empty">In diesem Bereich sind noch keine Dateien.</p>
+                  )}
+                </section>
+              ))}
+            </div>
           ) : (
             <p className="formular-center-empty">Keine Formulare hinterlegt.</p>
           )}
