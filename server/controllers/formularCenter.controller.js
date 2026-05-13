@@ -106,12 +106,16 @@ function findItemLocation(sections, itemId) {
 }
 
 function mapItemToResponse(it) {
+  const stored = String(it.fileName || it.originalName || '');
+  const ext = path.extname(stored).toLowerCase();
+  const mediaKind = ext === '.mp4' ? 'video' : 'file';
   return {
     id: it.id,
     originalName: it.originalName || it.fileName,
     description: it.description || '',
     uploadedAt: it.uploadedAt,
     uploadedByName: it.uploadedByName || '',
+    mediaKind,
     url: `/api/formular-center/download/${encodeURIComponent(it.id)}`
   };
 }
@@ -154,8 +158,15 @@ export const downloadFormularCenterFile = async (req, res, next) => {
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.doc': 'application/msword',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      '.xls': 'application/vnd.ms-excel'
+      '.xls': 'application/vnd.ms-excel',
+      '.mp4': 'video/mp4'
     };
+    if (ext === '.mp4') {
+      res.type('video/mp4');
+      return res.sendFile(path.resolve(filePath), (err) => {
+        if (err && !res.headersSent) next(err);
+      });
+    }
     if (mimeByExt[ext]) res.type(mimeByExt[ext]);
     return res.download(filePath, downloadName, (err) => {
       if (err && !res.headersSent) next(err);
@@ -370,11 +381,7 @@ export const uploadFormularCenterPdf = async (req, res, next) => {
     return res.json({
       success: true,
       item: {
-        id: entry.id,
-        originalName: entry.originalName,
-        uploadedAt: entry.uploadedAt,
-        uploadedByName: entry.uploadedByName,
-        url: `/api/formular-center/download/${encodeURIComponent(entry.id)}`,
+        ...mapItemToResponse(entry),
         sectionId: sec.id
       }
     });
@@ -418,14 +425,7 @@ export const patchFormularCenterItem = async (req, res, next) => {
     const found = loc.item;
     return res.json({
       success: true,
-      item: {
-        id: found.id,
-        originalName: found.originalName,
-        description: found.description || '',
-        uploadedAt: found.uploadedAt,
-        uploadedByName: found.uploadedByName || '',
-        url: `/api/formular-center/download/${encodeURIComponent(found.id)}`
-      }
+      item: mapItemToResponse(found)
     });
   } catch (e) {
     next(e);
@@ -472,13 +472,7 @@ export const replaceFormularCenterFile = async (req, res, next) => {
     saveFormularStore(sections);
     return res.json({
       success: true,
-      item: {
-        id: found.id,
-        originalName: found.originalName,
-        uploadedAt: found.uploadedAt,
-        uploadedByName: found.uploadedByName,
-        url: `/api/formular-center/download/${encodeURIComponent(found.id)}`
-      }
+      item: mapItemToResponse(found)
     });
   } catch (e) {
     next(e);

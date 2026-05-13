@@ -45,14 +45,19 @@ const createMockApi = () => {
         id: sec.id,
         title: sec.title,
         sortOrder: sec.sortOrder,
-        items: (sec.items || []).map((it, i) => ({
-          id: it.id,
-          originalName: it.originalName,
-          uploadedAt: it.uploadedAt,
-          uploadedByName: it.uploadedByName,
-          sortOrder: it.sortOrder ?? i,
-          url: '#'
-        }))
+        items: (sec.items || []).map((it, i) => {
+          const lower = String(it.originalName || '').toLowerCase();
+          const mediaKind = lower.endsWith('.mp4') ? 'video' : 'file';
+          return {
+            id: it.id,
+            originalName: it.originalName,
+            uploadedAt: it.uploadedAt,
+            uploadedByName: it.uploadedByName,
+            sortOrder: it.sortOrder ?? i,
+            mediaKind,
+            url: '#'
+          };
+        })
       }))
     };
   };
@@ -189,15 +194,20 @@ const createMockApi = () => {
       }
       if (url === '/formular-center/upload') {
         let sectionId = 'mock-sec-1';
+        let originalName = 'beispiel.pdf';
         if (data instanceof FormData) {
           const sid = data.get('sectionId');
           if (sid) sectionId = String(sid);
+          const f = data.get('file');
+          if (f && typeof f === 'object' && typeof f.name === 'string' && f.name.trim()) {
+            originalName = f.name.trim();
+          }
         }
         const sec = formularMockSections.find((s) => s.id === sectionId);
         const id = `mock-item-${Date.now()}`;
         const item = {
           id,
-          originalName: 'beispiel.pdf',
+          originalName,
           uploadedAt: new Date().toISOString(),
           uploadedByName: 'Mock',
           sortOrder: sec ? (sec.items || []).length : 0

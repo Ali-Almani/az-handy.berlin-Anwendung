@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 /** Darf `client_max_body_size` am Reverse-Proxy (z. B. Nginx) nicht überschreiten, sonst 413 bevor Multer greift. */
 export const FORMULAR_CENTER_MAX_FILE_BYTES = 100 * 1024 * 1024;
 
-const ALLOWED_EXT = new Set(['.pdf', '.doc', '.docx', '.xlsx', '.xls']);
+const ALLOWED_EXT = new Set(['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.mp4']);
 
 /** Browser/Proxy hängen oft "; charset=…" o. Ä. an – ohne Normalisierung schlagen strikte Regex-Checks fehl. */
 function baseMime(file) {
@@ -65,6 +65,10 @@ function mimeLooksXls(m) {
   return m === 'application/vnd.ms-excel' || m.startsWith('application/vnd.ms-excel');
 }
 
+function mimeLooksMp4(m) {
+  return m === 'video/mp4' || m === 'video/x-m4v';
+}
+
 function getSafeExtension(file) {
   const name = String(file.originalname || '').toLowerCase();
   const fromName = path.extname(name);
@@ -76,6 +80,7 @@ function getSafeExtension(file) {
   if (mimeLooksWordBinary(mime)) return '.doc';
   if (mimeLooksXlsx(mime)) return '.xlsx';
   if (mimeLooksXls(mime)) return '.xls';
+  if (mimeLooksMp4(mime)) return '.mp4';
   if (mime === 'application/zip' && name.endsWith('.xlsx')) return '.xlsx';
   if (!mime || mime === 'application/octet-stream') {
     if (name.endsWith('.pdf')) return '.pdf';
@@ -83,9 +88,11 @@ function getSafeExtension(file) {
     if (name.endsWith('.doc')) return '.doc';
     if (name.endsWith('.xlsx')) return '.xlsx';
     if (name.endsWith('.xls')) return '.xls';
+    if (name.endsWith('.mp4')) return '.mp4';
   }
   if (name.endsWith('.xlsx')) return '.xlsx';
   if (name.endsWith('.xls')) return '.xls';
+  if (name.endsWith('.mp4')) return '.mp4';
   return '.pdf';
 }
 
@@ -100,8 +107,9 @@ function isAllowedFormularDocument(file) {
   if (mime === 'application/zip' && name.endsWith('.docx')) return true;
   if (mimeLooksXlsx(mime)) return true;
   if (mimeLooksXls(mime)) return true;
+  if (mimeLooksMp4(mime)) return true;
   if (mime === 'application/zip' && name.endsWith('.xlsx')) return true;
-  if (mime === 'application/octet-stream' && name.match(/\.(pdf|doc|docx|xlsx|xls)$/i)) return true;
+  if (mime === 'application/octet-stream' && name.match(/\.(pdf|doc|docx|xlsx|xls|mp4)$/i)) return true;
   return false;
 }
 
@@ -112,7 +120,11 @@ export const formularCenterUpload = multer({
     if (isAllowedFormularDocument(file)) {
       cb(null, true);
     } else {
-      cb(new Error('Nur PDF-, Word- und Excel-Dateien (.pdf, .doc, .docx, .xlsx, .xls) sind erlaubt'));
+      cb(
+        new Error(
+          'Nur PDF-, Word-, Excel- und Video-Dateien (.pdf, .doc, .docx, .xlsx, .xls, .mp4) sind erlaubt'
+        )
+      );
     }
   }
 });

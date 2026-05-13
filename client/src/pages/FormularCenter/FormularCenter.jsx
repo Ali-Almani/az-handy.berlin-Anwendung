@@ -7,6 +7,11 @@ function safeDownloadName(name) {
   return n.replace(/[/\\?%*:|"<>]/g, '_');
 }
 
+function itemIsVideo(it) {
+  if (it?.mediaKind === 'video') return true;
+  return String(it?.originalName || '').toLowerCase().endsWith('.mp4');
+}
+
 const FormularCenter = () => {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +49,8 @@ const FormularCenter = () => {
           ) : sections.length > 0 ? (
             <>
               <p className="formular-center-hint">
-                PDF, Word und Excel: zum Bearbeiten „Herunterladen“ wählen und in der passenden App öffnen.
+                PDF, Word und Excel: zum Bearbeiten „Herunterladen“ wählen und in der passenden App öffnen. Videos (MP4)
+                können direkt hier abgespielt oder heruntergeladen werden.
               </p>
               <div className="formular-center-sections-public">
                 {sections.map((sec) => (
@@ -59,12 +65,27 @@ const FormularCenter = () => {
                           const desc = String(it.description || '').trim();
                           const href = it.id ? getFormularCenterDownloadHref(it.id) : '#';
                           const fileName = safeDownloadName(label);
+                          const isVideo = itemIsVideo(it);
                           return (
-                            <li key={it.id} className="formular-center-item">
+                            <li
+                              key={it.id}
+                              className={`formular-center-item${isVideo ? ' formular-center-item--video' : ''}`}
+                            >
                               <span className="formular-center-item-name">
                                 {label}
                                 {desc && <span className="formular-center-item-desc"> – {desc}</span>}
                               </span>
+                              {isVideo && (
+                                <video
+                                  className="formular-center-video"
+                                  controls
+                                  preload="metadata"
+                                  playsInline
+                                  src={href}
+                                >
+                                  Video wird von Ihrem Browser nicht unterstützt.
+                                </video>
+                              )}
                               <span className="formular-center-item-actions">
                                 <a
                                   href={href}

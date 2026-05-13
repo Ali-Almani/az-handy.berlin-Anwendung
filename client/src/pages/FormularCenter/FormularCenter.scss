@@ -100,6 +100,23 @@
   gap: $spacing-sm $spacing-md;
 }
 
+.formular-center-item--video {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.formular-center-item--video .formular-center-item-actions {
+  justify-content: flex-end;
+}
+
+.formular-center-video {
+  width: 100%;
+  max-width: 42rem;
+  max-height: 22rem;
+  border-radius: $border-radius-card;
+  background: #111;
+}
+
 .formular-center-link {
   font-weight: $font-weight-medium;
   color: $primary-color;

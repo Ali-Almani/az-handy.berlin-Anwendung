@@ -15,7 +15,7 @@ import {
 import './FormularCenter.scss';
 
 const FORMULAR_FILE_ACCEPT =
-  '.pdf,.doc,.docx,.xlsx,.xls,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
+  '.pdf,.doc,.docx,.xlsx,.xls,.mp4,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,video/mp4';
 
 /**
  * Verwaltung: Bereiche (Titel), Reihenfolge, Dateien.
@@ -304,7 +304,7 @@ export default function FormularCenterAdminPanel({
     <div className="card dashboard-formular-center dashboard-admin-panel">
       <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
         <h2 className="card-title">Formular Center</h2>
-        <span className="dashboard-excel-upload__badge">Verwaltung · PDF, Word, Excel</span>
+        <span className="dashboard-excel-upload__badge">Verwaltung · PDF, Word, Excel, MP4</span>
       </div>
       <div className="card-body">
         <div className="formular-center-new-section">
@@ -347,7 +347,7 @@ export default function FormularCenterAdminPanel({
           />
         </div>
         <p className="formular-center-upload-hint formular-center-upload-hint--block">
-          Dateien: max. 100 MB · PDF, Word, Excel – je Bereich über „Datei hinzufügen“.
+          Dateien: max. 100 MB · PDF, Word, Excel, MP4 (Video) – je Bereich über „Datei hinzufügen“.
         </p>
         {formularError && <p className="text-error formular-center-error">{formularError}</p>}
         {formularLoading ? (
