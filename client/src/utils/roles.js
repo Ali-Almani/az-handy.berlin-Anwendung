@@ -181,11 +181,10 @@ export const canUseImeiAdvancedActions = (user) => {
          role === ROLES.BUERO_MITARBEITER;
 };
 
-// Prüfe ob Benutzer Bestand-Button sehen darf (nur Administrator)
+// Prüfe ob Benutzer Bestand-Button (IMEI) sehen darf – Administrator und Büro Mitarbeiter
 export const canSeeBestand = (user) => {
   if (!user) return false;
-  const role = user.role;
-  return role === ROLES.ADMINISTRATOR || role === 'admin';
+  return isAdmin(user) || isBüroMitarbeiter(user);
 };
 
 // Prüfe ob Benutzer Dashboard sehen darf (Navbar + Route: nur Administrator und Büro Mitarbeiter)
