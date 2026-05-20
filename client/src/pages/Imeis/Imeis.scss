@@ -53,6 +53,80 @@
     }
   }
 
+  .imeis-scope-tabs {
+    display: flex;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: $spacing-md;
+  }
+
+  .imeis-scope-tab {
+    border: 1px solid $border-color;
+    border-radius: $border-radius-card;
+    background: #fff;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: $text-color;
+
+    &--active {
+      border-color: $primary-color;
+      background: lighten($primary-color, 42%);
+      font-weight: $font-weight-medium;
+    }
+  }
+
+  .imeis-scope-tab__badge {
+    font-weight: $font-weight-normal;
+    color: $text-light;
+    font-size: 0.85rem;
+  }
+
+  .imeis-sonder-office-modal {
+    .imeis-sonder-office-modal__dialog {
+      max-width: 32rem;
+    }
+
+    .imeis-sonder-office-modal__body {
+      max-height: min(70vh, 520px);
+      overflow: auto;
+    }
+
+    .imeis-sonder-office-modal__hint {
+      margin: 0 0 $spacing-md;
+      font-size: 0.88rem;
+      color: $text-light;
+      line-height: 1.45;
+    }
+
+    .imeis-sonder-office-modal__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+    }
+
+    .imeis-sonder-office-modal__row {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      cursor: pointer;
+      padding: $spacing-xs 0;
+
+      input {
+        flex-shrink: 0;
+      }
+    }
+
+    .imeis-sonder-office-modal__imei {
+      font-family: ui-monospace, monospace;
+      font-size: 0.9rem;
+    }
+  }
+
   .imeis-color-buttons {
     display: flex;
     gap: $spacing-sm;

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
+import { sortImeisOldestFirst } from '../utils/imeisSortUtils';
 
 const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
@@ -35,8 +36,20 @@ function processCopyHistory(savedCopyHistory) {
 }
 
 function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
-  const { setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory } = setters;
-  const storedImeis = data.imeis ?? [];
+  const {
+    setImeis,
+    setCellTextColors,
+    setRowActions,
+    setCopyHistory,
+    setCopyTimestamps,
+    setAvailableSheets,
+    setActiveSheet,
+    setAvailableManufacturers,
+    setActiveManufacturer,
+    setHistory,
+    setSonderImeis
+  } = setters;
+  const storedImeis = sortImeisOldestFirst(data.imeis ?? []);
   setImeis(storedImeis);
   setCellTextColors(data.cellColors ?? {});
   setRowActions(data.rowActions ?? {});
@@ -44,8 +57,14 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   setCopyHistory(processedHistory);
   setCopyTimestamps?.(data.copyTimestamps ?? []);
 
+  if (typeof setSonderImeis === 'function') {
+    setSonderImeis(Array.isArray(data.sonderImeis) ? data.sonderImeis : []);
+  }
+
   const sheets = new Set();
-  storedImeis.forEach(item => { if (item.sheet) sheets.add(item.sheet); });
+  storedImeis.forEach((item) => {
+    if (item.sheet) sheets.add(item.sheet);
+  });
   const sheetsArray = Array.from(sheets);
   setAvailableSheets(sheetsArray);
   if (isInitialLoad || sheetsArray.length === 0) {
@@ -69,11 +88,36 @@ export function applyImeisServerPayload(data, setters, getManufacturer, isInitia
   applyImeisData(data, setters, getManufacturer, isInitialLoad);
 }
 
-export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user, showHistoryModal = false) {
+export function useImeisData(
+  getManufacturer,
+  setImeis,
+  setCellTextColors,
+  setRowActions,
+  setCopyHistory,
+  setCopyTimestamps,
+  setAvailableSheets,
+  setActiveSheet,
+  setAvailableManufacturers,
+  setActiveManufacturer,
+  setHistory,
+  setLoading,
+  user,
+  showHistoryModal = false,
+  setSonderImeis
+) {
   useEffect(() => {
     const setters = {
-      setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps,
-      setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory
+      setImeis,
+      setCellTextColors,
+      setRowActions,
+      setCopyHistory,
+      setCopyTimestamps,
+      setAvailableSheets,
+      setActiveSheet,
+      setAvailableManufacturers,
+      setActiveManufacturer,
+      setHistory,
+      setSonderImeis
     };
 
     const loadImeisData = async () => {
@@ -96,11 +140,18 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
   useEffect(() => {
     if (!user?.id) return;
     const setters = {
-      setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps,
-      setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory
+      setImeis,
+      setCellTextColors,
+      setRowActions,
+      setCopyHistory,
+      setCopyTimestamps,
+      setAvailableSheets,
+      setActiveSheet,
+      setAvailableManufacturers,
+      setActiveManufacturer,
+      setHistory,
+      setSonderImeis
     };
-
-    const syncFromServer = async () => {
       if (shouldSkipSync()) return;
       try {
         const data = await getImeisDataFromApi();
@@ -150,14 +201,21 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     };
   }, [user?.id]);
 
-  // Verlauf-Modal offen: Alle Rollen erhalten Echtzeit-Updates (IMEI-Liste + Verlauf), wenn jemand Angenommen/Abgelehnt markiert
   useEffect(() => {
     if (!showHistoryModal || !user?.id) return;
     const setters = {
-      setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps,
-      setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory
+      setImeis,
+      setCellTextColors,
+      setRowActions,
+      setCopyHistory,
+      setCopyTimestamps,
+      setAvailableSheets,
+      setActiveSheet,
+      setAvailableManufacturers,
+      setActiveManufacturer,
+      setHistory,
+      setSonderImeis
     };
-    const refreshVerlauf = async () => {
       if (shouldSkipSync()) return;
       try {
         const data = await getImeisDataFromApi();
@@ -167,5 +225,5 @@ export function useImeisData(getManufacturer, setImeis, setCellTextColors, setRo
     refreshVerlauf();
     const id = setInterval(refreshVerlauf, VERLAUF_REFRESH_MS);
     return () => clearInterval(id);
-  }, [showHistoryModal, user?.id, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory]);
+  }, [showHistoryModal, user?.id, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setSonderImeis]);
 }

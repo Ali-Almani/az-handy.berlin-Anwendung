@@ -93,7 +93,18 @@ export const isAdmin = (user) => {
 // Prüfe ob Benutzer Mitarbeiter shop ist
 export const isMitarbeiterShop = (user) => {
   if (!user) return false;
-  return user.role === ROLES.MITARBEITER_SHOP;
+  if (user.role === ROLES.MITARBEITER_SHOP) return true;
+  const k = normRole(user.role);
+  return k === 'mitarbeiter shop';
+};
+
+/** IMEI „Sonder IMEI“ / Freigaben: Tab nur für Rolle Mitarbeiter shop */
+export const canViewSonderImeiShopTab = (user) => isMitarbeiterShop(user);
+
+/** Büro/Admin: Popup mit ältesten IMEIs zur Freigabe als Sonder IMEI */
+export const canManageSonderImeiOfficePopup = (user) => {
+  if (!user) return false;
+  return isAdmin(user) || isBüroMitarbeiter(user);
 };
 
 /** Rolle Marketing (exakt, inkl. NBSP-Normalisierung über trim-Vergleich auf ROLES) */

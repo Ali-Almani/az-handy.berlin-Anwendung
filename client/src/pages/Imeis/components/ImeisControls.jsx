@@ -13,6 +13,8 @@ const ImeisControls = ({
   showAdvancedActions = true,
   showBestand = true,
   showDeleteAll = true,
+  showSonderOfficeButton = false,
+  onOpenSonderOffice,
   itemsPerPage,
   onItemsPerPageChange,
   currentPage,
@@ -76,8 +78,19 @@ const ImeisControls = ({
                 <button
                   onClick={onShowZustand}
                   className="btn btn--secondary btn--small"
+                  type="button"
                 >
                   Bestand
+                </button>
+              )}
+              {showSonderOfficeButton && imeisLength > 0 && (
+                <button
+                  type="button"
+                  onClick={onOpenSonderOffice}
+                  className="btn btn--outline btn--small"
+                  title="Die zehn ältesten IMEIs für die Sonderliste im Shop freigeben"
+                >
+                  Sonder IMEI (älteste 10)
                 </button>
               )}
             </>

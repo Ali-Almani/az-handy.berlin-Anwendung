@@ -273,6 +273,9 @@ const createMockApi = () => {
       if (url === '/imeis/data') {
         return await mockApi.saveImeisData(data);
       }
+      if (url === '/imeis/sonder-approve') {
+        return await mockApi.approveSonderImeis(data || {});
+      }
       if (url === '/excel/voucher-user-state') {
         voucherMockUserState = {
           copyHistory: Array.isArray(data?.copyHistory) ? data.copyHistory : [],

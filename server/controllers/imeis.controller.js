@@ -13,6 +13,7 @@ import {
   getUserRole,
   isAdmin
 } from '../utils/imeiOfficeRoles.js';
+import { getSonderPublishedEntries, addSonderImeiApprovals } from '../utils/sonderImeiStore.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -538,6 +539,7 @@ export const getImeisData = async (req, res, next) => {
         rowActions,
         copyHistory,
         copyTimestamps,
+        sonderImeis: getSonderPublishedEntries(),
         ...(debug ? { debug } : {})
       });
     }
@@ -618,11 +620,49 @@ export const getImeisData = async (req, res, next) => {
       rowActions,
       copyHistory,
       copyTimestamps,
+      sonderImeis: getSonderPublishedEntries(),
       ...(debug ? { debug } : {})
     });
   } catch (error) {
     console.error('getImeisData:', error);
     next(error);
+  }
+};
+
+/** Büro / Administrator: IMEIs zur Sonder-IMEI-Liste für Mitarbeiter shop freigeben */
+export const approveSonderImeis = async (req, res, next) => {
+  try {
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    const role = getUserRole(currentUser);
+    if (!(isAdmin(role) || isBüroMitarbeiter(role))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Nur Büro oder Administrator können Sonder-IMEIs freigeben'
+      });
+    }
+    const imeisBody = req.body?.imeis;
+    if (!Array.isArray(imeisBody) || imeisBody.length === 0) {
+      return res.status(400).json({ success: false, message: 'imeis (nicht-leeres Array) erforderlich' });
+    }
+    const uploaderName = (
+      currentUser?.name ??
+      currentUser?.get?.('name') ??
+      currentUser?.dataValues?.name ??
+      ''
+    ).trim();
+    const sonderImeis = addSonderImeiApprovals(imeisBody, { approvedByName: uploaderName || 'Büro' });
+    const io = req.app.get('io');
+    if (io) io.emit('imeis:updated');
+    return res.json({ success: true, sonderImeis });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -671,6 +711,7 @@ function normalizeImeiDedupKey(imei) {
 export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
   const existing = Array.isArray(existingImeis) ? [...existingImeis] : [];
   const keyToIndex = new Map();
+  const nowIso = new Date().toISOString();
   for (let i = 0; i < existing.length; i++) {
     const k = normalizeImeiDedupKey(existing[i]?.imei);
     if (k && !keyToIndex.has(k)) keyToIndex.set(k, i);
@@ -692,14 +733,21 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
         imei:
           item.imei != null && String(item.imei).trim() !== ''
             ? String(item.imei).trim()
-            : prev?.imei
+            : prev?.imei,
+        _addedAt: prev?._addedAt || item._addedAt || nowIso
       };
       updatedFromUpload += 1;
       continue;
     }
     keyToIndex.set(k, merged.length);
-    merged.push(item);
-    addedRows.push(item);
+    const row = {
+      ...item,
+      imei:
+        item.imei != null && String(item.imei).trim() !== '' ? String(item.imei).trim() : String(item.imei),
+      _addedAt: item._addedAt || nowIso
+    };
+    merged.push(row);
+    addedRows.push(row);
     added += 1;
   }
   return {

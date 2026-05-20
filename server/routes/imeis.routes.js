@@ -16,7 +16,8 @@ import {
   approveExtraCopyRequest,
   rejectExtraCopyRequest,
   getExtraCopyNotifications,
-  markExtraCopyNotificationRead
+  markExtraCopyNotificationRead,
+  approveSonderImeis
 } from '../controllers/imeis.controller.js';
 
 const router = express.Router();
@@ -39,5 +40,6 @@ router.post('/extra-copy-request/:id/approve', approveExtraCopyRequest);
 router.post('/extra-copy-request/:id/reject', rejectExtraCopyRequest);
 router.get('/extra-copy-notifications', getExtraCopyNotifications);
 router.patch('/extra-copy-notifications/:id/read', markExtraCopyNotificationRead);
+router.post('/sonder-approve', approveSonderImeis);
 
 export default router;

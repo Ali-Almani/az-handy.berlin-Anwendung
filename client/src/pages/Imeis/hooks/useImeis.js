@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { loadImeis, deleteAllImeis } from '../../../utils/storage';
-import { persistImeisState, updateHistoryActionApi, getImeisDataFromApi } from '../../../services/imeis.service';
-import { canActAsImeiOfficeForHistory } from '../../../utils/roles';
+import { persistImeisState, updateHistoryActionApi, getImeisDataFromApi, approveSonderImeisApi } from '../../../services/imeis.service';
+import {
+  canActAsImeiOfficeForHistory,
+  canViewSonderImeiShopTab,
+  canManageSonderImeiOfficePopup
+} from '../../../utils/roles';
 import { useImeisVersionFilters } from './useImeisVersionFilters';
 import { useImeisCopyHandlers } from './useImeisCopyHandlers';
 import { useImeisData, applyImeisServerPayload } from './useImeisData';
@@ -22,6 +26,8 @@ import {
   expandSelection as expandSelectionUtil
 } from '../utils/ImeisUtils';
 import { getZustandData as getZustandDataUtil } from '../utils/imeisZustandUtils';
+import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
+import { pickOldestTenImeisForSonder } from '../utils/imeisSonderUtils';
 
 export function useImeis() {
   const { user } = useAuth();
@@ -66,6 +72,10 @@ export function useImeis() {
   const [availableVariants, setAvailableVariants] = useState([]);
   const [availableGBs, setAvailableGBs] = useState([]);
   const [availableColors, setAvailableColors] = useState([]);
+  const [sonderImeis, setSonderImeis] = useState([]);
+  const [sonderOnly, setSonderOnly] = useState(false);
+  const [showSonderOfficeModal, setShowSonderOfficeModal] = useState(false);
+  const [sonderApproveBusy, setSonderApproveBusy] = useState(false);
 
   const maskImei = maskImeiUtil;
   const getProductFull = getProductFullUtil;
@@ -80,7 +90,23 @@ export function useImeis() {
     getProductUtil(item, (pn) => removeColorAndManufacturerFromProductUtil(pn, extractGBUtil)), []);
   const getManufacturer = getManufacturerUtil;
 
-  useImeisData(getManufacturer, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setLoading, user, showHistoryModal);
+  useImeisData(
+    getManufacturer,
+    setImeis,
+    setCellTextColors,
+    setRowActions,
+    setCopyHistory,
+    setCopyTimestamps,
+    setAvailableSheets,
+    setActiveSheet,
+    setAvailableManufacturers,
+    setActiveManufacturer,
+    setHistory,
+    setLoading,
+    user,
+    showHistoryModal,
+    setSonderImeis
+  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -93,12 +119,43 @@ export function useImeis() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showColorPicker]);
 
+  const sonderImeiKeySet = useMemo(() => {
+    const s = new Set();
+    for (const e of sonderImeis || []) {
+      const k = normalizeImeiSortKey(e?.imei);
+      if (k) s.add(k);
+    }
+    return s;
+  }, [sonderImeis]);
+
   useImeisMainFilter({
-    imeis, activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB,
-    searchTerm, rowActions, getManufacturer, getProduct, getProductFull, hasO2Aktion,
-    extractProductVersion, extractProductVariant, extractGB,
-    setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells
+    imeis,
+    activeSheet,
+    activeManufacturer,
+    activeProduct,
+    activeVersion,
+    activeVariant,
+    activeGB,
+    searchTerm,
+    rowActions,
+    sonderOnly,
+    sonderImeiKeySet,
+    getManufacturer,
+    getProduct,
+    getProductFull,
+    hasO2Aktion,
+    extractProductVersion,
+    extractProductVariant,
+    extractGB,
+    setFilteredImeis,
+    setAllColumns,
+    setCurrentPage,
+    setSelectedCells
   });
+
+  useEffect(() => {
+    if (!canViewSonderImeiShopTab(user) && sonderOnly) setSonderOnly(false);
+  }, [user, sonderOnly]);
 
   const refreshImeisFromApi = useCallback(async () => {
     try {
@@ -116,7 +173,8 @@ export function useImeis() {
             setActiveSheet,
             setAvailableManufacturers,
             setActiveManufacturer,
-            setHistory
+            setHistory,
+            setSonderImeis
           },
           getManufacturer,
           false
@@ -301,6 +359,31 @@ export function useImeis() {
     setZustandLoading(false);
   }, [getZustandData]);
   const onCloseZustandModal = useCallback(() => { setShowZustandModal(false); setZustandDataCache(null); setZustandLoading(false); }, []);
+
+  const oldestTenCandidates = useMemo(
+    () => pickOldestTenImeisForSonder(imeis, rowActions),
+    [imeis, rowActions]
+  );
+
+  const approveSonderImeisSubmit = useCallback(
+    async (imeiStrings) => {
+      const list = (imeiStrings || []).map((x) => String(x ?? '').trim()).filter(Boolean);
+      if (list.length === 0) return;
+      setSonderApproveBusy(true);
+      try {
+        const data = await approveSonderImeisApi(list);
+        if (Array.isArray(data?.sonderImeis)) setSonderImeis(data.sonderImeis);
+        await refreshImeisFromApi();
+        setShowSonderOfficeModal(false);
+      } catch (e) {
+        console.error('Sonder IMEI Freigabe:', e);
+        window.alert(e?.response?.data?.message || e?.message || 'Freigabe fehlgeschlagen.');
+      } finally {
+        setSonderApproveBusy(false);
+      }
+    },
+    [refreshImeisFromApi]
+  );
   const onRowActionRemove = useCallback((rowId) => {
     const updated = { ...rowActions };
     delete updated[rowId];
@@ -330,6 +413,17 @@ export function useImeis() {
     showRateLimitModal, setShowRateLimitModal, rateLimitMessage, imeis, allColumns, selectedCells, selectedCell, showColorPicker, rowActions, setRowActions,
     cellTextColors, maskImei, getManufacturer, getProductFull, getCellTextColor, handleCellClick, handleCellContextMenu, handleCellMouseDown, handleCellMouseEnter,
     handleCellMouseUp, handleColorSelect, handleDropdownSelect, availableSheets, activeSheet, setActiveSheet, onManufacturerChange, onVersionChange, onVariantChange,
-    onGBChange, onShowZustand, onCloseZustandModal, onRowActionRemove
+    onGBChange, onShowZustand, onCloseZustandModal, onRowActionRemove,
+    sonderImeis,
+    sonderOnly,
+    setSonderOnly,
+    sonderImeiKeySet,
+    showSonderOfficeModal,
+    setShowSonderOfficeModal,
+    sonderApproveBusy,
+    oldestTenCandidates,
+    approveSonderImeisSubmit,
+    canShowSonderShopTab: canViewSonderImeiShopTab(user),
+    canOpenSonderOfficePopup: canManageSonderImeiOfficePopup(user)
   };
 }

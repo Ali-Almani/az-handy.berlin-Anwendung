@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { canAccessImeisList, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isTeamleiterShop, isAdmin, canActAsImeiOfficeForHistory } from '../../utils/roles';
+import { canAccessImeisList, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isAdmin, canActAsImeiOfficeForHistory } from '../../utils/roles';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -12,6 +12,7 @@ import ImeisHistoryModal from './components/ImeisHistoryModal';
 import { sendImeiReminderApi, getMyImeiRemindersApi, markImeiReminderReadApi, createExtraCopyRequestApi } from '../../services/imeis.service';
 import ImeisZustandModal from './components/ImeisZustandModal';
 import ImeisRateLimitModal from './components/ImeisRateLimitModal';
+import ImeisSonderOfficeModal from './components/ImeisSonderOfficeModal';
 import './Imeis.scss';
 
 const Imeis = () => {
@@ -88,7 +89,17 @@ const Imeis = () => {
     onGBChange,
     onShowZustand,
     onCloseZustandModal,
-    onRowActionRemove
+    onRowActionRemove,
+    sonderOnly,
+    setSonderOnly,
+    sonderImeiKeySet,
+    showSonderOfficeModal,
+    setShowSonderOfficeModal,
+    sonderApproveBusy,
+    oldestTenCandidates,
+    approveSonderImeisSubmit,
+    canShowSonderShopTab,
+    canOpenSonderOfficePopup
   } = useImeis();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -157,7 +168,35 @@ const Imeis = () => {
             showAdvancedActions={canUseImeiAdvancedActions(user)}
             showBestand={canSeeBestand(user)}
             showDeleteAll={isAdmin(user) || isBüroMitarbeiter(user)}
+            showSonderOfficeButton={Boolean(canOpenSonderOfficePopup && oldestTenCandidates.length > 0)}
+            onOpenSonderOffice={() => setShowSonderOfficeModal(true)}
           />
+
+          {canShowSonderShopTab && (
+            <div className="imeis-scope-tabs" role="tablist" aria-label="IMEI Ansicht">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!sonderOnly}
+                className={`imeis-scope-tab ${!sonderOnly ? 'imeis-scope-tab--active' : ''}`}
+                onClick={() => setSonderOnly(false)}
+              >
+                Alle IMEIs
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sonderOnly}
+                className={`imeis-scope-tab ${sonderOnly ? 'imeis-scope-tab--active' : ''}`}
+                onClick={() => setSonderOnly(true)}
+              >
+                Sonder IMEI
+                {sonderImeiKeySet.size > 0 ? (
+                  <span className="imeis-scope-tab__badge"> {sonderImeiKeySet.size}</span>
+                ) : null}
+              </button>
+            </div>
+          )}
 
           {false && availableSheets.length > 0 && (
             <div className="imeis-sheet-tabs" style={{ display: 'none' }}>
@@ -208,7 +247,7 @@ const Imeis = () => {
           />
 
           {filteredImeis.length === 0 ? (
-            <ImeisEmpty searchTerm={searchTerm} />
+            <ImeisEmpty searchTerm={searchTerm} sonderOnly={sonderOnly} />
           ) : (
             <>
               <ImeisTable
@@ -265,6 +304,17 @@ const Imeis = () => {
         zustandData={zustandDataCache || { manufacturers: [], total: 0 }}
         loading={zustandLoading}
         isAdmin={canSeeBestand(user)}
+      />
+
+      <ImeisSonderOfficeModal
+        isOpen={showSonderOfficeModal}
+        onClose={() => {
+          if (!sonderApproveBusy) setShowSonderOfficeModal(false);
+        }}
+        candidates={oldestTenCandidates}
+        busy={sonderApproveBusy}
+        maskImei={maskImei}
+        onApprove={(imeisList) => approveSonderImeisSubmit(imeisList)}
       />
 
       <ImeisRateLimitModal

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
 
 export function useImeisMainFilter({
   imeis,
@@ -10,6 +11,8 @@ export function useImeisMainFilter({
   activeGB,
   searchTerm,
   rowActions,
+  sonderOnly,
+  sonderImeiKeySet,
   getManufacturer,
   getProduct,
   getProductFull,
@@ -26,6 +29,16 @@ export function useImeisMainFilter({
 
   useEffect(() => {
     let filtered = imeis;
+    if (sonderOnly) {
+      if (!sonderImeiKeySet || sonderImeiKeySet.size === 0) {
+        filtered = [];
+      } else {
+        filtered = filtered.filter((item) => {
+          const k = normalizeImeiSortKey(item?.imei);
+          return k && sonderImeiKeySet.has(k);
+        });
+      }
+    }
     if (activeSheet) filtered = filtered.filter(item => item.sheet === activeSheet);
     if (activeManufacturer) {
       filtered = filtered.filter(item => {
@@ -107,12 +120,12 @@ export function useImeisMainFilter({
       setAllColumns([]);
     }
 
-    const filterKey = `${activeSheet}|${activeManufacturer}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
+    const filterKey = `${sonderOnly ? '1' : '0'}|${activeSheet}|${activeManufacturer}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
     // Nur bei geänderter Suche/Filter/Tabs auf Seite 1 – nicht bei jedem imeis-/rowActions-Update
     if (prevFilterRef.current !== null && prevFilterRef.current !== filterKey) {
       setCurrentPage(1);
       setSelectedCells(new Set());
     }
     prevFilterRef.current = filterKey;
-  }, [activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells]);
+  }, [activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet]);
 }

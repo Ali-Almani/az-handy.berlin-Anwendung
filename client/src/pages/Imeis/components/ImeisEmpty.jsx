@@ -1,9 +1,11 @@
-const ImeisEmpty = ({ searchTerm }) => (
+const ImeisEmpty = ({ searchTerm, sonderOnly }) => (
   <div className="imeis-empty">
     <p>
-      {searchTerm
-        ? 'Keine IMEIs gefunden, die dem Suchbegriff entsprechen.'
-        : 'Keine IMEIs vorhanden.'}
+      {sonderOnly
+        ? 'Für Sonder IMEI sind aktuell keine freigegebenen IMEIs in diesem Bestand oder die Filter zeigen keine Treffer.'
+        : searchTerm
+          ? 'Keine IMEIs gefunden, die dem Suchbegriff entsprechen.'
+          : 'Keine IMEIs vorhanden.'}
     </p>
   </div>
 );

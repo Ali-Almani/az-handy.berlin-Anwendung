@@ -23,7 +23,8 @@ export const getImeisDataFromApi = async () => {
         cellColors: res.data.cellColors ?? {},
         rowActions: res.data.rowActions ?? {},
         copyHistory: res.data.copyHistory ?? [],
-        copyTimestamps: res.data.copyTimestamps ?? []
+        copyTimestamps: res.data.copyTimestamps ?? [],
+        sonderImeis: Array.isArray(res.data.sonderImeis) ? res.data.sonderImeis : []
       };
     }
   } catch (err) {
@@ -38,6 +39,17 @@ export const saveImeisDataToApi = async (payload) => {
     await api.put('/imeis/data', payload);
   } catch (err) {
     console.error('Error saving IMEIS data to API:', err);
+  }
+};
+
+/** Büro/Admin: ausgewählte IMEIs als „Sonder IMEI“ für Mitarbeiter shop veröffentlichen */
+export const approveSonderImeisApi = async (imeisList) => {
+  try {
+    const res = await api.post('/imeis/sonder-approve', { imeis: imeisList });
+    return res.data;
+  } catch (err) {
+    console.error('approveSonderImeisApi:', err);
+    throw err;
   }
 };
 
@@ -163,7 +175,8 @@ export const loadImeisWithApi = async (user) => {
     cellColors: JSON.parse(localStorage.getItem('imeis-cell-text-colors') || '{}'),
     rowActions: JSON.parse(localStorage.getItem('imeis-row-actions') || '{}'),
     copyHistory: JSON.parse(localStorage.getItem('imeis-copy-history') || '[]'),
-    copyTimestamps
+    copyTimestamps,
+    sonderImeis: []
   };
 };
 

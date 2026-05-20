@@ -16,6 +16,10 @@ import {
 import { mockSendReminder, mockGetMyReminders, mockMarkReminderRead, mockNotifyReminderResponse, mockGetReminderResponseNotifications, mockMarkReminderResponseNotificationRead } from './mockImeiReminders';
 import { loadImeis, saveImeis } from '../utils/storage';
 
+let mockSonderImeiEntries = [];
+
+const normalizeMockSonderKey = (raw) => String(raw ?? '').replace(/\D/g, '');
+
 const mockUsers = [
   { id: 'admin-1', name: 'Ali Almani', email: 'admin@az-handy.berlin', password: 'Admin123!', role: 'Administrator', einsatz_ort: 'Zentrale', telefon: '+49 30 123456', createdAt: new Date().toISOString() },
   { id: 'buero-1', name: 'M. Somer', email: 'm.somer@az-handy.berlin', password: '!azHandy.berlin20260203?', role: 'Büro Mitarbeiter', einsatz_ort: 'Zentrale', telefon: null, createdAt: new Date().toISOString() },
@@ -52,9 +56,22 @@ const mockApi = {
         cellColors: JSON.parse(localStorage.getItem('imeis-cell-text-colors') || '{}'),
         rowActions: JSON.parse(localStorage.getItem('imeis-row-actions') || '{}'),
         copyHistory: JSON.parse(localStorage.getItem('imeis-copy-history') || '[]'),
-        copyTimestamps: JSON.parse(localStorage.getItem('imeis-copy-timestamps') || '[]')
+        copyTimestamps: JSON.parse(localStorage.getItem('imeis-copy-timestamps') || '[]'),
+        sonderImeis: [...mockSonderImeiEntries]
       }
     };
+  },
+  async approveSonderImeis({ imeis: incoming }) {
+    const list = Array.isArray(incoming) ? incoming.map((x) => String(x ?? '').trim()).filter(Boolean) : [];
+    const now = new Date().toISOString();
+    const seen = new Set(mockSonderImeiEntries.map((e) => normalizeMockSonderKey(e.imei)));
+    for (const imeiStr of list) {
+      const k = normalizeMockSonderKey(imeiStr);
+      if (k.length < 8 || seen.has(k)) continue;
+      seen.add(k);
+      mockSonderImeiEntries.push({ imei: imeiStr, approvedAt: now, approvedByName: 'Mock Büro' });
+    }
+    return { data: { success: true, sonderImeis: [...mockSonderImeiEntries] } };
   },
   async saveImeisData(payload) {
     if (payload.imeis !== undefined) await saveImeis(payload.imeis);
