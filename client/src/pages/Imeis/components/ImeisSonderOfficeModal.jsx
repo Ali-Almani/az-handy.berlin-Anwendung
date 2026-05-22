@@ -53,10 +53,6 @@ export default function ImeisSonderOfficeModal({
           </button>
         </div>
         <div className="imeis-history-modal-body imeis-sonder-office-modal__body">
-          <p className="imeis-sonder-office-modal__hint">
-            Hier werden maximal die zehn ältesten, nicht reservierten IMEIs aus dem Bestand angezeigt (nach Eintragsdatum / Listenreihenfolge).
-            Für den Shop unter <strong>Sonder IMEI</strong> anzeigen auswählen und freigeben.
-          </p>
           {keys.length === 0 ? (
             <p className="imeis-zustand-empty">Keine passenden IMEIs im Bestand.</p>
           ) : (
