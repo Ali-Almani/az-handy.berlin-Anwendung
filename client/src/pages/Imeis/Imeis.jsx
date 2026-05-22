@@ -84,6 +84,10 @@ const Imeis = () => {
     activeSheet,
     setActiveSheet,
     onManufacturerChange,
+    onAppleHardwareTabChange,
+    appleHardwareTabsVisible,
+    appleHardwareShowIphoneTab,
+    activeAppleHardwareTab,
     onVersionChange,
     onVariantChange,
     onGBChange,
@@ -216,6 +220,10 @@ const Imeis = () => {
             availableManufacturers={availableManufacturers}
             activeManufacturer={activeManufacturer}
             onManufacturerChange={onManufacturerChange}
+            appleHardwareTabsVisible={appleHardwareTabsVisible}
+            appleHardwareShowIphoneTab={appleHardwareShowIphoneTab}
+            activeAppleHardwareTab={activeAppleHardwareTab}
+            onAppleHardwareTabChange={onAppleHardwareTabChange}
             availableVersions={availableVersions}
             activeVersion={activeVersion}
             onVersionChange={onVersionChange}

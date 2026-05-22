@@ -2,6 +2,10 @@ const ImeisFilters = ({
   availableManufacturers,
   activeManufacturer,
   onManufacturerChange,
+  appleHardwareTabsVisible,
+  appleHardwareShowIphoneTab,
+  activeAppleHardwareTab,
+  onAppleHardwareTabChange,
   availableVersions,
   activeVersion,
   onVersionChange,
@@ -15,12 +19,13 @@ const ImeisFilters = ({
   activeProduct,
   onProductChange
 }) => {
-  const getProductName = (version, manufacturer) => {
+  const getProductName = (version, manufacturer, appleHwTab) => {
     let productName = '';
     const manufacturerLower = manufacturer.toLowerCase();
     if (manufacturerLower.includes('apple')) {
-      if (version.startsWith('SE')) {
-        productName = `iPhone ${version}`;
+      const v = String(version);
+      if (appleHwTab === 'watch' || /^Ultra(\s|$)|^Watch SE/i.test(v)) {
+        productName = `Apple Watch ${version}`;
       } else {
         productName = `iPhone ${version}`;
       }
@@ -66,6 +71,46 @@ const ImeisFilters = ({
         </div>
       )}
 
+      {appleHardwareTabsVisible && activeManufacturer && (
+        <div className="imeis-manufacturer-tabs imeis-apple-hardware-tabs" role="tablist" aria-label="Apple Gerätetyp">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAppleHardwareTabChange(null);
+            }}
+            className={`imeis-manufacturer-tab ${activeAppleHardwareTab === null ? 'imeis-manufacturer-tab--active' : ''}`}
+            type="button"
+          >
+            Alle
+          </button>
+          {appleHardwareShowIphoneTab && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAppleHardwareTabChange('iphone');
+              }}
+              className={`imeis-manufacturer-tab ${activeAppleHardwareTab === 'iphone' ? 'imeis-manufacturer-tab--active' : ''}`}
+              type="button"
+            >
+              iPhone
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAppleHardwareTabChange('watch');
+            }}
+            className={`imeis-manufacturer-tab ${activeAppleHardwareTab === 'watch' ? 'imeis-manufacturer-tab--active' : ''}`}
+            type="button"
+          >
+            Apple Watch
+          </button>
+        </div>
+      )}
+
       {activeManufacturer && (
         <>
           {availableVersions.length > 0 && (
@@ -92,7 +137,7 @@ const ImeisFilters = ({
                   className={`imeis-product-tab ${activeVersion === version ? 'imeis-product-tab--active' : ''}`}
                   type="button"
                 >
-                  {getProductName(version, activeManufacturer)}
+                  {getProductName(version, activeManufacturer, activeAppleHardwareTab)}
                 </button>
               ))}
             </div>

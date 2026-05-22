@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
 
 const convertToGB = (gbStr) => {
   const value = parseInt(gbStr.replace(/[^\d]/g, '')) || 0;
@@ -7,6 +8,7 @@ const convertToGB = (gbStr) => {
 
 export function useImeisVersionFilters({
   activeManufacturer,
+  activeAppleHardwareTab,
   activeProduct,
   activeVersion,
   activeVariant,
@@ -50,10 +52,19 @@ export function useImeisVersionFilters({
     // sonst springt useImeisMainFilter auf Seite 1 und Pagination wirkt „kaputt“.
     if (imeis.length === 0) return;
 
-    const allManufacturerItems = imeis.filter(item => {
+    let allManufacturerItems = imeis.filter(item => {
       const manufacturer = getManufacturer(item);
       return manufacturer && manufacturer.trim() === activeManufacturer;
     });
+    if (activeManufacturer && isAppleManufacturerName(activeManufacturer) && activeAppleHardwareTab) {
+      allManufacturerItems = allManufacturerItems.filter((item) => {
+        const pf = getProductFull(item);
+        const isWatch = isAppleWatchProductFull(pf);
+        if (activeAppleHardwareTab === 'watch') return isWatch;
+        if (activeAppleHardwareTab === 'iphone') return !isWatch;
+        return true;
+      });
+    }
 
     const versions = new Set();
     allManufacturerItems.forEach(item => {
@@ -159,7 +170,7 @@ export function useImeisVersionFilters({
         setActiveColor(null);
       }
     }
-  }, [activeManufacturer, activeVersion, activeVariant, activeGB, imeis, getManufacturer, getProductFull, extractProductVersion, extractProductVariant, extractGB, extractColor]);
+  }, [activeManufacturer, activeAppleHardwareTab, activeVersion, activeVariant, activeGB, imeis, getManufacturer, getProductFull, extractProductVersion, extractProductVariant, extractGB, extractColor]);
 
   useEffect(() => {
     if (!activeManufacturer) {
@@ -172,11 +183,16 @@ export function useImeisVersionFilters({
     let hasO2AktionProducts = false;
     imeis.forEach(item => {
       const manufacturer = getManufacturer(item);
-      if (manufacturer && manufacturer.trim() === activeManufacturer) {
-        if (hasO2Aktion(item)) hasO2AktionProducts = true;
-        const product = getProduct(item);
-        if (product && product.trim() !== '') products.add(product.trim());
+      if (!manufacturer || manufacturer.trim() !== activeManufacturer) return;
+      const productFull = getProductFull(item);
+      if (activeManufacturer && isAppleManufacturerName(activeManufacturer) && activeAppleHardwareTab) {
+        const isWatch = isAppleWatchProductFull(productFull);
+        if (activeAppleHardwareTab === 'watch' && !isWatch) return;
+        if (activeAppleHardwareTab === 'iphone' && isWatch) return;
       }
+      if (hasO2Aktion(item)) hasO2AktionProducts = true;
+      const product = getProduct(item);
+      if (product && product.trim() !== '') products.add(product.trim());
     });
     const getBaseName = (name) => name.replace(/\s+(pro|plus|mini|max|ultra|titan|titanium|standard|regular)\s*/gi, ' ').replace(/\s+(pro|plus|mini|max|ultra|titan|titanium|standard|regular)$/gi, '').trim();
     const extractVersion = (name) => { const m = name.match(/(\d+)/); return m ? parseInt(m[1]) : 0; };
@@ -204,5 +220,5 @@ export function useImeisVersionFilters({
     if (hasO2AktionProducts) productsArray.unshift('o2-Aktion');
     setAvailableProducts(productsArray);
     if (activeProduct && !productsArray.includes(activeProduct)) setActiveProduct(null);
-  }, [activeManufacturer, imeis, getManufacturer, getProduct, activeProduct, hasO2Aktion, extractGB]);
+  }, [activeManufacturer, activeAppleHardwareTab, imeis, getManufacturer, getProduct, getProductFull, activeProduct, hasO2Aktion, extractGB]);
 }

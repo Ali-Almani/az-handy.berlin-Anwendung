@@ -28,6 +28,7 @@ import {
 import { getZustandData as getZustandDataUtil } from '../utils/imeisZustandUtils';
 import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
 import { pickOldestTenImeisForSonder } from '../utils/imeisSonderUtils';
+import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
 
 export function useImeis() {
   const { user } = useAuth();
@@ -72,6 +73,8 @@ export function useImeis() {
   const [availableVariants, setAvailableVariants] = useState([]);
   const [availableGBs, setAvailableGBs] = useState([]);
   const [availableColors, setAvailableColors] = useState([]);
+  /** Apple: Unter-Tabs nur bei Watch-Bestand; null = Alle Apple, 'iphone' = ohne Watch, 'watch' = nur Watch. */
+  const [activeAppleHardwareTab, setActiveAppleHardwareTab] = useState(null);
   const [sonderImeis, setSonderImeis] = useState([]);
   const [sonderOnly, setSonderOnly] = useState(false);
   const [showSonderOfficeModal, setShowSonderOfficeModal] = useState(false);
@@ -128,10 +131,40 @@ export function useImeis() {
     return s;
   }, [sonderImeis]);
 
+  const appleHardwareTabBar = useMemo(() => {
+    if (!activeManufacturer || !isAppleManufacturerName(activeManufacturer)) {
+      return { visible: false, showIphoneTab: false };
+    }
+    let hasWatch = false;
+    let hasNonWatch = false;
+    for (const item of imeis) {
+      if (getManufacturer(item)?.trim() !== activeManufacturer) continue;
+      const pf = getProductFull(item);
+      if (isAppleWatchProductFull(pf)) hasWatch = true;
+      else hasNonWatch = true;
+      if (hasWatch && hasNonWatch) break;
+    }
+    if (!hasWatch) return { visible: false, showIphoneTab: false };
+    return { visible: true, showIphoneTab: hasNonWatch };
+  }, [activeManufacturer, imeis, getManufacturer, getProductFull]);
+
+  const effectiveAppleHardwareTab = appleHardwareTabBar.visible ? activeAppleHardwareTab : null;
+
+  useEffect(() => {
+    if (!appleHardwareTabBar.visible && activeAppleHardwareTab !== null) setActiveAppleHardwareTab(null);
+  }, [appleHardwareTabBar.visible, activeAppleHardwareTab]);
+
+  useEffect(() => {
+    if (appleHardwareTabBar.visible && activeAppleHardwareTab === 'iphone' && !appleHardwareTabBar.showIphoneTab) {
+      setActiveAppleHardwareTab(null);
+    }
+  }, [appleHardwareTabBar.visible, appleHardwareTabBar.showIphoneTab, activeAppleHardwareTab]);
+
   useImeisMainFilter({
     imeis,
     activeSheet,
     activeManufacturer,
+    activeAppleHardwareTab: effectiveAppleHardwareTab,
     activeProduct,
     activeVersion,
     activeVariant,
@@ -196,7 +229,7 @@ export function useImeis() {
   }, [imeis, getManufacturer, activeManufacturer]);
 
   useImeisVersionFilters({
-    activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, imeis, getManufacturer, getProductFull, getProduct, hasO2Aktion,
+    activeManufacturer, activeAppleHardwareTab: effectiveAppleHardwareTab, activeProduct, activeVersion, activeVariant, activeGB, imeis, getManufacturer, getProductFull, getProduct, hasO2Aktion,
     extractProductVersion, extractProductVariant, extractGB, extractColor,
     setAvailableProducts, setActiveProduct, setAvailableVersions, setAvailableVariants, setAvailableGBs, setAvailableColors,
     setActiveVersion, setActiveVariant, setActiveGB, setActiveColor
@@ -343,7 +376,24 @@ export function useImeis() {
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isSelecting]);
 
-  const onManufacturerChange = useCallback((m) => { setActiveManufacturer(m); setActiveProduct(null); setActiveVersion(null); setActiveVariant(null); setActiveGB(null); setActiveColor(null); }, []);
+  const onManufacturerChange = useCallback((m) => {
+    setActiveManufacturer(m);
+    setActiveAppleHardwareTab(null);
+    setActiveProduct(null);
+    setActiveVersion(null);
+    setActiveVariant(null);
+    setActiveGB(null);
+    setActiveColor(null);
+  }, []);
+
+  const onAppleHardwareTabChange = useCallback((tab) => {
+    setActiveAppleHardwareTab(tab);
+    setActiveProduct(null);
+    setActiveVersion(null);
+    setActiveVariant(null);
+    setActiveGB(null);
+    setActiveColor(null);
+  }, []);
   const onVersionChange = useCallback((v) => { setActiveVersion(v); setActiveVariant(null); setActiveGB(null); setActiveColor(null); }, []);
   const onVariantChange = useCallback((v) => { setActiveVariant(v); setActiveGB(null); setActiveColor(null); }, []);
   const onGBChange = useCallback((g) => { setActiveGB(g); setActiveColor(null); }, []);
@@ -412,8 +462,11 @@ export function useImeis() {
     historyUndoStack, showZustandModal, setShowZustandModal, zustandDataCache, setZustandDataCache, zustandLoading, setZustandLoading, getZustandData,
     showRateLimitModal, setShowRateLimitModal, rateLimitMessage, imeis, allColumns, selectedCells, selectedCell, showColorPicker, rowActions, setRowActions,
     cellTextColors, maskImei, getManufacturer, getProductFull, getCellTextColor, handleCellClick, handleCellContextMenu, handleCellMouseDown, handleCellMouseEnter,
-    handleCellMouseUp, handleColorSelect, handleDropdownSelect, availableSheets, activeSheet, setActiveSheet, onManufacturerChange, onVersionChange, onVariantChange,
+    handleCellMouseUp, handleColorSelect, handleDropdownSelect, availableSheets, activeSheet, setActiveSheet, onManufacturerChange, onAppleHardwareTabChange, onVersionChange, onVariantChange,
     onGBChange, onShowZustand, onCloseZustandModal, onRowActionRemove,
+    appleHardwareTabsVisible: appleHardwareTabBar.visible,
+    appleHardwareShowIphoneTab: appleHardwareTabBar.showIphoneTab,
+    activeAppleHardwareTab,
     sonderImeis,
     sonderOnly,
     setSonderOnly,

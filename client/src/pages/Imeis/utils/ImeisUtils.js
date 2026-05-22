@@ -10,7 +10,9 @@ export {
   extractColor,
   removeColorAndManufacturerFromProduct,
   hasO2Aktion,
-  getProduct
+  getProduct,
+  isAppleManufacturerName,
+  isAppleWatchProductFull
 } from './imeisProductUtils';
 export {
   getManufacturer,

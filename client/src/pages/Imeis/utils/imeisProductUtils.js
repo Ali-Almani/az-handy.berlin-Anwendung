@@ -25,8 +25,28 @@ export const extractProductVersion = (productName) => {
   let productStr = String(productName).trim().replace(/\s*\d+\s*(GB|TB|gb|tb)\s*/gi, ' ').trim();
   const iPhoneSEMatch = productStr.match(/iphone[\s\-_]?se(?:\s+\(.*?\))?(?:\s+(\d+)\s*gen)?/i);
   if (iPhoneSEMatch) return iPhoneSEMatch[1] ? `SE (${iPhoneSEMatch[1]}. Gen)` : 'SE';
-  const iPhoneMatch = productStr.match(/iphone[\s\-_]?(\d+)/i);
-  if (iPhoneMatch) return iPhoneMatch[1];
+
+  // Apple Watch vor iPhone, damit Watch-Zeilen nicht mit iPhone-/Zahl-Heuristik kollidieren.
+  if (/\bapple\s*watch\b/i.test(productStr)) {
+    if (/apple\s*watch\s*ultra\b/i.test(productStr)) {
+      const ultraNum = productStr.match(/ultra\s*(\d+)/i);
+      return ultraNum ? `Ultra ${ultraNum[1]}` : 'Ultra';
+    }
+    const watchSeMatch = productStr.match(/apple\s*watch\s*se(?:\s+\((\d+)\.?\s*gen\))?/i);
+    if (watchSeMatch) return watchSeMatch[1] ? `Watch SE (${watchSeMatch[1]}. Gen)` : 'Watch SE';
+    const watchSeriesMatch = productStr.match(/apple\s*watch\s*(?:series\s*)?(\d+)/i);
+    if (watchSeriesMatch) return watchSeriesMatch[1];
+    return '';
+  }
+
+  // iPhone: optionales Buchstabensuffix direkt nach der Versionszahl (z. B. „16e“, „13c“).
+  // So werden „iPhone 16“ und „iPhone 16e“ getrennte Version-/Tab-Zeilen, nicht zusammen unter „16 / Standard“.
+  const iPhoneMatch = productStr.match(/iphone[\s\-_]*(\d+)([a-z])?\b/i);
+  if (iPhoneMatch) {
+    const num = iPhoneMatch[1];
+    const letter = iPhoneMatch[2];
+    return letter ? `${num}${letter.toLowerCase()}` : num;
+  }
   const pixelMatch = productStr.match(/pixel[\s\-_]?(\d+)/i);
   if (pixelMatch) return pixelMatch[1];
   const galaxySMatch = productStr.match(/galaxy[\s\-_]?s[\s\-_]?(\d+)/i);
@@ -55,11 +75,19 @@ export const extractProductVariant = (productName) => {
   const productLower = productStr.toLowerCase();
   for (const variant of [...variants].sort((a, b) => b.length - a.length)) {
     if (new RegExp(`\\b${variant}\\b`, 'i').test(productLower)) {
-      return variant.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return variant.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
   }
   return '';
 };
+
+/** Hersteller-Liste: Apple (Groß-/Kleinschreibung egal). */
+export const isAppleManufacturerName = (manufacturerName) =>
+  /\bapple\b/i.test(String(manufacturerName || '').trim());
+
+/** Produktspalte: Apple-Watch („Apple Watch …“). */
+export const isAppleWatchProductFull = (productFull) =>
+  /\bapple\s*watch\b/i.test(String(productFull || ''));
 
 const COLOR_LIST = [
   'natural titanium', 'blue titanium', 'white titanium', 'space gray', 'space grey', 'spacegray', 'spacegrey',

@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
+import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
 
 export function useImeisMainFilter({
   imeis,
   activeSheet,
   activeManufacturer,
+  activeAppleHardwareTab,
   activeProduct,
   activeVersion,
   activeVariant,
@@ -44,6 +46,15 @@ export function useImeisMainFilter({
       filtered = filtered.filter(item => {
         const manufacturer = getManufacturer(item);
         return manufacturer && manufacturer.trim() === activeManufacturer;
+      });
+    }
+    if (activeManufacturer && isAppleManufacturerName(activeManufacturer) && activeAppleHardwareTab) {
+      filtered = filtered.filter((item) => {
+        const pf = getProductFull(item);
+        const isWatch = isAppleWatchProductFull(pf);
+        if (activeAppleHardwareTab === 'watch') return isWatch;
+        if (activeAppleHardwareTab === 'iphone') return !isWatch;
+        return true;
       });
     }
     if (activeManufacturer) {
@@ -120,12 +131,12 @@ export function useImeisMainFilter({
       setAllColumns([]);
     }
 
-    const filterKey = `${sonderOnly ? '1' : '0'}|${activeSheet}|${activeManufacturer}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
+    const filterKey = `${sonderOnly ? '1' : '0'}|${activeSheet}|${activeManufacturer}|${activeAppleHardwareTab || ''}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
     // Nur bei geänderter Suche/Filter/Tabs auf Seite 1 – nicht bei jedem imeis-/rowActions-Update
     if (prevFilterRef.current !== null && prevFilterRef.current !== filterKey) {
       setCurrentPage(1);
       setSelectedCells(new Set());
     }
     prevFilterRef.current = filterKey;
-  }, [activeSheet, activeManufacturer, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet]);
+  }, [activeSheet, activeManufacturer, activeAppleHardwareTab, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet]);
 }
