@@ -152,6 +152,8 @@ export function useImeisData(
       setHistory,
       setSonderImeis
     };
+
+    const syncFromServer = async () => {
       if (shouldSkipSync()) return;
       try {
         const data = await getImeisDataFromApi();
@@ -216,12 +218,15 @@ export function useImeisData(
       setHistory,
       setSonderImeis
     };
+
+    const refreshVerlauf = async () => {
       if (shouldSkipSync()) return;
       try {
         const data = await getImeisDataFromApi();
         if (data) applyImeisData(data, setters, getManufacturer, false);
       } catch (_) {}
     };
+
     refreshVerlauf();
     const id = setInterval(refreshVerlauf, VERLAUF_REFRESH_MS);
     return () => clearInterval(id);
