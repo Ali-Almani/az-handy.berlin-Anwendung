@@ -436,7 +436,7 @@ const Navbar = ({
                 <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
-            System
+            Ticketing System
           </span>
         </NavLink>
       </li>

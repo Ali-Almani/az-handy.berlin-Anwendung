@@ -145,7 +145,7 @@ const System = () => {
         savedId = res?.entry?.id || null;
         setSuccessToast({
           type: 'success',
-          message: 'Vorvertrag eingereicht. Die Daten wurden als Karte in der System-Liste gespeichert.'
+          message: 'Vorvertrag eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
         });
       }
 
@@ -188,9 +188,9 @@ const System = () => {
 
   return (
     <div className="system-page container">
-      <h1 className="system-page-title">System</h1>
+      <h1 className="system-page-title">Ticketing System</h1>
 
-      <div className="system-tabs" role="tablist" aria-label="System Bereiche">
+      <div className="system-tabs" role="tablist" aria-label="Ticketing System Bereiche">
         <button type="button" role="tab" aria-selected className="system-tab system-tab--active">
           Vorvertrag
         </button>
