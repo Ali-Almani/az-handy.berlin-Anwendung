@@ -170,7 +170,7 @@
   gap: $spacing-xs;
   padding: $spacing-sm $spacing-md;
   border: 1px solid $border-color;
-  border-radius: $border-radius;
+  border-radius: $border-radius-card;
   background: #fff;
   cursor: pointer;
   text-align: left;
@@ -221,7 +221,7 @@
 .vorvertrag-history-item {
   padding: $spacing-sm;
   border: 1px solid $border-color;
-  border-radius: $border-radius;
+  border-radius: $border-radius-card;
   background: #fff;
   font-size: 0.85rem;
 }
