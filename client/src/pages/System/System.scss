@@ -41,6 +41,60 @@
   margin-bottom: $spacing-md;
 }
 
+.system-toast {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-card;
+  border: 1px solid transparent;
+  font-size: 0.92rem;
+  animation: system-toast-in 0.3s ease-out;
+
+  &--success {
+    background: mix(#fff, $success-color, 88%);
+    border-color: mix(#fff, $success-color, 55%);
+    color: darken($success-color, 18%);
+  }
+
+  &__icon {
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  &__message {
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  &__close {
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    padding: 0 0.15rem;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+@keyframes system-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .vorvertrag-form-panel {
   margin-bottom: $spacing-lg;
 }
@@ -79,6 +133,12 @@
   border: 1px solid $border-color;
   border-radius: $border-radius-card;
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &--highlight {
+    border-color: $success-color;
+    box-shadow: 0 0 0 2px mix(#fff, $success-color, 70%);
+  }
 }
 
 .vorvertrag-entry-card__header {

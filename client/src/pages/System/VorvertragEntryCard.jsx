@@ -13,12 +13,15 @@ function jaNeinLabel(jaNein, wert) {
   return 'Nein';
 }
 
-export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false }) {
+export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false, highlighted = false }) {
   const e = entry?.eingabeDetails || {};
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
 
   return (
-    <article className="vorvertrag-entry-card">
+    <article
+      className={`vorvertrag-entry-card${highlighted ? ' vorvertrag-entry-card--highlight' : ''}`}
+      data-entry-id={entry?.id}
+    >
       <header className="vorvertrag-entry-card__header">
         <div>
           <h3 className="vorvertrag-entry-card__title">{name}</h3>
