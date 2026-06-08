@@ -4,6 +4,7 @@ import { loadJson, saveJson } from '../utils/filePersistence.js';
 const VORVERTRAG_FILE = 'vorvertrag.json';
 
 const FILIALE_OPTIONS = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
+const VERFUEGBARKEIT_OPTIONS = ['bestellen', 'in_shop'];
 
 async function isAdminUser(userId) {
   if (!userId) return false;
@@ -47,6 +48,19 @@ function normalizeJaNein(value) {
   return 'nein';
 }
 
+function normalizeAusgabeDetails(raw) {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const verf = String(raw.verfuegbarkeit ?? '').trim();
+    return {
+      geraet: String(raw.geraet ?? '').trim(),
+      farbe: String(raw.farbe ?? '').trim(),
+      verfuegbarkeit: VERFUEGBARKEIT_OPTIONS.includes(verf) ? verf : ''
+    };
+  }
+  const legacy = String(raw ?? '').trim();
+  return { geraet: legacy, farbe: '', verfuegbarkeit: '' };
+}
+
 function normalizeEingabeDetails(raw = {}) {
   return {
     nationalitaet: String(raw.nationalitaet ?? '').trim(),
@@ -75,7 +89,17 @@ function normalizeEntryBody(body = {}) {
     filiale,
     kundeVorname: String(body.kundeVorname ?? body.kunde_vorname ?? '').trim(),
     kundeNachname: String(body.kundeNachname ?? body.kunde_nachname ?? '').trim(),
-    ausgabeDetails: String(body.ausgabeDetails ?? body.ausgabe_details ?? '').trim(),
+    ausgabeDetails: normalizeAusgabeDetails(
+      body.ausgabeDetails ??
+        body.ausgabe_details ??
+        (body.ausgabeGeraet != null || body.ausgabeFarbe != null || body.ausgabeVerfuegbarkeit != null
+          ? {
+              geraet: body.ausgabeGeraet,
+              farbe: body.ausgabeFarbe,
+              verfuegbarkeit: body.ausgabeVerfuegbarkeit
+            }
+          : '')
+    ),
     anschluss: {
       jaNein: anschlussJa,
       wert: anschlussJa === 'ja' ? String(body.anschlussWert ?? body.anschluss?.wert ?? '').trim() : ''

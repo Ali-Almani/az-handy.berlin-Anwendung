@@ -8,6 +8,8 @@ function Field({ label, value }) {
   );
 }
 
+import { formatVerfuegbarkeit, parseAusgabeDetails } from './vorvertragGeraeteUtils';
+
 function jaNeinLabel(jaNein, wert) {
   if (jaNein === 'ja') return wert ? `Ja (${wert})` : 'Ja';
   return 'Nein';
@@ -15,6 +17,7 @@ function jaNeinLabel(jaNein, wert) {
 
 export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false, highlighted = false }) {
   const e = entry?.eingabeDetails || {};
+  const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
 
   return (
@@ -45,7 +48,9 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
       </header>
 
       <div className="vorvertrag-entry-card__body">
-        <Field label="Ausgabe Details" value={entry?.ausgabeDetails} />
+        <Field label="Gerät" value={ausgabe.geraet} />
+        <Field label="Farbe" value={ausgabe.farbe} />
+        <Field label="Verfügbarkeit" value={formatVerfuegbarkeit(ausgabe.verfuegbarkeit)} />
         <Field label="Anschluss" value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)} />
         <Field label="Zuzahlung" value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)} />
         <Field label="Nationalität" value={e.nationalitaet} />

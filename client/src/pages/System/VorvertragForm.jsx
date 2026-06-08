@@ -1,4 +1,5 @@
 import { COUNTRY_OPTIONS } from './countries';
+import { parseAusgabeDetails } from './vorvertragGeraeteUtils';
 
 const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const HW_VOUCHER_OPTIONS = ['24 Monate', '36 Monate'];
@@ -8,7 +9,9 @@ export const emptyVorvertragForm = () => ({
   filiale: '',
   kundeVorname: '',
   kundeNachname: '',
-  ausgabeDetails: '',
+  ausgabeGeraet: '',
+  ausgabeFarbe: '',
+  ausgabeVerfuegbarkeit: '',
   anschlussJaNein: 'nein',
   anschlussWert: '',
   zuzahlungJaNein: 'nein',
@@ -28,12 +31,15 @@ export const emptyVorvertragForm = () => ({
 
 export function formFromEntry(entry) {
   const e = entry?.eingabeDetails || {};
+  const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   return {
     datum: entry?.datum || '',
     filiale: entry?.filiale || '',
     kundeVorname: entry?.kundeVorname || '',
     kundeNachname: entry?.kundeNachname || '',
-    ausgabeDetails: entry?.ausgabeDetails || '',
+    ausgabeGeraet: ausgabe.geraet,
+    ausgabeFarbe: ausgabe.farbe,
+    ausgabeVerfuegbarkeit: ausgabe.verfuegbarkeit,
     anschlussJaNein: entry?.anschluss?.jaNein || 'nein',
     anschlussWert: entry?.anschluss?.wert || '',
     zuzahlungJaNein: entry?.zuzahlung?.jaNein || 'nein',
@@ -58,7 +64,11 @@ export function buildVorvertragPayload(form) {
     filiale: form.filiale,
     kundeVorname: form.kundeVorname,
     kundeNachname: form.kundeNachname,
-    ausgabeDetails: form.ausgabeDetails,
+    ausgabeDetails: {
+      geraet: form.ausgabeGeraet,
+      farbe: form.ausgabeFarbe,
+      verfuegbarkeit: form.ausgabeVerfuegbarkeit
+    },
     anschlussJaNein: form.anschlussJaNein,
     anschlussWert: form.anschlussWert,
     zuzahlungJaNein: form.zuzahlungJaNein,
@@ -85,6 +95,9 @@ export default function VorvertragForm({
   onSubmit,
   onCancel,
   filialeOptions = DEFAULT_FILIALEN,
+  geraeteOptions = [],
+  farbenOptions = [],
+  geraeteLoading = false,
   saving = false,
   mode = 'new'
 }) {
@@ -155,18 +168,65 @@ export default function VorvertragForm({
 
       <div className="vorvertrag-section">
         <h3 className="vorvertrag-section-title">Ausgabe Details</h3>
-        <div className="vorvertrag-form-grid vorvertrag-form-grid--full">
+        <div className="vorvertrag-form-grid">
           <div className="form-group">
-            <label htmlFor="vv-ausgabe" className="form-label">
-              Geräte, Farben, Verfügbarkeit in Filiale
-            </label>
-            <textarea
-              id="vv-ausgabe"
+            <label htmlFor="vv-geraet" className="form-label">Gerät</label>
+            <select
+              id="vv-geraet"
               className="form-input"
-              rows={4}
-              value={form.ausgabeDetails}
-              onChange={(ev) => handleChange('ausgabeDetails', ev.target.value)}
-            />
+              value={form.ausgabeGeraet}
+              onChange={(ev) => handleChange('ausgabeGeraet', ev.target.value)}
+              disabled={geraeteLoading}
+            >
+              <option value="">
+                {geraeteLoading ? 'Geräte werden geladen…' : '— Gerät auswählen —'}
+              </option>
+              {form.ausgabeGeraet &&
+                !geraeteOptions.includes(form.ausgabeGeraet) && (
+                  <option value={form.ausgabeGeraet}>{form.ausgabeGeraet}</option>
+                )}
+              {geraeteOptions.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="vv-farbe" className="form-label">Farbe</label>
+            <select
+              id="vv-farbe"
+              className="form-input"
+              value={form.ausgabeFarbe}
+              onChange={(ev) => handleChange('ausgabeFarbe', ev.target.value)}
+              disabled={!form.ausgabeGeraet}
+            >
+              <option value="">
+                {!form.ausgabeGeraet
+                  ? 'Zuerst Gerät wählen'
+                  : farbenOptions.length === 0
+                    ? '— keine Farbe im Bestand —'
+                    : '— Farbe auswählen —'}
+              </option>
+              {form.ausgabeFarbe &&
+                !farbenOptions.includes(form.ausgabeFarbe) && (
+                  <option value={form.ausgabeFarbe}>{form.ausgabeFarbe}</option>
+                )}
+              {farbenOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="vv-verfuegbarkeit" className="form-label">Verfügbarkeit</label>
+            <select
+              id="vv-verfuegbarkeit"
+              className="form-input"
+              value={form.ausgabeVerfuegbarkeit}
+              onChange={(ev) => handleChange('ausgabeVerfuegbarkeit', ev.target.value)}
+            >
+              <option value="">— auswählen —</option>
+              <option value="bestellen">Bestellen</option>
+              <option value="in_shop">Im Shop</option>
+            </select>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import VorvertragForm, {
   buildVorvertragPayload
 } from './VorvertragForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
+import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import './System.scss';
 
 const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
@@ -35,6 +36,15 @@ const System = () => {
   const [activeId, setActiveId] = useState(null);
   const [form, setForm] = useState(emptyVorvertragForm);
   const [mode, setMode] = useState('new');
+
+  const {
+    geraeteOptions,
+    getFarbenForGeraet,
+    loading: geraeteLoading,
+    error: geraeteError
+  } = useVorvertragImeiCatalog(Boolean(user && isAdmin(user)));
+
+  const farbenOptions = getFarbenForGeraet(form.ausgabeGeraet);
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -106,7 +116,12 @@ const System = () => {
   };
 
   const handleFormChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      if (field === 'ausgabeGeraet') {
+        return { ...prev, ausgabeGeraet: value, ausgabeFarbe: '' };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -203,6 +218,7 @@ const System = () => {
       ) : null}
 
       {error ? <p className="vorvertrag-error" role="alert">{error}</p> : null}
+      {geraeteError ? <p className="vorvertrag-error" role="alert">{geraeteError}</p> : null}
 
       {showForm ? (
         <div ref={formRef}>
@@ -212,6 +228,9 @@ const System = () => {
             onSubmit={handleSubmit}
             onCancel={cancelForm}
             filialeOptions={filialeOptions}
+            geraeteOptions={geraeteOptions}
+            farbenOptions={farbenOptions}
+            geraeteLoading={geraeteLoading}
             saving={saving}
             mode={mode}
           />
