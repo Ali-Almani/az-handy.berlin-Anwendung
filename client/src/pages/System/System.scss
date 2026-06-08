@@ -1,0 +1,252 @@
+@import '../../styles/variables';
+
+.system-page {
+  padding-bottom: $spacing-lg;
+}
+
+.system-page-title {
+  margin: $spacing-sm 0 $spacing-md;
+}
+
+.system-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: $spacing-md;
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.system-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: $primary-color;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: $text-light;
+    line-height: 1.45;
+  }
+}
+
+.vorvertrag-page {
+  padding-bottom: $spacing-xl;
+}
+
+.vorvertrag-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.vorvertrag-back {
+  font-size: 0.9rem;
+  color: $primary-color;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.vorvertrag-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: $spacing-lg;
+
+  @media (min-width: 1100px) {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: start;
+  }
+}
+
+.vorvertrag-panel {
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  padding: $spacing-md $spacing-lg;
+}
+
+.vorvertrag-panel h2,
+.vorvertrag-panel h3 {
+  margin: 0 0 $spacing-md;
+  font-size: 1.05rem;
+}
+
+.vorvertrag-section {
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $border-color;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.vorvertrag-section-title {
+  margin: 0 0 $spacing-sm;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $text-color;
+}
+
+.vorvertrag-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-sm;
+
+  @media (min-width: 600px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.vorvertrag-form-grid--full {
+  grid-template-columns: 1fr;
+}
+
+.vorvertrag-ja-nein-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: $spacing-sm;
+}
+
+.vorvertrag-ja-nein-row .form-group {
+  flex: 0 0 auto;
+  min-width: 7rem;
+}
+
+.vorvertrag-ja-nein-row .form-group--grow {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.vorvertrag-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}
+
+.vorvertrag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.vorvertrag-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+
+  &--active {
+    border-color: $primary-color;
+    background: mix(#fff, $primary-color, 92%);
+  }
+}
+
+.vorvertrag-list-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.vorvertrag-list-item__title {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.vorvertrag-list-item__meta {
+  font-size: 0.8rem;
+  color: $text-light;
+}
+
+.vorvertrag-list-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.vorvertrag-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.vorvertrag-history-item {
+  padding: $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.vorvertrag-history-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.vorvertrag-history-item__time {
+  font-weight: 400;
+  color: $text-light;
+}
+
+.vorvertrag-empty {
+  color: $text-light;
+  font-size: 0.9rem;
+  margin: $spacing-sm 0;
+}
+
+.vorvertrag-error {
+  margin-bottom: $spacing-md;
+  color: $danger-color;
+  font-size: 0.9rem;
+}

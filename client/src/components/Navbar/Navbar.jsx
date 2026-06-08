@@ -425,6 +425,23 @@ const Navbar = ({
     </li>
   );
 
+  const renderSystemNavItem = () =>
+    user && isAdmin(user) ? (
+      <li>
+        <NavLink to="/system" className={navLinkClassName} onClick={closeMobileMenu}>
+          <span className="navbar-link-inner">
+            <span className="navbar-link-icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            System
+          </span>
+        </NavLink>
+      </li>
+    ) : null;
+
   const renderMarketingTshirtNavItem = () =>
     user && isMarketing(user) ? (
       <li>
@@ -454,6 +471,7 @@ const Navbar = ({
       {renderVoucherItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId, useHoverDropdowns)}
       {renderMitarbeiterNavItem()}
+      {renderSystemNavItem()}
       {renderMarketingTshirtNavItem()}
     </>
   );
@@ -470,6 +488,7 @@ const Navbar = ({
       {renderVoucherItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
       {renderMitarbeiterNavItem()}
+      {renderSystemNavItem()}
       {renderMarketingTshirtNavItem()}
     </>
   );

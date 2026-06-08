@@ -14,6 +14,8 @@ import FormularCenter from './pages/FormularCenter/FormularCenter';
 import MitarbeiterOverview from './pages/Mitarbeiter/MitarbeiterOverview';
 import MitarbeiterProfile from './pages/Mitarbeiter/MitarbeiterProfile';
 import MarketingShopTshirtGroessen from './pages/MarketingShopTshirtGroessen/MarketingShopTshirtGroessen';
+import System from './pages/System/System';
+import Vorvertrag from './pages/System/Vorvertrag';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import PartnerRestrictedRoute from './components/PartnerRestrictedRoute/PartnerRestrictedRoute';
 
@@ -118,6 +120,26 @@ function App() {
         />
         <Route path="/dokumentation" element={<Navigate to="/benutzerhandbuch" replace />} />
         <Route path="/formular-center" element={<FormularCenter />} />
+        <Route
+          path="/system"
+          element={
+            <ProtectedRoute>
+              <PartnerRestrictedRoute>
+                <System />
+              </PartnerRestrictedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/system/vorvertrag"
+          element={
+            <ProtectedRoute>
+              <PartnerRestrictedRoute>
+                <Vorvertrag />
+              </PartnerRestrictedRoute>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Layout>
   );
