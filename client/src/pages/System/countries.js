@@ -50,7 +50,6 @@ export const COUNTRY_OPTIONS = [
   'Iran',
   'Irland',
   'Island',
-  'Israel',
   'Japan',
   'Jordanien',
   'Kanada',
