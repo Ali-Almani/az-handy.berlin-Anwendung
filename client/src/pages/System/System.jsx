@@ -35,16 +35,14 @@ const System = () => {
   const [showForm, setShowForm] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [form, setForm] = useState(emptyVorvertragForm);
+  const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
 
   const {
-    geraeteOptions,
-    getFarbenForGeraet,
+    imeis,
     loading: geraeteLoading,
     error: geraeteError
   } = useVorvertragImeiCatalog(Boolean(user && isAdmin(user)));
-
-  const farbenOptions = getFarbenForGeraet(form.ausgabeGeraet);
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -91,6 +89,7 @@ const System = () => {
   const startNew = () => {
     setActiveId(null);
     setForm(emptyVorvertragForm());
+    setGeraetSeed('');
     setMode('new');
     setShowForm(true);
     setError('');
@@ -100,7 +99,9 @@ const System = () => {
 
   const startEdit = (entry) => {
     setActiveId(entry.id);
-    setForm(formFromEntry(entry));
+    const nextForm = formFromEntry(entry);
+    setForm(nextForm);
+    setGeraetSeed(nextForm.ausgabeGeraet);
     setMode('edit');
     setShowForm(true);
     setError('');
@@ -112,6 +113,7 @@ const System = () => {
     setShowForm(false);
     setActiveId(null);
     setForm(emptyVorvertragForm());
+    setGeraetSeed('');
     setMode('new');
   };
 
@@ -228,9 +230,9 @@ const System = () => {
             onSubmit={handleSubmit}
             onCancel={cancelForm}
             filialeOptions={filialeOptions}
-            geraeteOptions={geraeteOptions}
-            farbenOptions={farbenOptions}
+            imeis={imeis}
             geraeteLoading={geraeteLoading}
+            geraetSeed={geraetSeed}
             saving={saving}
             mode={mode}
           />

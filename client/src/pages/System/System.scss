@@ -310,3 +310,36 @@
   color: $danger-color;
   font-size: 0.9rem;
 }
+
+.vorvertrag-geraet-picker {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  &__hint {
+    margin: 0;
+    font-size: 0.88rem;
+    color: $text-light;
+  }
+
+  &__selected {
+    margin: 0;
+    font-size: 0.88rem;
+    color: $text-color;
+  }
+
+  &__farbe {
+    max-width: 24rem;
+  }
+
+  &__tabs {
+    padding: 0;
+    background: transparent;
+    border: none;
+
+    .imeis-manufacturer-tabs,
+    .imeis-product-tabs {
+      margin-bottom: $spacing-sm;
+    }
+  }
+}

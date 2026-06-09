@@ -1,5 +1,6 @@
 import { COUNTRY_OPTIONS } from './countries';
 import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
+import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 
 const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const HW_VOUCHER_OPTIONS = ['24 Monate', '36 Monate'];
@@ -95,9 +96,9 @@ export default function VorvertragForm({
   onSubmit,
   onCancel,
   filialeOptions = DEFAULT_FILIALEN,
-  geraeteOptions = [],
-  farbenOptions = [],
+  imeis = [],
   geraeteLoading = false,
+  geraetSeed = '',
   saving = false,
   mode = 'new'
 }) {
@@ -169,51 +170,17 @@ export default function VorvertragForm({
       <div className="vorvertrag-section">
         <h3 className="vorvertrag-section-title">Ausgabe Details</h3>
         <div className="vorvertrag-form-grid">
-          <div className="form-group">
-            <label htmlFor="vv-geraet" className="form-label">Gerät</label>
-            <select
-              id="vv-geraet"
-              className="form-input"
-              value={form.ausgabeGeraet}
-              onChange={(ev) => handleChange('ausgabeGeraet', ev.target.value)}
-              disabled={geraeteLoading}
-            >
-              <option value="">
-                {geraeteLoading ? 'Geräte werden geladen…' : '— Gerät auswählen —'}
-              </option>
-              {form.ausgabeGeraet &&
-                !geraeteOptions.includes(form.ausgabeGeraet) && (
-                  <option value={form.ausgabeGeraet}>{form.ausgabeGeraet}</option>
-                )}
-              {geraeteOptions.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="vv-farbe" className="form-label">Farbe</label>
-            <select
-              id="vv-farbe"
-              className="form-input"
-              value={form.ausgabeFarbe}
-              onChange={(ev) => handleChange('ausgabeFarbe', ev.target.value)}
-              disabled={!form.ausgabeGeraet}
-            >
-              <option value="">
-                {!form.ausgabeGeraet
-                  ? 'Zuerst Gerät wählen'
-                  : farbenOptions.length === 0
-                    ? '— keine Farbe im Bestand —'
-                    : '— Farbe auswählen —'}
-              </option>
-              {form.ausgabeFarbe &&
-                !farbenOptions.includes(form.ausgabeFarbe) && (
-                  <option value={form.ausgabeFarbe}>{form.ausgabeFarbe}</option>
-                )}
-              {farbenOptions.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+          <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
+            <VorvertragGeraetPicker
+              key={`${mode}-${geraetSeed || 'new'}`}
+              imeis={imeis}
+              seedGeraet={geraetSeed}
+              selectedGeraet={form.ausgabeGeraet}
+              selectedFarbe={form.ausgabeFarbe}
+              onGeraetChange={(value) => handleChange('ausgabeGeraet', value)}
+              onFarbeChange={(value) => handleChange('ausgabeFarbe', value)}
+              loading={geraeteLoading}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="vv-verfuegbarkeit" className="form-label">Verfügbarkeit</label>
