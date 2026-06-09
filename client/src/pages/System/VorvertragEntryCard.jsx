@@ -54,7 +54,7 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
       data-entry-id={entry?.id}
     >
       <header className="vorvertrag-entry-card__header">
-        <div>
+        <div className="vorvertrag-entry-card__head">
           <h3 className="vorvertrag-entry-card__title">{name}</h3>
           <p className="vorvertrag-entry-card__meta">
             {entry?.datum || '—'} · {entry?.filiale || '—'} · {mitarbeiterName(entry) || '—'}

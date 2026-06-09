@@ -143,13 +143,16 @@
 
 .vorvertrag-entry-card__header {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
   gap: $spacing-sm;
   padding: $spacing-md;
   background: $bg-light;
   border-bottom: 1px solid $border-color;
+}
+
+.vorvertrag-entry-card__head {
+  width: 100%;
 }
 
 .vorvertrag-entry-card__title {
@@ -168,6 +171,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  width: 100%;
 }
 
 .vorvertrag-entry-card__body {
