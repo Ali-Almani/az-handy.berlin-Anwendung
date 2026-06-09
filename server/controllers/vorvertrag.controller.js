@@ -124,10 +124,24 @@ function entrySnapshot(entry) {
   return JSON.parse(JSON.stringify(rest));
 }
 
-function editorFromReq(req) {
+async function editorFromReqAsync(req) {
   const userId = String(req.user?.userId ?? req.user?.id ?? '').trim();
-  const userName = String(req.user?.name ?? req.user?.userName ?? req.user?.email ?? 'Administrator').trim();
-  const email = String(req.user?.email ?? '').trim();
+  let userName = String(req.user?.name ?? req.user?.userName ?? '').trim();
+  let email = String(req.user?.email ?? '').trim();
+
+  if (userId) {
+    try {
+      const u = await User.findByPk(userId);
+      if (u) {
+        userName = String(u.name ?? u.get?.('name') ?? u.dataValues?.name ?? '').trim() || userName;
+        email = String(u.email ?? u.get?.('email') ?? u.dataValues?.email ?? '').trim() || email;
+      }
+    } catch {
+      // Fallback auf JWT/Request-Werte
+    }
+  }
+
+  if (!userName) userName = email || 'Unbekannt';
   return { userId, userName, email };
 }
 
@@ -172,7 +186,7 @@ export async function createVorvertrag(req, res) {
   }
 
   const now = new Date().toISOString();
-  const editor = editorFromReq(req);
+  const editor = await editorFromReqAsync(req);
   const id = newId();
   const entry = {
     id,
@@ -221,7 +235,7 @@ export async function updateVorvertrag(req, res) {
   }
 
   const now = new Date().toISOString();
-  const editor = editorFromReq(req);
+  const editor = await editorFromReqAsync(req);
   const prev = data.entries[idx];
   const history = Array.isArray(prev.editHistory) ? [...prev.editHistory] : [];
 

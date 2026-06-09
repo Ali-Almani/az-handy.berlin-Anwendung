@@ -15,6 +15,14 @@ function jaNeinLabel(jaNein, wert) {
   return 'Nein';
 }
 
+function mitarbeiterName(entry) {
+  return (
+    entry?.createdBy?.userName ||
+    entry?.lastEditedBy?.userName ||
+    ''
+  );
+}
+
 export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false, highlighted = false }) {
   const e = entry?.eingabeDetails || {};
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
@@ -29,7 +37,7 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
         <div>
           <h3 className="vorvertrag-entry-card__title">{name}</h3>
           <p className="vorvertrag-entry-card__meta">
-            {entry?.datum || '—'} · {entry?.filiale || '—'}
+            {entry?.datum || '—'} · {entry?.filiale || '—'} · {mitarbeiterName(entry) || '—'}
           </p>
         </div>
         <div className="vorvertrag-entry-card__actions">
