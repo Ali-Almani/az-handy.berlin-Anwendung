@@ -3,7 +3,7 @@ import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { normalizeUserId, coerceUserId } from '../utils/normalizeUserId.js';
 
-const generateToken = (userId, role) => {
+const generateToken = (userId, role, name) => {
   const secret = process.env.JWT_SECRET;
   if (secret == null || String(secret).trim() === '') {
     const err = new Error('JWT_SECRET ist in der Server-.env nicht gesetzt');
@@ -19,6 +19,8 @@ const generateToken = (userId, role) => {
   const payload = { userId: uid };
   const r = role != null ? String(role).trim() : '';
   if (r) payload.role = r;
+  const n = name != null ? String(name).trim() : '';
+  if (n) payload.name = n;
   return jwt.sign(payload, secret, { expiresIn: '7d' });
 };
 
@@ -37,7 +39,7 @@ export const register = async (req, res, next) => {
     }
 
     const user = await User.create({ name, email: email.toLowerCase(), password });
-    const token = generateToken(user.id, user.role);
+    const token = generateToken(user.id, user.role, user.name);
 
     res.status(201).json({
       success: true,
@@ -99,7 +101,7 @@ export const login = async (req, res, next) => {
       role = 'Administrator';
     }
 
-    const token = generateToken(userId, role);
+    const token = generateToken(userId, role, user.name ?? user.get?.('name'));
 
     const uidOut = userId ?? user._id ?? user.get?.('id');
     res.json({

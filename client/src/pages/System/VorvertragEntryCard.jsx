@@ -16,11 +16,31 @@ function jaNeinLabel(jaNein, wert) {
 }
 
 function mitarbeiterName(entry) {
-  return (
+  const candidate =
+    entry?.mitarbeiterName ||
+    entry?.createdBy?.name ||
     entry?.createdBy?.userName ||
+    entry?.lastEditedBy?.name ||
     entry?.lastEditedBy?.userName ||
-    ''
-  );
+    '';
+  const value = String(candidate).trim();
+  if (!value) return '';
+  const roleLike = [
+    'admin',
+    'Administrator',
+    'Büro Mitarbeiter',
+    'Marketing',
+    'Callcenter',
+    'Shops',
+    'Buchhaltung',
+    'Einkauf',
+    'Partner',
+    'Teamleiter shop',
+    'Mitarbeiter shop',
+    'Mitarbeiter'
+  ];
+  if (roleLike.includes(value) || /^mitarbeiter(\s|$)/i.test(value)) return '';
+  return value;
 }
 
 export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false, highlighted = false }) {

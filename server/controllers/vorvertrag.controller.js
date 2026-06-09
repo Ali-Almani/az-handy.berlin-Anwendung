@@ -1,10 +1,81 @@
 import User from '../models/User.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
+import { normalizeUserId } from '../utils/normalizeUserId.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 
 const FILIALE_OPTIONS = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const VERFUEGBARKEIT_OPTIONS = ['bestellen', 'in_shop'];
+
+const ROLE_LABELS = new Set([
+  'admin',
+  'Administrator',
+  'Büro Mitarbeiter',
+  'Marketing',
+  'Callcenter',
+  'Shops',
+  'Buchhaltung',
+  'Einkauf',
+  'Partner',
+  'Teamleiter shop',
+  'Mitarbeiter shop',
+  'Mitarbeiter'
+]);
+
+function isRoleLabel(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return false;
+  if (ROLE_LABELS.has(v)) return true;
+  return /^mitarbeiter(\s|$)/i.test(v) && !v.includes('@');
+}
+
+function readUserName(user) {
+  if (!user) return '';
+  return String(user.name ?? user.get?.('name') ?? user.dataValues?.name ?? '').trim();
+}
+
+async function resolveUserDisplayName(userId, fallback = '') {
+  const safeFallback = isRoleLabel(fallback) ? '' : String(fallback ?? '').trim();
+  if (!userId) return safeFallback;
+
+  try {
+    const id = normalizeUserId(userId) ?? userId;
+    const u = await User.findByPk(id);
+    const name = readUserName(u);
+    if (name && !isRoleLabel(name)) return name;
+  } catch {
+    // Fallback unten
+  }
+
+  return safeFallback;
+}
+
+async function enrichEditor(editor) {
+  if (!editor || typeof editor !== 'object') return editor;
+  const name = await resolveUserDisplayName(
+    editor.userId,
+    editor.name || editor.userName || ''
+  );
+  if (!name) return editor;
+  return { ...editor, name, userName: name };
+}
+
+async function enrichEntryForClient(entry) {
+  const { editHistory, ...rest } = entry;
+  const createdBy = await enrichEditor(entry.createdBy);
+  const lastEditedBy = await enrichEditor(entry.lastEditedBy);
+  const mitarbeiterName =
+    createdBy?.name ||
+    createdBy?.userName ||
+    (await resolveUserDisplayName(entry.createdBy?.userId, entry.createdBy?.userName || ''));
+  return {
+    ...rest,
+    createdBy,
+    lastEditedBy,
+    mitarbeiterName,
+    historyCount: Array.isArray(editHistory) ? editHistory.length : 0
+  };
+}
 
 async function isAdminUser(userId) {
   if (!userId) return false;
@@ -131,18 +202,19 @@ async function editorFromReqAsync(req) {
 
   if (userId) {
     try {
-      const u = await User.findByPk(userId);
-      if (u) {
-        userName = String(u.name ?? u.get?.('name') ?? u.dataValues?.name ?? '').trim() || userName;
-        email = String(u.email ?? u.get?.('email') ?? u.dataValues?.email ?? '').trim() || email;
-      }
+      const id = normalizeUserId(userId) ?? userId;
+      const u = await User.findByPk(id);
+      const dbName = readUserName(u);
+      if (dbName && !isRoleLabel(dbName)) userName = dbName;
+      email = String(u?.email ?? u?.get?.('email') ?? u?.dataValues?.email ?? email).trim();
     } catch {
       // Fallback auf JWT/Request-Werte
     }
   }
 
+  if (isRoleLabel(userName)) userName = '';
   if (!userName) userName = email || 'Unbekannt';
-  return { userId, userName, email };
+  return { userId, name: userName, userName, email };
 }
 
 export async function listVorvertraege(req, res) {
@@ -153,10 +225,7 @@ export async function listVorvertraege(req, res) {
   );
   return res.json({
     success: true,
-    entries: entries.map(({ editHistory, ...e }) => ({
-      ...e,
-      historyCount: Array.isArray(editHistory) ? editHistory.length : 0
-    })),
+    entries: await Promise.all(entries.map((e) => enrichEntryForClient(e))),
     filialeOptions: FILIALE_OPTIONS
   });
 }
@@ -211,7 +280,7 @@ export async function createVorvertrag(req, res) {
   const data = await loadStore();
   data.entries.push(entry);
   await saveStore(data);
-  return res.status(201).json({ success: true, entry });
+  return res.status(201).json({ success: true, entry: await enrichEntryForClient(entry) });
 }
 
 export async function updateVorvertrag(req, res) {
@@ -258,7 +327,7 @@ export async function updateVorvertrag(req, res) {
   };
   data.entries[idx] = updated;
   await saveStore(data);
-  return res.json({ success: true, entry: updated });
+  return res.json({ success: true, entry: await enrichEntryForClient(updated) });
 }
 
 export async function deleteVorvertrag(req, res) {
