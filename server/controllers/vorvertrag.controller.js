@@ -61,6 +61,12 @@ function normalizeAusgabeDetails(raw) {
   return { geraet: legacy, farbe: '', verfuegbarkeit: '' };
 }
 
+function normalizeMitOhne(value) {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (v === 'mit' || v === 'ja' || v === 'yes' || v === 'true' || v === '1') return 'Mit';
+  return 'Ohne';
+}
+
 function normalizeEingabeDetails(raw = {}) {
   return {
     nationalitaet: String(raw.nationalitaet ?? '').trim(),
@@ -69,8 +75,8 @@ function normalizeEingabeDetails(raw = {}) {
     iban: String(raw.iban ?? '').trim(),
     ibanInhaber: String(raw.ibanInhaber ?? raw.iban_inhaber ?? '').trim(),
     hwVoucher: String(raw.hwVoucher ?? raw.hw_voucher ?? '').trim(),
-    kombi: String(raw.kombi ?? '').trim(),
-    vvl: String(raw.vvl ?? '').trim(),
+    kombi: normalizeMitOhne(raw.kombi),
+    vvl: normalizeMitOhne(raw.vvl),
     eposKundenummer: String(raw.eposKundenummer ?? raw.epos_kundenummer ?? '').trim(),
     mnp: String(raw.mnp ?? '').trim(),
     notiz: String(raw.notiz ?? '').trim()

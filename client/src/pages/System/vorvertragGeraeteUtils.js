@@ -98,3 +98,9 @@ export function parseAusgabeDetails(raw) {
   const legacy = String(raw ?? '').trim();
   return { geraet: legacy, farbe: '', verfuegbarkeit: '' };
 }
+
+export function normalizeMitOhne(value) {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (v === 'mit' || v === 'ja' || v === 'yes' || v === 'true' || v === '1') return 'Mit';
+  return 'Ohne';
+}

@@ -1,3 +1,5 @@
+import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
+
 function Field({ label, value }) {
   if (value == null || String(value).trim() === '') return null;
   return (
@@ -7,8 +9,6 @@ function Field({ label, value }) {
     </div>
   );
 }
-
-import { formatVerfuegbarkeit, parseAusgabeDetails } from './vorvertragGeraeteUtils';
 
 function jaNeinLabel(jaNein, wert) {
   if (jaNein === 'ja') return wert ? `Ja (${wert})` : 'Ja';
@@ -59,8 +59,8 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
         <Field label="IBAN" value={e.iban} />
         <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
         <Field label="HW-Voucher" value={e.hwVoucher} />
-        <Field label="Kombi" value={e.kombi} />
-        <Field label="VVL" value={e.vvl} />
+        <Field label="Kombi" value={normalizeMitOhne(e.kombi)} />
+        <Field label="VVL" value={normalizeMitOhne(e.vvl)} />
         <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
         <Field label="MNP" value={e.mnp} />
         <Field label="Notiz" value={e.notiz} />

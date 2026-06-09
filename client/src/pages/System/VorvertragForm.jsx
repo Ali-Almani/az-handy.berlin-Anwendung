@@ -1,5 +1,5 @@
 import { COUNTRY_OPTIONS } from './countries';
-import { parseAusgabeDetails } from './vorvertragGeraeteUtils';
+import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 
 const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const HW_VOUCHER_OPTIONS = ['24 Monate', '36 Monate'];
@@ -22,8 +22,8 @@ export const emptyVorvertragForm = () => ({
   iban: '',
   ibanInhaber: '',
   hwVoucher: '',
-  kombi: '',
-  vvl: '',
+  kombi: 'Ohne',
+  vvl: 'Ohne',
   eposKundenummer: '',
   mnp: '',
   notiz: ''
@@ -50,8 +50,8 @@ export function formFromEntry(entry) {
     iban: e.iban || '',
     ibanInhaber: e.ibanInhaber || '',
     hwVoucher: e.hwVoucher || '',
-    kombi: e.kombi || '',
-    vvl: e.vvl || '',
+    kombi: normalizeMitOhne(e.kombi),
+    vvl: normalizeMitOhne(e.vvl),
     eposKundenummer: e.eposKundenummer || '',
     mnp: e.mnp || '',
     notiz: e.notiz || ''
@@ -362,25 +362,29 @@ export default function VorvertragForm({
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label htmlFor="vv-kombi" className="form-label">Kombi</label>
-            <input
-              id="vv-kombi"
-              type="text"
-              className="form-input"
-              value={form.kombi}
-              onChange={(ev) => handleChange('kombi', ev.target.value)}
-            />
+          <div className="form-group vorvertrag-checkbox-field">
+            <span className="form-label">Kombi</span>
+            <label className="vorvertrag-checkbox-field__control" htmlFor="vv-kombi">
+              <input
+                id="vv-kombi"
+                type="checkbox"
+                checked={form.kombi === 'Mit'}
+                onChange={(ev) => handleChange('kombi', ev.target.checked ? 'Mit' : 'Ohne')}
+              />
+              <span className="vorvertrag-checkbox-field__value">{form.kombi}</span>
+            </label>
           </div>
-          <div className="form-group">
-            <label htmlFor="vv-vvl" className="form-label">VVL</label>
-            <input
-              id="vv-vvl"
-              type="text"
-              className="form-input"
-              value={form.vvl}
-              onChange={(ev) => handleChange('vvl', ev.target.value)}
-            />
+          <div className="form-group vorvertrag-checkbox-field">
+            <span className="form-label">VVL</span>
+            <label className="vorvertrag-checkbox-field__control" htmlFor="vv-vvl">
+              <input
+                id="vv-vvl"
+                type="checkbox"
+                checked={form.vvl === 'Mit'}
+                onChange={(ev) => handleChange('vvl', ev.target.checked ? 'Mit' : 'Ohne')}
+              />
+              <span className="vorvertrag-checkbox-field__value">{form.vvl}</span>
+            </label>
           </div>
           <div className="form-group">
             <label htmlFor="vv-epos" className="form-label">ePOS-Kundenummer</label>
