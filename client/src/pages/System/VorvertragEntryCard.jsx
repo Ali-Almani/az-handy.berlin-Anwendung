@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 
 function Field({ label, value, badge }) {
@@ -17,13 +18,29 @@ function Field({ label, value, badge }) {
   );
 }
 
-function FieldSection({ title, children }) {
+function AccordionSection({ title, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
   const items = (Array.isArray(children) ? children : [children]).filter(Boolean);
   if (items.length === 0) return null;
+
   return (
-    <section className="vorvertrag-entry-card__section">
-      <h4 className="vorvertrag-entry-card__section-title">{title}</h4>
-      <div className="vorvertrag-entry-card__fields">{items}</div>
+    <section className={`vorvertrag-entry-card__accordion${open ? ' vorvertrag-entry-card__accordion--open' : ''}`}>
+      <button
+        type="button"
+        className="vorvertrag-entry-card__accordion-trigger"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+      >
+        <span className="vorvertrag-entry-card__accordion-title">{title}</span>
+        <span className="vorvertrag-entry-card__accordion-icon" aria-hidden="true">
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open ? (
+        <div className="vorvertrag-entry-card__accordion-panel">
+          {items}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -96,6 +113,7 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
   const mitarbeiter = mitarbeiterName(entry);
+  const hasDevice = Boolean(ausgabe.geraet);
 
   return (
     <article
@@ -127,52 +145,60 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
       </header>
 
       <div className="vorvertrag-entry-card__body">
-        {ausgabe.geraet ? (
-          <div className="vorvertrag-entry-card__device">
-            <span className="vorvertrag-entry-card__device-name">{ausgabe.geraet}</span>
-            {ausgabe.farbe ? (
-              <span className="vorvertrag-entry-card__device-detail">{ausgabe.farbe}</span>
-            ) : null}
-            {ausgabe.verfuegbarkeit ? (
-              <span
-                className={`vorvertrag-entry-card__badge vorvertrag-entry-card__badge--${verfuegbarkeitBadge(ausgabe.verfuegbarkeit) || 'neutral'}`}
-              >
-                {formatVerfuegbarkeit(ausgabe.verfuegbarkeit)}
-              </span>
-            ) : null}
-          </div>
+        {hasDevice ? (
+          <AccordionSection title="Gerät & Ausgabe" defaultOpen>
+            <div className="vorvertrag-entry-card__device">
+              <span className="vorvertrag-entry-card__device-name">{ausgabe.geraet}</span>
+              {ausgabe.farbe ? (
+                <span className="vorvertrag-entry-card__device-detail">{ausgabe.farbe}</span>
+              ) : null}
+              {ausgabe.verfuegbarkeit ? (
+                <span
+                  className={`vorvertrag-entry-card__badge vorvertrag-entry-card__badge--${verfuegbarkeitBadge(ausgabe.verfuegbarkeit) || 'neutral'}`}
+                >
+                  {formatVerfuegbarkeit(ausgabe.verfuegbarkeit)}
+                </span>
+              ) : null}
+            </div>
+          </AccordionSection>
         ) : null}
 
-        <FieldSection title="Vertrag">
-          <Field
-            label="Anschluss"
-            value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)}
-            badge={jaNeinBadge(entry?.anschluss?.jaNein)}
-          />
-          <Field
-            label="Zuzahlung"
-            value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)}
-            badge={jaNeinBadge(entry?.zuzahlung?.jaNein)}
-          />
-          <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
-          <Field label="HW-Voucher" value={e.hwVoucher} />
-          <Field label="Kombi" value={normalizeMitOhne(e.kombi)} badge={mitOhneBadge(e.kombi)} />
-          <Field label="VVL" value={normalizeMitOhne(e.vvl)} badge={mitOhneBadge(e.vvl)} />
-        </FieldSection>
+        <AccordionSection title="Vertrag" defaultOpen={!hasDevice}>
+          <div className="vorvertrag-entry-card__fields">
+            <Field
+              label="Anschluss"
+              value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)}
+              badge={jaNeinBadge(entry?.anschluss?.jaNein)}
+            />
+            <Field
+              label="Zuzahlung"
+              value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)}
+              badge={jaNeinBadge(entry?.zuzahlung?.jaNein)}
+            />
+            <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
+            <Field label="HW-Voucher" value={e.hwVoucher} />
+            <Field label="Kombi" value={normalizeMitOhne(e.kombi)} badge={mitOhneBadge(e.kombi)} />
+            <Field label="VVL" value={normalizeMitOhne(e.vvl)} badge={mitOhneBadge(e.vvl)} />
+          </div>
+        </AccordionSection>
 
-        <FieldSection title="Kunde & Zahlung">
-          <Field label="Nationalität" value={e.nationalitaet} />
-          <Field label="Pass / PA-Nr." value={e.passNummer} />
-          <Field label="PA Ablauf" value={e.passAblaufDatum} />
-          <Field label="IBAN" value={e.iban} />
-          <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
-        </FieldSection>
+        <AccordionSection title="Kunde & Zahlung">
+          <div className="vorvertrag-entry-card__fields">
+            <Field label="Nationalität" value={e.nationalitaet} />
+            <Field label="Pass / PA-Nr." value={e.passNummer} />
+            <Field label="PA Ablauf" value={e.passAblaufDatum} />
+            <Field label="IBAN" value={e.iban} />
+            <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
+          </div>
+        </AccordionSection>
 
-        <FieldSection title="Sonstiges">
-          <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
-          <Field label="MNP" value={e.mnp} />
-          <Field label="Notiz" value={e.notiz} />
-        </FieldSection>
+        <AccordionSection title="Sonstiges">
+          <div className="vorvertrag-entry-card__fields">
+            <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
+            <Field label="MNP" value={e.mnp} />
+            <Field label="Notiz" value={e.notiz} />
+          </div>
+        </AccordionSection>
       </div>
     </article>
   );
