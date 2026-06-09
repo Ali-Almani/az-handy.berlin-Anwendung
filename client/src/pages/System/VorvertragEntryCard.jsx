@@ -18,8 +18,7 @@ function Field({ label, value, badge }) {
   );
 }
 
-function AccordionSection({ title, defaultOpen = false, children }) {
-  const [open, setOpen] = useState(defaultOpen);
+function AccordionSection({ id, title, open, onToggle, children }) {
   const items = (Array.isArray(children) ? children : [children]).filter(Boolean);
   if (items.length === 0) return null;
 
@@ -28,7 +27,7 @@ function AccordionSection({ title, defaultOpen = false, children }) {
       <button
         type="button"
         className="vorvertrag-entry-card__accordion-trigger"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => onToggle(id)}
         aria-expanded={open}
       >
         <span className="vorvertrag-entry-card__accordion-title">{title}</span>
@@ -114,6 +113,11 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
   const mitarbeiter = mitarbeiterName(entry);
   const hasDevice = Boolean(ausgabe.geraet);
+  const [openSection, setOpenSection] = useState(hasDevice ? 'device' : 'vertrag');
+
+  const toggleSection = (id) => {
+    setOpenSection((prev) => (prev === id ? null : id));
+  };
 
   return (
     <article
@@ -146,7 +150,12 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
 
       <div className="vorvertrag-entry-card__body">
         {hasDevice ? (
-          <AccordionSection title="Gerät & Ausgabe" defaultOpen>
+          <AccordionSection
+            id="device"
+            title="Gerät & Ausgabe"
+            open={openSection === 'device'}
+            onToggle={toggleSection}
+          >
             <div className="vorvertrag-entry-card__device">
               <span className="vorvertrag-entry-card__device-name">{ausgabe.geraet}</span>
               {ausgabe.farbe ? (
@@ -163,7 +172,12 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
           </AccordionSection>
         ) : null}
 
-        <AccordionSection title="Vertrag" defaultOpen={!hasDevice}>
+        <AccordionSection
+          id="vertrag"
+          title="Vertrag"
+          open={openSection === 'vertrag'}
+          onToggle={toggleSection}
+        >
           <div className="vorvertrag-entry-card__fields">
             <Field
               label="Anschluss"
@@ -182,7 +196,12 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
           </div>
         </AccordionSection>
 
-        <AccordionSection title="Kunde & Zahlung">
+        <AccordionSection
+          id="kunde"
+          title="Kunde & Zahlung"
+          open={openSection === 'kunde'}
+          onToggle={toggleSection}
+        >
           <div className="vorvertrag-entry-card__fields">
             <Field label="Nationalität" value={e.nationalitaet} />
             <Field label="Pass / PA-Nr." value={e.passNummer} />
@@ -192,7 +211,12 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
           </div>
         </AccordionSection>
 
-        <AccordionSection title="Sonstiges">
+        <AccordionSection
+          id="sonstiges"
+          title="Sonstiges"
+          open={openSection === 'sonstiges'}
+          onToggle={toggleSection}
+        >
           <div className="vorvertrag-entry-card__fields">
             <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
             <Field label="MNP" value={e.mnp} />
