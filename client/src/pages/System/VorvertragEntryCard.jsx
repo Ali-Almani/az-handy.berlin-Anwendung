@@ -58,6 +58,7 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
         <Field label="PA Ablauf" value={e.passAblaufDatum} />
         <Field label="IBAN" value={e.iban} />
         <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
+        <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
         <Field label="HW-Voucher" value={e.hwVoucher} />
         <Field label="Kombi" value={normalizeMitOhne(e.kombi)} />
         <Field label="VVL" value={normalizeMitOhne(e.vvl)} />

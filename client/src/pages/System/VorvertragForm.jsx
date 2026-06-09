@@ -3,7 +3,7 @@ import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils'
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 
 const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
-const HW_VOUCHER_OPTIONS = ['24 Monate', '36 Monate'];
+const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
 export const emptyVorvertragForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
@@ -22,6 +22,7 @@ export const emptyVorvertragForm = () => ({
   passAblaufDatum: '',
   iban: '',
   ibanInhaber: '',
+  imeisMonate: '',
   hwVoucher: '',
   kombi: 'Ohne',
   vvl: 'Ohne',
@@ -50,6 +51,7 @@ export function formFromEntry(entry) {
     passAblaufDatum: e.passAblaufDatum || '',
     iban: e.iban || '',
     ibanInhaber: e.ibanInhaber || '',
+    imeisMonate: e.imeisMonate || '',
     hwVoucher: e.hwVoucher || '',
     kombi: normalizeMitOhne(e.kombi),
     vvl: normalizeMitOhne(e.vvl),
@@ -80,6 +82,7 @@ export function buildVorvertragPayload(form) {
       passAblaufDatum: form.passAblaufDatum,
       iban: form.iban,
       ibanInhaber: form.ibanInhaber,
+      imeisMonate: form.imeisMonate,
       hwVoucher: form.hwVoucher,
       kombi: form.kombi,
       vvl: form.vvl,
@@ -316,6 +319,20 @@ export default function VorvertragForm({
             />
           </div>
           <div className="form-group">
+            <label htmlFor="vv-imeis-monate" className="form-label">IMEIs – 24/36 Monaten</label>
+            <select
+              id="vv-imeis-monate"
+              className="form-input"
+              value={form.imeisMonate}
+              onChange={(ev) => handleChange('imeisMonate', ev.target.value)}
+            >
+              <option value="">— keine Auswahl —</option>
+              {MONATE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
             <label htmlFor="vv-hw-voucher" className="form-label">HW-Voucher</label>
             <select
               id="vv-hw-voucher"
@@ -324,7 +341,7 @@ export default function VorvertragForm({
               onChange={(ev) => handleChange('hwVoucher', ev.target.value)}
             >
               <option value="">— keine Auswahl —</option>
-              {HW_VOUCHER_OPTIONS.map((opt) => (
+              {MONATE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>

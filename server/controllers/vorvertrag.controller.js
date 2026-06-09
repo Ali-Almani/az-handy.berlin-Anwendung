@@ -74,6 +74,7 @@ function normalizeEingabeDetails(raw = {}) {
     passAblaufDatum: String(raw.passAblaufDatum ?? raw.personalausweis_ablauf_datum ?? '').trim(),
     iban: String(raw.iban ?? '').trim(),
     ibanInhaber: String(raw.ibanInhaber ?? raw.iban_inhaber ?? '').trim(),
+    imeisMonate: String(raw.imeisMonate ?? raw.imeis_monate ?? '').trim(),
     hwVoucher: String(raw.hwVoucher ?? raw.hw_voucher ?? '').trim(),
     kombi: normalizeMitOhne(raw.kombi),
     vvl: normalizeMitOhne(raw.vvl),
