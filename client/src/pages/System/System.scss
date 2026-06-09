@@ -115,7 +115,7 @@
 .vorvertrag-cards-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: $spacing-md;
+  gap: $spacing-lg;
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -129,15 +129,20 @@
 .vorvertrag-entry-card {
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-card;
+  background: $bg-color;
+  border: 1px solid mix($border-color, #fff, 70%);
+  border-radius: $border-radius-md;
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: $shadow-card;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
 
   &--highlight {
     border-color: $success-color;
-    box-shadow: 0 0 0 2px mix(#fff, $success-color, 70%);
+    box-shadow: 0 0 0 2px mix(#fff, $success-color, 72%), $shadow-md;
   }
 }
 
@@ -146,9 +151,9 @@
   flex-direction: column;
   align-items: flex-start;
   gap: $spacing-sm;
-  padding: $spacing-md;
-  background: $bg-light;
-  border-bottom: 1px solid $border-color;
+  padding: $spacing-md $spacing-md 0.85rem;
+  background: linear-gradient(180deg, mix(#fff, $primary-color, 96%) 0%, $bg-light 100%);
+  border-bottom: 1px solid mix($border-color, $primary-color, 75%);
 }
 
 .vorvertrag-entry-card__head {
@@ -157,46 +162,169 @@
 
 .vorvertrag-entry-card__title {
   margin: 0;
-  font-size: 1rem;
-  color: $text-color;
+  font-size: 1.05rem;
+  font-weight: $font-weight-bold;
+  color: darken($text-color, 8%);
+  line-height: 1.3;
 }
 
 .vorvertrag-entry-card__meta {
-  margin: 0.2rem 0 0;
-  font-size: 0.82rem;
-  color: $text-light;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.vorvertrag-entry-card__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: $font-weight-medium;
+  color: $text-color;
+  background: mix(#fff, $border-color, 55%);
+  border: 1px solid mix($border-color, #fff, 40%);
+
+  &--accent {
+    color: darken($primary-color, 5%);
+    background: mix(#fff, $primary-color, 88%);
+    border-color: mix($primary-color, #fff, 65%);
+  }
 }
 
 .vorvertrag-entry-card__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.4rem;
   width: 100%;
+  padding-top: 0.65rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid mix($border-color, #fff, 35%);
 }
 
 .vorvertrag-entry-card__body {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
   padding: $spacing-md;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
+}
+
+.vorvertrag-entry-card__device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: $border-radius-sm;
+  background: mix(#fff, $primary-color, 94%);
+  border: 1px solid mix($primary-color, #fff, 78%);
+}
+
+.vorvertrag-entry-card__device-name {
+  flex: 1 1 100%;
+  font-size: 0.92rem;
+  font-weight: $font-weight-bold;
+  color: darken($primary-color, 8%);
+  line-height: 1.35;
+}
+
+.vorvertrag-entry-card__device-detail {
+  font-size: 0.82rem;
+  color: $text-light;
+}
+
+.vorvertrag-entry-card__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vorvertrag-entry-card__section-title {
+  margin: 0;
+  padding-bottom: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-light;
+  border-bottom: 1px solid mix($border-color, #fff, 25%);
+}
+
+.vorvertrag-entry-card__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .vorvertrag-entry-card__field {
   display: grid;
-  grid-template-columns: minmax(7rem, 38%) 1fr;
-  gap: 0.35rem 0.5rem;
-  align-items: start;
+  grid-template-columns: minmax(6.5rem, 42%) 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.15rem;
+  border-radius: 2px;
+
+  &:nth-child(even) {
+    background: mix(#fff, $bg-light, 45%);
+  }
 }
 
 .vorvertrag-entry-card__label {
   color: $text-light;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .vorvertrag-entry-card__value {
   color: $text-color;
+  font-size: 0.84rem;
+  font-weight: $font-weight-medium;
   word-break: break-word;
+  line-height: 1.35;
+}
+
+.vorvertrag-entry-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.3;
+  border: 1px solid transparent;
+
+  &--yes {
+    color: darken($success-color, 12%);
+    background: mix(#fff, $success-color, 88%);
+    border-color: mix($success-color, #fff, 55%);
+  }
+
+  &--no {
+    color: $text-light;
+    background: mix(#fff, $border-color, 50%);
+    border-color: mix($border-color, #fff, 30%);
+  }
+
+  &--shop {
+    color: darken($success-color, 12%);
+    background: mix(#fff, $success-color, 88%);
+    border-color: mix($success-color, #fff, 55%);
+  }
+
+  &--order {
+    color: darken($warning-color, 28%);
+    background: mix(#fff, $warning-color, 82%);
+    border-color: mix($warning-color, #fff, 45%);
+  }
+
+  &--neutral {
+    color: $text-color;
+    background: mix(#fff, $border-color, 55%);
+    border-color: mix($border-color, #fff, 35%);
+  }
 }
 
 .vorvertrag-panel {

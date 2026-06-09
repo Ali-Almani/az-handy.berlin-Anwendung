@@ -1,18 +1,58 @@
 import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 
-function Field({ label, value }) {
+function Field({ label, value, badge }) {
   if (value == null || String(value).trim() === '') return null;
+  const text = String(value).trim();
   return (
     <div className="vorvertrag-entry-card__field">
       <span className="vorvertrag-entry-card__label">{label}</span>
-      <span className="vorvertrag-entry-card__value">{value}</span>
+      {badge ? (
+        <span className={`vorvertrag-entry-card__badge vorvertrag-entry-card__badge--${badge}`}>
+          {text}
+        </span>
+      ) : (
+        <span className="vorvertrag-entry-card__value">{text}</span>
+      )}
     </div>
+  );
+}
+
+function FieldSection({ title, children }) {
+  const items = (Array.isArray(children) ? children : [children]).filter(Boolean);
+  if (items.length === 0) return null;
+  return (
+    <section className="vorvertrag-entry-card__section">
+      <h4 className="vorvertrag-entry-card__section-title">{title}</h4>
+      <div className="vorvertrag-entry-card__fields">{items}</div>
+    </section>
+  );
+}
+
+function MetaChip({ children, accent }) {
+  return (
+    <span className={`vorvertrag-entry-card__chip${accent ? ' vorvertrag-entry-card__chip--accent' : ''}`}>
+      {children}
+    </span>
   );
 }
 
 function jaNeinLabel(jaNein, wert) {
   if (jaNein === 'ja') return wert ? `Ja (${wert})` : 'Ja';
   return 'Nein';
+}
+
+function jaNeinBadge(jaNein) {
+  return jaNein === 'ja' ? 'yes' : 'no';
+}
+
+function mitOhneBadge(value) {
+  return normalizeMitOhne(value) === 'Mit' ? 'yes' : 'no';
+}
+
+function verfuegbarkeitBadge(value) {
+  if (value === 'in_shop') return 'shop';
+  if (value === 'bestellen') return 'order';
+  return null;
 }
 
 function mitarbeiterName(entry) {
@@ -43,10 +83,19 @@ function mitarbeiterName(entry) {
   return value;
 }
 
+function formatDatum(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '—';
+  const parts = raw.split('-');
+  if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+  return raw;
+}
+
 export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false, highlighted = false }) {
   const e = entry?.eingabeDetails || {};
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
+  const mitarbeiter = mitarbeiterName(entry);
 
   return (
     <article
@@ -56,9 +105,11 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
       <header className="vorvertrag-entry-card__header">
         <div className="vorvertrag-entry-card__head">
           <h3 className="vorvertrag-entry-card__title">{name}</h3>
-          <p className="vorvertrag-entry-card__meta">
-            {entry?.datum || '—'} · {entry?.filiale || '—'} · {mitarbeiterName(entry) || '—'}
-          </p>
+          <div className="vorvertrag-entry-card__meta">
+            <MetaChip>{formatDatum(entry?.datum)}</MetaChip>
+            <MetaChip accent>{entry?.filiale || '—'}</MetaChip>
+            {mitarbeiter ? <MetaChip>{mitarbeiter}</MetaChip> : null}
+          </div>
         </div>
         <div className="vorvertrag-entry-card__actions">
           <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>
@@ -70,29 +121,58 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
             onClick={() => onDelete?.(entry)}
             disabled={deleting}
           >
-            Löschen
+            {deleting ? 'Löschen…' : 'Löschen'}
           </button>
         </div>
       </header>
 
       <div className="vorvertrag-entry-card__body">
-        <Field label="Gerät" value={ausgabe.geraet} />
-        <Field label="Farbe" value={ausgabe.farbe} />
-        <Field label="Verfügbarkeit" value={formatVerfuegbarkeit(ausgabe.verfuegbarkeit)} />
-        <Field label="Anschluss" value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)} />
-        <Field label="Zuzahlung" value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)} />
-        <Field label="Nationalität" value={e.nationalitaet} />
-        <Field label="Pass / PA-Nr." value={e.passNummer} />
-        <Field label="PA Ablauf" value={e.passAblaufDatum} />
-        <Field label="IBAN" value={e.iban} />
-        <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
-        <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
-        <Field label="HW-Voucher" value={e.hwVoucher} />
-        <Field label="Kombi" value={normalizeMitOhne(e.kombi)} />
-        <Field label="VVL" value={normalizeMitOhne(e.vvl)} />
-        <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
-        <Field label="MNP" value={e.mnp} />
-        <Field label="Notiz" value={e.notiz} />
+        {ausgabe.geraet ? (
+          <div className="vorvertrag-entry-card__device">
+            <span className="vorvertrag-entry-card__device-name">{ausgabe.geraet}</span>
+            {ausgabe.farbe ? (
+              <span className="vorvertrag-entry-card__device-detail">{ausgabe.farbe}</span>
+            ) : null}
+            {ausgabe.verfuegbarkeit ? (
+              <span
+                className={`vorvertrag-entry-card__badge vorvertrag-entry-card__badge--${verfuegbarkeitBadge(ausgabe.verfuegbarkeit) || 'neutral'}`}
+              >
+                {formatVerfuegbarkeit(ausgabe.verfuegbarkeit)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        <FieldSection title="Vertrag">
+          <Field
+            label="Anschluss"
+            value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)}
+            badge={jaNeinBadge(entry?.anschluss?.jaNein)}
+          />
+          <Field
+            label="Zuzahlung"
+            value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)}
+            badge={jaNeinBadge(entry?.zuzahlung?.jaNein)}
+          />
+          <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
+          <Field label="HW-Voucher" value={e.hwVoucher} />
+          <Field label="Kombi" value={normalizeMitOhne(e.kombi)} badge={mitOhneBadge(e.kombi)} />
+          <Field label="VVL" value={normalizeMitOhne(e.vvl)} badge={mitOhneBadge(e.vvl)} />
+        </FieldSection>
+
+        <FieldSection title="Kunde & Zahlung">
+          <Field label="Nationalität" value={e.nationalitaet} />
+          <Field label="Pass / PA-Nr." value={e.passNummer} />
+          <Field label="PA Ablauf" value={e.passAblaufDatum} />
+          <Field label="IBAN" value={e.iban} />
+          <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
+        </FieldSection>
+
+        <FieldSection title="Sonstiges">
+          <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
+          <Field label="MNP" value={e.mnp} />
+          <Field label="Notiz" value={e.notiz} />
+        </FieldSection>
       </div>
     </article>
   );
