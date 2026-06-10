@@ -408,21 +408,21 @@ const Navbar = ({
       </li>
     ) : null;
 
-  const renderMitarbeiterNavItem = () => (
-    <li>
-      <NavLink to="/mitarbeiter" className={navLinkClassName} onClick={closeMobileMenu} end>
-        <span className="navbar-link-inner">
-          <span className="navbar-link-icon" aria-hidden>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.75" />
-              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-            </svg>
-          </span>
-          Mitarbeiter Übersicht
-        </span>
-      </NavLink>
-    </li>
+  const renderMitarbeiterDropdownLink = () => (
+    <Link
+      to="/mitarbeiter"
+      className="navbar-dropdown-item"
+      onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
+    >
+      <span className="navbar-dropdown-icon" aria-hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </span>
+      Mitarbeiter Übersicht
+    </Link>
   );
 
   const renderSystemNavItem = () =>
@@ -462,7 +462,6 @@ const Navbar = ({
   const navLinksDesktop = partnerUser ? (
     <>
       {renderFormularCenterNavItem()}
-      {renderMitarbeiterNavItem()}
     </>
   ) : (
     <>
@@ -470,7 +469,6 @@ const Navbar = ({
       {renderImeisItem()}
       {renderVoucherItem()}
       {renderArchivItem(archivDesktopRef, archivDesktopTriggerId, archivDesktopSubmenuId, useHoverDropdowns)}
-      {renderMitarbeiterNavItem()}
       {renderSystemNavItem()}
       {renderMarketingTshirtNavItem()}
     </>
@@ -479,7 +477,6 @@ const Navbar = ({
   const navLinksMobile = partnerUser ? (
     <>
       {renderFormularCenterNavItem()}
-      {renderMitarbeiterNavItem()}
     </>
   ) : (
     <>
@@ -487,7 +484,6 @@ const Navbar = ({
       {renderImeisItem()}
       {renderVoucherItem()}
       {renderArchivItem(archivMobileRef, archivMobileTriggerId, archivMobileSubmenuId)}
-      {renderMitarbeiterNavItem()}
       {renderSystemNavItem()}
       {renderMarketingTshirtNavItem()}
     </>
@@ -605,19 +601,7 @@ const Navbar = ({
                         <div className="navbar-dropdown-email">{user.email}</div>
                       </div>
                     </div>
-                    <Link
-                      to={`/mitarbeiter/${user.id}`}
-                      className="navbar-dropdown-item"
-                      onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
-                    >
-                      <span className="navbar-dropdown-icon" aria-hidden>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                          <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
-                        </svg>
-                      </span>
-                      Mitarbeiterprofil
-                    </Link>
+                    {renderMitarbeiterDropdownLink()}
                     {!partnerUser && (
                       <>
                     {hasReminderBadge && onOpenVerlauf && (
@@ -820,19 +804,7 @@ const Navbar = ({
                       <div className="navbar-dropdown-email">{user.email}</div>
                     </div>
                   </div>
-                  <Link
-                    to={`/mitarbeiter/${user.id}`}
-                    className="navbar-dropdown-item"
-                    onClick={() => { setDropdownOpen(false); closeMobileMenu(); }}
-                  >
-                    <span className="navbar-dropdown-icon" aria-hidden>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
-                      </svg>
-                    </span>
-                    Mitarbeiterprofil
-                  </Link>
+                  {renderMitarbeiterDropdownLink()}
                   {!partnerUser && (
                     <>
                   {hasReminderBadge && onOpenVerlauf && (

@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { updatePassword, restoreAdmin, updateUserProfile } from '../../services/user.service';
 import { isAdmin, isMitarbeiterShop, TSHIRT_GROESSE_OPTIONS } from '../../utils/roles';
 import PasswordForm from './components/PasswordForm';
+import OwnProfileForm from '../../components/Profile/OwnProfileForm';
 import './Settings.scss';
 
 const Settings = () => {
@@ -106,6 +107,13 @@ const Settings = () => {
         </div>
       )}
       <div className="settings-content">
+        <div className="settings-section settings-section--profile">
+          <div className="settings-section-header">
+            <h2>Mitarbeiterprofil</h2>
+            <p>Name, Einsatzort, Telefon und Profilbild bearbeiten</p>
+          </div>
+          <OwnProfileForm user={user} setUser={setUser} />
+        </div>
         {user && isMitarbeiterShop(user) && (
           <div className="settings-section settings-section--tshirt">
             <div className="settings-section-header">
