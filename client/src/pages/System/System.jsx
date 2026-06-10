@@ -199,7 +199,7 @@ const System = () => {
       </div>
 
       <div className="system-toolbar">
-        <button type="button" className="btn btn--primary" onClick={startNew}>
+        <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
           Neuer Vorvertrag
         </button>
       </div>
