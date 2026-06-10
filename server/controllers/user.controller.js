@@ -1,9 +1,8 @@
 import User from '../models/User.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
+import { ALLOWED_EINSATZ_ORT, canonicalizeEinsatzOrt } from '../constants/einsatzorte.js';
 
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
-
-const ALLOWED_EINSATZ_ORT = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
 const ALLOWED_TSHIRT_GROESSEN = new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']);
 const TELEFON_MAX_LEN = 40;
 
@@ -98,7 +97,7 @@ export const updateProfile = async (req, res, next) => {
       if (v && !ALLOWED_EINSATZ_ORT.has(v)) {
         return res.status(400).json({ message: 'Ungültiger Einsatzort' });
       }
-      user.einsatz_ort = v || null;
+      user.einsatz_ort = v ? canonicalizeEinsatzOrt(v) : null;
     }
     if (telefon !== undefined) {
       user.telefon = normalizeTelefonInput(telefon);
@@ -249,13 +248,19 @@ export const createUserByAdmin = async (req, res, next) => {
     if (existing) {
       return res.status(400).json({ message: 'E-Mail wird bereits verwendet' });
     }
+    if (einsatz_ort) {
+      const v = String(einsatz_ort).trim();
+      if (!ALLOWED_EINSATZ_ORT.has(v)) {
+        return res.status(400).json({ message: 'Ungültiger Einsatzort' });
+      }
+    }
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password,
       role: role || 'Marketing',
       avatar: avatar || null,
-      einsatz_ort: einsatz_ort || null,
+      einsatz_ort: einsatz_ort ? canonicalizeEinsatzOrt(einsatz_ort) : null,
       telefon: normalizeTelefonInput(telefon) ?? null
     });
     const createdAt = user.createdAt ?? user.created_at ?? new Date();
@@ -311,7 +316,13 @@ export const updateUserByAdmin = async (req, res, next) => {
       user.email = email.toLowerCase().trim();
     }
     if (avatar !== undefined) user.avatar = avatar || null;
-    if (einsatz_ort !== undefined) user.einsatz_ort = einsatz_ort || null;
+    if (einsatz_ort !== undefined) {
+      const v = einsatz_ort === null || einsatz_ort === '' ? null : String(einsatz_ort).trim();
+      if (v && !ALLOWED_EINSATZ_ORT.has(v)) {
+        return res.status(400).json({ message: 'Ungültiger Einsatzort' });
+      }
+      user.einsatz_ort = v ? canonicalizeEinsatzOrt(v) : null;
+    }
     if (telefon !== undefined) user.telefon = normalizeTelefonInput(telefon);
     await user.save();
     res.json({

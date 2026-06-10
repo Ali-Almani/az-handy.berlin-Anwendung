@@ -27,18 +27,13 @@ const normRole = (role) => {
   }
 };
 
-// Einsatzorte für Shop-Mitarbeiter (Reihenfolge: Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt)
-export const EINSATZ_ORT_OPTIONS = [
-  { value: '', label: '– Keiner –' },
-  { value: 'Zentrale', label: 'Zentrale' },
-  { value: 'Sonne', label: 'Sonne' },
-  { value: 'KM127', label: 'KM127' },
-  { value: 'KM169', label: 'KM169' },
-  { value: 'KM50', label: 'KM50' },
-  { value: 'Turm', label: 'Turm' },
-  { value: 'Bad', label: 'Bad' },
-  { value: 'Haupt', label: 'Haupt' }
-];
+import {
+  EINSATZ_ORT_OPTIONS,
+  EINSATZ_ORT_SORT_ORDER,
+  normalizeEinsatzOrt
+} from '../constants/einsatzorte';
+
+export { EINSATZ_ORT_OPTIONS };
 
 /** Uniform-Größen / Größenoptionen (Einstellungen, Rolle Mitarbeiter shop) */
 export const TSHIRT_GROESSE_OPTIONS = [
@@ -53,13 +48,13 @@ export const TSHIRT_GROESSE_OPTIONS = [
   { value: '5XL', label: '5XL' }
 ];
 
-const EINSATZ_ORT_ORDER = EINSATZ_ORT_OPTIONS.filter((o) => o.value).map((o) => o.value);
+const EINSATZ_ORT_ORDER = EINSATZ_ORT_SORT_ORDER;
 
 /** Sortierung wie in der Benutzerverwaltung: zuerst nach Einsatzort, dann Name. */
 export const sortUsersByEinsatzOrt = (users) => {
   return [...users].sort((a, b) => {
-    const aOrt = (a.einsatz_ort || '').trim();
-    const bOrt = (b.einsatz_ort || '').trim();
+    const aOrt = normalizeEinsatzOrt(a.einsatz_ort);
+    const bOrt = normalizeEinsatzOrt(b.einsatz_ort);
     const aIdx = aOrt ? EINSATZ_ORT_ORDER.indexOf(aOrt) : 999;
     const bIdx = bOrt ? EINSATZ_ORT_ORDER.indexOf(bOrt) : 999;
     if (aIdx !== bIdx) return aIdx - bIdx;

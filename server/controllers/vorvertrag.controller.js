@@ -1,10 +1,9 @@
 import User from '../models/User.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
 import { normalizeUserId } from '../utils/normalizeUserId.js';
+import { FILIALE_OPTIONS, isValidFiliale, normalizeFiliale } from '../constants/einsatzorte.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
-
-const FILIALE_OPTIONS = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const VERFUEGBARKEIT_OPTIONS = ['bestellen', 'in_shop'];
 
 const ROLE_LABELS = new Set([
@@ -156,10 +155,11 @@ function normalizeEingabeDetails(raw = {}) {
 }
 
 function normalizeEntryBody(body = {}) {
-  const filiale = String(body.filiale ?? '').trim();
-  if (filiale && !FILIALE_OPTIONS.includes(filiale)) {
+  const filialeRaw = String(body.filiale ?? '').trim();
+  if (filialeRaw && !isValidFiliale(filialeRaw)) {
     return { error: 'Ungültige Filiale.' };
   }
+  const filiale = normalizeFiliale(filialeRaw);
   const anschlussJa = normalizeJaNein(body.anschlussJaNein ?? body.anschluss?.jaNein);
   const zuzahlungJa = normalizeJaNein(body.zuzahlungJaNein ?? body.zuzahlung?.jaNein);
   return {

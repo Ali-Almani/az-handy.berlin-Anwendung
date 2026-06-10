@@ -1,8 +1,8 @@
 import { COUNTRY_OPTIONS } from './countries';
 import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
+import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 
-const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
 export const emptyVorvertragForm = () => ({
@@ -36,7 +36,7 @@ export function formFromEntry(entry) {
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   return {
     datum: entry?.datum || '',
-    filiale: entry?.filiale || '',
+    filiale: normalizeEinsatzOrt(entry?.filiale) || entry?.filiale || '',
     kundeVorname: entry?.kundeVorname || '',
     kundeNachname: entry?.kundeNachname || '',
     ausgabeGeraet: ausgabe.geraet,
@@ -98,7 +98,7 @@ export default function VorvertragForm({
   onChange,
   onSubmit,
   onCancel,
-  filialeOptions = DEFAULT_FILIALEN,
+  filialeOptions = FILIALE_OPTIONS,
   imeis = [],
   geraeteLoading = false,
   geraetSeed = '',

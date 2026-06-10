@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
+import { formatEinsatzOrt } from '../../constants/einsatzorte';
 
 function Field({ label, value, badge }) {
   if (value == null || String(value).trim() === '') return null;
@@ -129,7 +130,7 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
           <h3 className="vorvertrag-entry-card__title">{name}</h3>
           <div className="vorvertrag-entry-card__meta">
             <MetaChip>{formatDatum(entry?.datum)}</MetaChip>
-            <MetaChip accent>{entry?.filiale || '—'}</MetaChip>
+            <MetaChip accent>{formatEinsatzOrt(entry?.filiale)}</MetaChip>
             {mitarbeiter ? <MetaChip>{mitarbeiter}</MetaChip> : null}
           </div>
         </div>

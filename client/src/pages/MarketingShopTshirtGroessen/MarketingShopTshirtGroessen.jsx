@@ -3,6 +3,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getMitarbeiterShopTshirtGroessenForMarketing } from '../../services/user.service';
 import { isMarketing, sortUsersByEinsatzOrt } from '../../utils/roles';
+import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import '../Mitarbeiter/Mitarbeiter.scss';
 
 const MarketingShopTshirtGroessen = () => {
@@ -74,7 +75,7 @@ const MarketingShopTshirtGroessen = () => {
                       <span>{u.name}</span>
                     </Link>
                   </td>
-                  <td>{u.einsatz_ort?.trim() ? u.einsatz_ort : '–'}</td>
+                  <td>{formatEinsatzOrt(u.einsatz_ort)}</td>
                   <td>{u.tshirt_groesse?.trim() ? u.tshirt_groesse : '–'}</td>
                 </tr>
               ))}

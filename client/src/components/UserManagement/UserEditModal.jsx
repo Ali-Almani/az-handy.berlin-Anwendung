@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ROLE_OPTIONS, EINSATZ_ORT_OPTIONS } from '../../utils/roles';
+import { normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import './UserEditModal.scss';
 
 const UserEditModal = ({ user, onClose, onSave, loading }) => {
@@ -12,7 +13,7 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
     if (user) {
       setEmail(user.email || '');
       setRole(user.role || 'Marketing');
-      setEinsatzOrt(user.einsatz_ort || '');
+      setEinsatzOrt(normalizeEinsatzOrt(user.einsatz_ort) || user.einsatz_ort || '');
       setTelefon(user.telefon || '');
     }
   }, [user]);
@@ -26,7 +27,8 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
     const updates = {};
     if (!isAdminAccount && email !== user.email) updates.email = email;
     if (role !== user.role) updates.role = role;
-    if (einsatzOrt !== (user.einsatz_ort || '')) updates.einsatz_ort = einsatzOrt || null;
+    const prevOrt = normalizeEinsatzOrt(user.einsatz_ort) || user.einsatz_ort || '';
+    if (einsatzOrt !== prevOrt) updates.einsatz_ort = einsatzOrt || null;
     const prevTel = user.telefon || '';
     if (telefon.trim() !== prevTel) updates.telefon = telefon.trim() || null;
     if (Object.keys(updates).length > 0) onSave(user.id, updates);

@@ -4,7 +4,7 @@
  * - Name = Vorname + Nachname
  * - Passwort = !azHandy.berlin20260203?
  * - Email = wie in Excel
- * - Einsatz Orte (Spalten): Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt
+ * - Einsatz Orte (Spalten in Excel): Zentrale + Kurznamen (Sonne, KM127, …) → werden als Straßenadresse gespeichert
  * - Wenn "SL" in einer Einsatz-Ort-Spalte → Teamleiter shop, einsatz_ort = diese Kategorie
  * - Sonst → Mitarbeiter shop, einsatz_ort = erste nicht-leere Einsatz-Ort-Spalte
  *
@@ -16,6 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { initDatabase, User } from '../models/index.js';
+import { EINSATZORT_LEGACY_MAP, canonicalizeEinsatzOrt } from '../constants/einsatzorte.js';
 
 dotenv.config();
 
@@ -69,7 +70,7 @@ async function main() {
   const colNachname = findCol(sheet, ['Nachname', 'Last Name']);
   const colEmail = findCol(sheet, ['Email', 'E-Mail', 'e-mail', 'Mail']);
 
-  const EINSATZ_ORTE = ['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
+  const EINSATZ_ORTE = ['Zentrale', ...Object.keys(EINSATZORT_LEGACY_MAP)];
   const colEinsatzOrt = {};
   for (const ort of EINSATZ_ORTE) {
     const c = findCol(sheet, [ort]);
@@ -111,7 +112,13 @@ async function main() {
       if (!einsatzOrt) einsatzOrt = ort;
     }
 
-    users.push({ name, email, password: PASSWORD, role, einsatz_ort: einsatzOrt });
+    users.push({
+      name,
+      email,
+      password: PASSWORD,
+      role,
+      einsatz_ort: einsatzOrt ? canonicalizeEinsatzOrt(einsatzOrt) : null
+    });
   });
 
   console.log(`\n📋 ${users.length} Benutzer aus Excel gelesen\n`);

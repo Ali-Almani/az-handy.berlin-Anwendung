@@ -13,6 +13,7 @@ import {
   getUserRole,
   isAdmin
 } from '../utils/imeiOfficeRoles.js';
+import { normalizeEinsatzOrtKey } from '../constants/einsatzorte.js';
 import { getSonderPublishedEntries, addSonderImeiApprovals } from '../utils/sonderImeiStore.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
@@ -138,16 +139,7 @@ const isAdminUserEntity = (user) => {
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
 
-/** Einsatzort/Standort-Key normalisieren (z.B. "KM 127" == "KM127") */
-const normalizeEinsatzOrtKey = (ort) => {
-  return String(ort ?? '')
-    .replace(/\u00a0/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/[-_/]+/g, '')
-    .replace(/\s+/g, '');
-};
-
+/** Einsatzort/Standort-Key normalisieren (Legacy-Kurznamen und Straßennamen) */
 const safeJsonParse = (raw, fallback) => {
   try {
     if (raw == null || raw === '') return fallback;
@@ -229,33 +221,12 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   if (!targetKey) return [];
 
   let usersInCategory = [];
-  if (USE_MEMORY_DB) {
-    // Memory: keine SQL-Funktionen → robust in JS normalisieren
-    const allUsers = await User.findAll({ attributes: ['id', 'einsatz_ort'] });
-    usersInCategory = (allUsers || []).filter((u) => {
-      const ortRaw = u?.einsatz_ort ?? u?.get?.('einsatz_ort') ?? '';
-      const ort = normalizeEinsatzOrtKey(ortRaw);
-      return ort && ort === targetKey;
-    });
-  } else {
-    // PostgreSQL: trim + case-insensitive + entfernt Leerzeichen/Bindestriche/Unterstriche
-    usersInCategory = await User.findAll({
-      where: sqlWhere(
-        fn(
-          'LOWER',
-          fn(
-            'REGEXP_REPLACE',
-            fn('BTRIM', col('einsatz_ort')),
-            '[\\s\\-_]+',
-            '',
-            'g'
-          )
-        ),
-        targetKey
-      ),
-      attributes: ['id']
-    });
-  }
+  const allUsers = await User.findAll({ attributes: ['id', 'einsatz_ort'] });
+  usersInCategory = (allUsers || []).filter((u) => {
+    const ortRaw = u?.einsatz_ort ?? u?.get?.('einsatz_ort') ?? '';
+    const ort = normalizeEinsatzOrtKey(ortRaw);
+    return ort && ort === targetKey;
+  });
 
   // IDs können in PostgreSQL UUIDs sein (nicht nur Integer). Daher NICHT auf Number() filtern/casten.
   const ids = [

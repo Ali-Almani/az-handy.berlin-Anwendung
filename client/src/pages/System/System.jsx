@@ -15,16 +15,16 @@ import VorvertragForm, {
 } from './VorvertragForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
+import { FILIALE_OPTIONS } from '../../constants/einsatzorte';
 import './System.scss';
 
-const DEFAULT_FILIALEN = ['Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt'];
 const TOAST_MS = 4500;
 
 const System = () => {
   const { user } = useAuth();
   const formRef = useRef(null);
   const cardsSectionRef = useRef(null);
-  const [filialeOptions, setFilialeOptions] = useState(DEFAULT_FILIALEN);
+  const [filialeOptions, setFilialeOptions] = useState(FILIALE_OPTIONS);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

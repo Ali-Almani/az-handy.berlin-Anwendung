@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getDirectoryUser, updateUserProfile } from '../../services/user.service';
 import { EINSATZ_ORT_OPTIONS } from '../../utils/roles';
+import { formatEinsatzOrt, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import './Mitarbeiter.scss';
 
 const telHref = (raw) => {
@@ -59,7 +60,7 @@ const MitarbeiterProfile = () => {
   useEffect(() => {
     if (!profile || !isOwnProfile) return;
     setFormName(profile.name || '');
-    setFormEinsatzOrt(profile.einsatz_ort || '');
+    setFormEinsatzOrt(normalizeEinsatzOrt(profile.einsatz_ort) || profile.einsatz_ort || '');
     setFormTelefon(profile.telefon || '');
     setAvatarFile(null);
     setAvatarPreview(profile.avatar || null);
@@ -266,7 +267,7 @@ const MitarbeiterProfile = () => {
             <h2 className="mitarbeiter-profile__name">{profile.name}</h2>
             <p className="mitarbeiter-profile__meta">
               <strong>Einsatzort:</strong>{' '}
-              {profile.einsatz_ort?.trim() ? profile.einsatz_ort : '– Keiner hinterlegt –'}
+              {profile.einsatz_ort?.trim() ? formatEinsatzOrt(profile.einsatz_ort) : '– Keiner hinterlegt –'}
             </p>
             <p className="mitarbeiter-profile__meta">
               <strong>Telefon:</strong>{' '}

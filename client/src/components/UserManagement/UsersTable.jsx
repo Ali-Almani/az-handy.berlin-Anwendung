@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import UserEditModal from './UserEditModal';
 import UserResetPasswordModal from './UserResetPasswordModal';
+import { formatEinsatzOrt } from '../../constants/einsatzorte';
 
 const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
   const [editingUser, setEditingUser] = useState(null);
@@ -52,7 +53,7 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
                       <span>{user.name}</span>
                     </div>
                   </td>
-                  <td>{user.einsatz_ort || '–'}</td>
+                  <td>{formatEinsatzOrt(user.einsatz_ort)}</td>
                   <td>{user.telefon?.trim() ? user.telefon : '–'}</td>
                   <td>{user.email}</td>
                   <td><span className={`role-badge role-badge--${user.role}`}>{user.role}</span></td>

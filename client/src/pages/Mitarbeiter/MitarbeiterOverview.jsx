@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getUserDirectory } from '../../services/user.service';
 import { sortUsersByEinsatzOrt } from '../../utils/roles';
+import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import './Mitarbeiter.scss';
 
 const telHref = (raw) => {
@@ -28,7 +29,7 @@ const renderRows = (rows) =>
             <span>{u.name}</span>
           </Link>
         </td>
-        <td>{u.einsatz_ort?.trim() ? u.einsatz_ort : '–'}</td>
+        <td>{formatEinsatzOrt(u.einsatz_ort)}</td>
         <td>
           {tel ? (
             <a href={telHref(tel)} className="mitarbeiter-tel-link">

@@ -56,7 +56,7 @@ const User = sequelize.define('User', {
   einsatz_ort: {
     type: DataTypes.STRING(64),
     allowNull: true,
-    comment: 'Einsatzort-Kategorie: Zentrale, Sonne, KM127, KM169, KM50, Turm, Bad, Haupt'
+    comment: 'Einsatzort-Kategorie: Zentrale oder Filial-Adresse (z. B. Sonnenallee 16)'
   },
   telefon: {
     type: DataTypes.STRING(40),

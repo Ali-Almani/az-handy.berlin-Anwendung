@@ -1,3 +1,5 @@
+import { ALLOWED_EINSATZ_ORT, normalizeEinsatzOrt } from '../constants/einsatzorte';
+
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
 const parseToken = (token) => {
@@ -62,10 +64,9 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
     } catch (_) {}
   }
   if (updates.einsatz_ort !== undefined) {
-    const allowed = new Set(['Zentrale', 'Sonne', 'KM127', 'KM169', 'KM50', 'Turm', 'Bad', 'Haupt']);
     const v = updates.einsatz_ort === null || updates.einsatz_ort === '' ? null : String(updates.einsatz_ort).trim();
-    if (v && !allowed.has(v)) throw badRequestError('Ungültiger Einsatzort');
-    mockUsers[userIndex].einsatz_ort = v;
+    if (v && !ALLOWED_EINSATZ_ORT.has(v)) throw badRequestError('Ungültiger Einsatzort');
+    mockUsers[userIndex].einsatz_ort = v ? normalizeEinsatzOrt(v) : null;
   }
   if (updates.telefon !== undefined) {
     const t = updates.telefon === null || updates.telefon === '' ? null : String(updates.telefon).trim().slice(0, 40);
@@ -120,7 +121,7 @@ export const mockCreateUserByAdmin = async (mockUsers, token, userData) => {
   const adminUser = mockUsers.find(u => u.id === adminId);
   if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können Benutzer erstellen');
   if (mockUsers.find(u => u.email === userData.email)) throw badRequestError('E-Mail wird bereits verwendet');
-  const newUser = { id: `user-${Date.now()}`, name: userData.name, email: userData.email, password: userData.password, role: userData.role || 'Marketing Mitarbeiter', avatar: userData.avatar || null, einsatz_ort: userData.einsatz_ort || null, telefon: userData.telefon ? String(userData.telefon).trim().slice(0, 40) || null : null, createdAt: new Date().toISOString() };
+  const newUser = { id: `user-${Date.now()}`, name: userData.name, email: userData.email, password: userData.password, role: userData.role || 'Marketing Mitarbeiter', avatar: userData.avatar || null, einsatz_ort: userData.einsatz_ort ? normalizeEinsatzOrt(userData.einsatz_ort) : null, telefon: userData.telefon ? String(userData.telefon).trim().slice(0, 40) || null : null, createdAt: new Date().toISOString() };
   mockUsers.push(newUser);
   return { data: { success: true, message: 'Benutzer erfolgreich erstellt', user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, avatar: newUser.avatar || null, einsatz_ort: newUser.einsatz_ort || null, telefon: newUser.telefon || null } } };
 };
@@ -173,7 +174,11 @@ export const mockUpdateUserByAdmin = async (mockUsers, token, userId, updates) =
   }
   if (updates.role) mockUsers[userIndex].role = updates.role;
   if (updates.name) mockUsers[userIndex].name = updates.name;
-  if (updates.einsatz_ort !== undefined) mockUsers[userIndex].einsatz_ort = updates.einsatz_ort || null;
+  if (updates.einsatz_ort !== undefined) {
+    const v = updates.einsatz_ort === null || updates.einsatz_ort === '' ? null : String(updates.einsatz_ort).trim();
+    if (v && !ALLOWED_EINSATZ_ORT.has(v)) throw badRequestError('Ungültiger Einsatzort');
+    mockUsers[userIndex].einsatz_ort = v ? normalizeEinsatzOrt(v) : null;
+  }
   if (updates.telefon !== undefined) {
     mockUsers[userIndex].telefon = updates.telefon === null || updates.telefon === '' ? null : String(updates.telefon).trim().slice(0, 40) || null;
   }
