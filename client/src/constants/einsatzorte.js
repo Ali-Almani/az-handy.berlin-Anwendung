@@ -28,6 +28,13 @@ export function formatEinsatzOrt(value) {
   return n || '–';
 }
 
+/** Filiale aus Navbar-Einsatzort (keine Zentrale, nur gültige Filial-Adressen). */
+export function userFilialeFromEinsatzOrt(einsatzOrt) {
+  const normalized = normalizeEinsatzOrt(einsatzOrt);
+  if (!normalized || normalized === 'Zentrale') return '';
+  return FILIALE_OPTIONS.includes(normalized) ? normalized : '';
+}
+
 export const EINSATZ_ORT_SORT_ORDER = ['Zentrale', ...FILIALE_OPTIONS];
 
 export const ALLOWED_EINSATZ_ORT = new Set([

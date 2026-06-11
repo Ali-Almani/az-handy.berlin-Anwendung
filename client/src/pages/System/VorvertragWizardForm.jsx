@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { COUNTRY_OPTIONS } from './countries';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
-import { FILIALE_OPTIONS } from '../../constants/einsatzorte';
 import {
   buildCustomerCatalog,
   customerPreviewLines,
@@ -24,7 +23,7 @@ export default function VorvertragWizardForm({
   onPatch,
   onSubmit,
   onCancel,
-  filialeOptions = FILIALE_OPTIONS,
+  navbarFiliale = '',
   existingEntries = [],
   imeis = [],
   geraeteLoading = false,
@@ -62,7 +61,7 @@ export default function VorvertragWizardForm({
   const validateStep = (currentStep) => {
     if (currentStep === 1) {
       if (!form.datum?.trim()) return 'Bitte Datum wählen.';
-      if (!form.filiale?.trim()) return 'Bitte Filiale wählen.';
+      if (!navbarFiliale?.trim()) return 'Bitte zuerst eine Filiale in der Navbar wählen.';
       if (!kundenArt) return 'Bitte Kundenart wählen.';
     }
     if (currentStep === 2) {
@@ -243,19 +242,10 @@ export default function VorvertragWizardForm({
           />
         </div>
         <div className="form-group">
-          <label htmlFor="vv-filiale" className="form-label">Filiale</label>
-          <select
-            id="vv-filiale"
-            className="form-input"
-            value={form.filiale}
-            onChange={(ev) => handleChange('filiale', ev.target.value)}
-            required
-          >
-            <option value="">— auswählen —</option>
-            {filialeOptions.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+          <span className="form-label">Filiale</span>
+          <p className="vorvertrag-filiale-from-navbar">
+            {navbarFiliale || '— Bitte Filiale in der Navbar wählen —'}
+          </p>
         </div>
         <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
           {renderKundenArtChoice()}

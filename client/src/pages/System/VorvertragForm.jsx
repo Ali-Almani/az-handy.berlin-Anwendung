@@ -101,6 +101,7 @@ export default function VorvertragForm({
   onSubmit,
   onCancel,
   filialeOptions = FILIALE_OPTIONS,
+  navbarFiliale = '',
   existingEntries = [],
   imeis = [],
   geraeteLoading = false,
@@ -116,7 +117,7 @@ export default function VorvertragForm({
         onPatch={onPatch}
         onSubmit={onSubmit}
         onCancel={onCancel}
-        filialeOptions={filialeOptions}
+        navbarFiliale={navbarFiliale}
         existingEntries={existingEntries}
         imeis={imeis}
         geraeteLoading={geraeteLoading}

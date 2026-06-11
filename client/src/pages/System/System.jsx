@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { isAdmin } from '../../utils/roles';
@@ -14,7 +14,7 @@ import VorvertragForm, {
 } from './VorvertragForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
-import { FILIALE_OPTIONS } from '../../constants/einsatzorte';
+import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import './System.scss';
 
 const TOAST_MS = 4500;
@@ -35,6 +35,11 @@ const System = () => {
   const [form, setForm] = useState(emptyVorvertragForm);
   const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
+
+  const navbarFiliale = useMemo(
+    () => userFilialeFromEinsatzOrt(user?.einsatz_ort),
+    [user?.einsatz_ort]
+  );
 
   const {
     imeis,
@@ -76,6 +81,11 @@ const System = () => {
     if (user && isAdmin(user)) loadList();
   }, [user, loadList]);
 
+  useEffect(() => {
+    if (!showForm || mode !== 'new' || !navbarFiliale) return;
+    setForm((prev) => (prev.filiale === navbarFiliale ? prev : { ...prev, filiale: navbarFiliale }));
+  }, [showForm, mode, navbarFiliale]);
+
   const scrollToCard = (id) => {
     if (!id) return;
     requestAnimationFrame(() => {
@@ -86,7 +96,7 @@ const System = () => {
 
   const startNew = () => {
     setActiveId(null);
-    setForm(emptyVorvertragForm());
+    setForm({ ...emptyVorvertragForm(), filiale: navbarFiliale });
     setGeraetSeed('');
     setMode('new');
     setShowForm(true);
@@ -134,7 +144,13 @@ const System = () => {
     setError('');
     setSuccessToast(null);
     try {
-      const payload = buildVorvertragPayload(form);
+      const filialeForSave = mode === 'edit' ? form.filiale : (navbarFiliale || form.filiale);
+      if (mode !== 'edit' && !filialeForSave?.trim()) {
+        setError('Bitte zuerst eine Filiale in der Navbar wählen.');
+        setSaving(false);
+        return;
+      }
+      const payload = buildVorvertragPayload({ ...form, filiale: filialeForSave });
       let savedId = activeId;
 
       if (mode === 'edit' && activeId) {
@@ -216,6 +232,7 @@ const System = () => {
             onSubmit={handleSubmit}
             onCancel={cancelForm}
             filialeOptions={filialeOptions}
+            navbarFiliale={navbarFiliale}
             existingEntries={entries}
             imeis={imeis}
             geraeteLoading={geraeteLoading}
