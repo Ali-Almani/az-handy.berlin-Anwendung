@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import { updateUserProfile } from '../../services/user.service';
-import { EINSATZ_ORT_OPTIONS } from '../../utils/roles';
-import { normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import '../../pages/Mitarbeiter/Mitarbeiter.scss';
 
 const OwnProfileForm = ({ user, setUser }) => {
   const [formName, setFormName] = useState('');
-  const [formEinsatzOrt, setFormEinsatzOrt] = useState('');
   const [formTelefon, setFormTelefon] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -18,13 +15,12 @@ const OwnProfileForm = ({ user, setUser }) => {
   useEffect(() => {
     if (!user) return;
     setFormName(user.name || '');
-    setFormEinsatzOrt(normalizeEinsatzOrt(user.einsatz_ort) || user.einsatz_ort || '');
     setFormTelefon(user.telefon || '');
     setAvatarFile(null);
     setAvatarPreview(user.avatar || null);
     setFormError('');
     setFormSuccess('');
-  }, [user?.id, user?.name, user?.einsatz_ort, user?.telefon, user?.avatar]);
+  }, [user?.id, user?.name, user?.telefon, user?.avatar]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -82,7 +78,6 @@ const OwnProfileForm = ({ user, setUser }) => {
     try {
       const payload = {
         name,
-        einsatz_ort: formEinsatzOrt || null,
         telefon: formTelefon.trim() || null
       };
       if (avatarFile && avatarPreview) payload.avatar = avatarPreview;
@@ -151,22 +146,6 @@ const OwnProfileForm = ({ user, setUser }) => {
           required
           autoComplete="name"
         />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="settings-ort" className="form-label">Einsatzort</label>
-        <select
-          id="settings-ort"
-          className="form-input"
-          value={formEinsatzOrt}
-          onChange={(ev) => setFormEinsatzOrt(ev.target.value)}
-        >
-          {EINSATZ_ORT_OPTIONS.map((o) => (
-            <option key={o.value === '' ? '_empty' : o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
       </div>
 
       <div className="form-group">

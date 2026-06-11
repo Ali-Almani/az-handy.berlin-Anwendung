@@ -110,7 +110,7 @@ const Settings = () => {
         <div className="settings-section settings-section--profile">
           <div className="settings-section-header">
             <h2>Mitarbeiterprofil</h2>
-            <p>Name, Einsatzort, Telefon und Profilbild bearbeiten</p>
+            <p>Name, Telefon und Profilbild bearbeiten</p>
           </div>
           <OwnProfileForm user={user} setUser={setUser} />
         </div>

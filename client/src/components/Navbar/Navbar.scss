@@ -12,8 +12,75 @@
 
 .navbar-avatar-container {
   position: relative;
+  margin-left: 0;
+  margin-top: 0;
+}
+
+.navbar-user-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   margin-left: 1rem;
   margin-top: 10px;
+}
+
+.navbar-einsatzort {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  max-width: 10.5rem;
+
+  &__label {
+    font-size: 0.62rem;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #97a2ae;
+    line-height: 1;
+  }
+
+  &__select {
+    width: 100%;
+    max-width: 10.5rem;
+    padding: 0.28rem 1.65rem 0.28rem 0.55rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 999px;
+    background: #fff;
+    color: #2f353a;
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: $font-weight-medium;
+    line-height: 1.25;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2388939e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.55rem center;
+    background-size: 12px 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover:not(:disabled) {
+      border-color: #dcdcdc;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.12);
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+  }
+
+  &--mobile {
+    display: none;
+  }
 }
 
 .navbar-avatar-wrap {
@@ -642,10 +709,23 @@
   .navbar-mobile-right {
     display: flex;
     margin-top: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .navbar-mobile-right .navbar-avatar-container {
     margin-top: 0;
+  }
+
+  .navbar-einsatzort--mobile {
+    display: flex;
+    max-width: 7.25rem;
+
+    .navbar-einsatzort__select {
+      max-width: 7.25rem;
+      font-size: 0.68rem;
+      padding-right: 1.45rem;
+    }
   }
 
   .navbar-hamburger {

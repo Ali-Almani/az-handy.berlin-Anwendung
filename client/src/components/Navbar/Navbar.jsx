@@ -12,6 +12,7 @@ import {
   isMarketing
 } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
+import NavbarEinsatzortSelect from './NavbarEinsatzortSelect';
 import './Navbar.scss';
 
 const navLinkClassName = ({ isActive }) =>
@@ -38,7 +39,7 @@ const Navbar = ({
   onOpenVoucherManualRequestsModal,
   onOpenVoucherRequestModal
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -499,7 +500,9 @@ const Navbar = ({
           {user ? (
             <>
               {navLinksDesktop}
-              <li
+              <li className="navbar-user-cluster">
+                <NavbarEinsatzortSelect user={user} setUser={setUser} />
+                <div
                 className="navbar-avatar-container"
                 ref={dropdownRef}
                 onMouseEnter={useHoverDropdowns ? openDropdownHover : undefined}
@@ -736,13 +739,16 @@ const Navbar = ({
                     </button>
                   </div>
                 )}
+                </div>
               </li>
             </>
           ) : null}
         </ul>
         <div className="navbar-mobile-right">
           {user ? (
-            <div className="navbar-avatar-container" ref={mobileHeaderDropdownRef}>
+            <>
+              <NavbarEinsatzortSelect user={user} setUser={setUser} className="navbar-einsatzort--mobile" />
+              <div className="navbar-avatar-container" ref={mobileHeaderDropdownRef}>
               <button
                 type="button"
                 onClick={toggleDropdown}
@@ -899,7 +905,8 @@ const Navbar = ({
                   </button>
                 </div>
               )}
-            </div>
+              </div>
+            </>
           ) : null}
           <button
             type="button"
