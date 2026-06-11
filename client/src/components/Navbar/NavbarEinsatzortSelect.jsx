@@ -3,7 +3,7 @@ import { updateUserProfile } from '../../services/user.service';
 import { EINSATZ_ORT_OPTIONS } from '../../utils/roles';
 import { normalizeEinsatzOrt } from '../../constants/einsatzorte';
 
-const NavbarEinsatzortSelect = ({ user, setUser, className = '' }) {
+const NavbarEinsatzortSelect = ({ user, setUser, className = '' }) => {
   const selectId = useId();
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
