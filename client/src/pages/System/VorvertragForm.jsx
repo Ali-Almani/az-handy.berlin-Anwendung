@@ -1,6 +1,7 @@
 import { COUNTRY_OPTIONS } from './countries';
 import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
+import VorvertragWizardForm from './VorvertragWizardForm';
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
@@ -96,21 +97,41 @@ export function buildVorvertragPayload(form) {
 export default function VorvertragForm({
   form,
   onChange,
+  onPatch,
   onSubmit,
   onCancel,
   filialeOptions = FILIALE_OPTIONS,
+  existingEntries = [],
   imeis = [],
   geraeteLoading = false,
   geraetSeed = '',
   saving = false,
   mode = 'new'
 }) {
+  if (mode === 'new') {
+    return (
+      <VorvertragWizardForm
+        form={form}
+        onChange={onChange}
+        onPatch={onPatch}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        filialeOptions={filialeOptions}
+        existingEntries={existingEntries}
+        imeis={imeis}
+        geraeteLoading={geraeteLoading}
+        geraetSeed={geraetSeed}
+        saving={saving}
+      />
+    );
+  }
+
   const handleChange = (field, value) => onChange(field, value);
 
   return (
     <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={onSubmit}>
       <div className="vorvertrag-form-panel__head">
-        <h2>{mode === 'edit' ? 'Vorvertrag bearbeiten' : 'Neuer Vorvertrag'}</h2>
+        <h2>Vorvertrag bearbeiten</h2>
         {onCancel ? (
           <button type="button" className="btn btn--secondary btn--small" onClick={onCancel}>
             Abbrechen

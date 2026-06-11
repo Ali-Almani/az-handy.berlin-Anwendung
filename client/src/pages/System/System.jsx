@@ -124,6 +124,10 @@ const System = () => {
     });
   };
 
+  const handleFormPatch = (patch) => {
+    setForm((prev) => ({ ...prev, ...patch }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -208,9 +212,11 @@ const System = () => {
           <VorvertragForm
             form={form}
             onChange={handleFormChange}
+            onPatch={handleFormPatch}
             onSubmit={handleSubmit}
             onCancel={cancelForm}
             filialeOptions={filialeOptions}
+            existingEntries={entries}
             imeis={imeis}
             geraeteLoading={geraeteLoading}
             geraetSeed={geraetSeed}

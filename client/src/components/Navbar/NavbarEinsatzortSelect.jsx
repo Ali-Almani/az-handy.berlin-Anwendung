@@ -32,7 +32,7 @@ const NavbarEinsatzortSelect = ({ user, setUser, className = '' }) => {
   return (
     <div className={`navbar-einsatzort${className ? ` ${className}` : ''}`}>
       <label className="navbar-einsatzort__label" htmlFor={selectId}>
-        Standort
+        Filiale
       </label>
       <select
         id={selectId}
@@ -40,8 +40,8 @@ const NavbarEinsatzortSelect = ({ user, setUser, className = '' }) => {
         value={value}
         onChange={handleChange}
         disabled={saving}
-        aria-label="Einsatzort auswählen"
-        title={value || 'Einsatzort wählen'}
+        aria-label="Filiale auswählen"
+        title={value || 'Filiale wählen'}
       >
         {EINSATZ_ORT_OPTIONS.map((option) => (
           <option key={option.value === '' ? '_empty' : option.value} value={option.value}>
