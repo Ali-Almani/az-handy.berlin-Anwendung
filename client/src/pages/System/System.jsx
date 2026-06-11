@@ -5,8 +5,7 @@ import { isAdmin } from '../../utils/roles';
 import {
   listVorvertraegeApi,
   createVorvertragApi,
-  updateVorvertragApi,
-  deleteVorvertragApi
+  updateVorvertragApi
 } from '../../services/vorvertrag.service';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -28,7 +27,6 @@ const System = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
   const [successToast, setSuccessToast] = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
@@ -167,23 +165,6 @@ const System = () => {
     }
   };
 
-  const handleDelete = async (entry) => {
-    if (!entry?.id) return;
-    if (!window.confirm('Diesen Vorvertrag wirklich löschen?')) return;
-    setDeletingId(entry.id);
-    setError('');
-    try {
-      await deleteVorvertragApi(entry.id);
-      if (activeId === entry.id) cancelForm();
-      await loadList({ silent: true });
-      setSuccessToast({ type: 'success', message: 'Vorvertrag wurde gelöscht.' });
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Löschen fehlgeschlagen.');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   if (!user || !isAdmin(user)) {
     return <Navigate to="/" replace />;
   }
@@ -251,8 +232,6 @@ const System = () => {
                 key={entry.id}
                 entry={entry}
                 onEdit={startEdit}
-                onDelete={handleDelete}
-                deleting={deletingId === entry.id}
                 highlighted={highlightedId === entry.id}
               />
             ))}

@@ -108,7 +108,7 @@ function formatDatum(value) {
   return raw;
 }
 
-export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting = false, highlighted = false }) {
+export default function VorvertragEntryCard({ entry, onEdit, highlighted = false }) {
   const e = entry?.eingabeDetails || {};
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
@@ -137,14 +137,6 @@ export default function VorvertragEntryCard({ entry, onEdit, onDelete, deleting 
         <div className="vorvertrag-entry-card__actions">
           <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>
             Bearbeiten
-          </button>
-          <button
-            type="button"
-            className="btn btn--danger btn--small"
-            onClick={() => onDelete?.(entry)}
-            disabled={deleting}
-          >
-            {deleting ? 'Löschen…' : 'Löschen'}
           </button>
         </div>
       </header>
