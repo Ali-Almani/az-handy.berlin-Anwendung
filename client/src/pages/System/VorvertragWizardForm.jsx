@@ -241,12 +241,6 @@ export default function VorvertragWizardForm({
             required
           />
         </div>
-        <div className="form-group">
-          <span className="form-label">Filiale</span>
-          <p className="vorvertrag-filiale-from-navbar">
-            {navbarFiliale || '— Bitte Filiale in der Navbar wählen —'}
-          </p>
-        </div>
         <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
           {renderKundenArtChoice()}
         </div>
