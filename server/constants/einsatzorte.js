@@ -58,11 +58,14 @@ export function normalizeFiliale(value) {
   const v = String(value ?? '').trim();
   if (!v) return '';
   const canonical = normalizeEinsatzOrt(v);
+  if (canonical === 'Zentrale') return 'Zentrale';
   return FILIALE_OPTIONS.includes(canonical) ? canonical : v;
 }
 
 export function isValidFiliale(value) {
   const v = String(value ?? '').trim();
   if (!v) return false;
-  return FILIALE_OPTIONS.includes(normalizeEinsatzOrt(v));
+  const canonical = normalizeEinsatzOrt(v);
+  if (canonical === 'Zentrale') return true;
+  return FILIALE_OPTIONS.includes(canonical);
 }

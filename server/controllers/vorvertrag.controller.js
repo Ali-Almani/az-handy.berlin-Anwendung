@@ -226,7 +226,7 @@ export async function listVorvertraege(req, res) {
   return res.json({
     success: true,
     entries: await Promise.all(entries.map((e) => enrichEntryForClient(e))),
-    filialeOptions: FILIALE_OPTIONS
+    filialeOptions: ['Zentrale', ...FILIALE_OPTIONS]
   });
 }
 
