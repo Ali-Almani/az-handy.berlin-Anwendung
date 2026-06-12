@@ -406,6 +406,39 @@
   grid-template-columns: 1fr;
 }
 
+.vorvertrag-filiale-field {
+  margin-top: $spacing-xs;
+}
+
+.vorvertrag-filiale-field__control {
+  position: relative;
+}
+
+.vorvertrag-filiale-select {
+  appearance: none;
+  padding-right: 2.25rem;
+  border-radius: 10px;
+  border-color: mix($primary-color, #fff, 22%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 14px rgba(15, 23, 42, 0.05);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3.5 5.25L7 8.75L10.5 5.25' stroke='%236c757d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px 14px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover:not(:disabled) {
+    border-color: mix($primary-color, #fff, 38%);
+  }
+
+  &:focus {
+    box-shadow:
+      0 0 0 3px rgba($primary-color, 0.14),
+      0 4px 14px rgba(15, 23, 42, 0.08);
+  }
+}
+
 .vorvertrag-checkbox-field {
   display: flex;
   flex-direction: column;

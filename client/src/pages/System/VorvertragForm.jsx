@@ -154,20 +154,22 @@ export default function VorvertragForm({
               required
             />
           </div>
-          <div className="form-group">
+          <div className="form-group vorvertrag-filiale-field">
             <label htmlFor="vv-filiale" className="form-label">Filiale</label>
-            <select
-              id="vv-filiale"
-              className="form-input"
-              value={form.filiale}
-              onChange={(ev) => handleChange('filiale', ev.target.value)}
-              required
-            >
+            <div className="vorvertrag-filiale-field__control">
+              <select
+                id="vv-filiale"
+                className="form-input vorvertrag-filiale-select"
+                value={form.filiale}
+                onChange={(ev) => handleChange('filiale', ev.target.value)}
+                required
+              >
               <option value="">— auswählen —</option>
               {filialeOptions.map((f) => (
                 <option key={f} value={f}>{f}</option>
               ))}
-            </select>
+              </select>
+            </div>
           </div>
           <div className="form-group">
             <label htmlFor="vv-vorname" className="form-label">Kunde Vorname</label>

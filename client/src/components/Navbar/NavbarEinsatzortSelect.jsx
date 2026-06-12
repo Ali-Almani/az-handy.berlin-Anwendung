@@ -34,21 +34,34 @@ const NavbarEinsatzortSelect = ({ user, setUser, className = '' }) => {
       <label className="navbar-einsatzort__label" htmlFor={selectId}>
         Filiale
       </label>
-      <select
-        id={selectId}
-        className="navbar-einsatzort__select"
-        value={value}
-        onChange={handleChange}
-        disabled={saving}
-        aria-label="Filiale auswählen"
-        title={value || 'Filiale wählen'}
-      >
-        {EINSATZ_ORT_OPTIONS.map((option) => (
-          <option key={option.value === '' ? '_empty' : option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="navbar-einsatzort__control">
+        <span className="navbar-einsatzort__icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinejoin="round"
+            />
+            <circle cx="12" cy="11" r="2.25" stroke="currentColor" strokeWidth="1.75" />
+          </svg>
+        </span>
+        <select
+          id={selectId}
+          className="navbar-einsatzort__select"
+          value={value}
+          onChange={handleChange}
+          disabled={saving}
+          aria-label="Filiale auswählen"
+          title={value || 'Filiale wählen'}
+        >
+          {EINSATZ_ORT_OPTIONS.map((option) => (
+            <option key={option.value === '' ? '_empty' : option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };
