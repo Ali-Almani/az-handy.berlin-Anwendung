@@ -1,0 +1,1199 @@
+
+> az-handy-berlin-client@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import './variables';
+  │         ^^^^^^^^^^^^^
+  ╵
+    src\styles\main.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+3 │ @import './reset';
+  │         ^^^^^^^^^
+  ╵
+    src\styles\main.scss 3:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+4 │ @import './base';
+  │         ^^^^^^^^
+  ╵
+    src\styles\main.scss 4:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+6 │ @import './_components/button';
+  │         ^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\styles\main.scss 6:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+7 │ @import './_components/form';
+  │         ^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\styles\main.scss 7:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Auth\Auth.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\Layout\Layout.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Mitarbeiter\Mitarbeiter.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\ArchivAnweisung\ArchivAnweisung.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\FormularCenter\FormularCenter.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Home\Home.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Imeis\Imeis.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\ArchivNews\ArchivNews.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Documentation\Documentation.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Settings\Settings.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Voucher\Voucher.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\Dashboard\Dashboard.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\pages\System\System.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\PasswordField\PasswordField.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\VoucherRequestModal\VoucherRequestModal.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\ExtraCopyNotificationModal\ExtraCopyNotificationModal.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\VoucherManualRequestsModal\VoucherManualRequestsModal.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\ExtraCopyRequestsModal\ExtraCopyRequestsModal.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\ReminderResponseNotificationModal\ReminderResponseNotificationModal.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\Navbar\Navbar.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\UserManagement\UserManagement.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+1 │ @import '../../styles/variables';
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+    src\components\TextEditor\TextEditor.scss 1:9  root stylesheet
+
+DEPRECATION WARNING [legacy-js-api]: The legacy JS API is deprecated and will be removed in Dart Sass 2.0.0.
+
+More info: https://sass-lang.com/d/legacy-js-api
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+50 │       background-color: darken(#495057, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Imeis\Imeis.scss 50:25  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -31.875%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+50 │       background-color: darken(#495057, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Imeis\Imeis.scss 50:25  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+51 │       border-color: darken(#495057, 10%);
+   │                     ^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Imeis\Imeis.scss 51:21  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -31.875%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+51 │       border-color: darken(#495057, 10%);
+   │                     ^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Imeis\Imeis.scss 51:21  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+56 │     background: mix(#fff, $success-color, 88%);
+   │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\System\System.scss 56:17  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+45 │     color: darken($primary-color, 10%);
+   │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_base.scss 45:12  @import
+    src\styles\main.scss 4:9     root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -34.2281879195%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+45 │     color: darken($primary-color, 10%);
+   │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_base.scss 45:12  @import
+    src\styles\main.scss 4:9     root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+57 │     border-color: mix(#fff, $success-color, 55%);
+   │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\System\System.scss 57:19  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+58 │     color: darken($success-color, 18%);
+   │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\System\System.scss 58:12  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -44.347826087%)
+color.adjust($color, $lightness: -18%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+58 │     color: darken($success-color, 18%);
+   │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\System\System.scss 58:12  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+75 │       background: lighten($primary-color, 42%);
+   │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Imeis\Imeis.scss 75:19  root stylesheet
+
+DEPRECATION WARNING [color-functions]: lighten() is deprecated. Suggestions:
+
+color.scale($color, $lightness: 59.3351800554%)
+color.adjust($color, $lightness: 42%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+75 │       background: lighten($primary-color, 42%);
+   │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Imeis\Imeis.scss 75:19  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+69 │     border: 1px solid mix($primary-color, #fff, 22%);
+   │                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\components\Navbar\Navbar.scss 69:23  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+73 │   background: mix(#fff, $primary-color, 90%);
+   │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\pages\Mitarbeiter\Mitarbeiter.scss 73:15  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+23 │       background-color: darken($primary-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 23:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -34.2281879195%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+23 │       background-color: darken($primary-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 23:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+33 │       background-color: darken($secondary-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 33:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -21.8884120172%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+33 │       background-color: darken($secondary-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 33:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+92 │       border-color: mix($primary-color, #fff, 38%);
+   │                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\components\Navbar\Navbar.scss 92:21  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+141 │         background-color: darken(#F44336, 10%);
+    │                           ^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Imeis\Imeis.scss 141:27  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -17.1140939597%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+141 │         background-color: darken(#F44336, 10%);
+    │                           ^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Imeis\Imeis.scss 141:27  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+151 │         background-color: darken(#2196F3, 10%);
+    │                           ^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Imeis\Imeis.scss 151:27  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -18.4782608696%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+151 │         background-color: darken(#2196F3, 10%);
+    │                           ^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Imeis\Imeis.scss 151:27  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+139 │     background: mix(#fff, $success-color, 94%);
+    │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\System\System.scss 139:17  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+77 │       background-color: darken($danger-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 77:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -18.6813186813%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+77 │       background-color: darken($danger-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 77:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+140 │     border-color: mix($success-color, #fff, 45%);
+    │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\System\System.scss 140:19  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+87 │       background-color: darken($success-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 87:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -24.6376811594%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+   ╷
+87 │       background-color: darken($success-color, 10%);
+   │                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src\styles\_components\_button.scss 87:25  @import
+    src\styles\main.scss 6:9                   root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -25.5%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+162 │   color: darken($text-color, 8%);
+    │          ^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\System\System.scss 162:10  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+145 │     background: darken($danger-color, 8%);
+    │                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 145:17  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -14.9450549451%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+145 │     background: darken($danger-color, 8%);
+    │                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 145:17  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -17.1140939597%)
+color.adjust($color, $lightness: -5%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+185 │     color: darken($primary-color, 5%);
+    │            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\System\System.scss 185:12  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+163 │       background: darken(#563d7c, 8%);
+    │                   ^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 163:19  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -22.0540540541%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+163 │       background: darken(#563d7c, 8%);
+    │                   ^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 163:19  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+175 │       background: darken(#563d7c, 8%);
+    │                   ^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 175:19  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -22.0540540541%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+175 │       background: darken(#563d7c, 8%);
+    │                   ^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 175:19  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -17.1140939597%)
+color.adjust($color, $lightness: -5%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+216 │     color: darken($primary-color, 5%);
+    │            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\System\System.scss 216:12  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+224 │       border-color: darken($border-color, 8%);
+    │                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 224:21  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -9.0265486726%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+224 │       border-color: darken($border-color, 8%);
+    │                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 224:21  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -27.3825503356%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+283 │   color: darken($primary-color, 8%);
+    │          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\System\System.scss 283:10  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.mix instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+366 │   background: mix(#fff, $primary-color, 90%);
+    │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Mitarbeiter\Mitarbeiter.scss 366:15  root stylesheet
+
+WARNING: 6 repetitive deprecation warnings omitted.
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+406 │         background-color: darken($primary-color, 10%);
+    │                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 406:27  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -34.2281879195%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+406 │         background-color: darken($primary-color, 10%);
+    │                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 406:27  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+407 │         border-color: darken($primary-color, 10%);
+    │                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 407:23  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -34.2281879195%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+407 │         border-color: darken($primary-color, 10%);
+    │                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 407:23  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -18.6813186813%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+372 │       color: darken($danger-color, 10%);
+    │              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 372:14  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -22.4175824176%)
+color.adjust($color, $lightness: -12%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+377 │       color: darken($danger-color, 12%);
+    │              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\Navbar\Navbar.scss 377:14  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+401 │       color: darken($success-color, 12%);
+    │              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 401:14  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -29.5652173913%)
+color.adjust($color, $lightness: -12%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+401 │       color: darken($success-color, 12%);
+    │              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 401:14  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+406 │       color: darken($danger-color, 8%);
+    │              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 406:14  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -14.9450549451%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+406 │       color: darken($danger-color, 8%);
+    │              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 406:14  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+446 │     color: darken($success-color, 14%);
+    │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 446:12  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -34.4927536232%)
+color.adjust($color, $lightness: -14%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+446 │     color: darken($success-color, 14%);
+    │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 446:12  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+450 │     color: darken($danger-color, 8%);
+    │            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 450:12  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -14.9450549451%)
+color.adjust($color, $lightness: -8%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+450 │     color: darken($danger-color, 8%);
+    │            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\components\PerformanceDashboard\PerformanceDashboard.scss 450:12  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+545 │             color: darken($primary-color, 10%);
+    │                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 545:20  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -34.2281879195%)
+color.adjust($color, $lightness: -10%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+545 │             color: darken($primary-color, 10%);
+    │                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 545:20  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+736 │     background: darken($primary-color, 6%);
+    │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 736:17  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -20.5369127517%)
+color.adjust($color, $lightness: -6%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+736 │     background: darken($primary-color, 6%);
+    │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 736:17  root stylesheet
+
+DEPRECATION WARNING [global-builtin]: Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+    ╷
+737 │     border-color: darken($primary-color, 6%);
+    │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 737:19  root stylesheet
+
+DEPRECATION WARNING [color-functions]: darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -20.5369127517%)
+color.adjust($color, $lightness: -6%)
+
+More info: https://sass-lang.com/d/color-functions
+
+    ╷
+737 │     border-color: darken($primary-color, 6%);
+    │                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ╵
+    src\pages\Dashboard\Dashboard.scss 737:19  root stylesheet
+
+WARNING: 31 repetitive deprecation warnings omitted.
+
+WARNING: 8 repetitive deprecation warnings omitted.
+
+WARNING: 18 repetitive deprecation warnings omitted.
+
+✓ 298 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                        0.77 kB │ gzip:   0.43 kB
+dist/assets/Bild4-B92OI9_6.png                         5.94 kB
+dist/assets/Bild6-B4-QKdAD.png                         5.98 kB
+dist/assets/Bild2-36CovuT8.png                        17.78 kB
+dist/assets/Bild5-BvnIzdNZ.png                        21.51 kB
+dist/assets/Bild7--PysH38d.png                        25.05 kB
+dist/assets/Bild3-CrM-Tw1o.png                        55.15 kB
+dist/assets/Bild1-idI4YDwY.png                        59.91 kB
+dist/assets/AZ-Logo-R3UfX2yS.svg                     142.55 kB │ gzip:  42.21 kB
+dist/assets/Voucher-Dz1ccv_7.css                       1.49 kB │ gzip:   0.63 kB
+dist/assets/ArchivAnweisung-BdcWO0_l.css               1.56 kB │ gzip:   0.51 kB
+dist/assets/Documentation-T9dt0-Sb.css                 1.71 kB │ gzip:   0.59 kB
+dist/assets/Settings-DLM9D_Ok.css                      2.91 kB │ gzip:   0.73 kB
+dist/assets/FormularCenter-MyxgAVUw.css                3.62 kB │ gzip:   0.97 kB
+dist/assets/ArchivNews-BzmRNNXQ.css                    4.66 kB │ gzip:   1.20 kB
+dist/assets/Mitarbeiter-C0mrzTty.css                   5.38 kB │ gzip:   1.35 kB
+dist/assets/Home-BYf9MW3S.css                          6.74 kB │ gzip:   1.57 kB
+dist/assets/PerformanceDashboard-BqlLenXN.css         10.39 kB │ gzip:   2.06 kB
+dist/assets/System-CTVGyLNv.css                       10.90 kB │ gzip:   2.53 kB
+dist/assets/Imeis-BWEyyTxI.css                        22.35 kB │ gzip:   3.98 kB
+dist/assets/index-DKZPlPyP.css                        26.26 kB │ gzip:   5.35 kB
+dist/assets/Dashboard-DtVZXFPc.css                    36.20 kB │ gzip:   5.36 kB
+dist/assets/Vorvertrag-DQ1pM2H8.js                     0.17 kB │ gzip:   0.18 kB │ map:     0.44 kB
+dist/assets/FormularCenter-BjWaLUN0.js                 1.17 kB │ gzip:   0.47 kB │ map:     3.77 kB
+dist/assets/ArchivAnweisung-Blq_plW2.js                1.68 kB │ gzip:   0.76 kB │ map:     5.33 kB
+dist/assets/MarketingShopTshirtGroessen-B8Wxs5Fx.js    1.90 kB │ gzip:   0.84 kB │ map:     5.69 kB
+dist/assets/ImeisRateLimitModal-C3qfq_DZ.js            1.96 kB │ gzip:   0.93 kB │ map:     5.40 kB
+dist/assets/MitarbeiterOverview-D62uKoyz.js            2.00 kB │ gzip:   0.93 kB │ map:     5.95 kB
+dist/assets/MitarbeiterProfile-0u-yRHXJ.js             2.08 kB │ gzip:   0.98 kB │ map:     6.04 kB
+dist/assets/FormularCenter-BJDdzuwr.js                 2.57 kB │ gzip:   1.09 kB │ map:     7.53 kB
+dist/assets/ArchivNews-ynwBuHhY.js                     4.15 kB │ gzip:   1.55 kB │ map:    11.33 kB
+dist/assets/Home-CjEkLzCe.js                           4.59 kB │ gzip:   1.64 kB │ map:    13.64 kB
+dist/assets/Settings-BrlBaaYE.js                       8.42 kB │ gzip:   2.56 kB │ map:    24.36 kB
+dist/assets/Documentation-BmTRpMb4.js                 12.76 kB │ gzip:   4.08 kB │ map:    23.48 kB
+dist/assets/ImeisFilters-kJHJThUa.js                  14.91 kB │ gzip:   4.64 kB │ map:    54.43 kB
+dist/assets/Voucher-CPfVyuwq.js                       23.10 kB │ gzip:   7.90 kB │ map:    82.70 kB
+dist/assets/PerformanceDashboard-oEWHzWPi.js          23.65 kB │ gzip:   5.03 kB │ map:    70.81 kB
+dist/assets/System-BP-06uQ5.js                        47.41 kB │ gzip:  10.94 kB │ map:   138.87 kB
+dist/assets/Imeis-Cn-xUXHA.js                         59.96 kB │ gzip:  18.15 kB │ map:   202.58 kB
+dist/assets/Dashboard-6RYXmrSr.js                     73.70 kB │ gzip:  17.78 kB │ map: 1,196.71 kB
+dist/assets/index-Bh7PwZ4i.js                        340.50 kB │ gzip: 105.10 kB │ map: 1,429.32 kB
+✓ built in 13.78s
