@@ -60,7 +60,12 @@ app.get('/api/health', (req, res) => {
     nodeEnv: process.env.NODE_ENV || 'development',
     useMemoryDb: process.env.USE_MEMORY_DB === 'true',
     jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
-    apiPatchLevel: 4
+    apiPatchLevel: 5,
+    cluster: {
+      pid: process.pid,
+      pm2Instance: process.env.NODE_APP_INSTANCE ?? null,
+      pm2Instances: process.env.PM2_INSTANCES ?? '1'
+    }
   });
 });
 
@@ -94,11 +99,17 @@ const mountRoutes = async () => {
 
 const startServer = async () => {
   await mountRoutes();
+  const { setupSocketClusterAdapter } = await import('./utils/socketCluster.js');
+  const socketInfo = await setupSocketClusterAdapter(io);
+  app.set('socketClusterInfo', socketInfo);
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🌐 API available at: http://localhost:${PORT}/api`);
     console.log(`💚 Health check: http://localhost:${PORT}/api/health`);
+    if (process.env.NODE_APP_INSTANCE != null) {
+      console.log(`🔀 PM2 Worker: ${process.env.NODE_APP_INSTANCE} (PID ${process.pid})`);
+    }
   });
 };
 

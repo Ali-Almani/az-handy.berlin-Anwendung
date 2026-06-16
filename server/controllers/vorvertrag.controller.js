@@ -1,9 +1,10 @@
 import User from '../models/User.js';
-import { loadJson, saveJson } from '../utils/filePersistence.js';
+import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
 import { normalizeUserId } from '../utils/normalizeUserId.js';
 import { FILIALE_OPTIONS, isValidFiliale, normalizeFiliale } from '../constants/einsatzorte.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
+const VORVERTRAG_DEFAULT = () => ({ entries: [] });
 const VERFUEGBARKEIT_OPTIONS = ['bestellen', 'in_shop'];
 
 const ROLE_LABELS = new Set([
@@ -102,14 +103,17 @@ function newId(prefix = 'vv') {
 }
 
 async function loadStore() {
-  const raw = await loadJson(VORVERTRAG_FILE, { entries: [] });
+  const raw = readJsonStore(VORVERTRAG_FILE, VORVERTRAG_DEFAULT());
   return {
     entries: Array.isArray(raw?.entries) ? raw.entries : []
   };
 }
 
-async function saveStore(data) {
-  await saveJson(VORVERTRAG_FILE, data);
+async function mutateStore(updater) {
+  return updateJsonStore(VORVERTRAG_FILE, VORVERTRAG_DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    return updater(state);
+  });
 }
 
 function normalizeJaNein(value) {
@@ -277,9 +281,9 @@ export async function createVorvertrag(req, res) {
     ]
   };
 
-  const data = await loadStore();
-  data.entries.push(entry);
-  await saveStore(data);
+  await mutateStore((data) => {
+    data.entries.push(entry);
+  });
   return res.status(201).json({ success: true, entry: await enrichEntryForClient(entry) });
 }
 
@@ -297,48 +301,52 @@ export async function updateVorvertrag(req, res) {
     return res.status(400).json({ success: false, message: 'Filiale ist erforderlich.' });
   }
 
-  const data = await loadStore();
-  const idx = data.entries.findIndex((e) => String(e.id) === id);
-  if (idx < 0) {
-    return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
-  }
-
   const now = new Date().toISOString();
   const editor = await editorFromReqAsync(req);
-  const prev = data.entries[idx];
-  const history = Array.isArray(prev.editHistory) ? [...prev.editHistory] : [];
+  let updated = null;
+  const notFound = await mutateStore((data) => {
+    const idx = data.entries.findIndex((e) => String(e.id) === id);
+    if (idx < 0) return { value: true };
 
-  history.unshift({
-    id: newId('hist'),
-    timestamp: now,
-    action: 'updated',
-    editorUserId: editor.userId,
-    editorUserName: editor.userName,
-    editorEmail: editor.email,
-    snapshot: entrySnapshot({ ...normalized })
+    const prev = data.entries[idx];
+    const history = Array.isArray(prev.editHistory) ? [...prev.editHistory] : [];
+
+    history.unshift({
+      id: newId('hist'),
+      timestamp: now,
+      action: 'updated',
+      editorUserId: editor.userId,
+      editorUserName: editor.userName,
+      editorEmail: editor.email,
+      snapshot: entrySnapshot({ ...normalized })
+    });
+
+    updated = {
+      ...prev,
+      ...normalized,
+      updatedAt: now,
+      lastEditedBy: editor,
+      editHistory: history.slice(0, 200)
+    };
+    data.entries[idx] = updated;
   });
 
-  const updated = {
-    ...prev,
-    ...normalized,
-    updatedAt: now,
-    lastEditedBy: editor,
-    editHistory: history.slice(0, 200)
-  };
-  data.entries[idx] = updated;
-  await saveStore(data);
+  if (notFound === true) {
+    return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
+  }
   return res.json({ success: true, entry: await enrichEntryForClient(updated) });
 }
 
 export async function deleteVorvertrag(req, res) {
   if (!(await requireAdmin(req, res))) return;
   const id = String(req.params.id || '').trim();
-  const data = await loadStore();
-  const before = data.entries.length;
-  data.entries = data.entries.filter((e) => String(e.id) !== id);
-  if (data.entries.length === before) {
+  const notFound = await mutateStore((data) => {
+    const before = data.entries.length;
+    data.entries = data.entries.filter((e) => String(e.id) !== id);
+    if (data.entries.length === before) return { value: true };
+  });
+  if (notFound === true) {
     return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
   }
-  await saveStore(data);
   return res.json({ success: true });
 }

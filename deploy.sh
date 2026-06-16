@@ -66,16 +66,16 @@ echo "🔧 Installiere Backend-Abhängigkeiten..."
 npm run install-server
 
 echo "🚀 Starte Backend neu..."
-# Versuche az-api oder az-handy zu restarten, sonst neu starten
-if pm2 restart az-api 2>/dev/null; then
-  :
-elif pm2 restart az-handy 2>/dev/null; then
-  :
+PM2_INSTANCES="${PM2_INSTANCES:-1}"
+# ecosystem.config.cjs – Standard 1 Worker; PM2_INSTANCES=max für alle CPU-Kerne
+if pm2 describe az-api >/dev/null 2>&1; then
+  PM2_INSTANCES="$PM2_INSTANCES" pm2 reload ecosystem.config.cjs --update-env
 else
-  echo "   PM2-Prozess nicht gefunden – starte neu als az-api..."
-  pm2 start server/index.js --name az-api
-  pm2 save
+  pm2 delete az-handy 2>/dev/null || true
+  echo "   Starte az-api (${PM2_INSTANCES} Worker)..."
+  PM2_INSTANCES="$PM2_INSTANCES" pm2 start ecosystem.config.cjs --only az-api
 fi
+pm2 save
 
 echo "♻️ Nginx neu laden..."
 sudo systemctl reload nginx 2>/dev/null || true

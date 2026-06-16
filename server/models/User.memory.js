@@ -1,16 +1,16 @@
 import bcrypt from 'bcryptjs';
-import { loadJson, saveJson } from '../utils/filePersistence.js';
+import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
 import { getPersist } from '../utils/persistConfig.js';
 
-const uuidv4 = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+const FILE = 'users.json';
+const DEFAULT = () => [];
+
+const uuidv4 = () =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
-};
-
-const users = [];
 
 const toPlainUser = (u) => ({
   _id: u._id ?? u.id,
@@ -21,67 +21,67 @@ const toPlainUser = (u) => ({
   avatar: u.avatar ?? null,
   einsatz_ort: u.einsatz_ort ?? null,
   telefon: u.telefon ?? null,
-  createdAt: u.createdAt,
-  updatedAt: u.updatedAt
+  createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
+  updatedAt: u.updatedAt instanceof Date ? u.updatedAt.toISOString() : u.updatedAt
 });
 
-const persistUsers = () => {
-  if (!getPersist()) return;
-  const data = users.map(u => {
-    const p = toPlainUser(u);
-    p.createdAt = p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt;
-    p.updatedAt = p.updatedAt instanceof Date ? p.updatedAt.toISOString() : p.updatedAt;
-    return p;
-  });
-  saveJson('users.json', data);
+const fromPlainUser = (u) => ({
+  _id: u._id,
+  name: u.name,
+  email: u.email,
+  password: u.password,
+  role: u.role,
+  avatar: u.avatar ?? null,
+  einsatz_ort: u.einsatz_ort ?? null,
+  telefon: u.telefon ?? null,
+  createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+  updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
+});
+
+const readUsersPlain = () => {
+  const data = readJsonStore(FILE, DEFAULT());
+  if (!Array.isArray(data)) return [];
+  return data.map(fromPlainUser);
 };
 
-const loadUsers = () => {
-  if (!getPersist()) return;
-  const data = loadJson('users.json');
-  if (Array.isArray(data) && data.length > 0) {
-    users.length = 0;
-    data.forEach(u => {
-      users.push({
-        _id: u._id,
-        name: u.name,
-        email: u.email,
-        password: u.password,
-        role: u.role,
-        avatar: u.avatar ?? null,
-        einsatz_ort: u.einsatz_ort ?? null,
-        telefon: u.telefon ?? null,
-        createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
-        updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
-      });
-    });
-    console.log(`✅ ${users.length} Benutzer aus Datei geladen`);
-    return;
-  }
+const writeUsersPlain = (usersPlain, updaterResult) =>
+  updateJsonStore(FILE, DEFAULT(), (arr) => {
+    const list = Array.isArray(arr) ? arr : [];
+    list.length = 0;
+    usersPlain.forEach((u) => list.push(toPlainUser(u)));
+    return updaterResult;
+  });
+
+const mutateUsers = async (fn) => {
+  const users = readUsersPlain();
+  const result = await fn(users);
+  writeUsersPlain(users, result);
+  return result;
 };
 
 const createDefaultAdmin = async () => {
-  loadUsers();
-  if (users.length > 0) return;
+  const existing = readUsersPlain();
+  if (existing.length > 0) return;
   const adminPassword = await bcrypt.hash('Admin123!', 12);
-  const adminUser = {
-    _id: 'admin-' + uuidv4(),
-    name: 'Ali Almani',
-    email: 'admin@az-handy.berlin',
-    password: adminPassword,
-    role: 'admin',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-  users.push(adminUser);
-  persistUsers();
-  console.log('✅ Default admin user created (In-Memory Mode)');
-  console.log('   Email: admin@az-handy.berlin');
-  console.log('   Password: Admin123!');
-  return adminUser;
+  await mutateUsers((users) => {
+    if (users.length > 0) return;
+    users.push({
+      _id: 'admin-' + uuidv4(),
+      name: 'Ali Almani',
+      email: 'admin@az-handy.berlin',
+      password: adminPassword,
+      role: 'admin',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  });
+  if (getPersist()) {
+    console.log('✅ Default admin user created (In-Memory Mode)');
+    console.log('   Email: admin@az-handy.berlin');
+    console.log('   Password: Admin123!');
+  }
 };
 
-// Wichtig: erst ausführen, bevor Login-Requests laufen – sonst war die Nutzerliste kurz leer.
 await createDefaultAdmin();
 
 class InMemoryUser {
@@ -103,19 +103,32 @@ class InMemoryUser {
     if (this.password && !this.password.startsWith('$2')) {
       this.password = await bcrypt.hash(this.password, 12);
     }
-    const existingIndex = users.findIndex(u => u._id === this._id);
-    if (existingIndex >= 0) {
+    return mutateUsers((users) => {
+      const existingIndex = users.findIndex((u) => u._id === this._id);
       this.updatedAt = new Date();
-      users[existingIndex] = this;
-    } else {
-      users.push(this);
-    }
-    persistUsers();
-    return this;
+      const plain = {
+        _id: this._id,
+        name: this.name,
+        email: this.email,
+        password: this.password,
+        role: this.role,
+        avatar: this.avatar,
+        einsatz_ort: this.einsatz_ort,
+        telefon: this.telefon,
+        createdAt: this.createdAt,
+        updatedAt: this.updatedAt
+      };
+      if (existingIndex >= 0) {
+        users[existingIndex] = plain;
+      } else {
+        users.push(plain);
+      }
+      return this;
+    });
   }
 
   async comparePassword(candidatePassword) {
-    return await bcrypt.compare(candidatePassword, this.password);
+    return bcrypt.compare(candidatePassword, this.password);
   }
 
   toJSON() {
@@ -129,39 +142,36 @@ class InMemoryUser {
   }
 
   static async findOne(query) {
-    if (!query || Object.keys(query).length === 0) {
-      return null;
-    }
+    if (!query || Object.keys(query).length === 0) return null;
+    const users = readUsersPlain();
     const email = query.email || query.where?.email;
     if (email) {
-      const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+      const user = users.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
       return user ? new InMemoryUser(user) : null;
     }
     const name = query.name || query.where?.name;
     if (name) {
-      const user = users.find(u => String(u.name || '').trim() === String(name).trim());
+      const user = users.find((u) => String(u.name || '').trim() === String(name).trim());
       return user ? new InMemoryUser(user) : null;
     }
     const key = Object.keys(query)[0];
     const value = query[key];
-    const user = users.find(u => {
-      if (key === 'email') {
-        return u[key].toLowerCase() === value.toLowerCase();
-      }
+    const user = users.find((u) => {
+      if (key === 'email') return u[key].toLowerCase() === value.toLowerCase();
       return u[key] === value;
     });
     return user ? new InMemoryUser(user) : null;
   }
 
   static async findById(id) {
-    const user = users.find(u => u._id === id);
+    const user = readUsersPlain().find((u) => u._id === id);
     return user ? new InMemoryUser(user) : null;
   }
 
   static async findByPk(id) {
     if (id == null || id === '') return null;
     const sid = String(id);
-    const user = users.find(u => {
+    const user = readUsersPlain().find((u) => {
       const uid = u._id ?? u.id;
       return uid === id || String(uid) === sid;
     });
@@ -170,41 +180,34 @@ class InMemoryUser {
 
   static async create(data) {
     const hashedPassword = await bcrypt.hash(data.password, 12);
-    const userData = {
-      ...data,
-      password: hashedPassword,
-      _id: uuidv4()
-    };
-    const user = new InMemoryUser(userData);
+    const user = new InMemoryUser({ ...data, password: hashedPassword, _id: uuidv4() });
     await user.save();
     return user;
   }
 
   static async find(query = {}) {
+    const users = readUsersPlain();
     if (Object.keys(query).length === 0) {
-      return users.map(u => new InMemoryUser(u));
+      return users.map((u) => new InMemoryUser(u));
     }
-    return users
-      .filter(u => {
-        return Object.keys(query).every(key => u[key] === query[key]);
-      })
-      .map(u => new InMemoryUser(u));
+    return users.filter((u) => Object.keys(query).every((key) => u[key] === query[key])).map((u) => new InMemoryUser(u));
   }
 
   static async findAll(options = {}) {
     const where = options?.where || {};
+    const users = readUsersPlain();
     if (Object.keys(where).length === 0) {
-      return users.map(u => new InMemoryUser(u));
+      return users.map((u) => new InMemoryUser(u));
     }
     return users
-      .filter(u => {
-        return Object.entries(where).every(([key, val]) => {
+      .filter((u) =>
+        Object.entries(where).every(([key, val]) => {
           const uv = u[key];
           if (val == null) return uv == null || uv === '';
           return String(uv || '').trim() === String(val || '').trim();
-        });
-      })
-      .map(u => new InMemoryUser(u));
+        })
+      )
+      .map((u) => new InMemoryUser(u));
   }
 
   static async findOneAndUpdate(query, update) {
@@ -219,13 +222,13 @@ class InMemoryUser {
 
   static async destroy(options = {}) {
     const id = options?.where?.id ?? options?.where?.user_id ?? options?.id;
-    const idx = users.findIndex(u => u._id === id || u.id === id || String(u._id) === String(id));
-    if (idx >= 0) {
-      users.splice(idx, 1);
-      persistUsers();
-    }
+    await mutateUsers((users) => {
+      const idx = users.findIndex(
+        (u) => u._id === id || u.id === id || String(u._id) === String(id)
+      );
+      if (idx >= 0) users.splice(idx, 1);
+    });
   }
 }
 
 export default InMemoryUser;
-export { users };

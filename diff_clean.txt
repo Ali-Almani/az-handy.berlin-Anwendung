@@ -1,0 +1,1868 @@
+﻿diff --git a/deploy.sh b/deploy.sh
+index f37b38a..d0a59eb 100644
+--- a/deploy.sh
++++ b/deploy.sh
+@@ -66,16 +66,16 @@ echo "­ƒöº Installiere Backend-Abh├ñngigkeiten..."
+ npm run install-server
+ 
+ echo "­ƒÜÇ Starte Backend neu..."
+-# Versuche az-api oder az-handy zu restarten, sonst neu starten
+-if pm2 restart az-api 2>/dev/null; then
+-  :
+-elif pm2 restart az-handy 2>/dev/null; then
+-  :
++PM2_INSTANCES="${PM2_INSTANCES:-max}"
++# ecosystem.config.cjs = Cluster-Mode (PM2_INSTANCES=max ÔåÆ alle CPU-Kerne)
++if pm2 describe az-api >/dev/null 2>&1; then
++  PM2_INSTANCES="$PM2_INSTANCES" pm2 reload ecosystem.config.cjs --update-env
+ else
+-  echo "   PM2-Prozess nicht gefunden ÔÇô starte neu als az-api..."
+-  pm2 start server/index.js --name az-api
+-  pm2 save
++  pm2 delete az-handy 2>/dev/null || true
++  echo "   Starte az-api (${PM2_INSTANCES} Worker)..."
++  PM2_INSTANCES="$PM2_INSTANCES" pm2 start ecosystem.config.cjs --only az-api
+ fi
++pm2 save
+ 
+ echo "ÔÖ╗´©Å Nginx neu laden..."
+ sudo systemctl reload nginx 2>/dev/null || true
+diff --git a/server/.env.example b/server/.env.example
+index 63bf48b..f15220d 100644
+--- a/server/.env.example
++++ b/server/.env.example
+@@ -18,3 +18,9 @@ PERSIST_MEMORY_DATA=true
+ JWT_SECRET=your-secret-key-change-in-production
+ # Ein Origin oder komma-getrennt mehrere (Produktion: beide Frontend-URLs)
+ CLIENT_URL=http://localhost:3000
++
++# === PM2 Cluster-Mode ===
++# PM2_INSTANCES=max   # Anzahl Worker (max = alle CPU-Kerne)
++# REDIS_URL=redis://127.0.0.1:6379   # optional: Socket.io-Events ├╝ber alle Worker
++# REDIS_HOST=127.0.0.1
++# REDIS_PORT=6379
+diff --git a/server/controllers/vorvertrag.controller.js b/server/controllers/vorvertrag.controller.js
+index 6ed3881..6d12d5a 100644
+--- a/server/controllers/vorvertrag.controller.js
++++ b/server/controllers/vorvertrag.controller.js
+@@ -1,9 +1,10 @@
+ import User from '../models/User.js';
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ import { normalizeUserId } from '../utils/normalizeUserId.js';
+ import { FILIALE_OPTIONS, isValidFiliale, normalizeFiliale } from '../constants/einsatzorte.js';
+ 
+ const VORVERTRAG_FILE = 'vorvertrag.json';
++const VORVERTRAG_DEFAULT = () => ({ entries: [] });
+ const VERFUEGBARKEIT_OPTIONS = ['bestellen', 'in_shop'];
+ 
+ const ROLE_LABELS = new Set([
+@@ -102,14 +103,17 @@ function newId(prefix = 'vv') {
+ }
+ 
+ async function loadStore() {
+-  const raw = await loadJson(VORVERTRAG_FILE, { entries: [] });
++  const raw = readJsonStore(VORVERTRAG_FILE, VORVERTRAG_DEFAULT());
+   return {
+     entries: Array.isArray(raw?.entries) ? raw.entries : []
+   };
+ }
+ 
+-async function saveStore(data) {
+-  await saveJson(VORVERTRAG_FILE, data);
++async function mutateStore(updater) {
++  return updateJsonStore(VORVERTRAG_FILE, VORVERTRAG_DEFAULT(), (state) => {
++    if (!Array.isArray(state.entries)) state.entries = [];
++    return updater(state);
++  });
+ }
+ 
+ function normalizeJaNein(value) {
+@@ -277,9 +281,9 @@ export async function createVorvertrag(req, res) {
+     ]
+   };
+ 
+-  const data = await loadStore();
+-  data.entries.push(entry);
+-  await saveStore(data);
++  await mutateStore((data) => {
++    data.entries.push(entry);
++  });
+   return res.status(201).json({ success: true, entry: await enrichEntryForClient(entry) });
+ }
+ 
+@@ -297,48 +301,52 @@ export async function updateVorvertrag(req, res) {
+     return res.status(400).json({ success: false, message: 'Filiale ist erforderlich.' });
+   }
+ 
+-  const data = await loadStore();
+-  const idx = data.entries.findIndex((e) => String(e.id) === id);
+-  if (idx < 0) {
+-    return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
+-  }
+-
+   const now = new Date().toISOString();
+   const editor = await editorFromReqAsync(req);
+-  const prev = data.entries[idx];
+-  const history = Array.isArray(prev.editHistory) ? [...prev.editHistory] : [];
+-
+-  history.unshift({
+-    id: newId('hist'),
+-    timestamp: now,
+-    action: 'updated',
+-    editorUserId: editor.userId,
+-    editorUserName: editor.userName,
+-    editorEmail: editor.email,
+-    snapshot: entrySnapshot({ ...normalized })
++  let updated = null;
++  const notFound = await mutateStore((data) => {
++    const idx = data.entries.findIndex((e) => String(e.id) === id);
++    if (idx < 0) return { value: true };
++
++    const prev = data.entries[idx];
++    const history = Array.isArray(prev.editHistory) ? [...prev.editHistory] : [];
++
++    history.unshift({
++      id: newId('hist'),
++      timestamp: now,
++      action: 'updated',
++      editorUserId: editor.userId,
++      editorUserName: editor.userName,
++      editorEmail: editor.email,
++      snapshot: entrySnapshot({ ...normalized })
++    });
++
++    updated = {
++      ...prev,
++      ...normalized,
++      updatedAt: now,
++      lastEditedBy: editor,
++      editHistory: history.slice(0, 200)
++    };
++    data.entries[idx] = updated;
+   });
+ 
+-  const updated = {
+-    ...prev,
+-    ...normalized,
+-    updatedAt: now,
+-    lastEditedBy: editor,
+-    editHistory: history.slice(0, 200)
+-  };
+-  data.entries[idx] = updated;
+-  await saveStore(data);
++  if (notFound === true) {
++    return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
++  }
+   return res.json({ success: true, entry: await enrichEntryForClient(updated) });
+ }
+ 
+ export async function deleteVorvertrag(req, res) {
+   if (!(await requireAdmin(req, res))) return;
+   const id = String(req.params.id || '').trim();
+-  const data = await loadStore();
+-  const before = data.entries.length;
+-  data.entries = data.entries.filter((e) => String(e.id) !== id);
+-  if (data.entries.length === before) {
++  const notFound = await mutateStore((data) => {
++    const before = data.entries.length;
++    data.entries = data.entries.filter((e) => String(e.id) !== id);
++    if (data.entries.length === before) return { value: true };
++  });
++  if (notFound === true) {
+     return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
+   }
+-  await saveStore(data);
+   return res.json({ success: true });
+ }
+diff --git a/server/index.js b/server/index.js
+index 12c657e..1527f3d 100644
+--- a/server/index.js
++++ b/server/index.js
+@@ -60,7 +60,12 @@ app.get('/api/health', (req, res) => {
+     nodeEnv: process.env.NODE_ENV || 'development',
+     useMemoryDb: process.env.USE_MEMORY_DB === 'true',
+     jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
+-    apiPatchLevel: 4
++    apiPatchLevel: 5,
++    cluster: {
++      pid: process.pid,
++      pm2Instance: process.env.NODE_APP_INSTANCE ?? null,
++      pm2Instances: process.env.PM2_INSTANCES ?? '1'
++    }
+   });
+ });
+ 
+@@ -94,11 +99,17 @@ const mountRoutes = async () => {
+ 
+ const startServer = async () => {
+   await mountRoutes();
++  const { setupSocketClusterAdapter } = await import('./utils/socketCluster.js');
++  const socketInfo = await setupSocketClusterAdapter(io);
++  app.set('socketClusterInfo', socketInfo);
+   server.listen(PORT, () => {
+     console.log(`­ƒÜÇ Server running on port ${PORT}`);
+     console.log(`­ƒôì Environment: ${process.env.NODE_ENV || 'development'}`);
+     console.log(`­ƒîÉ API available at: http://localhost:${PORT}/api`);
+     console.log(`­ƒÆÜ Health check: http://localhost:${PORT}/api/health`);
++    if (process.env.NODE_APP_INSTANCE != null) {
++      console.log(`­ƒöÇ PM2 Worker: ${process.env.NODE_APP_INSTANCE} (PID ${process.pid})`);
++    }
+   });
+ };
+ 
+diff --git a/server/models/DashboardNote.memory.js b/server/models/DashboardNote.memory.js
+index fbc8307..5bb6cb5 100644
+--- a/server/models/DashboardNote.memory.js
++++ b/server/models/DashboardNote.memory.js
+@@ -1,74 +1,58 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-const uuidv4 = () => {
+-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
++const FILE = 'dashboard.json';
++const DEFAULT = () => ({ notes: [], history: [] });
++
++const uuidv4 = () =>
++  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+     const r = (Math.random() * 16) | 0;
+     const v = c === 'x' ? r : (r & 0x3) | 0x8;
+     return v.toString(16);
+   });
+-};
+-
+-const notes = [];
+-const history = [];
+-
+-const persistDashboard = () => {
+-  if (!getPersist()) return;
+-  saveJson('dashboard.json', {
+-    notes: notes.map(n => ({
+-      id: n.id,
+-      user_id: n.user_id,
+-      content: n.content,
+-      created_at: n.created_at instanceof Date ? n.created_at.toISOString() : n.created_at,
+-      updated_at: n.updated_at instanceof Date ? n.updated_at.toISOString() : n.updated_at
+-    })),
+-    history: history.map(h => ({
+-      id: h.id,
+-      user_id: h.user_id,
+-      content: h.content,
+-      created_at: h.created_at instanceof Date ? h.created_at.toISOString() : h.created_at,
+-      updated_at: h.updated_at instanceof Date ? h.updated_at.toISOString() : h.updated_at,
+-      updated_by: h.updated_by
+-    }))
+-  });
+-};
+ 
+-const loadDashboard = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson('dashboard.json');
+-  if (data && Array.isArray(data.notes) && data.notes.length > 0) {
+-    notes.length = 0;
+-    data.notes.forEach(n => {
+-      notes.push({
+-        id: n.id,
+-        user_id: n.user_id,
+-        content: n.content || '',
+-        created_at: n.created_at ? new Date(n.created_at) : new Date(),
+-        updated_at: n.updated_at ? new Date(n.updated_at) : new Date()
+-      });
+-    });
+-    console.log(`Ô£à ${notes.length} Dashboard-Notizen geladen`);
+-  }
+-  if (data && Array.isArray(data.history) && data.history.length > 0) {
+-    history.length = 0;
+-    data.history.forEach(h => {
+-      history.push({
+-        id: h.id,
+-        user_id: h.user_id,
+-        content: h.content || '',
+-        created_at: h.created_at ? new Date(h.created_at) : new Date(),
+-        updated_at: h.updated_at ? new Date(h.updated_at) : null,
+-        updated_by: h.updated_by || null
+-      });
+-    });
+-  }
++const normalizeState = (state) => {
++  if (!state || typeof state !== 'object') return { notes: [], history: [] };
++  return {
++    notes: Array.isArray(state.notes) ? state.notes : [],
++    history: Array.isArray(state.history) ? state.history : []
++  };
+ };
+ 
+-loadDashboard();
+-
+-const findNoteByUserId = (userId) => notes.find((n) => String(n.user_id) === String(userId));
+-const findHistoryByUserId = (userId) =>
+-  history.filter((h) => String(h.user_id) === String(userId)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
++const readState = () => normalizeState(readJsonStore(FILE, DEFAULT()));
++
++const serializeNote = (n) => ({
++  id: n.id,
++  user_id: n.user_id,
++  content: n.content,
++  created_at: n.created_at instanceof Date ? n.created_at.toISOString() : n.created_at,
++  updated_at: n.updated_at instanceof Date ? n.updated_at.toISOString() : n.updated_at
++});
++
++const serializeHistory = (h) => ({
++  id: h.id,
++  user_id: h.user_id,
++  content: h.content,
++  created_at: h.created_at instanceof Date ? h.created_at.toISOString() : h.created_at,
++  updated_at: h.updated_at instanceof Date ? h.updated_at.toISOString() : h.updated_at,
++  updated_by: h.updated_by
++});
++
++const parseNote = (n) => ({
++  id: n.id,
++  user_id: n.user_id,
++  content: n.content || '',
++  created_at: n.created_at ? new Date(n.created_at) : new Date(),
++  updated_at: n.updated_at ? new Date(n.updated_at) : new Date()
++});
++
++const parseHistory = (h) => ({
++  id: h.id,
++  user_id: h.user_id,
++  content: h.content || '',
++  created_at: h.created_at ? new Date(h.created_at) : new Date(),
++  updated_at: h.updated_at ? new Date(h.updated_at) : null,
++  updated_by: h.updated_by || null
++});
+ 
+ class InMemoryDashboardNote {
+   constructor(data) {
+@@ -82,21 +66,32 @@ class InMemoryDashboardNote {
+   static async findOne(query) {
+     const userId = query?.where?.user_id ?? query?.user_id;
+     if (!userId) return null;
+-    const note = findNoteByUserId(userId);
++    const { notes } = readState();
++    const note = notes.map(parseNote).find((n) => String(n.user_id) === String(userId));
+     return note ? new InMemoryDashboardNote(note) : null;
+   }
+ 
+   static async findByPk(id) {
+-    const note = notes.find((n) => n.id === id || String(n.id) === String(id));
++    const { notes } = readState();
++    const note = notes.map(parseNote).find((n) => n.id === id || String(n.id) === String(id));
+     return note ? new InMemoryDashboardNote(note) : null;
+   }
+ 
+   static async findOrCreate(options) {
+     const { where, defaults } = options;
+     const userId = where?.user_id;
+-    const existing = findNoteByUserId(userId);
+-    let note = existing;
+-    if (!note) {
++    let created = false;
++    let note = null;
++
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      const s = normalizeState(state);
++      const parsed = s.notes.map(parseNote);
++      const existing = parsed.find((n) => String(n.user_id) === String(userId));
++      if (existing) {
++        note = existing;
++        return;
++      }
++      created = true;
+       note = {
+         id: uuidv4(),
+         user_id: userId,
+@@ -104,31 +99,29 @@ class InMemoryDashboardNote {
+         created_at: new Date(),
+         updated_at: new Date()
+       };
+-      notes.push(note);
+-      persistDashboard();
+-    }
+-    return [new InMemoryDashboardNote(note), !existing];
++      s.notes.push(serializeNote(note));
++      Object.assign(state, s);
++    });
++
++    return [new InMemoryDashboardNote(note), created];
+   }
+ 
+   async save() {
+-    const idx = notes.findIndex((n) => String(n.user_id) === String(this.user_id));
+     this.updated_at = new Date();
+-    if (idx >= 0) {
+-      notes[idx] = { ...this };
+-    } else {
+-      notes.push({ ...this });
+-    }
+-    persistDashboard();
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      const s = normalizeState(state);
++      const idx = s.notes.findIndex((n) => String(n.user_id) === String(this.user_id));
++      const serialized = serializeNote(this);
++      if (idx >= 0) s.notes[idx] = serialized;
++      else s.notes.push(serialized);
++      Object.assign(state, s);
++    });
+     return this;
+   }
+ 
+   async update(data) {
+     Object.assign(this, data);
+-    this.updated_at = new Date();
+-    const idx = notes.findIndex((n) => String(n.user_id) === String(this.user_id));
+-    if (idx >= 0) notes[idx] = { ...this };
+-    persistDashboard();
+-    return this;
++    return this.save();
+   }
+ 
+   toJSON() {
+@@ -142,43 +135,60 @@ class InMemoryDashboardNote {
+   }
+ 
+   static addHistory(userId, content) {
+-    history.push({
+-      id: uuidv4(),
+-      user_id: userId,
+-      content: content || '',
+-      created_at: new Date(),
+-      updated_at: null,
+-      updated_by: null
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      const s = normalizeState(state);
++      s.history.push(
++        serializeHistory({
++          id: uuidv4(),
++          user_id: userId,
++          content: content || '',
++          created_at: new Date(),
++          updated_at: null,
++          updated_by: null
++        })
++      );
++      Object.assign(state, s);
+     });
+-    persistDashboard();
+   }
+ 
+   static getHistory(userId, limit = 50) {
+-    return findHistoryByUserId(userId).slice(0, limit);
++    const { history } = readState();
++    return history
++      .map(parseHistory)
++      .filter((h) => String(h.user_id) === String(userId))
++      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
++      .slice(0, limit);
+   }
+ 
+   static deleteHistoryEntry(entryId) {
+-    const idx = history.findIndex((h) => String(h.id) === String(entryId));
+-    if (idx >= 0) {
+-      history.splice(idx, 1);
+-      persistDashboard();
+-      return true;
+-    }
+-    return false;
++    let deleted = false;
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      const s = normalizeState(state);
++      const idx = s.history.findIndex((h) => String(h.id) === String(entryId));
++      if (idx >= 0) {
++        s.history.splice(idx, 1);
++        deleted = true;
++        Object.assign(state, s);
++      }
++    });
++    return deleted;
+   }
+ 
+   static updateHistoryEntry(entryId, content, updatedBy = null) {
+-    const idx = history.findIndex((h) => String(h.id) === String(entryId));
+-    if (idx >= 0) {
+-      history[idx].content = content ?? '';
+-      history[idx].updated_at = new Date();
+-      history[idx].updated_by = updatedBy || null;
+-      persistDashboard();
+-      return true;
+-    }
+-    return false;
++    let updated = false;
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      const s = normalizeState(state);
++      const idx = s.history.findIndex((h) => String(h.id) === String(entryId));
++      if (idx >= 0) {
++        s.history[idx].content = content ?? '';
++        s.history[idx].updated_at = new Date().toISOString();
++        s.history[idx].updated_by = updatedBy || null;
++        updated = true;
++        Object.assign(state, s);
++      }
++    });
++    return updated;
+   }
+ }
+ 
+ export default InMemoryDashboardNote;
+-export { notes, history };
+diff --git a/server/models/ExtraCopyNotification.memory.js b/server/models/ExtraCopyNotification.memory.js
+index 7336eaf..2132927 100644
+--- a/server/models/ExtraCopyNotification.memory.js
++++ b/server/models/ExtraCopyNotification.memory.js
+@@ -1,60 +1,53 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
+-const FILE = 'extra_copy_notifications.json';
+-
+-let notifications = [];
+-let nextId = 1;
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-const persist = () => {
+-  if (!getPersist()) return;
+-  saveJson(FILE, { notifications, nextId });
+-};
++const FILE = 'extra_copy_notifications.json';
++const DEFAULT = () => ({ notifications: [], nextId: 1 });
+ 
+-const load = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson(FILE);
+-  if (data && Array.isArray(data.notifications)) {
+-    notifications = data.notifications;
+-    const ids = notifications.map((n) => Number(n?.id) || 0);
+-    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+-    nextId = Number(data.nextId) || maxId + 1 || 1;
+-  } else {
+-    notifications = [];
++const normalizeState = (state) => {
++  if (!state || !Array.isArray(state.notifications)) {
++    return { notifications: [], nextId: 1 };
+   }
++  const ids = state.notifications.map((n) => Number(n?.id) || 0);
++  const maxId = ids.length > 0 ? Math.max(...ids) : 0;
++  const nextId = Number(state.nextId) || maxId + 1 || 1;
++  return { notifications: state.notifications, nextId };
+ };
+ 
+-load();
+-
+-export const addNotification = (targetUserId, status, message) => {
+-  if (!Array.isArray(notifications)) notifications = [];
+-  const id = nextId++;
+-  notifications.push({
+-    id,
+-    target_user_id: targetUserId,
+-    status,
+-    message: message || (status === 'approved' ? 'Ihre Anfrage f├╝r eine Extra-Kopie wurde genehmigt.' : 'Ihre Anfrage f├╝r eine Extra-Kopie wurde abgelehnt.'),
+-    created_at: new Date().toISOString(),
+-    read: false
++export const addNotification = (targetUserId, status, message) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const id = s.nextId++;
++    s.notifications.push({
++      id,
++      target_user_id: targetUserId,
++      status,
++      message:
++        message ||
++        (status === 'approved'
++          ? 'Ihre Anfrage f├╝r eine Extra-Kopie wurde genehmigt.'
++          : 'Ihre Anfrage f├╝r eine Extra-Kopie wurde abgelehnt.'),
++      created_at: new Date().toISOString(),
++      read: false
++    });
++    Object.assign(state, s);
++    return { value: id };
+   });
+-  persist();
+-  return id;
+-};
+ 
+ export const getUnreadForUser = (userId) => {
+-  if (!Array.isArray(notifications)) return [];
++  const { notifications } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return notifications
+     .filter((n) => n && String(n.target_user_id) === String(userId) && !n.read)
+     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+ };
+ 
+-export const markAsRead = (id, userId) => {
+-  if (!id) return false;
+-  if (!Array.isArray(notifications)) return false;
+-  const n = notifications.find((x) => x && String(x.id) === String(id) && String(x.target_user_id) === String(userId));
+-  if (n) {
++export const markAsRead = (id, userId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const n = s.notifications.find(
++      (x) => x && String(x.id) === String(id) && String(x.target_user_id) === String(userId)
++    );
++    if (!n) return { value: false };
+     n.read = true;
+-    persist();
+-    return true;
+-  }
+-  return false;
+-};
++    Object.assign(state, s);
++    return { value: true };
++  });
+diff --git a/server/models/ExtraCopyRequest.memory.js b/server/models/ExtraCopyRequest.memory.js
+index 936550a..81889cf 100644
+--- a/server/models/ExtraCopyRequest.memory.js
++++ b/server/models/ExtraCopyRequest.memory.js
+@@ -1,74 +1,70 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
+-const FILE = 'extra_copy_requests.json';
+-
+-let requests = [];
+-let nextId = 1;
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-const persist = () => {
+-  if (!getPersist()) return;
+-  saveJson(FILE, { requests, nextId });
+-};
++const FILE = 'extra_copy_requests.json';
++const DEFAULT = () => ({ requests: [], nextId: 1 });
+ 
+-const load = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson(FILE);
+-  if (data && Array.isArray(data.requests)) {
+-    requests = data.requests;
+-    const ids = requests.map((r) => Number(r?.id) || 0);
+-    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+-    nextId = Number(data.nextId) || maxId + 1 || 1;
++const normalizeState = (state) => {
++  if (!state || !Array.isArray(state.requests)) {
++    return { requests: [], nextId: 1 };
+   }
++  const ids = state.requests.map((r) => Number(r?.id) || 0);
++  const maxId = ids.length > 0 ? Math.max(...ids) : 0;
++  const nextId = Number(state.nextId) || maxId + 1 || 1;
++  return { requests: state.requests, nextId };
+ };
+ 
+-load();
+-
+-export const addRequest = (requesterUserId, requesterUserName) => {
+-  if (!Array.isArray(requests)) requests = [];
+-  const existing = requests.find(
+-    (r) => String(r.requester_user_id) === String(requesterUserId) && r.status === 'pending'
+-  );
+-  if (existing) return null;
+-  const id = nextId++;
+-  requests.push({
+-    id,
+-    requester_user_id: requesterUserId,
+-    requester_user_name: requesterUserName || 'Unbekannt',
+-    status: 'pending',
+-    created_at: new Date().toISOString(),
+-    approved_by: null,
+-    approved_at: null
++export const addRequest = (requesterUserId, requesterUserName) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const existing = s.requests.find(
++      (r) => String(r.requester_user_id) === String(requesterUserId) && r.status === 'pending'
++    );
++    if (existing) return { value: null };
++    const id = s.nextId++;
++    s.requests.push({
++      id,
++      requester_user_id: requesterUserId,
++      requester_user_name: requesterUserName || 'Unbekannt',
++      status: 'pending',
++      created_at: new Date().toISOString(),
++      approved_by: null,
++      approved_at: null
++    });
++    Object.assign(state, s);
++    return { value: id };
+   });
+-  persist();
+-  return id;
+-};
+ 
+ export const getPendingRequests = () => {
+-  if (!Array.isArray(requests)) return [];
++  const { requests } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return requests
+     .filter((r) => r && r.status === 'pending')
+     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+ };
+ 
+ export const getRequestById = (id) => {
++  const { requests } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return requests.find((r) => String(r.id) === String(id));
+ };
+ 
+-export const approveRequest = (id, approvedByUserId) => {
+-  const r = requests.find((x) => String(x.id) === String(id));
+-  if (!r || r.status !== 'pending') return false;
+-  r.status = 'approved';
+-  r.approved_by = approvedByUserId;
+-  r.approved_at = new Date().toISOString();
+-  persist();
+-  return true;
+-};
++export const approveRequest = (id, approvedByUserId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const r = s.requests.find((x) => String(x.id) === String(id));
++    if (!r || r.status !== 'pending') return { value: false };
++    r.status = 'approved';
++    r.approved_by = approvedByUserId;
++    r.approved_at = new Date().toISOString();
++    Object.assign(state, s);
++    return { value: true };
++  });
+ 
+-export const rejectRequest = (id) => {
+-  const r = requests.find((x) => String(x.id) === String(id));
+-  if (!r || r.status !== 'pending') return false;
+-  r.status = 'rejected';
+-  r.approved_at = new Date().toISOString();
+-  persist();
+-  return true;
+-};
++export const rejectRequest = (id) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const r = s.requests.find((x) => String(x.id) === String(id));
++    if (!r || r.status !== 'pending') return { value: false };
++    r.status = 'rejected';
++    r.approved_at = new Date().toISOString();
++    Object.assign(state, s);
++    return { value: true };
++  });
+diff --git a/server/models/ImeiReminder.memory.js b/server/models/ImeiReminder.memory.js
+index fe82b01..aea38fd 100644
+--- a/server/models/ImeiReminder.memory.js
++++ b/server/models/ImeiReminder.memory.js
+@@ -1,70 +1,59 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
+-const FILE = 'imei_reminders.json';
+-
+-let reminders = [];
+-let nextId = 1;
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-const persist = () => {
+-  if (!getPersist()) return;
+-  saveJson(FILE, { reminders, nextId });
+-};
++const FILE = 'imei_reminders.json';
++const DEFAULT = () => ({ reminders: [], nextId: 1 });
+ 
+-const load = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson(FILE);
+-  if (data && Array.isArray(data.reminders)) {
+-    reminders = data.reminders;
+-    const ids = reminders.map((r) => Number(r?.id) || 0);
+-    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+-    nextId = Number(data.nextId) || maxId + 1 || 1;
+-  } else {
+-    reminders = [];
++const normalizeState = (state) => {
++  if (!state || !Array.isArray(state.reminders)) {
++    return { reminders: [], nextId: 1 };
+   }
++  const ids = state.reminders.map((r) => Number(r?.id) || 0);
++  const maxId = ids.length > 0 ? Math.max(...ids) : 0;
++  const nextId = Number(state.nextId) || maxId + 1 || 1;
++  return { reminders: state.reminders, nextId };
+ };
+ 
+-load();
+-
+-export const addReminder = (targetUserId, targetUserName, imei, fromUserName, fromUserId) => {
+-  if (!Array.isArray(reminders)) reminders = [];
+-  const id = nextId++;
+-  const message = `Erinnerung: Benutzt du noch diese IMEI? (${imei})`;
+-  reminders.push({
+-    id,
+-    target_user_id: targetUserId,
+-    target_user_name: targetUserName || 'Unbekannt',
+-    imei: String(imei || '').trim(),
+-    message,
+-    from_user_name: fromUserName || 'B├╝ro',
+-    from_user_id: fromUserId ?? null,
+-    created_at: new Date().toISOString(),
+-    read: false
++export const addReminder = (targetUserId, targetUserName, imei, fromUserName, fromUserId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const id = s.nextId++;
++    const message = `Erinnerung: Benutzt du noch diese IMEI? (${imei})`;
++    s.reminders.push({
++      id,
++      target_user_id: targetUserId,
++      target_user_name: targetUserName || 'Unbekannt',
++      imei: String(imei || '').trim(),
++      message,
++      from_user_name: fromUserName || 'B├╝ro',
++      from_user_id: fromUserId ?? null,
++      created_at: new Date().toISOString(),
++      read: false
++    });
++    Object.assign(state, s);
++    return { value: id };
+   });
+-  persist();
+-  return id;
+-};
+ 
+ export const getRemindersForUser = (userId) => {
+-  if (!Array.isArray(reminders)) return [];
++  const { reminders } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return reminders
+     .filter((r) => r && String(r.target_user_id) === String(userId) && !r.read)
+     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+ };
+ 
+-export const markReminderRead = (reminderId, userId) => {
+-  if (!Array.isArray(reminders)) return false;
+-  const r = reminders.find((x) => x && String(x.id) === String(reminderId) && String(x.target_user_id) === String(userId));
+-  if (r) {
++export const markReminderRead = (reminderId, userId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const r = s.reminders.find(
++      (x) => x && String(x.id) === String(reminderId) && String(x.target_user_id) === String(userId)
++    );
++    if (!r) return { value: false };
+     r.read = true;
+-    persist();
+-    return true;
+-  }
+-  return false;
+-};
++    Object.assign(state, s);
++    return { value: true };
++  });
+ 
+-/** Finde Erinnerungen f├╝r Benutzer+IMEI (f├╝r Benachrichtigung an B├╝ro bei Aktion) */
+ export const findRemindersForUserAndImei = (targetUserId, imei) => {
+-  if (!Array.isArray(reminders)) return [];
++  const { reminders } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   const imeiStr = String(imei || '').trim();
+   const targetStr = String(targetUserId || '');
+   return reminders.filter(
+diff --git a/server/models/ImeisUserData.memory.js b/server/models/ImeisUserData.memory.js
+index fb49be2..78f8e3c 100644
+--- a/server/models/ImeisUserData.memory.js
++++ b/server/models/ImeisUserData.memory.js
+@@ -1,54 +1,42 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-const dataByUserId = new Map();
++const FILE = 'imeis.json';
++const DEFAULT = () => ({});
+ 
+-const persistImeis = () => {
+-  if (!getPersist()) return;
+-  const data = {};
+-  dataByUserId.forEach((v, k) => {
+-    data[k] = {
+-      user_id: v.user_id,
+-      imeis_json: v.imeis_json,
+-      cell_colors_json: v.cell_colors_json,
+-      row_actions_json: v.row_actions_json,
+-      copy_history_json: v.copy_history_json,
+-      copy_timestamps_json: v.copy_timestamps_json,
+-      created_at: v.created_at instanceof Date ? v.created_at.toISOString() : v.created_at,
+-      updated_at: v.updated_at instanceof Date ? v.updated_at.toISOString() : v.updated_at
+-    };
+-  });
+-  saveJson('imeis.json', data);
+-};
++const parseRow = (v) => ({
++  user_id: v.user_id,
++  imeis_json: v.imeis_json,
++  cell_colors_json: v.cell_colors_json ?? '{}',
++  row_actions_json: v.row_actions_json ?? '{}',
++  copy_history_json: v.copy_history_json ?? '[]',
++  copy_timestamps_json: v.copy_timestamps_json ?? '[]',
++  created_at: v.created_at ? new Date(v.created_at) : new Date(),
++  updated_at: v.updated_at ? new Date(v.updated_at) : new Date()
++});
+ 
+-const loadImeis = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson('imeis.json');
+-  if (data && typeof data === 'object') {
+-    Object.entries(data).forEach(([k, v]) => {
+-      dataByUserId.set(k, {
+-        user_id: v.user_id,
+-        imeis_json: v.imeis_json,
+-        cell_colors_json: v.cell_colors_json ?? '{}',
+-        row_actions_json: v.row_actions_json ?? '{}',
+-        copy_history_json: v.copy_history_json ?? '[]',
+-        copy_timestamps_json: v.copy_timestamps_json ?? '[]',
+-        created_at: v.created_at ? new Date(v.created_at) : new Date(),
+-        updated_at: v.updated_at ? new Date(v.updated_at) : new Date()
+-      });
+-    });
+-    if (dataByUserId.size > 0) {
+-      console.log(`Ô£à IMEI-Daten f├╝r ${dataByUserId.size} Benutzer geladen`);
+-    }
+-  }
+-};
++const serializeRow = (v) => ({
++  user_id: v.user_id,
++  imeis_json: v.imeis_json,
++  cell_colors_json: v.cell_colors_json ?? '{}',
++  row_actions_json: v.row_actions_json ?? '{}',
++  copy_history_json: v.copy_history_json ?? '[]',
++  copy_timestamps_json: v.copy_timestamps_json ?? '[]',
++  created_at: v.created_at instanceof Date ? v.created_at.toISOString() : v.created_at,
++  updated_at: v.updated_at instanceof Date ? v.updated_at.toISOString() : v.updated_at
++});
+ 
+-loadImeis();
++const readAllRows = () => {
++  const data = readJsonStore(FILE, DEFAULT());
++  if (!data || typeof data !== 'object') return new Map();
++  const map = new Map();
++  Object.entries(data).forEach(([k, v]) => map.set(k, parseRow(v)));
++  return map;
++};
+ 
+-const getOrCreate = (userId) => {
++const getOrCreateInMap = (map, userId) => {
+   const key = String(userId);
+-  if (!dataByUserId.has(key)) {
+-    dataByUserId.set(key, {
++  if (!map.has(key)) {
++    map.set(key, {
+       user_id: userId,
+       imeis_json: null,
+       cell_colors_json: '{}',
+@@ -59,14 +47,23 @@ const getOrCreate = (userId) => {
+       updated_at: new Date()
+     });
+   }
+-  return dataByUserId.get(key);
++  return map.get(key);
++};
++
++const mapToObject = (map) => {
++  const obj = {};
++  map.forEach((v, k) => {
++    obj[k] = serializeRow(v);
++  });
++  return obj;
+ };
+ 
+ class InMemoryImeisUserData {
+   static async findOne(query) {
+     const userId = query?.where?.user_id ?? query?.user_id;
+     if (!userId) return null;
+-    const data = getOrCreate(userId);
++    const map = readAllRows();
++    const data = getOrCreateInMap(map, userId);
+     return { ...data, id: data.user_id };
+   }
+ 
+@@ -74,21 +71,33 @@ class InMemoryImeisUserData {
+     const { where, defaults } = options;
+     const userId = where?.user_id;
+     const key = String(userId);
+-    const created = !dataByUserId.has(key);
+-    const data = getOrCreate(userId);
+-    if (created && defaults) {
+-      if (defaults.imeis_json !== undefined) data.imeis_json = defaults.imeis_json;
+-      if (defaults.cell_colors_json !== undefined) data.cell_colors_json = defaults.cell_colors_json;
+-      if (defaults.row_actions_json !== undefined) data.row_actions_json = defaults.row_actions_json;
+-      if (defaults.copy_history_json !== undefined) data.copy_history_json = defaults.copy_history_json;
+-      if (defaults.copy_timestamps_json !== undefined) data.copy_timestamps_json = defaults.copy_timestamps_json;
+-      persistImeis();
+-    }
+-    return [{ ...data, id: data.user_id }, created];
++    let created = false;
++    let row = null;
++
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      if (typeof state !== 'object' || state == null) state = {};
++      const map = new Map(Object.entries(state).map(([k, v]) => [k, parseRow(v)]));
++      if (!map.has(key)) {
++        created = true;
++        row = getOrCreateInMap(map, userId);
++        if (defaults) {
++          if (defaults.imeis_json !== undefined) row.imeis_json = defaults.imeis_json;
++          if (defaults.cell_colors_json !== undefined) row.cell_colors_json = defaults.cell_colors_json;
++          if (defaults.row_actions_json !== undefined) row.row_actions_json = defaults.row_actions_json;
++          if (defaults.copy_history_json !== undefined) row.copy_history_json = defaults.copy_history_json;
++          if (defaults.copy_timestamps_json !== undefined) row.copy_timestamps_json = defaults.copy_timestamps_json;
++        }
++      } else {
++        row = map.get(key);
++      }
++      Object.assign(state, mapToObject(map));
++    });
++
++    return [{ ...row, id: row.user_id }, created];
+   }
+ 
+   static async findAll(options = {}) {
+-    let rows = Array.from(dataByUserId.values()).map((d) => ({ ...d, id: d.user_id }));
++    let rows = Array.from(readAllRows().values()).map((d) => ({ ...d, id: d.user_id }));
+     const where = options?.where || {};
+     let userIds = where?.user_id;
+     if (userIds && typeof userIds === 'object' && !Array.isArray(userIds)) {
+@@ -104,16 +113,21 @@ class InMemoryImeisUserData {
+   }
+ 
+   static async upsert(values) {
+-    const userId = values.user_id;
+-    const data = getOrCreate(userId);
+-    if (values.imeis_json !== undefined) data.imeis_json = values.imeis_json;
+-    if (values.cell_colors_json !== undefined) data.cell_colors_json = values.cell_colors_json;
+-    if (values.row_actions_json !== undefined) data.row_actions_json = values.row_actions_json;
+-    if (values.copy_history_json !== undefined) data.copy_history_json = values.copy_history_json;
+-    if (values.copy_timestamps_json !== undefined) data.copy_timestamps_json = values.copy_timestamps_json;
+-    data.updated_at = new Date();
+-    persistImeis();
+-    return { ...data, id: data.user_id };
++    let result = null;
++    updateJsonStore(FILE, DEFAULT(), (state) => {
++      if (typeof state !== 'object' || state == null) state = {};
++      const map = new Map(Object.entries(state).map(([k, v]) => [k, parseRow(v)]));
++      const data = getOrCreateInMap(map, values.user_id);
++      if (values.imeis_json !== undefined) data.imeis_json = values.imeis_json;
++      if (values.cell_colors_json !== undefined) data.cell_colors_json = values.cell_colors_json;
++      if (values.row_actions_json !== undefined) data.row_actions_json = values.row_actions_json;
++      if (values.copy_history_json !== undefined) data.copy_history_json = values.copy_history_json;
++      if (values.copy_timestamps_json !== undefined) data.copy_timestamps_json = values.copy_timestamps_json;
++      data.updated_at = new Date();
++      result = { ...data, id: data.user_id };
++      Object.assign(state, mapToObject(map));
++    });
++    return result;
+   }
+ }
+ 
+diff --git a/server/models/NewsRead.memory.js b/server/models/NewsRead.memory.js
+index dde8d37..1cd5c03 100644
+--- a/server/models/NewsRead.memory.js
++++ b/server/models/NewsRead.memory.js
+@@ -1,73 +1,53 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
+-const FILE = 'news_reads.json';
+-
+-let reads = [];
+-
+-const persist = () => {
+-  if (!getPersist()) return;
+-  saveJson(FILE, { reads });
+-};
+-
+-const load = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson(FILE);
+-  if (data && Array.isArray(data.reads)) {
+-    reads = data.reads;
+-  } else {
+-    reads = [];
+-  }
+-};
+-
+-load();
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-export const addRead = (userId, userName, contentHash) => {
+-  if (!Array.isArray(reads)) reads = [];
+-  const existing = reads.find(
+-    (r) => String(r.user_id) === String(userId) && r.content_hash === contentHash
+-  );
+-  if (existing) return;
+-  reads.push({
+-    user_id: userId,
+-    user_name: userName || 'Unbekannt',
+-    content_hash: contentHash,
+-    read_at: new Date().toISOString()
++const FILE = 'news_reads.json';
++const DEFAULT = () => ({ reads: [] });
++
++const normalizeState = (state) => {
++  if (!state || !Array.isArray(state.reads)) return { reads: [] };
++  return { reads: state.reads };
++};
++
++export const addRead = (userId, userName, contentHash) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const existing = s.reads.find(
++      (r) => String(r.user_id) === String(userId) && r.content_hash === contentHash
++    );
++    if (existing) return;
++    s.reads.push({
++      user_id: userId,
++      user_name: userName || 'Unbekannt',
++      content_hash: contentHash,
++      read_at: new Date().toISOString()
++    });
++    Object.assign(state, s);
+   });
+-  persist();
+-};
+ 
+ export const getReads = () => {
+-  if (!Array.isArray(reads)) return [];
++  const { reads } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return [...reads].sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
+ };
+ 
+-const simpleHash = (str) => {
+-  if (!str || !str.trim()) return '';
+-  let h = 0;
+-  for (let i = 0; i < str.length; i++) {
+-    h = ((h << 5) - h) + str.charCodeAt(i) | 0;
+-  }
+-  return String(h);
+-};
+-
+ export const getReadsByContentHash = (contentHash) => {
+-  if (!Array.isArray(reads)) return [];
++  const { reads } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return reads
+     .filter((r) => r && r.content_hash === contentHash)
+     .sort((a, b) => new Date(b.read_at) - new Date(a.read_at));
+ };
+ 
+-/** Pr├╝ft, ob ein Benutzer diese Anweisung bereits gelesen hat (f├╝r Popup: nur einmal anzeigen) */
+ export const hasUserRead = (userId, contentHash) => {
+-  if (!userId || !contentHash || !Array.isArray(reads)) return false;
++  if (!userId || !contentHash) return false;
++  const { reads } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return reads.some(
+     (r) => r && String(r.user_id) === String(userId) && r.content_hash === String(contentHash)
+   );
+ };
+ 
+-export const deleteReadsByContentHash = (contentHash) => {
+-  if (!Array.isArray(reads)) reads = [];
+-  const before = reads.length;
+-  reads = reads.filter((r) => r && r.content_hash !== contentHash);
+-  if (reads.length !== before) persist();
+-};
++export const deleteReadsByContentHash = (contentHash) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const before = s.reads.length;
++    s.reads = s.reads.filter((r) => r && r.content_hash !== contentHash);
++    if (s.reads.length !== before) Object.assign(state, s);
++  });
+diff --git a/server/models/ReminderResponseNotification.memory.js b/server/models/ReminderResponseNotification.memory.js
+index 9ee0e3b..d6c8f89 100644
+--- a/server/models/ReminderResponseNotification.memory.js
++++ b/server/models/ReminderResponseNotification.memory.js
+@@ -1,67 +1,54 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
+-const FILE = 'reminder_response_notifications.json';
+-
+-let notifications = [];
+-let nextId = 1;
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+-const persist = () => {
+-  if (!getPersist()) return;
+-  saveJson(FILE, { notifications, nextId });
+-};
++const FILE = 'reminder_response_notifications.json';
++const DEFAULT = () => ({ notifications: [], nextId: 1 });
+ 
+-const load = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson(FILE);
+-  if (data && Array.isArray(data.notifications)) {
+-    notifications = data.notifications;
+-    const ids = notifications.map((n) => Number(n?.id) || 0);
+-    const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+-    nextId = Number(data.nextId) || maxId + 1 || 1;
+-  } else {
+-    notifications = [];
++const normalizeState = (state) => {
++  if (!state || !Array.isArray(state.notifications)) {
++    return { notifications: [], nextId: 1 };
+   }
++  const ids = state.notifications.map((n) => Number(n?.id) || 0);
++  const maxId = ids.length > 0 ? Math.max(...ids) : 0;
++  const nextId = Number(state.nextId) || maxId + 1 || 1;
++  return { notifications: state.notifications, nextId };
+ };
+ 
+-load();
+-
+-/** Benachrichtigung an B├╝ro-Mitarbeiter: Benutzer hat auf Erinnerung reagiert */
+-export const addNotification = (targetUserId, fromUserName, imei, action) => {
+-  if (!Array.isArray(notifications)) notifications = [];
+-  const id = nextId++;
+-  const actionText = action === 'angenommen' ? 'angenommen' : 'abgelehnt';
+-  const message = `${fromUserName} hat auf deine Erinnerung f├╝r IMEI ${imei} reagiert: ${actionText}`;
+-  const notification = {
+-    id,
+-    target_user_id: targetUserId,
+-    from_user_name: fromUserName || 'Unbekannt',
+-    imei: String(imei || '').trim(),
+-    action: action || 'angenommen',
+-    message,
+-    created_at: new Date().toISOString(),
+-    read: false
+-  };
+-  notifications.push(notification);
+-  persist();
+-  return notification;
+-};
++export const addNotification = (targetUserId, fromUserName, imei, action) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const id = s.nextId++;
++    const actionText = action === 'angenommen' ? 'angenommen' : 'abgelehnt';
++    const message = `${fromUserName} hat auf deine Erinnerung f├╝r IMEI ${imei} reagiert: ${actionText}`;
++    const notification = {
++      id,
++      target_user_id: targetUserId,
++      from_user_name: fromUserName || 'Unbekannt',
++      imei: String(imei || '').trim(),
++      action: action || 'angenommen',
++      message,
++      created_at: new Date().toISOString(),
++      read: false
++    };
++    s.notifications.push(notification);
++    Object.assign(state, s);
++    return { value: notification };
++  });
+ 
+ export const getUnreadForUser = (userId) => {
+-  if (!Array.isArray(notifications)) return [];
++  const { notifications } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return notifications
+     .filter((n) => n && String(n.target_user_id) === String(userId) && !n.read)
+     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+ };
+ 
+-export const markAsRead = (id, userId) => {
+-  if (!Array.isArray(notifications)) return false;
+-  const n = notifications.find(
+-    (x) => x && String(x.id) === String(id) && String(x.target_user_id) === String(userId)
+-  );
+-  if (n) {
++export const markAsRead = (id, userId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const n = s.notifications.find(
++      (x) => x && String(x.id) === String(id) && String(x.target_user_id) === String(userId)
++    );
++    if (!n) return { value: false };
+     n.read = true;
+-    persist();
+-    return true;
+-  }
+-  return false;
+-};
++    Object.assign(state, s);
++    return { value: true };
++  });
+diff --git a/server/models/User.js b/server/models/User.js
+index b18143e..2ad5e2d 100644
+--- a/server/models/User.js
++++ b/server/models/User.js
+@@ -1,4 +1,4 @@
+-import UserMemory, { users } from './User.memory.js';
++import UserMemory from './User.memory.js';
+ import UserPostgres from './User.model.js';
+ 
+ const hasPostgresConfig = process.env.DATABASE_URL || process.env.PG_DATABASE || process.env.PG_USER;
+@@ -7,4 +7,3 @@ const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' || !hasPostgresConfig
+ const UserModel = USE_MEMORY_DB ? UserMemory : UserPostgres;
+ 
+ export default UserModel;
+-export { users };
+diff --git a/server/models/User.memory.js b/server/models/User.memory.js
+index 39be5a2..f1baf3a 100644
+--- a/server/models/User.memory.js
++++ b/server/models/User.memory.js
+@@ -1,16 +1,16 @@
+ import bcrypt from 'bcryptjs';
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ import { getPersist } from '../utils/persistConfig.js';
+ 
+-const uuidv4 = () => {
+-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+-    const r = Math.random() * 16 | 0;
+-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
++const FILE = 'users.json';
++const DEFAULT = () => [];
++
++const uuidv4 = () =>
++  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
++    const r = (Math.random() * 16) | 0;
++    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+     return v.toString(16);
+   });
+-};
+-
+-const users = [];
+ 
+ const toPlainUser = (u) => ({
+   _id: u._id ?? u.id,
+@@ -21,67 +21,67 @@ const toPlainUser = (u) => ({
+   avatar: u.avatar ?? null,
+   einsatz_ort: u.einsatz_ort ?? null,
+   telefon: u.telefon ?? null,
+-  createdAt: u.createdAt,
+-  updatedAt: u.updatedAt
++  createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
++  updatedAt: u.updatedAt instanceof Date ? u.updatedAt.toISOString() : u.updatedAt
+ });
+ 
+-const persistUsers = () => {
+-  if (!getPersist()) return;
+-  const data = users.map(u => {
+-    const p = toPlainUser(u);
+-    p.createdAt = p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt;
+-    p.updatedAt = p.updatedAt instanceof Date ? p.updatedAt.toISOString() : p.updatedAt;
+-    return p;
+-  });
+-  saveJson('users.json', data);
++const fromPlainUser = (u) => ({
++  _id: u._id,
++  name: u.name,
++  email: u.email,
++  password: u.password,
++  role: u.role,
++  avatar: u.avatar ?? null,
++  einsatz_ort: u.einsatz_ort ?? null,
++  telefon: u.telefon ?? null,
++  createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
++  updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
++});
++
++const readUsersPlain = () => {
++  const data = readJsonStore(FILE, DEFAULT());
++  if (!Array.isArray(data)) return [];
++  return data.map(fromPlainUser);
+ };
+ 
+-const loadUsers = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson('users.json');
+-  if (Array.isArray(data) && data.length > 0) {
+-    users.length = 0;
+-    data.forEach(u => {
+-      users.push({
+-        _id: u._id,
+-        name: u.name,
+-        email: u.email,
+-        password: u.password,
+-        role: u.role,
+-        avatar: u.avatar ?? null,
+-        einsatz_ort: u.einsatz_ort ?? null,
+-        telefon: u.telefon ?? null,
+-        createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+-        updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
+-      });
+-    });
+-    console.log(`Ô£à ${users.length} Benutzer aus Datei geladen`);
+-    return;
+-  }
++const writeUsersPlain = (usersPlain, updaterResult) =>
++  updateJsonStore(FILE, DEFAULT(), (arr) => {
++    const list = Array.isArray(arr) ? arr : [];
++    list.length = 0;
++    usersPlain.forEach((u) => list.push(toPlainUser(u)));
++    return updaterResult;
++  });
++
++const mutateUsers = async (fn) => {
++  const users = readUsersPlain();
++  const result = await fn(users);
++  writeUsersPlain(users, result);
++  return result;
+ };
+ 
+ const createDefaultAdmin = async () => {
+-  loadUsers();
+-  if (users.length > 0) return;
++  const existing = readUsersPlain();
++  if (existing.length > 0) return;
+   const adminPassword = await bcrypt.hash('Admin123!', 12);
+-  const adminUser = {
+-    _id: 'admin-' + uuidv4(),
+-    name: 'Ali Almani',
+-    email: 'admin@az-handy.berlin',
+-    password: adminPassword,
+-    role: 'admin',
+-    createdAt: new Date(),
+-    updatedAt: new Date()
+-  };
+-  users.push(adminUser);
+-  persistUsers();
+-  console.log('Ô£à Default admin user created (In-Memory Mode)');
+-  console.log('   Email: admin@az-handy.berlin');
+-  console.log('   Password: Admin123!');
+-  return adminUser;
++  await mutateUsers((users) => {
++    if (users.length > 0) return;
++    users.push({
++      _id: 'admin-' + uuidv4(),
++      name: 'Ali Almani',
++      email: 'admin@az-handy.berlin',
++      password: adminPassword,
++      role: 'admin',
++      createdAt: new Date(),
++      updatedAt: new Date()
++    });
++  });
++  if (getPersist()) {
++    console.log('Ô£à Default admin user created (In-Memory Mode)');
++    console.log('   Email: admin@az-handy.berlin');
++    console.log('   Password: Admin123!');
++  }
+ };
+ 
+-// Wichtig: erst ausf├╝hren, bevor Login-Requests laufen ÔÇô sonst war die Nutzerliste kurz leer.
+ await createDefaultAdmin();
+ 
+ class InMemoryUser {
+@@ -103,19 +103,32 @@ class InMemoryUser {
+     if (this.password && !this.password.startsWith('$2')) {
+       this.password = await bcrypt.hash(this.password, 12);
+     }
+-    const existingIndex = users.findIndex(u => u._id === this._id);
+-    if (existingIndex >= 0) {
++    return mutateUsers((users) => {
++      const existingIndex = users.findIndex((u) => u._id === this._id);
+       this.updatedAt = new Date();
+-      users[existingIndex] = this;
+-    } else {
+-      users.push(this);
+-    }
+-    persistUsers();
+-    return this;
++      const plain = {
++        _id: this._id,
++        name: this.name,
++        email: this.email,
++        password: this.password,
++        role: this.role,
++        avatar: this.avatar,
++        einsatz_ort: this.einsatz_ort,
++        telefon: this.telefon,
++        createdAt: this.createdAt,
++        updatedAt: this.updatedAt
++      };
++      if (existingIndex >= 0) {
++        users[existingIndex] = plain;
++      } else {
++        users.push(plain);
++      }
++      return this;
++    });
+   }
+ 
+   async comparePassword(candidatePassword) {
+-    return await bcrypt.compare(candidatePassword, this.password);
++    return bcrypt.compare(candidatePassword, this.password);
+   }
+ 
+   toJSON() {
+@@ -129,39 +142,36 @@ class InMemoryUser {
+   }
+ 
+   static async findOne(query) {
+-    if (!query || Object.keys(query).length === 0) {
+-      return null;
+-    }
++    if (!query || Object.keys(query).length === 0) return null;
++    const users = readUsersPlain();
+     const email = query.email || query.where?.email;
+     if (email) {
+-      const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
++      const user = users.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+       return user ? new InMemoryUser(user) : null;
+     }
+     const name = query.name || query.where?.name;
+     if (name) {
+-      const user = users.find(u => String(u.name || '').trim() === String(name).trim());
++      const user = users.find((u) => String(u.name || '').trim() === String(name).trim());
+       return user ? new InMemoryUser(user) : null;
+     }
+     const key = Object.keys(query)[0];
+     const value = query[key];
+-    const user = users.find(u => {
+-      if (key === 'email') {
+-        return u[key].toLowerCase() === value.toLowerCase();
+-      }
++    const user = users.find((u) => {
++      if (key === 'email') return u[key].toLowerCase() === value.toLowerCase();
+       return u[key] === value;
+     });
+     return user ? new InMemoryUser(user) : null;
+   }
+ 
+   static async findById(id) {
+-    const user = users.find(u => u._id === id);
++    const user = readUsersPlain().find((u) => u._id === id);
+     return user ? new InMemoryUser(user) : null;
+   }
+ 
+   static async findByPk(id) {
+     if (id == null || id === '') return null;
+     const sid = String(id);
+-    const user = users.find(u => {
++    const user = readUsersPlain().find((u) => {
+       const uid = u._id ?? u.id;
+       return uid === id || String(uid) === sid;
+     });
+@@ -170,41 +180,34 @@ class InMemoryUser {
+ 
+   static async create(data) {
+     const hashedPassword = await bcrypt.hash(data.password, 12);
+-    const userData = {
+-      ...data,
+-      password: hashedPassword,
+-      _id: uuidv4()
+-    };
+-    const user = new InMemoryUser(userData);
++    const user = new InMemoryUser({ ...data, password: hashedPassword, _id: uuidv4() });
+     await user.save();
+     return user;
+   }
+ 
+   static async find(query = {}) {
++    const users = readUsersPlain();
+     if (Object.keys(query).length === 0) {
+-      return users.map(u => new InMemoryUser(u));
++      return users.map((u) => new InMemoryUser(u));
+     }
+-    return users
+-      .filter(u => {
+-        return Object.keys(query).every(key => u[key] === query[key]);
+-      })
+-      .map(u => new InMemoryUser(u));
++    return users.filter((u) => Object.keys(query).every((key) => u[key] === query[key])).map((u) => new InMemoryUser(u));
+   }
+ 
+   static async findAll(options = {}) {
+     const where = options?.where || {};
++    const users = readUsersPlain();
+     if (Object.keys(where).length === 0) {
+-      return users.map(u => new InMemoryUser(u));
++      return users.map((u) => new InMemoryUser(u));
+     }
+     return users
+-      .filter(u => {
+-        return Object.entries(where).every(([key, val]) => {
++      .filter((u) =>
++        Object.entries(where).every(([key, val]) => {
+           const uv = u[key];
+           if (val == null) return uv == null || uv === '';
+           return String(uv || '').trim() === String(val || '').trim();
+-        });
+-      })
+-      .map(u => new InMemoryUser(u));
++        })
++      )
++      .map((u) => new InMemoryUser(u));
+   }
+ 
+   static async findOneAndUpdate(query, update) {
+@@ -219,13 +222,13 @@ class InMemoryUser {
+ 
+   static async destroy(options = {}) {
+     const id = options?.where?.id ?? options?.where?.user_id ?? options?.id;
+-    const idx = users.findIndex(u => u._id === id || u.id === id || String(u._id) === String(id));
+-    if (idx >= 0) {
+-      users.splice(idx, 1);
+-      persistUsers();
+-    }
++    await mutateUsers((users) => {
++      const idx = users.findIndex(
++        (u) => u._id === id || u.id === id || String(u._id) === String(id)
++      );
++      if (idx >= 0) users.splice(idx, 1);
++    });
+   }
+ }
+ 
+ export default InMemoryUser;
+-export { users };
+diff --git a/server/models/VoucherManualRequest.memory.js b/server/models/VoucherManualRequest.memory.js
+index 77f70aa..65a4974 100644
+--- a/server/models/VoucherManualRequest.memory.js
++++ b/server/models/VoucherManualRequest.memory.js
+@@ -1,97 +1,89 @@
+-import { loadJson, saveJson } from '../utils/filePersistence.js';
+-import { getPersist } from '../utils/persistConfig.js';
++import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+ 
+ const FILE = 'voucher_manual_requests.json';
+-
+ const VALID_TAB_IDS = new Set(['o2_ff', 'ay_ag0', 'ay_5eur']);
++const DEFAULT = () => ({ requests: [], nextId: 1 });
+ 
+-let requests = [];
+-let nextId = 1;
+-
+-const persist = () => {
+-  if (!getPersist()) return;
+-  saveJson(FILE, { requests, nextId });
+-};
+-
+-const load = () => {
+-  if (!getPersist()) return;
+-  const data = loadJson(FILE);
+-  if (data && Array.isArray(data.requests)) {
+-    requests = data.requests;
+-    const maxId = requests.reduce((m, r) => Math.max(m, Number(r?.id) || 0), 0);
+-    nextId = Number(data.nextId) || maxId + 1 || 1;
+-  } else {
+-    requests = [];
++const normalizeState = (state) => {
++  if (!state || !Array.isArray(state.requests)) {
++    return { requests: [], nextId: 1 };
+   }
++  const maxId = state.requests.reduce((m, r) => Math.max(m, Number(r?.id) || 0), 0);
++  const nextId = Number(state.nextId) || maxId + 1 || 1;
++  return { requests: state.requests, nextId };
+ };
+ 
+-load();
+-
+ export const isValidTabId = (id) => VALID_TAB_IDS.has(String(id || '').trim());
+ 
+-export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, voucherArtLabel, nummer }) => {
+-  if (!Array.isArray(requests)) requests = [];
+-  const tab = String(voucherTabId || '').trim();
+-  if (!isValidTabId(tab)) return { error: 'Ung├╝ltige Voucher-Art' };
+-  const n = String(nummer ?? '').trim();
+-  if (!n) return { error: 'Nummer ist erforderlich' };
+-  const existing = requests.find(
+-    (r) =>
+-      String(r.requester_user_id) === String(requesterUserId) &&
+-      r.status === 'pending' &&
+-      String(r.nummer).trim() === n &&
+-      r.voucher_tab_id === tab
+-  );
+-  if (existing) return { error: 'Diese Anfrage liegt bereits vor.' };
+-  const id = nextId++;
+-  requests.push({
+-    id,
+-    requester_user_id: requesterUserId,
+-    requester_user_name: requesterUserName || 'Unbekannt',
+-    voucher_tab_id: tab,
+-    voucher_art_label: voucherArtLabel || tab,
+-    nummer: n,
+-    status: 'pending',
+-    created_at: new Date().toISOString(),
+-    processed_by_user_id: null,
+-    processed_at: null
++export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, voucherArtLabel, nummer }) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const tab = String(voucherTabId || '').trim();
++    if (!isValidTabId(tab)) return { value: { error: 'Ung├╝ltige Voucher-Art' } };
++    const n = String(nummer ?? '').trim();
++    if (!n) return { value: { error: 'Nummer ist erforderlich' } };
++    const existing = s.requests.find(
++      (r) =>
++        String(r.requester_user_id) === String(requesterUserId) &&
++        r.status === 'pending' &&
++        String(r.nummer).trim() === n &&
++        r.voucher_tab_id === tab
++    );
++    if (existing) return { value: { error: 'Diese Anfrage liegt bereits vor.' } };
++    const id = s.nextId++;
++    s.requests.push({
++      id,
++      requester_user_id: requesterUserId,
++      requester_user_name: requesterUserName || 'Unbekannt',
++      voucher_tab_id: tab,
++      voucher_art_label: voucherArtLabel || tab,
++      nummer: n,
++      status: 'pending',
++      created_at: new Date().toISOString(),
++      processed_by_user_id: null,
++      processed_at: null
++    });
++    Object.assign(state, s);
++    return { value: { id } };
+   });
+-  persist();
+-  return { id };
+-};
+ 
+-/** Admin/B├╝ro: alle Anfragen zur├╝cksetzen (z. B. bei kompletter Voucher-Liste neu aufsetzen) */
+-export const clearAllRequests = () => {
+-  requests = [];
+-  nextId = 1;
+-  persist();
+-};
++export const clearAllRequests = () =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    Object.assign(state, { requests: [], nextId: 1 });
++  });
+ 
+ export const getPendingRequests = () => {
+-  if (!Array.isArray(requests)) return [];
++  const { requests } = normalizeState(readJsonStore(FILE, DEFAULT()));
+   return requests
+     .filter((r) => r && r.status === 'pending')
+     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+ };
+ 
+-export const getRequestById = (id) => requests.find((r) => String(r.id) === String(id));
+-
+-export const markApproved = (id, processedByUserId) => {
+-  const r = requests.find((x) => String(x.id) === String(id));
+-  if (!r || r.status !== 'pending') return false;
+-  r.status = 'approved';
+-  r.processed_by_user_id = processedByUserId;
+-  r.processed_at = new Date().toISOString();
+-  persist();
+-  return true;
++export const getRequestById = (id) => {
++  const { requests } = normalizeState(readJsonStore(FILE, DEFAULT()));
++  return requests.find((r) => String(r.id) === String(id));
+ };
+ 
+-export const markRejected = (id, processedByUserId) => {
+-  const r = requests.find((x) => String(x.id) === String(id));
+-  if (!r || r.status !== 'pending') return false;
+-  r.status = 'rejected';
+-  r.processed_by_user_id = processedByUserId;
+-  r.processed_at = new Date().toISOString();
+-  persist();
+-  return true;
+-};
++export const markApproved = (id, processedByUserId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const r = s.requests.find((x) => String(x.id) === String(id));
++    if (!r || r.status !== 'pending') return { value: false };
++    r.status = 'approved';
++    r.processed_by_user_id = processedByUserId;
++    r.processed_at = new Date().toISOString();
++    Object.assign(state, s);
++    return { value: true };
++  });
++
++export const markRejected = (id, processedByUserId) =>
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    const s = normalizeState(state);
++    const r = s.requests.find((x) => String(x.id) === String(id));
++    if (!r || r.status !== 'pending') return { value: false };
++    r.status = 'rejected';
++    r.processed_by_user_id = processedByUserId;
++    r.processed_at = new Date().toISOString();
++    Object.assign(state, s);
++    return { value: true };
++  });
+diff --git a/server/package.json b/server/package.json
+index fa5c522..28c04dd 100644
+--- a/server/package.json
++++ b/server/package.json
+@@ -27,7 +27,9 @@
+     "multer": "^1.4.5-lts.1",
+     "pg": "^8.18.0",
+     "sequelize": "^6.37.7",
+-    "socket.io": "^4.8.3"
++    "socket.io": "^4.8.3",
++    "@socket.io/redis-adapter": "^8.3.0",
++    "redis": "^4.7.0"
+   },
+   "devDependencies": {
+     "nodemon": "^3.0.2"
+diff --git a/server/utils/sonderImeiStore.js b/server/utils/sonderImeiStore.js
+index 0f613af..7b2f9a3 100644
+--- a/server/utils/sonderImeiStore.js
++++ b/server/utils/sonderImeiStore.js
+@@ -1,6 +1,7 @@
+-import { loadJson, saveJson } from './filePersistence.js';
++import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
+ 
+ const FILE = 'sonder-imeis.json';
++const DEFAULT = () => ({ entries: [] });
+ 
+ /** Gleiche Logik wie normalizeImeiDedupKey im IMEI-Controller (ohne Zirkelimport). */
+ function sciNotationToDigitString(s) {
+@@ -40,9 +41,7 @@ export function normalizeSonderImeiKey(imei) {
+   return raw;
+ }
+ 
+-export function getSonderPublishedEntries() {
+-  const raw = loadJson(FILE);
+-  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
++function dedupeEntries(entries) {
+   const out = [];
+   const seen = new Set();
+   for (const e of entries) {
+@@ -59,6 +58,12 @@ export function getSonderPublishedEntries() {
+   return out;
+ }
+ 
++export function getSonderPublishedEntries() {
++  const raw = readJsonStore(FILE, DEFAULT());
++  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
++  return dedupeEntries(entries);
++}
++
+ /**
+  * Neue Freigaben hinzuf├╝gen (Duplikat-IMEIs werden ├╝bersprungen).
+  * @returns {object[]} Aktuelle Liste (wie getSonderPublishedEntries)
+@@ -68,22 +73,21 @@ export function addSonderImeiApprovals(imeiList, meta) {
+   const approvedByName = String(meta?.approvedByName || '').trim() || 'B├╝ro';
+   const iso = new Date().toISOString();
+ 
+-  const raw = loadJson(FILE);
+-  const prev = Array.isArray(raw?.entries) ? [...raw.entries] : [];
+-  const seen = new Set(prev.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
+-
+-  for (const rawImei of rawPairs) {
+-    const key = normalizeSonderImeiKey(rawImei);
+-    if (!key || key.length < 8) continue;
+-    if (seen.has(key)) continue;
+-    seen.add(key);
+-    prev.push({
+-      imei: String(rawImei ?? '').trim() || key,
+-      approvedAt: iso,
+-      approvedByName
+-    });
+-  }
++  updateJsonStore(FILE, DEFAULT(), (state) => {
++    if (!Array.isArray(state.entries)) state.entries = [];
++    const seen = new Set(state.entries.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
++    for (const rawImei of rawPairs) {
++      const key = normalizeSonderImeiKey(rawImei);
++      if (!key || key.length < 8) continue;
++      if (seen.has(key)) continue;
++      seen.add(key);
++      state.entries.push({
++        imei: String(rawImei ?? '').trim() || key,
++        approvedAt: iso,
++        approvedByName
++      });
++    }
++  });
+ 
+-  saveJson(FILE, { entries: prev });
+   return getSonderPublishedEntries();
+ }

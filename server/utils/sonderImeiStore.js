@@ -1,6 +1,7 @@
-import { loadJson, saveJson } from './filePersistence.js';
+import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
 
 const FILE = 'sonder-imeis.json';
+const DEFAULT = () => ({ entries: [] });
 
 /** Gleiche Logik wie normalizeImeiDedupKey im IMEI-Controller (ohne Zirkelimport). */
 function sciNotationToDigitString(s) {
@@ -40,9 +41,7 @@ export function normalizeSonderImeiKey(imei) {
   return raw;
 }
 
-export function getSonderPublishedEntries() {
-  const raw = loadJson(FILE);
-  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+function dedupeEntries(entries) {
   const out = [];
   const seen = new Set();
   for (const e of entries) {
@@ -59,6 +58,12 @@ export function getSonderPublishedEntries() {
   return out;
 }
 
+export function getSonderPublishedEntries() {
+  const raw = readJsonStore(FILE, DEFAULT());
+  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+  return dedupeEntries(entries);
+}
+
 /**
  * Neue Freigaben hinzufügen (Duplikat-IMEIs werden übersprungen).
  * @returns {object[]} Aktuelle Liste (wie getSonderPublishedEntries)
@@ -68,22 +73,21 @@ export function addSonderImeiApprovals(imeiList, meta) {
   const approvedByName = String(meta?.approvedByName || '').trim() || 'Büro';
   const iso = new Date().toISOString();
 
-  const raw = loadJson(FILE);
-  const prev = Array.isArray(raw?.entries) ? [...raw.entries] : [];
-  const seen = new Set(prev.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    const seen = new Set(state.entries.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
+    for (const rawImei of rawPairs) {
+      const key = normalizeSonderImeiKey(rawImei);
+      if (!key || key.length < 8) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      state.entries.push({
+        imei: String(rawImei ?? '').trim() || key,
+        approvedAt: iso,
+        approvedByName
+      });
+    }
+  });
 
-  for (const rawImei of rawPairs) {
-    const key = normalizeSonderImeiKey(rawImei);
-    if (!key || key.length < 8) continue;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    prev.push({
-      imei: String(rawImei ?? '').trim() || key,
-      approvedAt: iso,
-      approvedByName
-    });
-  }
-
-  saveJson(FILE, { entries: prev });
   return getSonderPublishedEntries();
 }

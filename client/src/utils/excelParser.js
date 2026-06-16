@@ -1,6 +1,8 @@
 /**
  * CSV-Parser ohne externe Bibliothek
  */
+import * as XLSX from 'xlsx';
+
 export const parseCSV = (text) => {
   const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
   const result = [];
@@ -28,8 +30,6 @@ export const parseCSV = (text) => {
 
   return result;
 };
-
-const getXlsxModuleName = () => 'xlsx';
 
 const extractImeisFromCSV = (jsonData) => {
   const headers = jsonData[0] || [];
@@ -149,22 +149,8 @@ export const readExcelFile = async (file) => {
       };
       reader.readAsText(file, 'UTF-8');
     } else {
-      reader.onload = async (e) => {
+      reader.onload = (e) => {
         try {
-          let XLSX;
-          if (typeof window !== 'undefined' && window.XLSX) {
-            XLSX = window.XLSX;
-          } else {
-            try {
-              const moduleName = getXlsxModuleName();
-              const xlsxModule = await import(/* @vite-ignore */ moduleName);
-              XLSX = xlsxModule.default || xlsxModule;
-            } catch (importError) {
-              reject(new Error('Excel-Unterstützung nicht verfügbar. Bitte laden Sie die Seite neu oder exportieren Sie als CSV.'));
-              return;
-            }
-          }
-
           if (!XLSX?.read || !XLSX.utils) {
             reject(new Error('xlsx-Modul fehlerhaft. Bitte laden Sie die Seite neu.'));
             return;
