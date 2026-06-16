@@ -8,7 +8,7 @@ import {
 } from '../services/voucherManualRequest.service';
 import { isBüroMitarbeiter, isAdmin } from '../utils/roles';
 
-const POLL_MS = 4000;
+const POLL_MS = 20000;
 
 export function useVoucherManualRequests() {
   const { user } = useAuth();
@@ -28,13 +28,43 @@ export function useVoucherManualRequests() {
 
   useEffect(() => {
     if (!canSee) return;
-    fetchRequests();
-    const id = setInterval(fetchRequests, POLL_MS);
+
+    let intervalId = null;
+
+    const startPolling = () => {
+      fetchRequests();
+      intervalId = setInterval(fetchRequests, POLL_MS);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        stopPolling();
+        startPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     const socket = getSocket();
     const onUpd = () => fetchRequests();
     if (socket) socket.on('voucherManualRequests:updated', onUpd);
+
+    if (!document.hidden) {
+      startPolling();
+    }
+
     return () => {
-      clearInterval(id);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (socket) socket.off('voucherManualRequests:updated', onUpd);
     };
   }, [canSee, fetchRequests]);

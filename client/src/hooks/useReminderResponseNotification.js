@@ -4,7 +4,7 @@ import { getReminderResponseNotificationsApi, markReminderResponseNotificationRe
 import { getSocket } from '../services/socket';
 import { isBüroMitarbeiter, isAdmin } from '../utils/roles';
 
-const POLL_MS = 5000;
+const POLL_MS = 20000;
 
 export function useReminderResponseNotification() {
   const { user } = useAuth();
@@ -22,7 +22,6 @@ export function useReminderResponseNotification() {
 
   useEffect(() => {
     if (!user?.id || (!isBüroMitarbeiter(user) && !isAdmin(user))) return;
-    fetchNotifications();
 
     const socket = getSocket();
     let bcChannel = null;
@@ -54,9 +53,38 @@ export function useReminderResponseNotification() {
       socket.on('reminder-response:new', onReminderResponseNew);
     }
 
-    const id = setInterval(fetchNotifications, POLL_MS);
+    let intervalId = null;
+
+    const startPolling = () => {
+      fetchNotifications();
+      intervalId = setInterval(fetchNotifications, POLL_MS);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        stopPolling();
+        startPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    if (!document.hidden) {
+      startPolling();
+    }
+
     return () => {
-      clearInterval(id);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (socket) socket.off('reminder-response:new', onReminderResponseNew);
       if (bcChannel) bcChannel.close();
     };

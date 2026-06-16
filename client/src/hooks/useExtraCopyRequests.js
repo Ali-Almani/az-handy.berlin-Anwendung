@@ -3,7 +3,7 @@ import { useAuth } from './useAuth';
 import { getExtraCopyRequestsApi, approveExtraCopyRequestApi, rejectExtraCopyRequestApi } from '../services/imeis.service';
 import { isBüroMitarbeiter, isAdmin } from '../utils/roles';
 
-const POLL_MS = 3000;
+const POLL_MS = 20000;
 
 export function useExtraCopyRequests() {
   const { user } = useAuth();
@@ -22,9 +22,40 @@ export function useExtraCopyRequests() {
 
   useEffect(() => {
     if (!user?.id || (!isBüroMitarbeiter(user) && !isAdmin(user))) return;
-    fetchRequests();
-    const id = setInterval(fetchRequests, POLL_MS);
-    return () => clearInterval(id);
+
+    let intervalId = null;
+
+    const startPolling = () => {
+      fetchRequests();
+      intervalId = setInterval(fetchRequests, POLL_MS);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        stopPolling();
+        startPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    if (!document.hidden) {
+      startPolling();
+    }
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.id, fetchRequests]);
 
   const approve = useCallback(async (id) => {

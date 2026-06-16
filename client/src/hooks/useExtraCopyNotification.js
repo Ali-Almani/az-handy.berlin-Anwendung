@@ -3,7 +3,7 @@ import { useAuth } from './useAuth';
 import { getExtraCopyNotificationsApi, markExtraCopyNotificationReadApi } from '../services/imeis.service';
 import { isBüroMitarbeiter, isAdmin } from '../utils/roles';
 
-const POLL_MS = 2500;
+const POLL_MS = 20000;
 
 export function useExtraCopyNotification() {
   const { user } = useAuth();
@@ -21,9 +21,40 @@ export function useExtraCopyNotification() {
 
   useEffect(() => {
     if (!user?.id || isBüroMitarbeiter(user) || isAdmin(user)) return;
-    fetchNotifications();
-    const id = setInterval(fetchNotifications, POLL_MS);
-    return () => clearInterval(id);
+
+    let intervalId = null;
+
+    const startPolling = () => {
+      fetchNotifications();
+      intervalId = setInterval(fetchNotifications, POLL_MS);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        stopPolling();
+        startPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    if (!document.hidden) {
+      startPolling();
+    }
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user?.id, fetchNotifications]);
 
   const markAsRead = useCallback(async (id) => {
