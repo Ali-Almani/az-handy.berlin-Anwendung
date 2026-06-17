@@ -15,6 +15,21 @@ import {
 } from '../utils/imeiOfficeRoles.js';
 import { normalizeEinsatzOrtKey } from '../constants/einsatzorte.js';
 import { getSonderPublishedEntries, addSonderImeiApprovals } from '../utils/sonderImeiStore.js';
+import * as redisCache from '../utils/redisCache.js';
+
+const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
+const MERGED_COPY_HISTORY_TTL = 30;
+const USER_DATA_CACHE_PREFIX = 'imeis:userData:';
+const USER_DATA_CACHE_TTL = 20;
+
+const userDataCacheKey = (userId) => `${USER_DATA_CACHE_PREFIX}${userId}`;
+
+async function invalidateImeisCaches(userId) {
+  await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
+  if (userId != null) {
+    await redisCache.del(userDataCacheKey(userId));
+  }
+}
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -172,7 +187,7 @@ const safeJsonParse = (raw, fallback) => {
 };
 
 /** Merge copy_history aus allen Benutzern für Verlauf (Büro Mitarbeiter sieht gesamte Historie) */
-const getMergedCopyHistory = async () => {
+const computeMergedCopyHistory = async () => {
   const all = await ImeisUserData.findAll();
   // Cache: user_id -> name (damit "Benutzer" im Verlauf immer sichtbar ist)
   const userNameById = new Map();
@@ -212,6 +227,14 @@ const getMergedCopyHistory = async () => {
   return merged
     .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
     .slice(0, 200);
+};
+
+const getMergedCopyHistory = async () => {
+  const cached = await redisCache.get(MERGED_COPY_HISTORY_CACHE_KEY);
+  if (cached != null) return cached;
+  const merged = await computeMergedCopyHistory();
+  await redisCache.set(MERGED_COPY_HISTORY_CACHE_KEY, merged, MERGED_COPY_HISTORY_TTL);
+  return merged;
 };
 
 /** Merge copy_history nur von Benutzern mit gleichem einsatz_ort (Teamleiter shop sieht Verlauf seiner Kategorie) */
@@ -423,6 +446,13 @@ export const getImeisData = async (req, res, next) => {
       einsatz_ort: currentUser?.einsatz_ort ?? currentUser?.get?.('einsatz_ort') ?? null
     } : null;
 
+    if (!debugEnabled) {
+      const cachedResponse = await redisCache.get(userDataCacheKey(userId));
+      if (cachedResponse != null) {
+        return res.json(cachedResponse);
+      }
+    }
+
     // Mitarbeiter shop & Büro Mitarbeiter: IMEI-Liste vom Admin oder User mit Daten laden, eigene copyHistory/copyTimestamps behalten
     let sharedOwnerId = null;
     try {
@@ -503,7 +533,7 @@ export const getImeisData = async (req, res, next) => {
         }
       }
 
-      return res.json({
+      const response = {
         success: true,
         imeis,
         cellColors,
@@ -512,7 +542,11 @@ export const getImeisData = async (req, res, next) => {
         copyTimestamps,
         sonderImeis: getSonderPublishedEntries(),
         ...(debug ? { debug } : {})
-      });
+      };
+      if (!debugEnabled) {
+        await redisCache.set(userDataCacheKey(userId), response, USER_DATA_CACHE_TTL);
+      }
+      return res.json(response);
     }
 
     const [data, created] = await ImeisUserData.findOrCreate({
@@ -584,7 +618,7 @@ export const getImeisData = async (req, res, next) => {
       }
     }
 
-    res.json({
+    const response = {
       success: true,
       imeis,
       cellColors,
@@ -593,7 +627,11 @@ export const getImeisData = async (req, res, next) => {
       copyTimestamps,
       sonderImeis: getSonderPublishedEntries(),
       ...(debug ? { debug } : {})
-    });
+    };
+    if (!debugEnabled) {
+      await redisCache.set(userDataCacheKey(userId), response, USER_DATA_CACHE_TTL);
+    }
+    res.json(response);
   } catch (error) {
     console.error('getImeisData:', error);
     next(error);
@@ -910,6 +948,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     const io = app?.get?.('io');
     const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList;
     if (io && dataChanged) io.emit('imeis:updated');
+    await invalidateImeisCaches(userId);
     return;
   }
 
@@ -976,6 +1015,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const io = app?.get?.('io');
   const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList;
   if (io && dataChanged) io.emit('imeis:updated');
+  await invalidateImeisCaches(userId);
 };
 
 export const saveImeisData = async (req, res, next) => {

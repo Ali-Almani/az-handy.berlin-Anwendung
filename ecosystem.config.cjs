@@ -1,22 +1,22 @@
 /**
  * PM2 Ecosystem – Cluster-Mode für az-handy.berlin API
- * PM2_INSTANCES=1 (Standard) oder Zahl/max für mehrere Worker
- * REDIS_URL optional für Socket.io über alle Worker
+ * Standard: 4 Worker (PM2_INSTANCES in .env überschreibbar)
+ * REDIS_URL für Socket.io über alle Worker
  */
 module.exports = {
   apps: [
     {
       name: 'az-api',
       script: 'server/index.js',
-      instances: process.env.PM2_INSTANCES ?? '1',
       exec_mode: 'cluster',
-      env: {
-        NODE_ENV: 'production',
-        PM2_INSTANCES: process.env.PM2_INSTANCES ?? '1'
+      instances: process.env.PM2_INSTANCES
+        ? parseInt(process.env.PM2_INSTANCES, 10)
+        : 4,
+      env_production: {
+        NODE_ENV: 'production'
       },
-      max_memory_restart: '512M',
-      listen_timeout: 10000,
-      kill_timeout: 5000
+      max_memory_restart: '500M',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss'
     }
   ]
 };
