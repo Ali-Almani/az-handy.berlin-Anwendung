@@ -1407,6 +1407,17 @@ export const approveExtraCopyRequest = async (req, res, next) => {
     }
     ExtraCopyRequest.approveRequest(id, userId);
     ExtraCopyNotification.addNotification(requesterId, 'approved', 'Ihre Anfrage für eine Extra-Kopie wurde genehmigt. Sie können jetzt eine weitere IMEI kopieren.');
+    const unread = ExtraCopyNotification.getUnreadForUser(requesterId);
+    const notification = unread[0] ?? null;
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('extraCopy:decision', {
+        targetUserId: String(requesterId),
+        status: 'approved',
+        notification
+      });
+    }
+    await invalidateImeisCaches(requesterId);
     res.json({ success: true, message: 'Extra-Kopie genehmigt' });
   } catch (error) {
     next(error);
@@ -1431,6 +1442,17 @@ export const rejectExtraCopyRequest = async (req, res, next) => {
     const requesterId = request.requester_user_id;
     ExtraCopyRequest.rejectRequest(id);
     ExtraCopyNotification.addNotification(requesterId, 'rejected', 'Ihre Anfrage für eine Extra-Kopie wurde abgelehnt. Bitte warten Sie, bis das Rate-Limit wieder verfügbar ist.');
+    const unread = ExtraCopyNotification.getUnreadForUser(requesterId);
+    const notification = unread[0] ?? null;
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('extraCopy:decision', {
+        targetUserId: String(requesterId),
+        status: 'rejected',
+        notification
+      });
+    }
+    await invalidateImeisCaches(requesterId);
     res.json({ success: true, message: 'Anfrage abgelehnt' });
   } catch (error) {
     next(error);

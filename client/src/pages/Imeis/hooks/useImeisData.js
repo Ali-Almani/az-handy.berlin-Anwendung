@@ -180,8 +180,16 @@ export function useImeisData(
         if (data) applyImeisData(data, setters, getManufacturer, false);
       });
     };
+    const onExtraCopyDecision = (payload) => {
+      const targetId = payload?.targetUserId ? String(payload.targetUserId) : null;
+      const myId = user?.id != null ? String(user.id) : null;
+      if (targetId && myId && targetId === myId) {
+        syncFromServer();
+      }
+    };
     if (socket) {
       socket.on('imeis:updated', onImeisUpdated);
+      socket.on('extraCopy:decision', onExtraCopyDecision);
       // Wenn Socket sich (re)verbindet, sofort einmal refreshen (verhindert 1–2s Poll-Lag)
       socket.on('connect', onImeisUpdated);
       if (!socket.connected) socket.connect();
@@ -197,6 +205,7 @@ export function useImeisData(
       if (intervalId) clearInterval(intervalId);
       if (socket) {
         socket.off('imeis:updated', onImeisUpdated);
+        socket.off('extraCopy:decision', onExtraCopyDecision);
         socket.off('connect', onImeisUpdated);
       }
       document.removeEventListener('visibilitychange', onVisibilityChange);
