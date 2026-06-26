@@ -67,9 +67,9 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   });
   const sheetsArray = Array.from(sheets);
   setAvailableSheets(sheetsArray);
-  if (isInitialLoad || sheetsArray.length === 0) {
-    setActiveSheet(sheetsArray.length > 0 ? sheetsArray[0] : null);
-  }
+  // Sheet-Tabs sind in der UI deaktiviert – kein Blatt-Filter, sonst verschwinden Zeilen nach
+  // Excel-Upload, wenn bestehende IMEIs ein neues worksheet.sheet bekommen.
+  setActiveSheet(null);
 
   const manufacturers = new Set();
   storedImeis.forEach(item => {

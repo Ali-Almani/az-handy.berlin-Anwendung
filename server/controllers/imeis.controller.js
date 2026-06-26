@@ -24,8 +24,12 @@ const USER_DATA_CACHE_TTL = 20;
 
 const userDataCacheKey = (userId) => `${USER_DATA_CACHE_PREFIX}${userId}`;
 
-async function invalidateImeisCaches(userId) {
+async function invalidateImeisCaches(userId, { sharedListChanged = false } = {}) {
   await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
+  if (sharedListChanged) {
+    await redisCache.delPattern(`${USER_DATA_CACHE_PREFIX}*`);
+    return;
+  }
   if (userId != null) {
     await redisCache.del(userDataCacheKey(userId));
   }
@@ -736,9 +740,12 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
     const idx = keyToIndex.get(k);
     if (idx !== undefined) {
       const prev = merged[idx];
+      // rowData/columnOrder aus Excel übernehmen, sheet/row behalten (sichtbar + rowActions-rowId stabil).
       merged[idx] = {
         ...prev,
         ...item,
+        sheet: prev?.sheet ?? item.sheet,
+        row: prev?.row ?? item.row,
         imei:
           item.imei != null && String(item.imei).trim() !== ''
             ? String(item.imei).trim()
@@ -948,7 +955,8 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     const io = app?.get?.('io');
     const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList;
     if (io && dataChanged) io.emit('imeis:updated');
-    await invalidateImeisCaches(userId);
+    const sharedListChanged = Boolean(imeis !== undefined && canEditSharedImeiList && ownerId != null);
+    await invalidateImeisCaches(userId, { sharedListChanged });
     return;
   }
 
@@ -1015,7 +1023,8 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const io = app?.get?.('io');
   const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList;
   if (io && dataChanged) io.emit('imeis:updated');
-  await invalidateImeisCaches(userId);
+  const sharedListChanged = Boolean(imeis !== undefined && canEditSharedImeiList && ownerId != null);
+  await invalidateImeisCaches(userId, { sharedListChanged });
 };
 
 export const saveImeisData = async (req, res, next) => {
