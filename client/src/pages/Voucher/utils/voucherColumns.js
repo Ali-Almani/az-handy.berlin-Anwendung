@@ -137,11 +137,10 @@ function rowSearchBlob(row) {
     .join('\n');
 }
 
-/** Tabs; Zuordnung Zeilen → Kategorie (Priorität o2 FF → Ay AG0 → Ay 5 €). Ohne Treffer keine Tab-Zuordnung. */
+/** Tabs in der Voucher-Verwaltung (sichtbar). */
 export const VOUCHER_FIXED_TABS = [
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
-  { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
-  { id: 'ay_5eur', label: 'Ay Yildiz 5Euro Rabatt Voucher' }
+  { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' }
 ];
 
 function rowBlobParts(row) {
