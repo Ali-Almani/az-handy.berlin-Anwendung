@@ -141,9 +141,9 @@ function rowSearchBlob(row) {
 export const VOUCHER_FIXED_TABS = [
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
   { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
-  { id: 'ay_ag0_5eur', label: '5€ Rabatt Grundgebühr (110,- € Provisionsabzug)' },
-  { id: 'ay_ag0_750eur', label: '7,50€ Rabatt Grundgebühr (165,- € Provisionsabzug)' },
-  { id: 'ay_ag0_10eur', label: '10€ Rabatt Grundgebühr (220,- € Provisionsabzug)' }
+  { id: 'ay_ag0_5eur', label: '24 x -5 Euro GG Nachlass' },
+  { id: 'ay_ag0_750eur', label: '24 x -7,50 Euro GG Nachlass' },
+  { id: 'ay_ag0_10eur', label: '24 x -10 Euro GG Nachlass' }
 ];
 
 /** Entfernt „24 Monate x “ aus Excel-Titelzeilen. */
