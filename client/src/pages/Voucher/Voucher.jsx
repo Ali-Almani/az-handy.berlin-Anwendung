@@ -15,6 +15,7 @@ import {
   getRowNummer,
   formatVoucherNummerForDisplay,
   isVoucherTitleRow,
+  buildAyAg0SectionMap,
   VOUCHER_FIXED_TABS,
   rowMatchesVoucherTab
 } from './utils/voucherColumns';
@@ -60,10 +61,20 @@ const Voucher = () => {
     [columnOrderFirst, nummerKey]
   );
 
+  const ayAg0SectionMap = useMemo(
+    () => buildAyAg0SectionMap(uploaded, nummerKey),
+    [uploaded, nummerKey]
+  );
+
+  const tabContext = useMemo(
+    () => ({ sectionMap: ayAg0SectionMap, nummerKey }),
+    [ayAg0SectionMap, nummerKey]
+  );
+
   const filteredRows = useMemo(() => {
     if (!uploaded.length) return [];
-    return uploaded.filter((r) => rowMatchesVoucherTab(r, activeTab));
-  }, [uploaded, activeTab]);
+    return uploaded.filter((r) => rowMatchesVoucherTab(r, activeTab, tabContext));
+  }, [uploaded, activeTab, tabContext]);
 
   const load = useCallback(async () => {
     if (!user?.id || !canAccessVoucherList(user)) return;

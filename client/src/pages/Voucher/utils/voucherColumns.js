@@ -140,8 +140,65 @@ function rowSearchBlob(row) {
 /** Tabs in der Voucher-Verwaltung (sichtbar). */
 export const VOUCHER_FIXED_TABS = [
   { id: 'o2_ff', label: 'o2 mit Family and Friends' },
-  { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' }
+  { id: 'ay_ag0', label: 'Ay Yildiz · AG0- Voucher' },
+  { id: 'ay_ag0_5eur', label: '5€ Rabatt Grundgebühr (110,- € Provisionsabzug)' },
+  { id: 'ay_ag0_750eur', label: '7,50€ Rabatt Grundgebühr (165,- € Provisionsabzug)' },
+  { id: 'ay_ag0_10eur', label: '10€ Rabatt Grundgebühr (220,- € Provisionsabzug)' }
 ];
+
+/** Entfernt „24 Monate x “ aus Excel-Titelzeilen. */
+export function normalizeVoucherTitleText(text) {
+  return String(text ?? '')
+    .trim()
+    .replace(/^24\s*monate\s*x\s*/i, '');
+}
+
+function voucherRowKey(row) {
+  return `${row?.sheet || 'default'}-${row?.row}`;
+}
+
+/** Ay-AG0-Unterkategorie aus Titelzeile (ohne „24 Monate x “). */
+export function sectionIdFromAyAg0Title(text) {
+  const t = normalizeVoucherTitleText(text).toLowerCase();
+  if (!t) return null;
+  if (/5\s*€/.test(t) && t.includes('110')) return 'ay_ag0_5eur';
+  if ((/7[,.]?\s*50\s*€/.test(t) || t.includes('7,50')) && t.includes('165')) return 'ay_ag0_750eur';
+  if (/10\s*€/.test(t) && t.includes('220')) return 'ay_ag0_10eur';
+  return null;
+}
+
+/**
+ * Ordnet Ay-AG0-Voucher-Zeilen anhand der Titelzeile darüber einer Unterkategorie zu.
+ * @returns {Map<string, string>} rowKey → tabId
+ */
+export function buildAyAg0SectionMap(rows, nummerKey) {
+  const map = new Map();
+  if (!rows?.length || !nummerKey) return map;
+
+  const bySheet = new Map();
+  for (const row of rows) {
+    if (!matchesAyAg0(row)) continue;
+    const sheet = row.sheet || 'default';
+    if (!bySheet.has(sheet)) bySheet.set(sheet, []);
+    bySheet.get(sheet).push(row);
+  }
+
+  for (const sheetRows of bySheet.values()) {
+    sheetRows.sort((a, b) => Number(a.row) - Number(b.row));
+    let currentSection = null;
+    for (const row of sheetRows) {
+      if (isVoucherTitleRow(row, nummerKey)) {
+        currentSection = sectionIdFromAyAg0Title(getRowNummer(row, nummerKey));
+        continue;
+      }
+      if (currentSection) {
+        map.set(voucherRowKey(row), currentSection);
+      }
+    }
+  }
+
+  return map;
+}
 
 function rowBlobParts(row) {
   const s = rowSearchBlob(row);
@@ -216,16 +273,21 @@ export function matchesAy5Eur(row) {
   );
 }
 
-/** @returns {'o2_ff' | 'ay_ag0' | 'ay_5eur' | null} */
-export function getRowVoucherTabId(row) {
+/** @returns {'o2_ff' | 'ay_ag0' | 'ay_ag0_5eur' | 'ay_ag0_750eur' | 'ay_ag0_10eur' | 'ay_5eur' | null} */
+export function getRowVoucherTabId(row, context = {}) {
+  const nummerKey = context.nummerKey ?? null;
+  if (isVoucherTitleRow(row, nummerKey)) return null;
   if (matchesO2Ff(row)) return 'o2_ff';
-  if (matchesAyAg0(row)) return 'ay_ag0';
+  if (matchesAyAg0(row)) {
+    const section = context.sectionMap?.get(voucherRowKey(row));
+    return section || 'ay_ag0';
+  }
   if (matchesAy5Eur(row)) return 'ay_5eur';
   return null;
 }
 
-export function rowMatchesVoucherTab(row, tabId) {
-  const id = getRowVoucherTabId(row);
+export function rowMatchesVoucherTab(row, tabId, context = {}) {
+  const id = getRowVoucherTabId(row, context);
   return id != null && id === tabId;
 }
 
