@@ -157,13 +157,49 @@ function voucherRowKey(row) {
   return `${row?.sheet || 'default'}-${row?.row}`;
 }
 
-/** Ay-AG0-Unterkategorie aus Titelzeile (ohne „24 Monate x “). */
+function normalizeVoucherSheetName(name) {
+  return String(name ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+function sheetMatchesGgNachlass5(sheetName) {
+  const s = normalizeVoucherSheetName(sheetName);
+  return s.includes('gg nachlass') && /24\s*x\s*-?\s*5\s*euro/.test(s);
+}
+
+function sheetMatchesGgNachlass750(sheetName) {
+  const s = normalizeVoucherSheetName(sheetName);
+  return s.includes('gg nachlass') && /24\s*x\s*-?\s*7[,.]?\s*50\s*euro/.test(s);
+}
+
+function sheetMatchesGgNachlass10(sheetName) {
+  const s = normalizeVoucherSheetName(sheetName);
+  return s.includes('gg nachlass') && /24\s*x\s*-?\s*10\s*euro/.test(s);
+}
+
+/** Ay-AG0-Unterkategorie aus Titelzeile (Legacy: ein Blatt mit Titelzeilen). */
 export function sectionIdFromAyAg0Title(text) {
   const t = normalizeVoucherTitleText(text).toLowerCase();
   if (!t) return null;
-  if (/5\s*€/.test(t) && t.includes('110')) return 'ay_ag0_5eur';
-  if ((/7[,.]?\s*50\s*€/.test(t) || t.includes('7,50')) && t.includes('165')) return 'ay_ag0_750eur';
-  if (/10\s*€/.test(t) && t.includes('220')) return 'ay_ag0_10eur';
+  if (sheetMatchesGgNachlass5(t) || (/5\s*€/.test(t) && t.includes('110'))) return 'ay_ag0_5eur';
+  if (sheetMatchesGgNachlass750(t) || ((/7[,.]?\s*50\s*€/.test(t) || t.includes('7,50')) && t.includes('165'))) {
+    return 'ay_ag0_750eur';
+  }
+  if (sheetMatchesGgNachlass10(t) || (/10\s*€/.test(t) && t.includes('220'))) return 'ay_ag0_10eur';
+  return null;
+}
+
+/** Tab anhand Excel-Blattname (neue Struktur: je Kategorie ein Blatt). */
+export function tabIdFromVoucherSheet(sheetName) {
+  if (sheetName == null || String(sheetName).trim() === '') return null;
+  if (sheetMatchesO2Ff(sheetName)) return 'o2_ff';
+  if (sheetMatchesGgNachlass5(sheetName)) return 'ay_ag0_5eur';
+  if (sheetMatchesGgNachlass750(sheetName)) return 'ay_ag0_750eur';
+  if (sheetMatchesGgNachlass10(sheetName)) return 'ay_ag0_10eur';
+  if (sheetMatchesAyAg0(sheetName)) return 'ay_ag0';
   return null;
 }
 
@@ -280,6 +316,14 @@ export function matchesAy5Eur(row) {
 export function getRowVoucherTabId(row, context = {}) {
   const nummerKey = context.nummerKey ?? null;
   if (isVoucherTitleRow(row, nummerKey)) return null;
+
+  const sheetTab = tabIdFromVoucherSheet(row?.sheet);
+  if (sheetTab === 'ay_ag0') {
+    const section = context.sectionMap?.get(voucherRowKey(row));
+    return section || 'ay_ag0';
+  }
+  if (sheetTab) return sheetTab;
+
   if (matchesO2Ff(row)) return 'o2_ff';
   if (matchesAyAg0(row)) {
     const section = context.sectionMap?.get(voucherRowKey(row));
