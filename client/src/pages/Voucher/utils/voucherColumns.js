@@ -184,6 +184,9 @@ export function buildAyAg0SectionMap(rows, nummerKey) {
   }
 
   for (const sheetRows of bySheet.values()) {
+    const hasTitleRows = sheetRows.some((row) => isVoucherTitleRow(row, nummerKey));
+    if (!hasTitleRows) continue;
+
     sheetRows.sort((a, b) => Number(a.row) - Number(b.row));
     let currentSection = null;
     for (const row of sheetRows) {

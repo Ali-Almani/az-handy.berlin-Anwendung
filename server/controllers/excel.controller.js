@@ -762,6 +762,19 @@ export function mergeVoucherRowsAppend(existingRows, incomingRows) {
   };
 }
 
+/** Blätter aus dem Upload ersetzen: alte Zeilen derselben Excel-Sheets entfernen, dann neu anhängen. */
+export function mergeVoucherRowsReplaceSheets(existingRows, incomingRows) {
+  const incoming = Array.isArray(incomingRows) ? incomingRows : [];
+  if (!incoming.length) {
+    return mergeVoucherRowsAppend(existingRows, incoming);
+  }
+  const incomingSheets = new Set(incoming.map((r) => String(r.sheet || 'Sheet1')));
+  const kept = (Array.isArray(existingRows) ? existingRows : []).filter(
+    (r) => !incomingSheets.has(String(r.sheet || 'Sheet1'))
+  );
+  return mergeVoucherRowsAppend(kept, incoming);
+}
+
 /** Reservieren: Zeile aus der gemeinsamen Voucher-Liste entfernen (persistiert in vouchers.json) */
 export const removeVoucherListRow = async (req, res, next) => {
   try {
@@ -1125,7 +1138,10 @@ export const processVoucherExcelFile = async (req, res) => {
 
     const prev = loadJson(VOUCHERS_FILE) || {};
     const existingRows = Array.isArray(prev.rows) ? prev.rows : [];
-    const { merged, addedRows, added, skippedDuplicate, previousCount } = mergeVoucherRowsAppend(existingRows, rows);
+    const { merged, addedRows, added, skippedDuplicate, previousCount } = mergeVoucherRowsReplaceSheets(
+      existingRows,
+      rows
+    );
 
     const now = new Date().toISOString();
     saveJson(VOUCHERS_FILE, {
