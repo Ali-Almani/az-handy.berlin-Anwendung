@@ -6,7 +6,7 @@ import {
   updateVoucherHistoryActionApi
 } from '../../../services/api';
 import { canUpdateVoucherHistoryForOthers } from '../../../utils/roles';
-import { getRowNummer } from '../utils/voucherColumns';
+import { getRowNummer, looksLikeVoucherNumber } from '../utils/voucherColumns';
 import { cloneVoucherRowForApi, voucherRowsEqual } from '../utils/voucherRowApi';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
@@ -134,6 +134,10 @@ export function useVoucherCopyHandlers({
       const nummer = getRowNummer(row, nummerKey);
       if (!nummer) {
         alert('Keine Nummer in der erkannten Spalte – bitte Excel-Spalte „Nummer“ o. ä. prüfen.');
+        return;
+      }
+      if (!looksLikeVoucherNumber(nummer)) {
+        alert('Diese Zeile ist ein Titel und kann nicht reserviert werden.');
         return;
       }
       const rowSnapshot = cloneVoucherRowForApi(row);

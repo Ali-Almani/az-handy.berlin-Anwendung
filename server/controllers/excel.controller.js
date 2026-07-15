@@ -647,6 +647,8 @@ function normalizeClientVoucherRow(input) {
     sheetIndex: input.sheetIndex != null ? Number(input.sheetIndex) : 0
   };
   if (Array.isArray(input.data)) out.data = [...input.data];
+  if (input.isTitleRow === true) out.isTitleRow = true;
+  if (input.isTitleRow === false) out.isTitleRow = false;
   return out;
 }
 
@@ -664,6 +666,21 @@ function normalizeVoucherNummerValue(v) {
   return String(v ?? '')
     .trim()
     .replace(/^:+\s*/, '');
+}
+
+function looksLikeVoucherNumberValue(v) {
+  const s = normalizeVoucherNummerValue(v);
+  if (!s) return false;
+  return /^\d{10,20}$/.test(s);
+}
+
+function markVoucherRowTitleMeta(row) {
+  if (!row || typeof row !== 'object') return row;
+  const numKey = findVoucherNummerKey(row.columnOrder, row.rowData);
+  if (!numKey) return row;
+  const value = normalizeVoucherNummerValue(row.rowData?.[numKey]);
+  if (!value) return { ...row, isTitleRow: false };
+  return { ...row, isTitleRow: !looksLikeVoucherNumberValue(value) };
 }
 
 /** Spalte mit Voucher-/PIN-Nummer erkennen (analog zu client voucherColumns.findNummerKey). */
@@ -1029,15 +1046,17 @@ export const processVoucherExcelFile = async (req, res) => {
         const rowArray = headers.map((_, index) => values[index] || '');
         const isEmpty = rowArray.every((val) => !val || val.toString().trim() === '');
         if (!isEmpty) {
-          rows.push({
-            row: i + 1,
-            sheet: 'Sheet1',
-            sheetIndex: 0,
-            data: rowArray,
-            rowData,
-            rowDataFormats: {},
-            columnOrder: headers
-          });
+          rows.push(
+            markVoucherRowTitleMeta({
+              row: i + 1,
+              sheet: 'Sheet1',
+              sheetIndex: 0,
+              data: rowArray,
+              rowData,
+              rowDataFormats: {},
+              columnOrder: headers
+            })
+          );
         }
       }
     } else {
@@ -1081,15 +1100,17 @@ export const processVoucherExcelFile = async (req, res) => {
           });
           const isEmptyRow = rowArray.every((val) => !val || val.toString().trim() === '');
           if (!isEmptyRow) {
-            rows.push({
-              row: rowNumber,
-              sheet: sheetName,
-              sheetIndex: sheetId - 1,
-              data: rowArray,
-              rowData,
-              rowDataFormats,
-              columnOrder: headers
-            });
+            rows.push(
+              markVoucherRowTitleMeta({
+                row: rowNumber,
+                sheet: sheetName,
+                sheetIndex: sheetId - 1,
+                data: rowArray,
+                rowData,
+                rowDataFormats,
+                columnOrder: headers
+              })
+            );
           }
         });
       });

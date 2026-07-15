@@ -92,6 +92,28 @@ export function getRowNummer(row, nummerKey) {
     .replace(/^:+\s*/, '');
 }
 
+/** Lange Ziffernfolge (Voucher-/PIN-Nummer), keine Titel- oder Beschreibungstexte. */
+export function looksLikeVoucherNumber(val) {
+  const s =
+    val == null || val === undefined
+      ? ''
+      : String(val)
+          .trim()
+          .replace(/^:+\s*/, '');
+  if (!s) return false;
+  return /^\d{10,20}$/.test(s);
+}
+
+/** Excel-Zeile mit Titel/Beschreibung in der Nummer-Spalte (z. B. „24 Monate x 5€ …“). */
+export function isVoucherTitleRow(row, nummerKey) {
+  if (row?.isTitleRow === true) return true;
+  if (row?.isTitleRow === false) return false;
+  if (!nummerKey) return false;
+  const value = getRowNummer(row, nummerKey);
+  if (!value) return false;
+  return !looksLikeVoucherNumber(value);
+}
+
 /**
  * Tabellen-Anzeige: alle Zeichen außer den letzten `visibleLast` durch • ersetzen.
  * Kurze Werte (Länge ≤ visibleLast) unverändert.

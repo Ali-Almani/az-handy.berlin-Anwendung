@@ -14,6 +14,7 @@ import {
   buildVoucherDisplayColumns,
   getRowNummer,
   formatVoucherNummerForDisplay,
+  isVoucherTitleRow,
   VOUCHER_FIXED_TABS,
   rowMatchesVoucherTab
 } from './utils/voucherColumns';
@@ -339,9 +340,29 @@ const Voucher = () => {
                             {filteredRows.map((row, rIdx) => {
                               const rowId = voucherRowId(row);
                               const nummer = getRowNummer(row, nummerKey);
+                              const isTitleRow = isVoucherTitleRow(row, nummerKey);
                               const nummerCellId = `${rowId}-nummer`;
-                              const isNummerSelected = selectedCells.has(nummerCellId);
-                              const canReserve = Boolean(nummerKey && nummer);
+                              const isNummerSelected = !isTitleRow && selectedCells.has(nummerCellId);
+                              const canReserve = Boolean(nummerKey && nummer && !isTitleRow);
+
+                              if (isTitleRow) {
+                                return (
+                                  <tr
+                                    key={`${row.sheet || 's'}-${row.row}-${rIdx}`}
+                                    className="voucher-title-row"
+                                  >
+                                    <td
+                                      colSpan={displayCols.length}
+                                      className="voucher-title-cell"
+                                      onCopy={(e) => e.preventDefault()}
+                                      onCut={(e) => e.preventDefault()}
+                                      onContextMenu={(e) => e.preventDefault()}
+                                    >
+                                      {nummer}
+                                    </td>
+                                  </tr>
+                                );
+                              }
 
                               return (
                                 <tr

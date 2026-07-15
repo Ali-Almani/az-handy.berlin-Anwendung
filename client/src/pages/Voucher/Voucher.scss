@@ -107,3 +107,23 @@
     flex-shrink: 0;
   }
 }
+
+.voucher-title-row {
+  .voucher-title-cell {
+    padding: 0.65rem 0.5rem;
+    font-size: 0.9rem;
+    font-weight: $font-weight-medium;
+    color: #34495e;
+    background: #f4f6f8;
+    border-top: 1px solid #e2e6ea;
+    border-bottom: 1px solid #e2e6ea;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+    word-break: break-word;
+  }
+
+  &:hover .voucher-title-cell {
+    background: #f4f6f8;
+  }
+}
