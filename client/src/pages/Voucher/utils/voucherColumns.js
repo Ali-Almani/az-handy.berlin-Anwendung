@@ -137,7 +137,7 @@ function rowSearchBlob(row) {
     .join('\n');
 }
 
-export { VOUCHER_FIXED_TABS } from '../../constants/voucherTabs';
+export { VOUCHER_FIXED_TABS } from '../../../constants/voucherTabs';
 
 /** Entfernt „24 Monate x “ aus Excel-Titelzeilen. */
 export function normalizeVoucherTitleText(text) {
