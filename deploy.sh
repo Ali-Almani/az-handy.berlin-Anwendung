@@ -80,6 +80,22 @@ pm2 save
 echo "♻️ Nginx neu laden..."
 sudo systemctl reload nginx 2>/dev/null || true
 
+echo "💚 Health-Check API..."
+API_OK=0
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -sf "http://127.0.0.1:5000/api/health" >/dev/null; then
+    echo "✅ API antwortet auf /api/health"
+    API_OK=1
+    break
+  fi
+  sleep 2
+done
+if [ "$API_OK" != "1" ]; then
+  echo "❌ API antwortet nicht (Browser: 502 Bad Gateway). Auf dem Server:"
+  echo "   bash deploy/restart-api.sh"
+  echo "   pm2 logs az-api --lines 80"
+fi
+
 echo ""
 echo "✅ Deployment fertig!"
 echo ""

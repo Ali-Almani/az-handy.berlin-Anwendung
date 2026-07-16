@@ -143,7 +143,18 @@ if (USE_MEMORY_DB) {
   console.log('🔄 Connecting to PostgreSQL...');
   console.log(`   Host: ${process.env.PG_HOST || 'localhost'}`);
 
-  initDatabase()
+  const dbInitTimeoutMs = Number(process.env.DB_INIT_TIMEOUT_MS) || 20000;
+  const initWithTimeout = Promise.race([
+    initDatabase(),
+    new Promise((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`PostgreSQL-Start Timeout nach ${dbInitTimeoutMs}ms`)),
+        dbInitTimeoutMs
+      );
+    })
+  ]);
+
+  initWithTimeout
     .then(() => {
       console.log('✅ Connected to PostgreSQL');
       console.log('📊 User-Daten: PostgreSQL (persistent)');
