@@ -37,10 +37,16 @@ echo "♻️  Neustart API..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 pm2 delete "$PM2_NAME" 2>/dev/null || true
+pm2 delete all 2>/dev/null || true
 fuser -k 5000/tcp 2>/dev/null || true
 sleep 2
 
-PM2_INSTANCES="${PM2_INSTANCES:-1}" pm2 start ecosystem.config.cjs --only az-api --update-env
+PM2_INSTANCES="${PM2_INSTANCES:-1}" pm2 start ecosystem.config.cjs --only az-api --update-env || {
+  echo "⚠️  PM2 start fehlgeschlagen – PM2 zurücksetzen..."
+  pm2 kill 2>/dev/null || true
+  sleep 2
+  PM2_INSTANCES="${PM2_INSTANCES:-1}" pm2 start ecosystem.config.cjs --only az-api --update-env
+}
 pm2 save
 
 echo ""
