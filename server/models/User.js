@@ -16,9 +16,9 @@ const User = new Proxy(
   {
     get(_target, prop) {
       const Model = getUserModel();
-      const value = Model[prop];
+      const value = Reflect.get(Model, prop, Model);
       if (typeof value === 'function') {
-        return (...args) => value.apply(Model, args);
+        return value.bind(Model);
       }
       return value;
     }

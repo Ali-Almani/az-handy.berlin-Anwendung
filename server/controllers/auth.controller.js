@@ -73,9 +73,13 @@ export const login = async (req, res, next) => {
     try {
       user = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     } catch (dbErr) {
-      console.error('login User.findOne:', dbErr);
+      console.error('login User.findOne:', dbErr?.message || dbErr);
+      if (dbErr?.stack) console.error(dbErr.stack);
+      const useMemory = process.env.USE_MEMORY_DB === 'true';
       return res.status(503).json({
-        message: 'Anmeldung derzeit nicht möglich (Datenbank). Bitte später erneut versuchen oder Administrator informieren.'
+        message: useMemory
+          ? 'Anmeldung derzeit nicht möglich (Datei-Speicher). Bitte Administrator informieren.'
+          : 'Anmeldung derzeit nicht möglich (Datenbank). Bitte später erneut versuchen oder Administrator informieren.'
       });
     }
 

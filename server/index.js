@@ -116,6 +116,14 @@ const startServer = async () => {
 const hasPostgresConfig = process.env.DATABASE_URL || process.env.PG_DATABASE || process.env.PG_USER;
 let USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' || !hasPostgresConfig;
 
+// PostgreSQL konfiguriert, aber USE_MEMORY_DB=true in .env → Warnung (Login nutzt dann leeren Datei-Speicher)
+if (hasPostgresConfig && process.env.USE_MEMORY_DB === 'true' && process.env.NODE_ENV === 'production') {
+  console.warn('');
+  console.warn('⚠️  USE_MEMORY_DB=true obwohl PostgreSQL konfiguriert ist.');
+  console.warn('⚠️  Benutzer aus PostgreSQL werden NICHT für Login genutzt → server/.env: USE_MEMORY_DB=false setzen.');
+  console.warn('');
+}
+
 if (USE_MEMORY_DB) {
   process.env.USE_MEMORY_DB = 'true';
   // In Produktion: Persistenz immer aktivieren (Daten bleiben nach Neustart)
