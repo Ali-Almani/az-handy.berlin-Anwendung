@@ -128,12 +128,25 @@ async function main() {
 
   let created = 0;
   let skipped = 0;
+  let updated = 0;
+  const updateExisting =
+    process.env.IMPORT_UPDATE_EXISTING === 'true' || process.argv.includes('--update');
 
   for (const u of users) {
     const existing = await User.findOne({ where: { email: u.email.toLowerCase() } });
     if (existing) {
-      console.log(`⏭️  Übersprungen (existiert): ${u.name} (${u.email})`);
-      skipped++;
+      if (updateExisting) {
+        existing.name = u.name;
+        existing.role = u.role;
+        existing.einsatz_ort = u.einsatz_ort || null;
+        existing.password = u.password;
+        await existing.save();
+        console.log(`🔄 Aktualisiert: ${u.name} | ${u.email} | ${u.role}${u.einsatz_ort ? ` | ${u.einsatz_ort}` : ''}`);
+        updated++;
+      } else {
+        console.log(`⏭️  Übersprungen (existiert): ${u.name} (${u.email})`);
+        skipped++;
+      }
       continue;
     }
     await User.create({
@@ -149,8 +162,12 @@ async function main() {
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`✅ Erstellt: ${created}`);
+  console.log(`🔄 Aktualisiert: ${updated}`);
   console.log(`⏭️  Übersprungen: ${skipped}`);
   console.log(`📧 Passwort für alle: ${PASSWORD}`);
+  if (!updateExisting && skipped > 0) {
+    console.log('💡 Bestehende Benutzer übersprungen. Passwörter zurücksetzen: npm run import-users-excel -- --update');
+  }
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   process.exit(0);
 }

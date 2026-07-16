@@ -23,7 +23,16 @@ const createAdminUser = async () => {
     const existingAdmin = await User.findOne({ where: { email: adminData.email } });
 
     if (existingAdmin) {
-      console.log('\n⚠️  Admin user already exists!');
+      const resetPassword = process.argv.includes('--reset-password');
+      if (resetPassword) {
+        existingAdmin.password = adminData.password;
+        existingAdmin.role = adminData.role;
+        await existingAdmin.save();
+        console.log('\n✅ Admin-Passwort zurückgesetzt!');
+      } else {
+        console.log('\n⚠️  Admin user already exists!');
+        console.log('💡 Passwort zurücksetzen: npm run create-admin -- --reset-password');
+      }
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🔐 ADMIN LOGIN CREDENTIALS');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

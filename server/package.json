@@ -10,7 +10,8 @@
     "dev:watch": "npx nodemon index.js",
     "dev:ps1": "powershell -ExecutionPolicy Bypass -File start-server.ps1",
     "create-admin": "node scripts/create-admin.js",
-    "import-users-excel": "node scripts/import-users-from-excel.js"
+    "import-users-excel": "node scripts/import-users-from-excel.js",
+    "import-users-excel:update": "node scripts/import-users-from-excel.js --update"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

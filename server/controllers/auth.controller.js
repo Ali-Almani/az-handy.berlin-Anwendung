@@ -80,7 +80,7 @@ export const login = async (req, res, next) => {
     }
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'E-Mail oder Passwort ungültig' });
     }
 
     let isPasswordValid = false;
@@ -88,10 +88,10 @@ export const login = async (req, res, next) => {
       isPasswordValid = await user.comparePassword(password);
     } catch (pwErr) {
       console.error('login comparePassword:', pwErr);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'E-Mail oder Passwort ungültig' });
     }
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'E-Mail oder Passwort ungültig' });
     }
 
     const userId = user.id ?? user.get?.('id');
@@ -99,6 +99,14 @@ export const login = async (req, res, next) => {
     let role = String(user.role ?? user.get?.('role') ?? '').trim();
     if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
       role = 'Administrator';
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (secret == null || String(secret).trim() === '') {
+      console.error('login: JWT_SECRET fehlt in .env');
+      return res.status(503).json({
+        message: 'Anmeldung derzeit nicht möglich (Server-Konfiguration). Bitte Administrator informieren.'
+      });
     }
 
     const token = generateToken(userId, role, user.name ?? user.get?.('name'));

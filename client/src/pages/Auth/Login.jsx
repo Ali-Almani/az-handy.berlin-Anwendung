@@ -51,7 +51,20 @@ const Login = () => {
       }
       navigate(targetPath, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Login fehlgeschlagen');
+      if (!err.response) {
+        setError('Server nicht erreichbar. Bitte später erneut versuchen oder Administrator informieren.');
+        return;
+      }
+      const msg = err.response?.data?.message;
+      if (msg) {
+        setError(msg);
+        return;
+      }
+      if (Array.isArray(err.response?.data?.errors) && err.response.data.errors[0]?.msg) {
+        setError(err.response.data.errors[0].msg);
+        return;
+      }
+      setError('Login fehlgeschlagen');
     } finally {
       setLoading(false);
     }

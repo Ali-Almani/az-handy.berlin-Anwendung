@@ -1,9 +1,28 @@
 import UserMemory from './User.memory.js';
 import UserPostgres from './User.model.js';
 
-const hasPostgresConfig = process.env.DATABASE_URL || process.env.PG_DATABASE || process.env.PG_USER;
-const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' || !hasPostgresConfig;
+function shouldUseMemoryDb() {
+  const hasPostgresConfig = process.env.DATABASE_URL || process.env.PG_DATABASE || process.env.PG_USER;
+  return process.env.USE_MEMORY_DB === 'true' || !hasPostgresConfig;
+}
 
-const UserModel = USE_MEMORY_DB ? UserMemory : UserPostgres;
+function getUserModel() {
+  return shouldUseMemoryDb() ? UserMemory : UserPostgres;
+}
 
-export default UserModel;
+/** Wechsel PostgreSQL ↔ Datei-Speicher zur Laufzeit (z. B. nach DB-Ausfall). */
+const User = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const Model = getUserModel();
+      const value = Model[prop];
+      if (typeof value === 'function') {
+        return (...args) => value.apply(Model, args);
+      }
+      return value;
+    }
+  }
+);
+
+export default User;
