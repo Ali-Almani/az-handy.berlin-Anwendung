@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { initDatabase, User } from '../models/index.js';
+import { connectDatabase, User } from '../models/index.js';
 
 dotenv.config();
 
@@ -7,7 +7,7 @@ const createAdminUser = async () => {
   try {
     console.log('🔄 Connecting to PostgreSQL...');
 
-    await initDatabase();
+    await connectDatabase();
 
     console.log('✅ Database connected!\n');
 

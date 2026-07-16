@@ -15,7 +15,7 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { initDatabase, User } from '../models/index.js';
+import { connectDatabase, User } from '../models/index.js';
 import { EINSATZORT_LEGACY_MAP, canonicalizeEinsatzOrt } from '../constants/einsatzorte.js';
 
 dotenv.config();
@@ -52,6 +52,7 @@ function getCellValue(row, colNum) {
 }
 
 async function main() {
+  console.log('🚀 Benutzer-Import startet…');
   if (!fs.existsSync(excelPath)) {
     console.error('❌ Excel nicht gefunden:', excelPath);
     process.exit(1);
@@ -123,7 +124,8 @@ async function main() {
 
   console.log(`\n📋 ${users.length} Benutzer aus Excel gelesen\n`);
 
-  await initDatabase();
+  console.log('🔄 Verbinde mit PostgreSQL (ohne Schema-Alter)…');
+  await connectDatabase();
   console.log('✅ Datenbank verbunden\n');
 
   let created = 0;
