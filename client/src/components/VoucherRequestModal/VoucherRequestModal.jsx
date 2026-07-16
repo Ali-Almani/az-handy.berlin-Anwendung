@@ -1,12 +1,7 @@
 import { useState } from 'react';
 import { createVoucherManualRequestApi } from '../../services/voucherManualRequest.service';
+import { VOUCHER_FIXED_TABS } from '../../constants/voucherTabs';
 import './VoucherRequestModal.scss';
-
-const OPTIONS = [
-  { id: 'o2_ff', label: 'o2 mit Family and Friends  ( F&F ) Voucher' },
-  { id: 'ay_ag0', label: 'Ay Yildiz    AG0- Voucher' },
-  { id: 'ay_5eur', label: 'Ay Yildiz    5Euro Rabatt  Voucher' }
-];
 
 const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
   const [voucherTabId, setVoucherTabId] = useState('o2_ff');
@@ -82,7 +77,7 @@ const VoucherRequestModal = ({ isOpen, onClose, onSuccess }) => {
               value={voucherTabId}
               onChange={(e) => setVoucherTabId(e.target.value)}
             >
-              {OPTIONS.map((o) => (
+              {VOUCHER_FIXED_TABS.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.label}
                 </option>

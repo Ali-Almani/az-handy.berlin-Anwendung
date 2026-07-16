@@ -1,7 +1,7 @@
 import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+import { isValidVoucherTabId, normalizeVoucherTabId, getVoucherTabById } from '../constants/voucherTabs.js';
 
 const FILE = 'voucher_manual_requests.json';
-const VALID_TAB_IDS = new Set(['o2_ff', 'ay_ag0', 'ay_5eur']);
 const DEFAULT = () => ({ requests: [], nextId: 1 });
 
 const normalizeState = (state) => {
@@ -13,13 +13,13 @@ const normalizeState = (state) => {
   return { requests: state.requests, nextId };
 };
 
-export const isValidTabId = (id) => VALID_TAB_IDS.has(String(id || '').trim());
+export const isValidTabId = (id) => isValidVoucherTabId(id);
 
 export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, voucherArtLabel, nummer }) =>
   updateJsonStore(FILE, DEFAULT(), (state) => {
     const s = normalizeState(state);
-    const tab = String(voucherTabId || '').trim();
-    if (!isValidTabId(tab)) return { value: { error: 'Ungültige Voucher-Art' } };
+    const tab = normalizeVoucherTabId(voucherTabId);
+    if (!isValidVoucherTabId(tab)) return { value: { error: 'Ungültige Voucher-Art' } };
     const n = String(nummer ?? '').trim();
     if (!n) return { value: { error: 'Nummer ist erforderlich' } };
     const existing = s.requests.find(
@@ -36,7 +36,7 @@ export const addRequest = ({ requesterUserId, requesterUserName, voucherTabId, v
       requester_user_id: requesterUserId,
       requester_user_name: requesterUserName || 'Unbekannt',
       voucher_tab_id: tab,
-      voucher_art_label: voucherArtLabel || tab,
+      voucher_art_label: voucherArtLabel || getVoucherTabById(tab)?.label || tab,
       nummer: n,
       status: 'pending',
       created_at: new Date().toISOString(),

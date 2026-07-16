@@ -3,26 +3,13 @@ import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
 import { mergeVoucherRowsAppend } from './excel.controller.js';
+import { getVoucherTabById, normalizeVoucherTabId } from '../constants/voucherTabs.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
 
-const VOUCHER_ART_OPTIONS = {
-  o2_ff: {
-    id: 'o2_ff',
-    label: 'o2 mit Family and Friends  ( F&F ) Voucher',
-    sheet: 'o2 mit Family and Friends  ( F&F ) Voucher'
-  },
-  ay_ag0: {
-    id: 'ay_ag0',
-    label: 'Ay Yildiz    AG0- Voucher',
-    sheet: 'Ay Yildiz    AG0- Voucher'
-  },
-  ay_5eur: {
-    id: 'ay_5eur',
-    label: 'Ay Yildiz    5Euro Rabatt  Voucher',
-    sheet: 'Ay Yildiz    5Euro Rabatt  Voucher'
-  }
-};
+const COL_VOCHER_ART = 'Voucher Art';
+const COL_BENUTZER = 'Benutzer';
+const COL_NUMMER = 'Nummer';
 
 function roleIsAdmin(role) {
   const r = String(role || '').trim().toLowerCase();
@@ -42,13 +29,9 @@ function userCanProcessRequests(role) {
   return isBüroMitarbeiter(role) || roleIsAdmin(role);
 }
 
-const COL_VOCHER_ART = 'Voucher Art';
-const COL_BENUTZER = 'Benutzer';
-const COL_NUMMER = 'Nummer';
-
 /** Eine Liste-Zeile inkl. Spalte Benutzer (Feldpersonal / genehmigte Anfragen). */
 function buildVoucherRowFromParts({ voucherTabId, nummer, requesterUserName, rowNumber }) {
-  const opt = VOUCHER_ART_OPTIONS[voucherTabId];
+  const opt = getVoucherTabById(normalizeVoucherTabId(voucherTabId));
   if (!opt) return null;
   const n = String(nummer ?? '').trim();
   if (!n) return null;
@@ -67,7 +50,8 @@ function buildVoucherRowFromParts({ voucherTabId, nummer, requesterUserName, row
     data,
     rowData,
     rowDataFormats: {},
-    columnOrder
+    columnOrder,
+    isTitleRow: false
   };
 }
 
@@ -126,7 +110,7 @@ export const createVoucherManualRequest = async (req, res, next) => {
       });
     }
     const { voucherTabId } = req.body || {};
-    const tab = String(voucherTabId || '').trim();
+    const tab = normalizeVoucherTabId(voucherTabId);
     if (!VoucherManualRequest.isValidTabId(tab)) {
       return res.status(400).json({ success: false, message: 'Ungültige Voucher-Art' });
     }
