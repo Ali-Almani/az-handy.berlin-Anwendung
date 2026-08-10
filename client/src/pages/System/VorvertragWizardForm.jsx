@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { COUNTRY_OPTIONS } from './countries';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
+import MnpFieldsSection from './MnpFieldsSection';
+import { emptyMnpDetails } from './mnpConstants';
 import {
   buildCustomerCatalog,
   customerPreviewLines,
@@ -14,7 +16,8 @@ const STEPS = [
   { id: 1, label: 'Grunddaten' },
   { id: 2, label: 'Kunde' },
   { id: 3, label: 'Ausgabe' },
-  { id: 4, label: 'Vertrag & Details' }
+  { id: 4, label: 'Vertrag & Details' },
+  { id: 5, label: 'MNP' }
 ];
 
 export default function VorvertragWizardForm({
@@ -45,6 +48,11 @@ export default function VorvertragWizardForm({
   }, [geraetSeed]);
 
   const handleChange = (field, value) => onChange(field, value);
+  const handleMnpChange = (field, value) => {
+    onPatch?.({
+      mnpDetails: { ...(form.mnpDetails || emptyMnpDetails()), [field]: value }
+    });
+  };
 
   const catalog = useMemo(() => buildCustomerCatalog(existingEntries), [existingEntries]);
   const filteredCatalog = useMemo(
@@ -459,16 +467,6 @@ export default function VorvertragWizardForm({
               <span className="vorvertrag-checkbox-field__value">{form.vvl}</span>
             </label>
           </div>
-          <div className="form-group">
-            <label htmlFor="vv-mnp" className="form-label">MNP</label>
-            <input
-              id="vv-mnp"
-              type="text"
-              className="form-input"
-              value={form.mnp}
-              onChange={(ev) => handleChange('mnp', ev.target.value)}
-            />
-          </div>
           <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
             <label htmlFor="vv-notiz" className="form-label">Notiz</label>
             <textarea
@@ -481,6 +479,18 @@ export default function VorvertragWizardForm({
           </div>
         </div>
       </div>
+    </>
+  );
+
+  const renderStep5 = () => (
+    <>
+      <p className="vorvertrag-step-hint">MNP-Daten aus dem Sonnenallee MNP Tracker.</p>
+      <MnpFieldsSection
+        details={form.mnpDetails}
+        onChange={handleMnpChange}
+        idPrefix="vv-wizard-mnp"
+        showTitle={false}
+      />
     </>
   );
 
@@ -513,6 +523,7 @@ export default function VorvertragWizardForm({
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
       {step === 4 && renderStep4()}
+      {step === 5 && renderStep5()}
 
       <div className="vorvertrag-actions vorvertrag-actions--wizard">
         {step > 1 ? (

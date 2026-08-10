@@ -141,7 +141,39 @@ function normalizeMitOhne(value) {
   return 'Ohne';
 }
 
+function normalizeMnpDetails(raw = {}) {
+  const source = raw?.mnpDetails && typeof raw.mnpDetails === 'object' && !Array.isArray(raw.mnpDetails)
+    ? raw.mnpDetails
+    : raw;
+  return {
+    mitarbeiter: String(source.mitarbeiter ?? '').trim(),
+    neuesVertragsdatum: String(source.neuesVertragsdatum ?? '').trim(),
+    neueO2Rufnummer: String(source.neueO2Rufnummer ?? '').trim(),
+    eposKn: String(source.eposKn ?? '').trim(),
+    iban: String(source.iban ?? '').trim(),
+    letzten7SimKarte: String(source.letzten7SimKarte ?? '').trim(),
+    kundenVorname: String(source.kundenVorname ?? '').trim(),
+    kundenNachname: String(source.kundenNachname ?? '').trim(),
+    kundenGeburtsdatum: String(source.kundenGeburtsdatum ?? '').trim(),
+    kundenAktuellKontaktNummer: String(source.kundenAktuellKontaktNummer ?? '').trim(),
+    kundenVollstaendigeAdresse: String(source.kundenVollstaendigeAdresse ?? '').trim(),
+    mnpRufnummer: String(source.mnpRufnummer ?? '').trim(),
+    originalAnbieter: String(source.originalAnbieter ?? '').trim(),
+    postpaidPrepaid: String(source.postpaidPrepaid ?? '').trim(),
+    mnpDetails: String(source.mnpDetails ?? '').trim(),
+    mnpAltKundenVorname: String(source.mnpAltKundenVorname ?? '').trim(),
+    mnpAltKundenNachname: String(source.mnpAltKundenNachname ?? '').trim(),
+    mnpAltKundenGeburtsdatum: String(source.mnpAltKundenGeburtsdatum ?? '').trim(),
+    freigegebenNachVertragsende: String(source.freigegebenNachVertragsende ?? '').trim(),
+    mnpTyp: String(source.mnpTyp ?? '').trim(),
+    status: String(source.status ?? '').trim() || 'Offen',
+    mnpBestaetigungsdatum: String(source.mnpBestaetigungsdatum ?? '').trim(),
+    notiz: String(source.notiz ?? source.mnp ?? raw.mnp ?? '').trim()
+  };
+}
+
 function normalizeEingabeDetails(raw = {}) {
+  const mnpDetails = normalizeMnpDetails(raw);
   return {
     nationalitaet: String(raw.nationalitaet ?? '').trim(),
     passNummer: String(raw.passNummer ?? raw.pass_personalausweis_nummer ?? '').trim(),
@@ -153,7 +185,7 @@ function normalizeEingabeDetails(raw = {}) {
     kombi: normalizeMitOhne(raw.kombi),
     vvl: normalizeMitOhne(raw.vvl),
     eposKundenummer: String(raw.eposKundenummer ?? raw.epos_kundenummer ?? '').trim(),
-    mnp: String(raw.mnp ?? '').trim(),
+    mnpDetails,
     notiz: String(raw.notiz ?? '').trim()
   };
 }

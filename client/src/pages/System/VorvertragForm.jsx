@@ -2,6 +2,8 @@ import { COUNTRY_OPTIONS } from './countries';
 import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 import VorvertragWizardForm from './VorvertragWizardForm';
+import MnpFieldsSection from './MnpFieldsSection';
+import { emptyMnpDetails, mnpDetailsFromEingabe } from './mnpConstants';
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
@@ -28,7 +30,7 @@ export const emptyVorvertragForm = () => ({
   kombi: 'Ohne',
   vvl: 'Ohne',
   eposKundenummer: '',
-  mnp: '',
+  mnpDetails: emptyMnpDetails(),
   notiz: ''
 });
 
@@ -57,7 +59,7 @@ export function formFromEntry(entry) {
     kombi: normalizeMitOhne(e.kombi),
     vvl: normalizeMitOhne(e.vvl),
     eposKundenummer: e.eposKundenummer || '',
-    mnp: e.mnp || '',
+    mnpDetails: mnpDetailsFromEingabe(e),
     notiz: e.notiz || ''
   };
 }
@@ -88,7 +90,7 @@ export function buildVorvertragPayload(form) {
       kombi: form.kombi,
       vvl: form.vvl,
       eposKundenummer: form.eposKundenummer,
-      mnp: form.mnp,
+      mnpDetails: form.mnpDetails,
       notiz: form.notiz
     }
   };
@@ -128,6 +130,11 @@ export default function VorvertragForm({
   }
 
   const handleChange = (field, value) => onChange(field, value);
+  const handleMnpChange = (field, value) => {
+    onPatch?.({
+      mnpDetails: { ...(form.mnpDetails || emptyMnpDetails()), [field]: value }
+    });
+  };
 
   return (
     <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={onSubmit}>
@@ -404,16 +411,6 @@ export default function VorvertragForm({
               onChange={(ev) => handleChange('eposKundenummer', ev.target.value)}
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="vv-mnp" className="form-label">MNP</label>
-            <input
-              id="vv-mnp"
-              type="text"
-              className="form-input"
-              value={form.mnp}
-              onChange={(ev) => handleChange('mnp', ev.target.value)}
-            />
-          </div>
           <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
             <label htmlFor="vv-notiz" className="form-label">Notiz</label>
             <textarea
@@ -426,6 +423,12 @@ export default function VorvertragForm({
           </div>
         </div>
       </div>
+
+      <MnpFieldsSection
+        details={form.mnpDetails}
+        onChange={handleMnpChange}
+        idPrefix="vv-mnp"
+      />
 
       <div className="vorvertrag-actions">
         <button type="submit" className="btn btn--primary" disabled={saving}>

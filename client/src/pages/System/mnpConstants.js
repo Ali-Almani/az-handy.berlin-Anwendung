@@ -20,6 +20,52 @@ export const MNP_STATUS_OPTIONS = [
   'Erledigt'
 ];
 
+export const emptyMnpDetails = () => ({
+  mitarbeiter: '',
+  neuesVertragsdatum: new Date().toISOString().slice(0, 10),
+  neueO2Rufnummer: '',
+  eposKn: '',
+  iban: '',
+  letzten7SimKarte: '',
+  kundenVorname: '',
+  kundenNachname: '',
+  kundenGeburtsdatum: '',
+  kundenAktuellKontaktNummer: '',
+  kundenVollstaendigeAdresse: '',
+  mnpRufnummer: '',
+  originalAnbieter: '',
+  postpaidPrepaid: '',
+  mnpDetails: '',
+  mnpAltKundenVorname: '',
+  mnpAltKundenNachname: '',
+  mnpAltKundenGeburtsdatum: '',
+  freigegebenNachVertragsende: '',
+  mnpTyp: '',
+  status: 'Offen',
+  mnpBestaetigungsdatum: '',
+  notiz: ''
+});
+
+export function mnpDetailsFromEingabe(eingabeDetails = {}) {
+  const raw = eingabeDetails?.mnpDetails;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return { ...emptyMnpDetails(), ...raw };
+  }
+  const legacy = String(eingabeDetails?.mnp ?? '').trim();
+  if (legacy) {
+    return { ...emptyMnpDetails(), notiz: legacy };
+  }
+  return emptyMnpDetails();
+}
+
+export function hasMnpDetailsContent(details = {}) {
+  const skip = new Set(['status']);
+  return Object.entries(details).some(([key, value]) => {
+    if (skip.has(key)) return String(value ?? '').trim() && value !== 'Offen';
+    return String(value ?? '').trim() !== '';
+  });
+}
+
 export const MNP_FIELD_LABELS = {
   mitarbeiter: 'Mitarbeiter',
   neuesVertragsdatum: 'Neues Vertragsdatum',

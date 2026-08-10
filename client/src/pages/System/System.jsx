@@ -13,8 +13,8 @@ import VorvertragForm, {
   buildVorvertragPayload
 } from './VorvertragForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
-import MnpTab from './MnpTab';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
+import { emptyMnpDetails } from './mnpConstants';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import './System.scss';
 
@@ -36,7 +36,11 @@ const System = () => {
   const [form, setForm] = useState(emptyVorvertragForm);
   const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
-  const [activeTab, setActiveTab] = useState('vorvertrag');
+
+  const defaultMitarbeiter = useMemo(() => {
+    const name = String(user?.name ?? '').trim();
+    return name || String(user?.email ?? '').trim();
+  }, [user?.name, user?.email]);
 
   const navbarFiliale = useMemo(
     () => userFilialeFromEinsatzOrt(user?.einsatz_ort),
@@ -98,7 +102,15 @@ const System = () => {
 
   const startNew = () => {
     setActiveId(null);
-    setForm({ ...emptyVorvertragForm(), filiale: navbarFiliale });
+    setForm({
+      ...emptyVorvertragForm(),
+      filiale: navbarFiliale,
+      mnpDetails: {
+        ...emptyMnpDetails(),
+        mitarbeiter: defaultMitarbeiter,
+        neuesVertragsdatum: new Date().toISOString().slice(0, 10)
+      }
+    });
     setGeraetSeed('');
     setMode('new');
     setShowForm(true);
@@ -196,30 +208,11 @@ const System = () => {
       <h1 className="system-page-title">Ticketing System</h1>
 
       <div className="system-tabs" role="tablist" aria-label="Ticketing System Bereiche">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'vorvertrag'}
-          className={`system-tab${activeTab === 'vorvertrag' ? ' system-tab--active' : ''}`}
-          onClick={() => setActiveTab('vorvertrag')}
-        >
+        <button type="button" role="tab" aria-selected className="system-tab system-tab--active">
           Vorvertrag
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'mnp'}
-          className={`system-tab${activeTab === 'mnp' ? ' system-tab--active' : ''}`}
-          onClick={() => setActiveTab('mnp')}
-        >
-          MNP
         </button>
       </div>
 
-      {activeTab === 'mnp' ? (
-        <MnpTab />
-      ) : (
-        <>
       <div className="system-toolbar">
         <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
           Neuer Vorvertrag
@@ -282,8 +275,6 @@ const System = () => {
           </div>
         )}
       </section>
-        </>
-      )}
     </div>
   );
 };

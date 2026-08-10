@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
+import { hasMnpDetailsContent, mnpDetailsFromEingabe, MNP_FIELD_LABELS } from './mnpConstants';
 
 function Field({ label, value, badge }) {
   if (value == null || String(value).trim() === '') return null;
@@ -110,6 +111,8 @@ function formatDatum(value) {
 
 export default function VorvertragEntryCard({ entry, onEdit, highlighted = false }) {
   const e = entry?.eingabeDetails || {};
+  const mnp = mnpDetailsFromEingabe(e);
+  const hasMnp = hasMnpDetailsContent(mnp);
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
   const mitarbeiter = mitarbeiterName(entry);
@@ -212,10 +215,44 @@ export default function VorvertragEntryCard({ entry, onEdit, highlighted = false
         >
           <div className="vorvertrag-entry-card__fields">
             <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
-            <Field label="MNP" value={e.mnp} />
             <Field label="Notiz" value={e.notiz} />
           </div>
         </AccordionSection>
+
+        {hasMnp ? (
+          <AccordionSection
+            id="mnp"
+            title="MNP"
+            open={openSection === 'mnp'}
+            onToggle={toggleSection}
+          >
+            <div className="vorvertrag-entry-card__fields">
+              <Field label={MNP_FIELD_LABELS.mitarbeiter} value={mnp.mitarbeiter} />
+              <Field label={MNP_FIELD_LABELS.neuesVertragsdatum} value={formatDatum(mnp.neuesVertragsdatum)} />
+              <Field label={MNP_FIELD_LABELS.status} value={mnp.status} />
+              <Field label={MNP_FIELD_LABELS.neueO2Rufnummer} value={mnp.neueO2Rufnummer} />
+              <Field label={MNP_FIELD_LABELS.eposKn} value={mnp.eposKn} />
+              <Field label={MNP_FIELD_LABELS.iban} value={mnp.iban} />
+              <Field label={MNP_FIELD_LABELS.letzten7SimKarte} value={mnp.letzten7SimKarte} />
+              <Field label={MNP_FIELD_LABELS.kundenVorname} value={mnp.kundenVorname} />
+              <Field label={MNP_FIELD_LABELS.kundenNachname} value={mnp.kundenNachname} />
+              <Field label={MNP_FIELD_LABELS.kundenGeburtsdatum} value={formatDatum(mnp.kundenGeburtsdatum)} />
+              <Field label={MNP_FIELD_LABELS.kundenAktuellKontaktNummer} value={mnp.kundenAktuellKontaktNummer} />
+              <Field label={MNP_FIELD_LABELS.kundenVollstaendigeAdresse} value={mnp.kundenVollstaendigeAdresse} />
+              <Field label={MNP_FIELD_LABELS.mnpRufnummer} value={mnp.mnpRufnummer} />
+              <Field label={MNP_FIELD_LABELS.originalAnbieter} value={mnp.originalAnbieter} />
+              <Field label={MNP_FIELD_LABELS.postpaidPrepaid} value={mnp.postpaidPrepaid} />
+              <Field label={MNP_FIELD_LABELS.mnpDetails} value={mnp.mnpDetails} />
+              <Field label={MNP_FIELD_LABELS.mnpAltKundenVorname} value={mnp.mnpAltKundenVorname} />
+              <Field label={MNP_FIELD_LABELS.mnpAltKundenNachname} value={mnp.mnpAltKundenNachname} />
+              <Field label={MNP_FIELD_LABELS.mnpAltKundenGeburtsdatum} value={formatDatum(mnp.mnpAltKundenGeburtsdatum)} />
+              <Field label={MNP_FIELD_LABELS.freigegebenNachVertragsende} value={mnp.freigegebenNachVertragsende} />
+              <Field label={MNP_FIELD_LABELS.mnpTyp} value={mnp.mnpTyp} />
+              <Field label={MNP_FIELD_LABELS.mnpBestaetigungsdatum} value={formatDatum(mnp.mnpBestaetigungsdatum)} />
+              <Field label={MNP_FIELD_LABELS.notiz} value={mnp.notiz} />
+            </div>
+          </AccordionSection>
+        ) : null}
       </div>
     </article>
   );
