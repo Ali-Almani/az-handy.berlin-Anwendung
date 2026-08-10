@@ -832,7 +832,7 @@
   padding: $spacing-md;
   background: rgba($primary-color, 0.06);
   border: 1px solid rgba($primary-color, 0.15);
-  border-radius: $border-radius;
+  border-radius: $border-radius-md;
 
   &__title {
     margin: 0 0 $spacing-sm;
@@ -857,7 +857,7 @@
   &__hint {
     margin: $spacing-sm 0 0;
     font-size: 0.8rem;
-    color: $text-muted;
+    color: $text-light;
     line-height: 1.45;
   }
 }
