@@ -12,7 +12,7 @@ const ImeisControls = ({
   onShowZustand,
   showAdvancedActions = true,
   showBestand = true,
-  showDeleteAll = true,
+  showDeleteAll = false,
   showSonderOfficeButton = false,
   onOpenSonderOffice,
   itemsPerPage,

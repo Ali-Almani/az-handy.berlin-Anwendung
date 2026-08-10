@@ -222,6 +222,28 @@ export const savePerformanceMetrics = (metrics) => {
   return api.put('/dashboard/performance', { metrics });
 };
 
+/** IMEI-Einstellungen (Alle löschen) */
+export const getImeiSettings = () => {
+  if (USE_MOCK_API) {
+    try {
+      const raw = localStorage.getItem('dashboard-imei-settings-mock');
+      const data = raw ? JSON.parse(raw) : {};
+      return Promise.resolve({ data: { success: true, deleteAllEnabled: data.deleteAllEnabled === true } });
+    } catch {
+      return Promise.resolve({ data: { success: true, deleteAllEnabled: false } });
+    }
+  }
+  return api.get('/dashboard/imei-settings');
+};
+
+export const saveImeiSettings = (deleteAllEnabled) => {
+  if (USE_MOCK_API) {
+    localStorage.setItem('dashboard-imei-settings-mock', JSON.stringify({ deleteAllEnabled: deleteAllEnabled === true }));
+    return Promise.resolve({ data: { success: true, deleteAllEnabled: deleteAllEnabled === true } });
+  }
+  return api.put('/dashboard/imei-settings', { deleteAllEnabled: deleteAllEnabled === true });
+};
+
 const SITE_NEWS_MOCK_KEY = 'dashboard-site-news-mock';
 
 /** NEWS für die Startseite (alle eingeloggten Benutzer) */

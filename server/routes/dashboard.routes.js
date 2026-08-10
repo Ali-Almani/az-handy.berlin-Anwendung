@@ -14,6 +14,8 @@ import {
   deleteNewsArchiveEntry,
   getPerformanceMetrics,
   savePerformanceMetrics,
+  getImeiSettings,
+  saveImeiSettings,
   getSiteNews,
   saveSiteNews,
   getSiteNewsHistory,
@@ -48,6 +50,8 @@ router.post('/news/upload', (req, res, next) => {
 
 router.get('/performance', getPerformanceMetrics);
 router.put('/performance', savePerformanceMetrics);
+router.get('/imei-settings', getImeiSettings);
+router.put('/imei-settings', saveImeiSettings);
 router.get('/news/archive', getNewsArchive);
 router.put('/news/archive/:id', updateNewsArchiveEntry);
 router.delete('/news/archive/:id', deleteNewsArchiveEntry);

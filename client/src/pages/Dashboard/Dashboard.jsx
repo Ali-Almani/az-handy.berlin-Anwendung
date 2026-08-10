@@ -19,6 +19,7 @@ import { isAdmin } from '../../utils/roles';
 import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
+import ImeiAdminSettings from '../../components/ImeiAdminSettings/ImeiAdminSettings';
 import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
@@ -323,6 +324,7 @@ const Dashboard = () => {
         <h2 className="card-title">IMEs Verwaltung</h2>
         <span className="dashboard-excel-upload__badge">Excel / CSV</span>
       </div>
+      {isAdmin(user) && <ImeiAdminSettings />}
       <div className="dashboard-excel-upload-panel">
         <ExcelUpload embedded />
       </div>

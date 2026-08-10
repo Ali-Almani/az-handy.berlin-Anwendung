@@ -16,6 +16,7 @@ import {
 import { normalizeEinsatzOrtKey } from '../constants/einsatzorte.js';
 import { getSonderPublishedEntries, addSonderImeiApprovals } from '../utils/sonderImeiStore.js';
 import * as redisCache from '../utils/redisCache.js';
+import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
 const MERGED_COPY_HISTORY_TTL = 30;
@@ -744,13 +745,17 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
       merged[idx] = {
         ...prev,
         ...item,
+        rowData: item?.rowData ? { ...item.rowData } : prev?.rowData,
+        columnOrder: Array.isArray(item?.columnOrder) ? [...item.columnOrder] : prev?.columnOrder,
+        rowDataFormats: item?.rowDataFormats ? { ...item.rowDataFormats } : prev?.rowDataFormats,
         sheet: prev?.sheet ?? item.sheet,
         row: prev?.row ?? item.row,
         imei:
           item.imei != null && String(item.imei).trim() !== ''
             ? String(item.imei).trim()
             : prev?.imei,
-        _addedAt: prev?._addedAt || item._addedAt || nowIso
+        _addedAt: prev?._addedAt || item._addedAt || nowIso,
+        _excelUpdatedAt: nowIso
       };
       updatedFromUpload += 1;
       continue;
@@ -901,6 +906,13 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     imeis !== undefined &&
     Array.isArray(imeis) &&
     imeis.length === 0;
+
+  if (clearingMasterList && !getImeiDeleteAllEnabled()) {
+    const err = new Error('„Alle löschen“ ist derzeit deaktiviert (Administrator-Einstellung).');
+    err.statusCode = 403;
+    throw err;
+  }
+
   const usesSharedData = shouldUseSharedImeiData(role) && ownerId && ownerId !== userId;
 
   const payload = {

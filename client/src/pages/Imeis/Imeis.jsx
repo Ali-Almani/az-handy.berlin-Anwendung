@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { canAccessImeisList, canUseImeiAdvancedActions, canSeeBestand, isBüroMitarbeiter, isAdmin, canActAsImeiOfficeForHistory } from '../../utils/roles';
+import { getImeiSettings } from '../../services/dashboard.service';
+import { getSocket } from '../../services/socket';
 import { useImeis } from './hooks/useImeis';
 import ImeisFilters from './components/ImeisFilters';
 import ImeisControls from './components/ImeisControls';
@@ -108,6 +110,31 @@ const Imeis = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [reminderImeiFilter, setReminderImeiFilter] = useState(null);
+  const [imeiDeleteAllEnabled, setImeiDeleteAllEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await getImeiSettings();
+        if (!cancelled) setImeiDeleteAllEnabled(res.data?.deleteAllEnabled === true);
+      } catch {
+        if (!cancelled) setImeiDeleteAllEnabled(false);
+      }
+    };
+    load();
+    const socket = getSocket();
+    const onSettings = (payload) => {
+      if (payload && typeof payload.deleteAllEnabled === 'boolean') {
+        setImeiDeleteAllEnabled(payload.deleteAllEnabled);
+      }
+    };
+    if (socket) socket.on('imeiSettings:updated', onSettings);
+    return () => {
+      cancelled = true;
+      if (socket) socket.off('imeiSettings:updated', onSettings);
+    };
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('showVerlauf') === '1') {
@@ -171,7 +198,9 @@ const Imeis = () => {
             onShowZustand={onShowZustand}
             showAdvancedActions={canUseImeiAdvancedActions(user)}
             showBestand={canSeeBestand(user)}
-            showDeleteAll={isAdmin(user) || isBüroMitarbeiter(user)}
+            showDeleteAll={
+              imeiDeleteAllEnabled && (isAdmin(user) || isBüroMitarbeiter(user))
+            }
             showSonderOfficeButton={Boolean(canOpenSonderOfficePopup && oldestTenCandidates.length > 0)}
             onOpenSonderOffice={() => setShowSonderOfficeModal(true)}
           />

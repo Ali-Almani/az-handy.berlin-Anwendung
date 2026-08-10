@@ -359,7 +359,8 @@ export function useImeis() {
       await persistImeisState(user, { imeis: [], cellColors: {}, rowActions: {}, copyHistory: [], copyTimestamps: [] });
     } catch (error) {
       console.error('Error deleting all IMEIs:', error);
-      alert('Fehler beim Löschen aller IMEIs');
+      const msg = error?.response?.data?.message;
+      alert(msg || 'Fehler beim Löschen aller IMEIs');
     }
   };
 
