@@ -5,6 +5,7 @@ import * as NewsRead from '../models/NewsRead.memory.js';
 import { loadJson, saveJson } from '../utils/filePersistence.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import { getImeiDeleteAllEnabled, saveImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
+import { getVoucherDeleteAllEnabled, saveVoucherDeleteAllEnabled } from '../utils/voucherSettings.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -425,6 +426,38 @@ export const saveImeiSettings = async (req, res, next) => {
       io.emit('imeiSettings:updated', { deleteAllEnabled });
     }
     return res.json({ success: true, deleteAllEnabled: getImeiDeleteAllEnabled() });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Voucher-Einstellungen (Alle löschen) – lesbar für eingeloggte Benutzer */
+export const getVoucherSettings = async (req, res, next) => {
+  try {
+    return res.json({ success: true, deleteAllEnabled: getVoucherDeleteAllEnabled() });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Voucher-Einstellungen speichern (nur Administrator) */
+export const saveVoucherSettings = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können Voucher-Einstellungen ändern' });
+    }
+    const { deleteAllEnabled } = req.body;
+    if (typeof deleteAllEnabled !== 'boolean') {
+      return res.status(400).json({ message: 'deleteAllEnabled (boolean) erforderlich' });
+    }
+    saveVoucherDeleteAllEnabled(deleteAllEnabled);
+    const io = req.app?.get?.('io');
+    if (io) {
+      io.emit('voucherSettings:updated', { deleteAllEnabled });
+    }
+    return res.json({ success: true, deleteAllEnabled: getVoucherDeleteAllEnabled() });
   } catch (error) {
     next(error);
   }

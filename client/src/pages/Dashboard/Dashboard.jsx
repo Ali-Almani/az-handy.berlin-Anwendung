@@ -20,6 +20,7 @@ import { getSocket } from '../../services/socket';
 import TextEditor from '../../components/TextEditor/TextEditor';
 import ExcelUpload from '../../components/ExcelUpload/ExcelUpload';
 import ImeiAdminSettings from '../../components/ImeiAdminSettings/ImeiAdminSettings';
+import VoucherAdminSettings from '../../components/VoucherAdminSettings/VoucherAdminSettings';
 import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
@@ -337,6 +338,7 @@ const Dashboard = () => {
         <h2 className="card-title">Voucher Verwaltung</h2>
         <span className="dashboard-excel-upload__badge">Voucher</span>
       </div>
+      {isAdmin(user) && <VoucherAdminSettings />}
       <div className="dashboard-excel-upload-panel">
         <VoucherExcelUpload embedded />
       </div>

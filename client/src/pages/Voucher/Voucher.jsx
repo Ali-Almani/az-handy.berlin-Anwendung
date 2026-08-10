@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getSocket } from '../../services/socket';
 import { getVouchersApi, putVoucherUserStateApi } from '../../services/api';
+import { getVoucherSettings } from '../../services/dashboard.service';
+import { getSocket } from '../../services/socket';
 import { canAccessVoucherList, isAdmin, isBüroMitarbeiter } from '../../utils/roles';
 import Login from '../Auth/Login';
 import '../Imeis/Imeis.scss';
@@ -35,6 +36,7 @@ const Voucher = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState('');
+  const [voucherDeleteAllEnabled, setVoucherDeleteAllEnabled] = useState(false);
   const [, setCopySuccess] = useState(false);
 
   const columnOrderFirst = useMemo(() => {
@@ -122,6 +124,30 @@ const Voucher = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user?.id || !canAccessVoucherList(user)) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getVoucherSettings();
+        if (!cancelled) setVoucherDeleteAllEnabled(res.data?.deleteAllEnabled === true);
+      } catch {
+        if (!cancelled) setVoucherDeleteAllEnabled(false);
+      }
+    })();
+    const socket = getSocket();
+    const onSettings = (payload) => {
+      if (payload && typeof payload.deleteAllEnabled === 'boolean') {
+        setVoucherDeleteAllEnabled(payload.deleteAllEnabled);
+      }
+    };
+    if (socket) socket.on('voucherSettings:updated', onSettings);
+    return () => {
+      cancelled = true;
+      if (socket) socket.off('voucherSettings:updated', onSettings);
+    };
+  }, [user?.id, user?.role, user?.einsatz_ort]);
 
   useEffect(() => {
     if (!user?.id || !canAccessVoucherList(user)) return;
@@ -288,7 +314,7 @@ const Voucher = () => {
                         >
                           Verlauf ({copyHistory.length})
                         </button>
-                        {canExportVoucher && (
+                        {voucherDeleteAllEnabled && canExportVoucher && (
                           <button type="button" className="btn btn--danger btn--small" onClick={handleDeleteAllLocal}>
                             Alle löschen
                           </button>

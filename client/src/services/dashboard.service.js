@@ -244,6 +244,28 @@ export const saveImeiSettings = (deleteAllEnabled) => {
   return api.put('/dashboard/imei-settings', { deleteAllEnabled: deleteAllEnabled === true });
 };
 
+/** Voucher-Einstellungen (Alle löschen) */
+export const getVoucherSettings = () => {
+  if (USE_MOCK_API) {
+    try {
+      const raw = localStorage.getItem('dashboard-voucher-settings-mock');
+      const data = raw ? JSON.parse(raw) : {};
+      return Promise.resolve({ data: { success: true, deleteAllEnabled: data.deleteAllEnabled === true } });
+    } catch {
+      return Promise.resolve({ data: { success: true, deleteAllEnabled: false } });
+    }
+  }
+  return api.get('/dashboard/voucher-settings');
+};
+
+export const saveVoucherSettings = (deleteAllEnabled) => {
+  if (USE_MOCK_API) {
+    localStorage.setItem('dashboard-voucher-settings-mock', JSON.stringify({ deleteAllEnabled: deleteAllEnabled === true }));
+    return Promise.resolve({ data: { success: true, deleteAllEnabled: deleteAllEnabled === true } });
+  }
+  return api.put('/dashboard/voucher-settings', { deleteAllEnabled: deleteAllEnabled === true });
+};
+
 const SITE_NEWS_MOCK_KEY = 'dashboard-site-news-mock';
 
 /** NEWS für die Startseite (alle eingeloggten Benutzer) */

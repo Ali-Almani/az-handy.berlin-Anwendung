@@ -4,6 +4,7 @@ import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRol
 import User from '../models/User.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
+import { getVoucherDeleteAllEnabled } from '../utils/voucherSettings.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
@@ -997,6 +998,12 @@ export const putVoucherUserState = async (req, res, next) => {
       !Array.isArray(body.rowActions) &&
       Object.keys(body.rowActions).length === 0;
     if (isFullClearRequest && wipeAllUserStates) {
+      if (!getVoucherDeleteAllEnabled()) {
+        return res.status(403).json({
+          success: false,
+          message: '„Alle löschen“ ist derzeit deaktiviert (Administrator-Einstellung).'
+        });
+      }
       saveJson(VOUCHER_USER_STATE_FILE, {});
       const prevV = loadJson(VOUCHERS_FILE) || {};
       saveJson(VOUCHERS_FILE, {

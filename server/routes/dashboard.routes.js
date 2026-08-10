@@ -16,6 +16,8 @@ import {
   savePerformanceMetrics,
   getImeiSettings,
   saveImeiSettings,
+  getVoucherSettings,
+  saveVoucherSettings,
   getSiteNews,
   saveSiteNews,
   getSiteNewsHistory,
@@ -52,6 +54,8 @@ router.get('/performance', getPerformanceMetrics);
 router.put('/performance', savePerformanceMetrics);
 router.get('/imei-settings', getImeiSettings);
 router.put('/imei-settings', saveImeiSettings);
+router.get('/voucher-settings', getVoucherSettings);
+router.put('/voucher-settings', saveVoucherSettings);
 router.get('/news/archive', getNewsArchive);
 router.put('/news/archive/:id', updateNewsArchiveEntry);
 router.delete('/news/archive/:id', deleteNewsArchiveEntry);
