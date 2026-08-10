@@ -166,6 +166,13 @@ function resolveHighlightOk(highlight, computedOk) {
   return computedOk;
 }
 
+/** Ganze Tabellenzeile markieren (z. B. Ay Yildiz mit rotem Rahmen) */
+function getRowHighlightClass(rowHighlight) {
+  if (rowHighlight === 'warn') return 'performance-dashboard__row--warn';
+  if (rowHighlight === 'ok') return 'performance-dashboard__row--ok';
+  return '';
+}
+
 const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false, onMetricsLoaded }) => {
   const [metrics, setMetrics] = useState(DEFAULT_METRICS);
   const [loading, setLoading] = useState(true);
@@ -416,6 +423,27 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
 
   const showRowControls = !readOnly && isAdmin && editing;
 
+  const rowHighlightSelect = (pathPrefix, row) => (
+    <label className="performance-dashboard__row-highlight-label">
+      <span className="performance-dashboard__row-highlight-label-text">Zeilen-Markierung</span>
+      <select
+        className="performance-dashboard__row-highlight-select"
+        value={row?.rowHighlight == null || row?.rowHighlight === '' ? 'none' : row.rowHighlight}
+        onChange={(e) =>
+          updateEdit(
+            `${pathPrefix}.rowHighlight`,
+            e.target.value === 'none' ? null : e.target.value
+          )
+        }
+        aria-label="Markierung der gesamten Zeile"
+      >
+        <option value="none">Normal</option>
+        <option value="warn">Roter Rahmen (ganze Zeile)</option>
+        <option value="ok">Grüner Rahmen (ganze Zeile)</option>
+      </select>
+    </label>
+  );
+
   const notizenDeAnzeige = String(m?.notizenDe ?? '').trim() || String(m?.notizen ?? '').trim();
   const notizenArAnzeige = String(m?.notizenAr ?? '').trim();
 
@@ -556,7 +584,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   const displayOk = resolveHighlightOk(row?.deltaHochHighlight, status.ok);
                   const isDelta = kind === 'delta';
                   return (
-                    <tr key={key}>
+                    <tr key={key} className={getRowHighlightClass(row?.rowHighlight)}>
                       <td className="performance-dashboard__cell-label performance-dashboard__cell-label--stack">
                         {showRowControls ? (
                           <div className="performance-dashboard__row-editor">
@@ -578,6 +606,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                               <option value="percentLt">Prozent ≤ Ziel</option>
                               <option value="manual">Nur Status (manuell)</option>
                             </select>
+                            {rowHighlightSelect(`monatsziel.${key}`, row)}
                           </div>
                         ) : (
                           label
@@ -742,7 +771,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                   const status = getQuartalStatus(row);
                   const displayRestOk = resolveHighlightOk(row?.restHighlight, status.ok);
                   return (
-                    <tr key={key}>
+                    <tr key={key} className={getRowHighlightClass(row?.rowHighlight)}>
                       <td className="performance-dashboard__cell-label performance-dashboard__cell-label--stack">
                         {showRowControls ? (
                           <div className="performance-dashboard__row-editor">
@@ -758,6 +787,7 @@ const PerformanceDashboard = ({ isAdmin, readOnly = false, metaInHeader = false,
                               </button>
                             </div>
                             <input type="text" className="performance-dashboard__cell-input performance-dashboard__row-label-input" value={row?.label ?? ''} placeholder={LEGACY_QUARTAL_LABELS[key] || 'Bezeichnung'} onChange={(e) => updateEdit(`quartalsziel.${key}.label`, e.target.value)} />
+                            {rowHighlightSelect(`quartalsziel.${key}`, row)}
                           </div>
                         ) : (
                           label
