@@ -180,6 +180,7 @@ export default function MnpFieldsSection({
             value={d.postpaidPrepaid || ''}
             options={MNP_POSTPAID_OPTIONS}
             onChange={(v) => handleChange('postpaidPrepaid', v)}
+            required
           />
           <SelectField
             id={`${idPrefix}-details`}
@@ -187,6 +188,7 @@ export default function MnpFieldsSection({
             value={d.mnpDetails || ''}
             options={MNP_DETAILS_OPTIONS}
             onChange={(v) => handleChange('mnpDetails', v)}
+            required
           />
           <TextField
             id={`${idPrefix}-alt-vorname`}
@@ -213,6 +215,7 @@ export default function MnpFieldsSection({
             value={d.freigegebenNachVertragsende || ''}
             options={MNP_FREIGEGEBEN_OPTIONS}
             onChange={(v) => handleChange('freigegebenNachVertragsende', v)}
+            required
           />
           <SelectField
             id={`${idPrefix}-typ`}
@@ -220,6 +223,7 @@ export default function MnpFieldsSection({
             value={d.mnpTyp || ''}
             options={MNP_TYP_OPTIONS}
             onChange={(v) => handleChange('mnpTyp', v)}
+            required
           />
           <TextField
             id={`${idPrefix}-bestaetigung`}

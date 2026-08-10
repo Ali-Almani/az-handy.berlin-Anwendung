@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { COUNTRY_OPTIONS } from './countries';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 import MnpFieldsSection from './MnpFieldsSection';
-import { emptyMnpDetails } from './mnpConstants';
+import { emptyMnpDetails, validateMnpDetailsForSubmit } from './mnpConstants';
 import {
   buildCustomerCatalog,
   customerPreviewLines,
@@ -78,7 +78,18 @@ export default function VorvertragWizardForm({
         return 'Bitte mindestens Vor- oder Nachname eingeben.';
       }
     }
+    if (currentStep === 5) {
+      return validateMnpDetailsForSubmit(form.mnpDetails);
+    }
     return '';
+  };
+
+  const validateAllSteps = () => {
+    for (let s = 1; s <= STEPS.length; s += 1) {
+      const err = validateStep(s);
+      if (err) return { err, step: s };
+    }
+    return { err: '', step: STEPS.length };
   };
 
   const goNext = () => {
@@ -98,11 +109,18 @@ export default function VorvertragWizardForm({
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const err = validateStep(step);
-    if (err) {
-      setStepError(err);
+    if (step !== STEPS.length) {
+      setStepError('Bitte zuerst Schritt 5 (MNP) ausfüllen.');
+      setStep(STEPS.length);
       return;
     }
+    const { err, step: invalidStep } = validateAllSteps();
+    if (err) {
+      setStepError(err);
+      setStep(invalidStep);
+      return;
+    }
+    setStepError('');
     onSubmit(event);
   };
 
@@ -484,7 +502,9 @@ export default function VorvertragWizardForm({
 
   const renderStep5 = () => (
     <>
-      <p className="vorvertrag-step-hint">MNP-Daten aus dem Sonnenallee MNP Tracker.</p>
+      <p className="vorvertrag-step-hint">
+        Pflichtfelder: Postpaid/Prepaid, MNP-Details, freigegeben?, MNP Typ. Erst danach wird die Karte erstellt.
+      </p>
       <MnpFieldsSection
         details={form.mnpDetails}
         onChange={handleMnpChange}
@@ -495,7 +515,15 @@ export default function VorvertragWizardForm({
   );
 
   return (
-    <form className="vorvertrag-panel vorvertrag-form-panel vorvertrag-form-panel--wizard" onSubmit={handleSubmit}>
+    <form
+      className="vorvertrag-panel vorvertrag-form-panel vorvertrag-form-panel--wizard"
+      onSubmit={handleSubmit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && step !== STEPS.length) {
+          event.preventDefault();
+        }
+      }}
+    >
       <div className="vorvertrag-form-panel__head">
         <h2>Neuer Vorvertrag</h2>
         {onCancel ? (

@@ -66,6 +66,24 @@ export function hasMnpDetailsContent(details = {}) {
   });
 }
 
+/** Pflicht-Auswahlfelder für MNP (Schritt 5) vor dem Speichern */
+export function validateMnpDetailsForSubmit(details = {}) {
+  const mnp = details || {};
+  if (!String(mnp.postpaidPrepaid ?? '').trim()) {
+    return 'Bitte Postpaid/Prepaid wählen.';
+  }
+  if (!String(mnp.mnpDetails ?? '').trim()) {
+    return 'Bitte MNP-Details wählen.';
+  }
+  if (!String(mnp.freigegebenNachVertragsende ?? '').trim()) {
+    return 'Bitte freigegeben/nach Vertragsende wählen.';
+  }
+  if (!String(mnp.mnpTyp ?? '').trim()) {
+    return 'Bitte MNP Typ wählen.';
+  }
+  return '';
+}
+
 export const MNP_FIELD_LABELS = {
   mitarbeiter: 'Mitarbeiter',
   neuesVertragsdatum: 'Neues Vertragsdatum',
