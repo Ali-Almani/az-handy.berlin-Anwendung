@@ -61,10 +61,6 @@ const ImeiAdminSettings = () => {
           {saving ? ' …' : ''}
         </span>
       </label>
-      <p className="dashboard-imei-settings__hint">
-        Standard: deaktiviert. Nur Administrator kann diesen Schalter ändern. Büro-Mitarbeiter sehen den Button nur,
-        wenn er hier aktiviert ist.
-      </p>
       {error && <p className="text-error">{error}</p>}
     </div>
   );
