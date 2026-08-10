@@ -5,7 +5,8 @@ import { isAdmin } from '../../utils/roles';
 import {
   listVorvertraegeApi,
   createVorvertragApi,
-  updateVorvertragApi
+  updateVorvertragApi,
+  updateVorvertragTicketStatusApi
 } from '../../services/vorvertrag.service';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -16,6 +17,7 @@ import VorvertragEntryCard from './VorvertragEntryCard';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import { emptyMnpDetails } from './mnpConstants';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
+import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
 import './System.scss';
 
 const TOAST_MS = 4500;
@@ -36,6 +38,8 @@ const System = () => {
   const [form, setForm] = useState(emptyVorvertragForm);
   const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
+  const [listTab, setListTab] = useState('neu');
+  const [statusSavingId, setStatusSavingId] = useState('');
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -45,6 +49,22 @@ const System = () => {
   const navbarFiliale = useMemo(
     () => userFilialeFromEinsatzOrt(user?.einsatz_ort),
     [user?.einsatz_ort]
+  );
+
+  const filteredEntries = useMemo(() => {
+    return entries.filter((entry) => {
+      const archived = isVorvertragArchived(entry);
+      return listTab === 'archiv' ? archived : !archived;
+    });
+  }, [entries, listTab]);
+
+  const neuCount = useMemo(
+    () => entries.filter((entry) => !isVorvertragArchived(entry)).length,
+    [entries]
+  );
+  const archivCount = useMemo(
+    () => entries.filter((entry) => isVorvertragArchived(entry)).length,
+    [entries]
   );
 
   const {
@@ -185,6 +205,7 @@ const System = () => {
 
       await loadList({ silent: true });
       cancelForm();
+      setListTab('neu');
 
       if (savedId) {
         setHighlightedId(savedId);
@@ -199,6 +220,29 @@ const System = () => {
     }
   };
 
+  const handleStatusChange = async (entry, ticketStatus) => {
+    const id = entry?.id;
+    if (!id) return;
+    const nextStatus = normalizeVorvertragTicketStatus(ticketStatus);
+    if (normalizeVorvertragTicketStatus(entry?.ticketStatus) === nextStatus) return;
+
+    setStatusSavingId(id);
+    setError('');
+    try {
+      await updateVorvertragTicketStatusApi(id, nextStatus);
+      await loadList({ silent: true });
+      if (nextStatus === 'Erledigt') {
+        setListTab('archiv');
+      } else {
+        setListTab('neu');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Status konnte nicht gespeichert werden.');
+    } finally {
+      setStatusSavingId('');
+    }
+  };
+
   if (!user || !isAdmin(user)) {
     return <Navigate to="/" replace />;
   }
@@ -208,8 +252,23 @@ const System = () => {
       <h1 className="system-page-title">Ticketing System</h1>
 
       <div className="system-tabs" role="tablist" aria-label="Ticketing System Bereiche">
-        <button type="button" role="tab" aria-selected className="system-tab system-tab--active">
-          Vorvertrag
+        <button
+          type="button"
+          role="tab"
+          aria-selected={listTab === 'neu'}
+          className={`system-tab${listTab === 'neu' ? ' system-tab--active' : ''}`}
+          onClick={() => setListTab('neu')}
+        >
+          Neu ({neuCount})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={listTab === 'archiv'}
+          className={`system-tab${listTab === 'archiv' ? ' system-tab--active' : ''}`}
+          onClick={() => setListTab('archiv')}
+        >
+          Archiv ({archivCount})
         </button>
       </div>
 
@@ -260,15 +319,19 @@ const System = () => {
       <section className="vorvertrag-cards-section" ref={cardsSectionRef}>
         {loading ? (
           <p className="vorvertrag-empty">Laden…</p>
-        ) : entries.length === 0 ? (
-          <p className="vorvertrag-empty">Noch keine Vorverträge erfasst.</p>
+        ) : filteredEntries.length === 0 ? (
+          <p className="vorvertrag-empty">
+            {listTab === 'archiv' ? 'Keine erledigten Vorverträge im Archiv.' : 'Keine offenen Vorverträge.'}
+          </p>
         ) : (
           <div className="vorvertrag-cards-grid">
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <VorvertragEntryCard
                 key={entry.id}
                 entry={entry}
                 onEdit={startEdit}
+                onStatusChange={handleStatusChange}
+                statusSaving={statusSavingId === entry.id}
                 highlighted={highlightedId === entry.id}
               />
             ))}

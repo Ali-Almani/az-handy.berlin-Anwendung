@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { COUNTRY_OPTIONS } from './countries';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 import MnpFieldsSection from './MnpFieldsSection';
+import { patchFromImeisMonate } from './vorvertragGeraeteUtils';
 import { emptyMnpDetails, validateMnpDetailsForSubmit } from './mnpConstants';
 import {
   buildCustomerCatalog,
@@ -439,7 +440,7 @@ export default function VorvertragWizardForm({
               id="vv-imeis-monate"
               className="form-input"
               value={form.imeisMonate}
-              onChange={(ev) => handleChange('imeisMonate', ev.target.value)}
+              onChange={(ev) => onPatch?.(patchFromImeisMonate(ev.target.value))}
             >
               <option value="">— keine Auswahl —</option>
               {MONATE_OPTIONS.map((opt) => (

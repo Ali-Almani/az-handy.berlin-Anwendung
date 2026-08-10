@@ -5,6 +5,7 @@ import {
   getVorvertrag,
   createVorvertrag,
   updateVorvertrag,
+  updateVorvertragTicketStatus,
   deleteVorvertrag
 } from '../controllers/vorvertrag.controller.js';
 
@@ -15,6 +16,7 @@ router.use(authenticateToken);
 router.get('/', listVorvertraege);
 router.get('/:id', getVorvertrag);
 router.post('/', createVorvertrag);
+router.patch('/:id/status', updateVorvertragTicketStatus);
 router.patch('/:id', updateVorvertrag);
 router.delete('/:id', deleteVorvertrag);
 

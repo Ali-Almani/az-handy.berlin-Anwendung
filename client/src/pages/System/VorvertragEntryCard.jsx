@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { hasMnpDetailsContent, mnpDetailsFromEingabe, MNP_FIELD_LABELS } from './mnpConstants';
+import {
+  normalizeVorvertragTicketStatus,
+  VORVERTRAG_TICKET_STATUS_OPTIONS,
+  vorvertragTicketStatusBadge
+} from './vorvertragTicketStatus';
 
 function Field({ label, value, badge }) {
   if (value == null || String(value).trim() === '') return null;
@@ -109,13 +114,20 @@ function formatDatum(value) {
   return raw;
 }
 
-export default function VorvertragEntryCard({ entry, onEdit, highlighted = false }) {
+export default function VorvertragEntryCard({
+  entry,
+  onEdit,
+  onStatusChange,
+  statusSaving = false,
+  highlighted = false
+}) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
   const hasMnp = hasMnpDetailsContent(mnp);
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
   const mitarbeiter = mitarbeiterName(entry);
+  const ticketStatus = normalizeVorvertragTicketStatus(entry?.ticketStatus);
   const hasDevice = Boolean(ausgabe.geraet);
   const [openSection, setOpenSection] = useState(hasDevice ? 'device' : 'vertrag');
 
@@ -134,10 +146,29 @@ export default function VorvertragEntryCard({ entry, onEdit, highlighted = false
           <div className="vorvertrag-entry-card__meta">
             <MetaChip>{formatDatum(entry?.datum)}</MetaChip>
             <MetaChip accent>{formatEinsatzOrt(entry?.filiale)}</MetaChip>
+            <span
+              className={`vorvertrag-entry-card__badge vorvertrag-entry-card__badge--${vorvertragTicketStatusBadge(ticketStatus)}`}
+            >
+              {ticketStatus}
+            </span>
             {mitarbeiter ? <MetaChip>{mitarbeiter}</MetaChip> : null}
           </div>
         </div>
         <div className="vorvertrag-entry-card__actions">
+          <label className="vorvertrag-entry-card__status-field">
+            <span className="vorvertrag-entry-card__status-label">Status</span>
+            <select
+              className="form-input vorvertrag-entry-card__status-select"
+              value={ticketStatus}
+              disabled={statusSaving}
+              onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
+              aria-label="Ticket-Status"
+            >
+              {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </label>
           <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>
             Bearbeiten
           </button>

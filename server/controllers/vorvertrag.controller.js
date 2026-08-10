@@ -2,6 +2,10 @@ import User from '../models/User.js';
 import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
 import { normalizeUserId } from '../utils/normalizeUserId.js';
 import { FILIALE_OPTIONS, isValidFiliale, normalizeFiliale } from '../constants/einsatzorte.js';
+import {
+  normalizeVorvertragTicketStatus,
+  VORVERTRAG_TICKET_STATUS_DEFAULT
+} from '../constants/vorvertragTicketStatus.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
@@ -222,7 +226,8 @@ function normalizeEntryBody(body = {}) {
       jaNein: zuzahlungJa,
       wert: zuzahlungJa === 'ja' ? String(body.zuzahlungWert ?? body.zuzahlung?.wert ?? '').trim() : ''
     },
-    eingabeDetails: normalizeEingabeDetails(body.eingabeDetails ?? body)
+    eingabeDetails: normalizeEingabeDetails(body.eingabeDetails ?? body),
+    ticketStatus: normalizeVorvertragTicketStatus(body.ticketStatus ?? VORVERTRAG_TICKET_STATUS_DEFAULT)
   };
 }
 
@@ -356,6 +361,54 @@ export async function updateVorvertrag(req, res) {
     updated = {
       ...prev,
       ...normalized,
+      ticketStatus:
+        req.body?.ticketStatus != null
+          ? normalizeVorvertragTicketStatus(req.body.ticketStatus)
+          : normalizeVorvertragTicketStatus(prev.ticketStatus),
+      updatedAt: now,
+      lastEditedBy: editor,
+      editHistory: history.slice(0, 200)
+    };
+    data.entries[idx] = updated;
+  });
+
+  if (notFound === true) {
+    return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
+  }
+  return res.json({ success: true, entry: await enrichEntryForClient(updated) });
+}
+
+export async function updateVorvertragTicketStatus(req, res) {
+  if (!(await requireAdmin(req, res))) return;
+  const id = String(req.params.id || '').trim();
+  const ticketStatus = normalizeVorvertragTicketStatus(req.body?.ticketStatus);
+  if (!String(req.body?.ticketStatus ?? '').trim()) {
+    return res.status(400).json({ success: false, message: 'Status ist erforderlich.' });
+  }
+
+  const now = new Date().toISOString();
+  const editor = await editorFromReqAsync(req);
+  let updated = null;
+  const notFound = await mutateStore((data) => {
+    const idx = data.entries.findIndex((e) => String(e.id) === id);
+    if (idx < 0) return { value: true };
+
+    const prev = data.entries[idx];
+    const history = Array.isArray(prev.editHistory) ? [...prev.editHistory] : [];
+
+    history.unshift({
+      id: newId('hist'),
+      timestamp: now,
+      action: 'status_changed',
+      editorUserId: editor.userId,
+      editorUserName: editor.userName,
+      editorEmail: editor.email,
+      snapshot: entrySnapshot({ ...prev, ticketStatus })
+    });
+
+    updated = {
+      ...prev,
+      ticketStatus,
       updatedAt: now,
       lastEditedBy: editor,
       editHistory: history.slice(0, 200)

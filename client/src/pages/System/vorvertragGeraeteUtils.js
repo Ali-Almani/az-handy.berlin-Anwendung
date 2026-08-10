@@ -104,3 +104,12 @@ export function normalizeMitOhne(value) {
   if (v === 'mit' || v === 'ja' || v === 'yes' || v === 'true' || v === '1') return 'Mit';
   return 'Ohne';
 }
+
+/** IMEIs-Monate → HW-Voucher automatisch auf gleichen Wert setzen (24/36 Monate). */
+export function patchFromImeisMonate(value) {
+  const patch = { imeisMonate: value };
+  if (value === '24 Monate' || value === '36 Monate') {
+    patch.hwVoucher = value;
+  }
+  return patch;
+}

@@ -199,6 +199,28 @@
   padding-top: 0.65rem;
   margin-top: 0.15rem;
   border-top: none;
+  align-items: flex-end;
+}
+
+.vorvertrag-entry-card__status-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1 1 10rem;
+  min-width: 9rem;
+}
+
+.vorvertrag-entry-card__status-label {
+  font-size: 0.72rem;
+  font-weight: $font-weight-medium;
+  color: $text-light;
+}
+
+.vorvertrag-entry-card__status-select {
+  min-height: 2rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  font-size: 0.82rem;
 }
 
 .vorvertrag-entry-card__body {

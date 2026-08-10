@@ -20,6 +20,11 @@ export const updateVorvertragApi = async (id, payload) => {
   return res.data;
 };
 
+export const updateVorvertragTicketStatusApi = async (id, ticketStatus) => {
+  const res = await api.patch(`/vorvertrag/${encodeURIComponent(id)}/status`, { ticketStatus });
+  return res.data;
+};
+
 export const deleteVorvertragApi = async (id) => {
   const res = await api.delete(`/vorvertrag/${encodeURIComponent(id)}`);
   return res.data;

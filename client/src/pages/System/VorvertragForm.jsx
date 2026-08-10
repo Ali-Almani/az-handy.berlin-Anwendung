@@ -1,5 +1,5 @@
 import { COUNTRY_OPTIONS } from './countries';
-import { parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
+import { parseAusgabeDetails, normalizeMitOhne, patchFromImeisMonate } from './vorvertragGeraeteUtils';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 import VorvertragWizardForm from './VorvertragWizardForm';
 import MnpFieldsSection from './MnpFieldsSection';
@@ -355,7 +355,7 @@ export default function VorvertragForm({
               id="vv-imeis-monate"
               className="form-input"
               value={form.imeisMonate}
-              onChange={(ev) => handleChange('imeisMonate', ev.target.value)}
+              onChange={(ev) => onPatch?.(patchFromImeisMonate(ev.target.value))}
             >
               <option value="">— keine Auswahl —</option>
               {MONATE_OPTIONS.map((opt) => (
