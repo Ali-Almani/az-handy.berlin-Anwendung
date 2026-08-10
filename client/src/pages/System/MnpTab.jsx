@@ -1,26 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { isAdmin } from '../../utils/roles';
 import {
-  listVorvertraegeApi,
-  createVorvertragApi,
-  updateVorvertragApi
-} from '../../services/vorvertrag.service';
-import VorvertragForm, {
-  emptyVorvertragForm,
-  formFromEntry,
-  buildVorvertragPayload
-} from './VorvertragForm';
-import VorvertragEntryCard from './VorvertragEntryCard';
-import MnpTab from './MnpTab';
-import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
+  listMnpEntriesApi,
+  createMnpEntryApi,
+  updateMnpEntryApi
+} from '../../services/mnp.service';
+import MnpForm, {
+  emptyMnpForm,
+  formFromMnpEntry,
+  buildMnpPayload
+} from './MnpForm';
+import MnpEntryCard from './MnpEntryCard';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
-import './System.scss';
 
 const TOAST_MS = 4500;
 
-const System = () => {
+export default function MnpTab() {
   const { user } = useAuth();
   const formRef = useRef(null);
   const cardsSectionRef = useRef(null);
@@ -33,21 +28,18 @@ const System = () => {
   const [highlightedId, setHighlightedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [activeId, setActiveId] = useState(null);
-  const [form, setForm] = useState(emptyVorvertragForm);
-  const [geraetSeed, setGeraetSeed] = useState('');
+  const [form, setForm] = useState(emptyMnpForm);
   const [mode, setMode] = useState('new');
-  const [activeTab, setActiveTab] = useState('vorvertrag');
 
   const navbarFiliale = useMemo(
     () => userFilialeFromEinsatzOrt(user?.einsatz_ort),
     [user?.einsatz_ort]
   );
 
-  const {
-    imeis,
-    loading: geraeteLoading,
-    error: geraeteError
-  } = useVorvertragImeiCatalog(Boolean(user && isAdmin(user)));
+  const defaultMitarbeiter = useMemo(() => {
+    const name = String(user?.name ?? '').trim();
+    return name || String(user?.email ?? '').trim();
+  }, [user?.name, user?.email]);
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -65,7 +57,7 @@ const System = () => {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const res = await listVorvertraegeApi();
+      const res = await listMnpEntriesApi();
       setEntries(res?.entries ?? []);
       if (Array.isArray(res?.filialeOptions) && res.filialeOptions.length > 0) {
         setFilialeOptions(res.filialeOptions);
@@ -80,8 +72,8 @@ const System = () => {
   }, []);
 
   useEffect(() => {
-    if (user && isAdmin(user)) loadList();
-  }, [user, loadList]);
+    loadList();
+  }, [loadList]);
 
   useEffect(() => {
     if (!showForm || mode !== 'new' || !navbarFiliale) return;
@@ -98,8 +90,11 @@ const System = () => {
 
   const startNew = () => {
     setActiveId(null);
-    setForm({ ...emptyVorvertragForm(), filiale: navbarFiliale });
-    setGeraetSeed('');
+    setForm({
+      ...emptyMnpForm(),
+      filiale: navbarFiliale,
+      mitarbeiter: defaultMitarbeiter
+    });
     setMode('new');
     setShowForm(true);
     setError('');
@@ -109,9 +104,7 @@ const System = () => {
 
   const startEdit = (entry) => {
     setActiveId(entry.id);
-    const nextForm = formFromEntry(entry);
-    setForm(nextForm);
-    setGeraetSeed(nextForm.ausgabeGeraet);
+    setForm(formFromMnpEntry(entry));
     setMode('edit');
     setShowForm(true);
     setError('');
@@ -122,22 +115,12 @@ const System = () => {
   const cancelForm = () => {
     setShowForm(false);
     setActiveId(null);
-    setForm(emptyVorvertragForm());
-    setGeraetSeed('');
+    setForm(emptyMnpForm());
     setMode('new');
   };
 
   const handleFormChange = (field, value) => {
-    setForm((prev) => {
-      if (field === 'ausgabeGeraet') {
-        return { ...prev, ausgabeGeraet: value, ausgabeFarbe: '' };
-      }
-      return { ...prev, [field]: value };
-    });
-  };
-
-  const handleFormPatch = (patch) => {
-    setForm((prev) => ({ ...prev, ...patch }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -152,22 +135,26 @@ const System = () => {
         setSaving(false);
         return;
       }
-      const payload = buildVorvertragPayload({ ...form, filiale: filialeForSave });
+      const payload = buildMnpPayload({
+        ...form,
+        filiale: filialeForSave,
+        mitarbeiter: form.mitarbeiter || defaultMitarbeiter
+      });
       let savedId = activeId;
 
       if (mode === 'edit' && activeId) {
-        const res = await updateVorvertragApi(activeId, payload);
+        const res = await updateMnpEntryApi(activeId, payload);
         savedId = res?.entry?.id || activeId;
         setSuccessToast({
           type: 'success',
-          message: 'Vorvertrag wurde aktualisiert. Die Karte in der Liste ist bearbeitbar.'
+          message: 'MNP-Eintrag wurde aktualisiert.'
         });
       } else {
-        const res = await createVorvertragApi(payload);
+        const res = await createMnpEntryApi(payload);
         savedId = res?.entry?.id || null;
         setSuccessToast({
           type: 'success',
-          message: 'Vorvertrag eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
+          message: 'MNP-Eintrag eingereicht. Die Daten wurden als Karte in der Liste gespeichert.'
         });
       }
 
@@ -187,42 +174,11 @@ const System = () => {
     }
   };
 
-  if (!user || !isAdmin(user)) {
-    return <Navigate to="/" replace />;
-  }
-
   return (
-    <div className="system-page container">
-      <h1 className="system-page-title">Ticketing System</h1>
-
-      <div className="system-tabs" role="tablist" aria-label="Ticketing System Bereiche">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'vorvertrag'}
-          className={`system-tab${activeTab === 'vorvertrag' ? ' system-tab--active' : ''}`}
-          onClick={() => setActiveTab('vorvertrag')}
-        >
-          Vorvertrag
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'mnp'}
-          className={`system-tab${activeTab === 'mnp' ? ' system-tab--active' : ''}`}
-          onClick={() => setActiveTab('mnp')}
-        >
-          MNP
-        </button>
-      </div>
-
-      {activeTab === 'mnp' ? (
-        <MnpTab />
-      ) : (
-        <>
+    <>
       <div className="system-toolbar">
         <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
-          Neuer Vorvertrag
+          Neuer MNP-Eintrag
         </button>
       </div>
 
@@ -242,22 +198,16 @@ const System = () => {
       ) : null}
 
       {error ? <p className="vorvertrag-error" role="alert">{error}</p> : null}
-      {geraeteError ? <p className="vorvertrag-error" role="alert">{geraeteError}</p> : null}
 
       {showForm ? (
         <div ref={formRef}>
-          <VorvertragForm
+          <MnpForm
             form={form}
             onChange={handleFormChange}
-            onPatch={handleFormPatch}
             onSubmit={handleSubmit}
             onCancel={cancelForm}
             filialeOptions={filialeOptions}
             navbarFiliale={navbarFiliale}
-            existingEntries={entries}
-            imeis={imeis}
-            geraeteLoading={geraeteLoading}
-            geraetSeed={geraetSeed}
             saving={saving}
             mode={mode}
           />
@@ -268,11 +218,11 @@ const System = () => {
         {loading ? (
           <p className="vorvertrag-empty">Laden…</p>
         ) : entries.length === 0 ? (
-          <p className="vorvertrag-empty">Noch keine Vorverträge erfasst.</p>
+          <p className="vorvertrag-empty">Noch keine MNP-Einträge erfasst.</p>
         ) : (
           <div className="vorvertrag-cards-grid">
             {entries.map((entry) => (
-              <VorvertragEntryCard
+              <MnpEntryCard
                 key={entry.id}
                 entry={entry}
                 onEdit={startEdit}
@@ -282,10 +232,6 @@ const System = () => {
           </div>
         )}
       </section>
-        </>
-      )}
-    </div>
+    </>
   );
-};
-
-export default System;
+}

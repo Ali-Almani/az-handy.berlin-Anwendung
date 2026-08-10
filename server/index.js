@@ -81,6 +81,7 @@ const mountRoutes = async () => {
   const imeisRoutes = (await import('./routes/imeis.routes.js')).default;
   const formularCenterRoutes = (await import('./routes/formularCenter.routes.js')).default;
   const vorvertragRoutes = (await import('./routes/vorvertrag.routes.js')).default;
+  const mnpRoutes = (await import('./routes/mnp.routes.js')).default;
 
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
@@ -89,6 +90,7 @@ const mountRoutes = async () => {
   app.use('/api/imeis', imeisRoutes);
   app.use('/api/formular-center', formularCenterRoutes);
   app.use('/api/vorvertrag', vorvertragRoutes);
+  app.use('/api/mnp', mnpRoutes);
 
   app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });

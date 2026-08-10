@@ -26,7 +26,11 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: $text-light;
-  cursor: default;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-color;
+  }
 
   &--active {
     color: $primary-color;
