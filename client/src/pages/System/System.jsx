@@ -18,6 +18,7 @@ import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import { emptyMnpDetails } from './mnpConstants';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
+import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
 import './System.scss';
 
 const TOAST_MS = 4500;
@@ -39,6 +40,7 @@ const System = () => {
   const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
   const [listTab, setListTab] = useState('neu');
+  const [archivSearch, setArchivSearch] = useState('');
   const [statusSavingId, setStatusSavingId] = useState('');
 
   const defaultMitarbeiter = useMemo(() => {
@@ -54,9 +56,14 @@ const System = () => {
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
       const archived = isVorvertragArchived(entry);
-      return listTab === 'archiv' ? archived : !archived;
+      const inTab = listTab === 'archiv' ? archived : !archived;
+      if (!inTab) return false;
+      if (listTab === 'archiv' && archivSearch.trim()) {
+        return entryMatchesCustomerNameSearch(entry, archivSearch);
+      }
+      return true;
     });
-  }, [entries, listTab]);
+  }, [entries, listTab, archivSearch]);
 
   const neuCount = useMemo(
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length,
@@ -262,7 +269,10 @@ const System = () => {
           role="tab"
           aria-selected={listTab === 'neu'}
           className={`system-tab${listTab === 'neu' ? ' system-tab--active' : ''}`}
-          onClick={() => setListTab('neu')}
+          onClick={() => {
+            setListTab('neu');
+            setArchivSearch('');
+          }}
         >
           Neu ({neuCount})
         </button>
@@ -323,11 +333,29 @@ const System = () => {
       ) : null}
 
       <section className="vorvertrag-cards-section" ref={cardsSectionRef}>
+        {listTab === 'archiv' ? (
+          <div className="system-archiv-search">
+            <label htmlFor="archiv-kunde-suche" className="form-label">Kunde suchen</label>
+            <input
+              id="archiv-kunde-suche"
+              type="search"
+              className="form-input"
+              value={archivSearch}
+              onChange={(ev) => setArchivSearch(ev.target.value)}
+              placeholder="Nach Kundenname suchen…"
+              autoComplete="off"
+            />
+          </div>
+        ) : null}
         {loading ? (
           <p className="vorvertrag-empty">Laden…</p>
         ) : filteredEntries.length === 0 ? (
           <p className="vorvertrag-empty">
-            {listTab === 'archiv' ? 'Keine erledigten Vorverträge im Archiv.' : 'Keine offenen Vorverträge.'}
+            {listTab === 'archiv' && archivSearch.trim()
+              ? 'Keine Treffer für diesen Kundenname im Archiv.'
+              : listTab === 'archiv'
+                ? 'Keine erledigten Vorverträge im Archiv.'
+                : 'Keine offenen Vorverträge.'}
           </p>
         ) : (
           <div className="vorvertrag-cards-grid">

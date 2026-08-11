@@ -14,6 +14,22 @@ export function customerKey(entry) {
   return `name:${vorname}|${nachname}`;
 }
 
+function customerNameHaystack(entry) {
+  const label = customerLabel(entry);
+  return [label, entry?.kundeVorname, entry?.kundeNachname]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+export function entryMatchesCustomerNameSearch(entry, query) {
+  const q = String(query ?? '').trim().toLowerCase();
+  if (!q) return true;
+  const terms = q.split(/\s+/).filter(Boolean);
+  const nameHaystack = customerNameHaystack(entry);
+  return terms.every((term) => nameHaystack.includes(term));
+}
+
 /** Eindeutige Kunden aus bestehenden Vorverträgen (neueste Daten pro Schlüssel). */
 export function buildCustomerCatalog(entries = []) {
   const byKey = new Map();
@@ -34,14 +50,7 @@ export function buildCustomerCatalog(entries = []) {
 export function filterCustomerCatalogByName(catalog, query) {
   const q = String(query ?? '').trim().toLowerCase();
   if (!q) return [];
-  const terms = q.split(/\s+/).filter(Boolean);
-  return catalog.filter(({ label, entry }) => {
-    const nameHaystack = [label, entry?.kundeVorname, entry?.kundeNachname]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    return terms.every((term) => nameHaystack.includes(term));
-  });
+  return catalog.filter(({ entry }) => entryMatchesCustomerNameSearch(entry, query));
 }
 
 export function filterCustomerCatalog(catalog, query) {
