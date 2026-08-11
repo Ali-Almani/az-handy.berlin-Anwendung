@@ -1,3 +1,6 @@
+import { emptyMnpDetails, mnpDetailsFromEingabe } from './mnpConstants';
+import { normalizeMitOhne } from './vorvertragGeraeteUtils';
+
 export function customerLabel(entry) {
   const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ').trim();
   return name || 'Unbekannter Kunde';
@@ -28,6 +31,19 @@ export function buildCustomerCatalog(entries = []) {
   return [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label, 'de'));
 }
 
+export function filterCustomerCatalogByName(catalog, query) {
+  const q = String(query ?? '').trim().toLowerCase();
+  if (!q) return [];
+  const terms = q.split(/\s+/).filter(Boolean);
+  return catalog.filter(({ label, entry }) => {
+    const nameHaystack = [label, entry?.kundeVorname, entry?.kundeNachname]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return terms.every((term) => nameHaystack.includes(term));
+  });
+}
+
 export function filterCustomerCatalog(catalog, query) {
   const q = String(query ?? '').trim().toLowerCase();
   if (!q) return catalog;
@@ -48,7 +64,7 @@ export function filterCustomerCatalog(catalog, query) {
   });
 }
 
-/** Kundendaten aus Bestandskunde übernehmen – Vertragsfelder bleiben leer. */
+/** Kundendaten aus Archiv übernehmen – Datum/Filiale bleiben vom neuen Vorvertrag. */
 export function customerPatchFromEntry(entry, currentForm = {}) {
   const e = entry?.eingabeDetails || {};
   return {
@@ -62,6 +78,34 @@ export function customerPatchFromEntry(entry, currentForm = {}) {
     eposKundenummer: e.eposKundenummer || '',
     datum: currentForm.datum,
     filiale: currentForm.filiale
+  };
+}
+
+/** Alle relevanten Felder aus Archiv-Vorvertrag für neuen Wizard (bearbeitbar). */
+export function wizardPatchFromArchiveEntry(entry, currentForm = {}) {
+  const e = entry?.eingabeDetails || {};
+  const mnp = mnpDetailsFromEingabe(e);
+  return {
+    ...customerPatchFromEntry(entry, currentForm),
+    anschlussJaNein: entry?.anschluss?.jaNein || 'nein',
+    anschlussWert: entry?.anschluss?.wert || '',
+    zuzahlungJaNein: entry?.zuzahlung?.jaNein || 'nein',
+    zuzahlungWert: entry?.zuzahlung?.wert || '',
+    imeisMonate: e.imeisMonate || '',
+    hwVoucher: e.hwVoucher || '',
+    kombi: normalizeMitOhne(e.kombi),
+    vvl: normalizeMitOhne(e.vvl),
+    notiz: e.notiz || '',
+    mnpDetails: {
+      ...emptyMnpDetails(),
+      ...mnp,
+      status: 'Offen',
+      mnpBestaetigungsdatum: '',
+      neuesVertragsdatum: currentForm.datum || mnp.neuesVertragsdatum || ''
+    },
+    ausgabeGeraet: '',
+    ausgabeFarbe: '',
+    ausgabeVerfuegbarkeit: ''
   };
 }
 

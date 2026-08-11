@@ -105,6 +105,7 @@ export default function VorvertragForm({
   filialeOptions = FILIALE_OPTIONS,
   navbarFiliale = '',
   existingEntries = [],
+  archivedEntries = [],
   imeis = [],
   geraeteLoading = false,
   geraetSeed = '',
@@ -120,7 +121,7 @@ export default function VorvertragForm({
         onSubmit={onSubmit}
         onCancel={onCancel}
         navbarFiliale={navbarFiliale}
-        existingEntries={existingEntries}
+        archivedEntries={archivedEntries}
         imeis={imeis}
         geraeteLoading={geraeteLoading}
         geraetSeed={geraetSeed}

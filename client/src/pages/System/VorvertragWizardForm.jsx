@@ -6,10 +6,10 @@ import { patchFromImeisMonate } from './vorvertragGeraeteUtils';
 import { emptyMnpDetails, validateMnpDetailsForSubmit } from './mnpConstants';
 import {
   buildCustomerCatalog,
-  customerPreviewLines,
-  customerPatchFromEntry,
-  filterCustomerCatalog
+  filterCustomerCatalogByName,
+  wizardPatchFromArchiveEntry
 } from './vorvertragCustomerUtils';
+import { formatEinsatzOrt } from '../../constants/einsatzorte';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
@@ -28,7 +28,7 @@ export default function VorvertragWizardForm({
   onSubmit,
   onCancel,
   navbarFiliale = '',
-  existingEntries = [],
+  archivedEntries = [],
   imeis = [],
   geraeteLoading = false,
   geraetSeed = '',
@@ -55,17 +55,70 @@ export default function VorvertragWizardForm({
     });
   };
 
-  const catalog = useMemo(() => buildCustomerCatalog(existingEntries), [existingEntries]);
+  const catalog = useMemo(() => buildCustomerCatalog(archivedEntries), [archivedEntries]);
   const filteredCatalog = useMemo(
-    () => filterCustomerCatalog(catalog, kundeSearch),
+    () => filterCustomerCatalogByName(catalog, kundeSearch),
     [catalog, kundeSearch]
   );
 
   const selectExistingCustomer = (item) => {
     setSelectedKundeKey(item.key);
-    onPatch?.(customerPatchFromEntry(item.entry, form));
+    onPatch?.(wizardPatchFromArchiveEntry(item.entry, form));
     setStepError('');
   };
+
+  const renderArchiveCustomerSearch = () => (
+    <div className="vorvertrag-archive-search">
+      <div className="form-group">
+        <label htmlFor="vv-kunde-suche" className="form-label">Kunde im Archiv suchen</label>
+        <input
+          id="vv-kunde-suche"
+          type="search"
+          className="form-input"
+          value={kundeSearch}
+          onChange={(ev) => setKundeSearch(ev.target.value)}
+          placeholder="Nach Kundenname suchen…"
+          autoComplete="off"
+        />
+      </div>
+      {catalog.length === 0 ? (
+        <p className="vorvertrag-step-hint">Im Archiv sind noch keine erledigten Vorverträge mit Kundennamen vorhanden.</p>
+      ) : !kundeSearch.trim() ? (
+        <p className="vorvertrag-step-hint">Bitte einen Kundenname eingeben, um im Archiv zu suchen.</p>
+      ) : (
+        <ul className="vorvertrag-kunden-list">
+          {filteredCatalog.length === 0 ? (
+            <li className="vorvertrag-kunden-list__empty">Keine Treffer im Archiv.</li>
+          ) : (
+            filteredCatalog.map((item) => {
+              const e = item.entry?.eingabeDetails || {};
+              return (
+                <li key={item.key}>
+                  <button
+                    type="button"
+                    className={`vorvertrag-kunden-list__item${selectedKundeKey === item.key ? ' vorvertrag-kunden-list__item--selected' : ''}`}
+                    onClick={() => selectExistingCustomer(item)}
+                  >
+                    <span className="vorvertrag-kunden-list__name">{item.label}</span>
+                    <span className="vorvertrag-kunden-list__meta">
+                      {[formatEinsatzOrt(item.entry?.filiale), item.entry?.datum, e.eposKundenummer ? `ePOS: ${e.eposKundenummer}` : '']
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
+      {selectedKundeKey ? (
+        <p className="vorvertrag-step-hint vorvertrag-step-hint--success">
+          Kundendaten aus dem Archiv übernommen. Sie können alle Felder in den nächsten Schritten anpassen.
+        </p>
+      ) : null}
+    </div>
+  );
 
   const validateStep = (currentStep) => {
     if (currentStep === 1) {
@@ -138,6 +191,7 @@ export default function VorvertragWizardForm({
             onChange={() => {
               setKundenArt('bestand');
               setSelectedKundeKey('');
+              setKundeSearch('');
               setStepError('');
             }}
           />
@@ -152,6 +206,7 @@ export default function VorvertragWizardForm({
             onChange={() => {
               setKundenArt('neu');
               setSelectedKundeKey('');
+              setKundeSearch('');
               setStepError('');
             }}
           />
@@ -271,6 +326,11 @@ export default function VorvertragWizardForm({
         <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
           {renderKundenArtChoice()}
         </div>
+        {kundenArt === 'bestand' ? (
+          <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
+            {renderArchiveCustomerSearch()}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -278,66 +338,14 @@ export default function VorvertragWizardForm({
   const renderStep2 = () => (
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">
-        Schritt 2 – {kundenArt === 'bestand' ? 'Bestandskunde suchen' : 'Neukunde erfassen'}
+        Schritt 2 – {kundenArt === 'bestand' ? 'Kundendaten prüfen & anpassen' : 'Neukunde erfassen'}
       </h3>
-      {kundenArt === 'bestand' ? (
-        <>
-          <div className="form-group">
-            <label htmlFor="vv-kunde-suche" className="form-label">Kunde suchen</label>
-            <input
-              id="vv-kunde-suche"
-              type="search"
-              className="form-input"
-              value={kundeSearch}
-              onChange={(ev) => setKundeSearch(ev.target.value)}
-              placeholder="Name, ePOS, Pass oder IBAN…"
-              autoComplete="off"
-            />
-          </div>
-          {catalog.length === 0 ? (
-            <p className="vorvertrag-step-hint">Noch keine Bestandskunden aus früheren Vorverträgen vorhanden.</p>
-          ) : (
-            <ul className="vorvertrag-kunden-list">
-              {filteredCatalog.length === 0 ? (
-                <li className="vorvertrag-kunden-list__empty">Keine Treffer.</li>
-              ) : (
-                filteredCatalog.map((item) => {
-                  const e = item.entry?.eingabeDetails || {};
-                  return (
-                    <li key={item.key}>
-                      <button
-                        type="button"
-                        className={`vorvertrag-kunden-list__item${selectedKundeKey === item.key ? ' vorvertrag-kunden-list__item--selected' : ''}`}
-                        onClick={() => selectExistingCustomer(item)}
-                      >
-                        <span className="vorvertrag-kunden-list__name">{item.label}</span>
-                        {e.eposKundenummer ? (
-                          <span className="vorvertrag-kunden-list__meta">ePOS: {e.eposKundenummer}</span>
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-          )}
-          {selectedKundeKey ? (
-            <div className="vorvertrag-kunden-preview">
-              <h4 className="vorvertrag-kunden-preview__title">Übernommene Kundendaten</h4>
-              <dl className="vorvertrag-kunden-preview__grid">
-                {customerPreviewLines(form).map(([label, value]) => (
-                  <div key={label} className="vorvertrag-kunden-preview__row">
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        renderCustomerFields()
-      )}
+      {kundenArt === 'bestand' && selectedKundeKey ? (
+        <p className="vorvertrag-step-hint">
+          Daten aus dem Archiv – alle Felder können geändert werden.
+        </p>
+      ) : null}
+      {renderCustomerFields()}
     </div>
   );
 

@@ -67,6 +67,11 @@ const System = () => {
     [entries]
   );
 
+  const archivedEntries = useMemo(
+    () => entries.filter((entry) => isVorvertragArchived(entry)),
+    [entries]
+  );
+
   const {
     imeis,
     loading: geraeteLoading,
@@ -307,6 +312,7 @@ const System = () => {
             filialeOptions={filialeOptions}
             navbarFiliale={navbarFiliale}
             existingEntries={entries}
+            archivedEntries={archivedEntries}
             imeis={imeis}
             geraeteLoading={geraeteLoading}
             geraetSeed={geraetSeed}
