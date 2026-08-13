@@ -36,6 +36,7 @@ export default function VorvertragWizardForm({
 }) {
   const [step, setStep] = useState(1);
   const [kundenArt, setKundenArt] = useState('');
+  const [mitMnp, setMitMnp] = useState('');
   const [kundeSearch, setKundeSearch] = useState('');
   const [selectedKundeKey, setSelectedKundeKey] = useState('');
   const [stepError, setStepError] = useState('');
@@ -43,6 +44,7 @@ export default function VorvertragWizardForm({
   useEffect(() => {
     setStep(1);
     setKundenArt('');
+    setMitMnp('');
     setKundeSearch('');
     setSelectedKundeKey('');
     setStepError('');
@@ -133,7 +135,8 @@ export default function VorvertragWizardForm({
       }
     }
     if (currentStep === 5) {
-      return validateMnpDetailsForSubmit(form.mnpDetails);
+      if (!mitMnp) return 'Bitte wählen, ob MNP durchgeführt wird.';
+      if (mitMnp === 'ja') return validateMnpDetailsForSubmit(form.mnpDetails);
     }
     return '';
   };
@@ -144,6 +147,14 @@ export default function VorvertragWizardForm({
       if (err) return { err, step: s };
     }
     return { err: '', step: STEPS.length };
+  };
+
+  const setMitMnpChoice = (value) => {
+    setMitMnp(value);
+    setStepError('');
+    if (value === 'nein') {
+      onPatch?.({ mnpDetails: emptyMnpDetails() });
+    }
   };
 
   const goNext = () => {
@@ -164,8 +175,7 @@ export default function VorvertragWizardForm({
   const handleSubmit = (event) => {
     event.preventDefault();
     if (step !== STEPS.length) {
-      setStepError('Bitte zuerst Schritt 5 (MNP) ausfüllen.');
-      setStep(STEPS.length);
+      setStepError('Bitte alle Schritte durchlaufen.');
       return;
     }
     const { err, step: invalidStep } = validateAllSteps();
@@ -177,6 +187,34 @@ export default function VorvertragWizardForm({
     setStepError('');
     onSubmit(event);
   };
+
+  const renderMitMnpChoice = () => (
+    <div className="vorvertrag-kundenart">
+      <span className="form-label">Mit MNP?</span>
+      <div className="vorvertrag-kundenart__options">
+        <label className={`vorvertrag-kundenart__option${mitMnp === 'ja' ? ' vorvertrag-kundenart__option--active' : ''}`}>
+          <input
+            type="radio"
+            name="mitMnp"
+            value="ja"
+            checked={mitMnp === 'ja'}
+            onChange={() => setMitMnpChoice('ja')}
+          />
+          <span>Ja</span>
+        </label>
+        <label className={`vorvertrag-kundenart__option${mitMnp === 'nein' ? ' vorvertrag-kundenart__option--active' : ''}`}>
+          <input
+            type="radio"
+            name="mitMnp"
+            value="nein"
+            checked={mitMnp === 'nein'}
+            onChange={() => setMitMnpChoice('nein')}
+          />
+          <span>Nein</span>
+        </label>
+      </div>
+    </div>
+  );
 
   const renderKundenArtChoice = () => (
     <div className="vorvertrag-kundenart">
@@ -510,17 +548,28 @@ export default function VorvertragWizardForm({
   );
 
   const renderStep5 = () => (
-    <>
-      <p className="vorvertrag-step-hint">
-        Pflichtfelder: Postpaid/Prepaid, MNP-Details, freigegeben?, MNP Typ. Erst danach wird die Karte erstellt.
-      </p>
-      <MnpFieldsSection
-        details={form.mnpDetails}
-        onChange={handleMnpChange}
-        idPrefix="vv-wizard-mnp"
-        showTitle={false}
-      />
-    </>
+    <div className="vorvertrag-section">
+      <h3 className="vorvertrag-section-title">Schritt 5 – MNP</h3>
+      {renderMitMnpChoice()}
+      {mitMnp === 'nein' ? (
+        <p className="vorvertrag-step-hint">
+          Kein MNP – Sie können den Vorvertrag jetzt einreichen.
+        </p>
+      ) : null}
+      {mitMnp === 'ja' ? (
+        <>
+          <p className="vorvertrag-step-hint">
+            Pflichtfelder: Postpaid/Prepaid, MNP-Details, freigegeben?, MNP Typ.
+          </p>
+          <MnpFieldsSection
+            details={form.mnpDetails}
+            onChange={handleMnpChange}
+            idPrefix="vv-wizard-mnp"
+            showTitle={false}
+          />
+        </>
+      ) : null}
+    </div>
   );
 
   return (
