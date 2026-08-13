@@ -7,6 +7,7 @@ export {
   extractGB,
   extractProductVersion,
   extractProductVariant,
+  productVersionMatches,
   extractColor,
   removeColorAndManufacturerFromProduct,
   hasO2Aktion,

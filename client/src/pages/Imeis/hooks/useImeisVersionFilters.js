@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
+import { isAppleManufacturerName, isAppleWatchProductFull, productVersionMatches } from '../utils/imeisProductUtils';
 
 const convertToGB = (gbStr) => {
   const value = parseInt(gbStr.replace(/[^\d]/g, '')) || 0;
@@ -83,7 +83,7 @@ export function useImeisVersionFilters({
     if (activeVersion) {
       const versionFiltered = allManufacturerItems.filter(item => {
         const productFull = getProductFull(item);
-        return extractProductVersion(productFull) === activeVersion;
+        return productVersionMatches(extractProductVersion(productFull), activeVersion);
       });
       const variants = new Set();
       versionFiltered.forEach(item => {
@@ -100,7 +100,7 @@ export function useImeisVersionFilters({
         const productFull = getProductFull(item);
         const version = extractProductVersion(productFull);
         const variant = extractProductVariant(productFull);
-        if (version !== activeVersion) return false;
+        if (version !== activeVersion && !productVersionMatches(version, activeVersion)) return false;
         if (activeVariant === '') return variant === '';
         return variant === activeVariant;
       });
@@ -120,7 +120,7 @@ export function useImeisVersionFilters({
         const version = extractProductVersion(productFull);
         const variant = extractProductVariant(productFull);
         const gb = extractGB(productFull);
-        if (version !== activeVersion) return false;
+        if (version !== activeVersion && !productVersionMatches(version, activeVersion)) return false;
         if (activeVariant === '') { if (variant !== '') return false; } else { if (variant !== activeVariant) return false; }
         return gb === activeGB;
       });
@@ -134,7 +134,11 @@ export function useImeisVersionFilters({
       setAvailableColors([]);
     }
 
-    if (activeVersion && !versionsArray.includes(activeVersion)) {
+    if (
+      activeVersion &&
+      !versionsArray.includes(activeVersion) &&
+      !versionsArray.some((v) => productVersionMatches(v, activeVersion) || productVersionMatches(activeVersion, v))
+    ) {
       setActiveVersion(null);
       setActiveVariant(null);
       setActiveGB(null);
@@ -144,7 +148,7 @@ export function useImeisVersionFilters({
       const currentVariants = new Set();
       allManufacturerItems.forEach(item => {
         const productFull = getProductFull(item);
-        if (extractProductVersion(productFull) === activeVersion) {
+        if (extractProductVersion(productFull) === activeVersion || productVersionMatches(extractProductVersion(productFull), activeVersion)) {
           currentVariants.add(extractProductVariant(productFull) || '');
         }
       });
@@ -160,7 +164,7 @@ export function useImeisVersionFilters({
         const productFull = getProductFull(item);
         const version = extractProductVersion(productFull);
         const variant = extractProductVariant(productFull);
-        if (version === activeVersion && (activeVariant === '' ? variant === '' : variant === activeVariant)) {
+        if ((version === activeVersion || productVersionMatches(version, activeVersion)) && (activeVariant === '' ? variant === '' : variant === activeVariant)) {
           const gb = extractGB(productFull);
           if (gb) currentGBs.add(gb);
         }

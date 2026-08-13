@@ -84,6 +84,12 @@ const ExcelUpload = ({ embedded = false }) => {
           (addedRows.length > 0
             ? `${addedRows.length} neue IMEI(s) verarbeitet.`
             : 'Liste unverändert (nur Duplikate in der Datei).');
+        if (response.parsedFromFile != null && response.parsedFromFile > (response.added ?? 0)) {
+          const updated = response.updatedFromUpload ?? 0;
+          if (updated > 0) {
+            detailMsg = `${detailMsg} Hinweis: ${response.parsedFromFile} Zeilen in der Datei – ${updated} IMEI(s) waren bereits in der Liste und wurden aktualisiert (nicht doppelt angelegt).`;
+          }
+        }
         if (Array.isArray(response.parsePreview) && response.parsePreview.length > 0) {
           detailMsg = `${detailMsg} Stichprobe aus der Datei (maskiert): ${response.parsePreview.join(', ')}.`;
         }

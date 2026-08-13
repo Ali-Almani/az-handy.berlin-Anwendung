@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
-import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
+import { isAppleManufacturerName, isAppleWatchProductFull, productVersionMatches } from '../utils/imeisProductUtils';
 
 export function useImeisMainFilter({
   imeis,
@@ -30,6 +30,10 @@ export function useImeisMainFilter({
   const prevFilterRef = useRef(null);
 
   useEffect(() => {
+    const q = searchTerm.trim();
+    const imeiDigits = q.replace(/\D/g, '');
+    const isImeiSearch = imeiDigits.length >= 8;
+
     let filtered = imeis;
     if (sonderOnly) {
       if (!sonderImeiKeySet || sonderImeiKeySet.size === 0) {
@@ -42,62 +46,71 @@ export function useImeisMainFilter({
       }
     }
     if (activeSheet) filtered = filtered.filter(item => item.sheet === activeSheet);
-    if (activeManufacturer) {
-      filtered = filtered.filter(item => {
-        const manufacturer = getManufacturer(item);
-        return manufacturer && manufacturer.trim() === activeManufacturer;
-      });
-    }
-    if (activeManufacturer && isAppleManufacturerName(activeManufacturer) && activeAppleHardwareTab) {
-      filtered = filtered.filter((item) => {
-        const pf = getProductFull(item);
-        const isWatch = isAppleWatchProductFull(pf);
-        if (activeAppleHardwareTab === 'watch') return isWatch;
-        if (activeAppleHardwareTab === 'iphone') return !isWatch;
-        return true;
-      });
-    }
-    if (activeManufacturer) {
-      if (activeVersion) {
-        filtered = filtered.filter(item => extractProductVersion(getProductFull(item)) === activeVersion);
-      }
-      if (activeVersion && activeVariant !== null) {
+
+    if (isImeiSearch) {
+      filtered = filtered.filter((item) =>
+        String(item?.imei || '').replace(/\D/g, '').includes(imeiDigits)
+      );
+    } else {
+      if (activeManufacturer) {
         filtered = filtered.filter(item => {
-          const productFull = getProductFull(item);
-          const version = extractProductVersion(productFull);
-          const variant = extractProductVariant(productFull);
-          if (version !== activeVersion) return false;
-          if (activeVariant === '') return variant === '';
-          return variant === activeVariant;
+          const manufacturer = getManufacturer(item);
+          return manufacturer && manufacturer.trim() === activeManufacturer;
         });
       }
-      if (activeVersion && activeVariant !== null && activeGB) {
-        filtered = filtered.filter(item => extractGB(getProductFull(item)) === activeGB);
-      }
-    }
-    if (!activeVersion && activeProduct) {
-      if (activeProduct === 'o2-Aktion') {
-        filtered = filtered.filter(item => hasO2Aktion(item));
-      } else {
-        filtered = filtered.filter(item => {
-          const product = getProduct(item);
-          return product && product.trim() === activeProduct;
+      if (activeManufacturer && isAppleManufacturerName(activeManufacturer) && activeAppleHardwareTab) {
+        filtered = filtered.filter((item) => {
+          const pf = getProductFull(item);
+          const isWatch = isAppleWatchProductFull(pf);
+          if (activeAppleHardwareTab === 'watch') return isWatch;
+          if (activeAppleHardwareTab === 'iphone') return !isWatch;
+          return true;
         });
       }
-    }
-    if (searchTerm.trim() !== '') {
-      const q = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(item => {
-        const imei = String(item?.imei || '').toLowerCase();
-        if (imei.includes(q)) return true;
-        const manufacturer = String(getManufacturer?.(item) || '').toLowerCase();
-        if (manufacturer.includes(q)) return true;
-        const product = String(getProduct?.(item) || '').toLowerCase();
-        if (product.includes(q)) return true;
-        const productFull = String(getProductFull?.(item) || '').toLowerCase();
-        if (productFull.includes(q)) return true;
-        return false;
-      });
+      if (activeManufacturer) {
+        if (activeVersion) {
+          filtered = filtered.filter(item =>
+            productVersionMatches(extractProductVersion(getProductFull(item)), activeVersion)
+          );
+        }
+        if (activeVersion && activeVariant !== null) {
+          filtered = filtered.filter(item => {
+            const productFull = getProductFull(item);
+            const version = extractProductVersion(productFull);
+            const variant = extractProductVariant(productFull);
+            if (!productVersionMatches(version, activeVersion)) return false;
+            if (activeVariant === '') return variant === '';
+            return variant === activeVariant;
+          });
+        }
+        if (activeVersion && activeVariant !== null && activeGB) {
+          filtered = filtered.filter(item => extractGB(getProductFull(item)) === activeGB);
+        }
+      }
+      if (!activeVersion && activeProduct) {
+        if (activeProduct === 'o2-Aktion') {
+          filtered = filtered.filter(item => hasO2Aktion(item));
+        } else {
+          filtered = filtered.filter(item => {
+            const product = getProduct(item);
+            return product && product.trim() === activeProduct;
+          });
+        }
+      }
+      if (q !== '') {
+        const qLower = q.toLowerCase();
+        filtered = filtered.filter(item => {
+          const imei = String(item?.imei || '').toLowerCase();
+          if (imei.includes(qLower)) return true;
+          const manufacturer = String(getManufacturer?.(item) || '').toLowerCase();
+          if (manufacturer.includes(qLower)) return true;
+          const product = String(getProduct?.(item) || '').toLowerCase();
+          if (product.includes(qLower)) return true;
+          const productFull = String(getProductFull?.(item) || '').toLowerCase();
+          if (productFull.includes(qLower)) return true;
+          return false;
+        });
+      }
     }
     // Reservieren: reservierte Zeilen sollen für ALLE Benutzer aus der Liste verschwinden.
     filtered = filtered.filter((item) => {

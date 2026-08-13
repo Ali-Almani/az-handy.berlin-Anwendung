@@ -2,16 +2,46 @@
  * Produkt-Extraktion (Version, Variante, Farbe, GB) aus Produktnamen
  */
 export const getProductFull = (item) => {
-  if (!item.rowData) return '';
-  for (const [key, value] of Object.entries(item.rowData)) {
+  if (!item?.rowData) return '';
+  const keysToCheck = item.columnOrder?.length > 0 ? item.columnOrder : Object.keys(item.rowData);
+
+  for (const key of keysToCheck) {
     if (!key) continue;
     const lowerKey = String(key).toLowerCase().trim();
-    if ((lowerKey === 'produkt' || lowerKey === 'product' || lowerKey.includes('produkt') || lowerKey.includes('product')) &&
-        value != null && String(value).trim()) {
-      return String(value).trim();
+    if (
+      (lowerKey === 'produkt' || lowerKey === 'product' || lowerKey.includes('produkt') || lowerKey.includes('product')) &&
+      item.rowData[key] != null &&
+      String(item.rowData[key]).trim()
+    ) {
+      return String(item.rowData[key]).trim();
     }
   }
+
+  for (const key of keysToCheck) {
+    if (!key) continue;
+    const lowerKey = String(key).toLowerCase().trim();
+    if (
+      (lowerKey.includes('artikel') && (lowerKey.includes('bezeichnung') || lowerKey.includes('name'))) &&
+      item.rowData[key] != null &&
+      String(item.rowData[key]).trim()
+    ) {
+      return String(item.rowData[key]).trim();
+    }
+  }
+
   return '';
+};
+
+/** Tab „17“ soll auch Produkte wie „17T“ / „17t“ einschließen. */
+export const productVersionMatches = (productVersion, activeVersion) => {
+  if (!activeVersion) return true;
+  if (!productVersion) return false;
+  if (productVersion === activeVersion) return true;
+  const pv = String(productVersion).toLowerCase();
+  const av = String(activeVersion).toLowerCase();
+  if (pv.startsWith(av) && /^[a-z]$/.test(pv.slice(av.length))) return true;
+  if (av.startsWith(pv) && /^[a-z]$/.test(av.slice(pv.length))) return true;
+  return false;
 };
 
 export const extractGB = (productName) => {
@@ -62,6 +92,12 @@ export const extractProductVersion = (productName) => {
   if (galaxyAMatch) return `A${galaxyAMatch[1]}`;
   const galaxyNoteMatch = productStr.match(/galaxy[\s\-_]?note[\s\-_]?(\d+)/i);
   if (galaxyNoteMatch) return `Note ${galaxyNoteMatch[1]}`;
+  const xiaomiMatch = productStr.match(/\bxiaomi[\s\-_]*(\d+)([a-z])?\b/i);
+  if (xiaomiMatch) {
+    const num = xiaomiMatch[1];
+    const letter = xiaomiMatch[2];
+    return letter ? `${num}${letter.toUpperCase()}` : num;
+  }
   const generalMatch = productStr.match(/(?:iphone|pixel|galaxy|xiaomi|oneplus|oppo|vivo|realme|huawei|honor|motorola|nokia)[\s\-_]?(\d+)/i);
   if (generalMatch) return generalMatch[1];
   const fallbackMatch = productStr.match(/(?:iphone|pixel|galaxy|xiaomi|oneplus|oppo|vivo|realme|huawei|honor|motorola|nokia)[^\d]*(?:[^\d\s]*\s+)?(\d+)(?!\s*(?:GB|TB|gb|tb))/i);
