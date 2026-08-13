@@ -549,7 +549,6 @@ export default function VorvertragWizardForm({
 
   const renderStep5 = () => (
     <div className="vorvertrag-section">
-      <h3 className="vorvertrag-section-title">Schritt 5 – MNP</h3>
       {renderMitMnpChoice()}
       {mitMnp === 'nein' ? (
         <p className="vorvertrag-step-hint">
