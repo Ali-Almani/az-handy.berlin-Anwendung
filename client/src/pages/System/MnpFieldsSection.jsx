@@ -9,7 +9,7 @@ import {
 function SelectField({ id, label, value, options, onChange, required = false }) {
   return (
     <div className="form-group">
-      <label htmlFor={id} className="form-label">{label}</label>
+      <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       <select
         id={id}
         className="form-input"

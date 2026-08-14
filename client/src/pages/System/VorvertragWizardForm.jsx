@@ -127,6 +127,9 @@ export default function VorvertragWizardForm({
       if (!form.datum?.trim()) return 'Bitte Datum wählen.';
       if (!navbarFiliale?.trim()) return 'Bitte zuerst eine Filiale in der Navbar wählen.';
       if (!kundenArt) return 'Bitte Kundenart wählen.';
+      if (kundenArt === 'bestand' && !selectedKundeKey) {
+        return 'Bitte einen Bestandskunden aus dem Archiv auswählen.';
+      }
     }
     if (currentStep === 2) {
       if (kundenArt === 'bestand' && !selectedKundeKey) return 'Bitte einen Bestandskunden auswählen.';
@@ -139,6 +142,14 @@ export default function VorvertragWizardForm({
       if (mitMnp === 'ja') return validateMnpDetailsForSubmit(form.mnpDetails);
     }
     return '';
+  };
+
+  const validateStepsUpTo = (maxStep) => {
+    for (let s = 1; s <= maxStep; s += 1) {
+      const err = validateStep(s);
+      if (err) return { err, step: s };
+    }
+    return { err: '', step: maxStep };
   };
 
   const validateAllSteps = () => {
@@ -158,9 +169,10 @@ export default function VorvertragWizardForm({
   };
 
   const goNext = () => {
-    const err = validateStep(step);
+    const { err, step: invalidStep } = validateStepsUpTo(step);
     if (err) {
       setStepError(err);
+      if (invalidStep !== step) setStep(invalidStep);
       return;
     }
     setStepError('');
@@ -188,9 +200,13 @@ export default function VorvertragWizardForm({
     onSubmit(event);
   };
 
+  const renderStepRequiredHint = (text) => (
+    <p className="vorvertrag-step-required-hint" role="note">{text}</p>
+  );
+
   const renderMitMnpChoice = () => (
     <div className="vorvertrag-kundenart">
-      <span className="form-label">Mit MNP?</span>
+      <span className="form-label form-label--required">Mit MNP?</span>
       <div className="vorvertrag-kundenart__options">
         <label className={`vorvertrag-kundenart__option${mitMnp === 'ja' ? ' vorvertrag-kundenart__option--active' : ''}`}>
           <input
@@ -218,7 +234,7 @@ export default function VorvertragWizardForm({
 
   const renderKundenArtChoice = () => (
     <div className="vorvertrag-kundenart">
-      <span className="form-label">Kunde</span>
+      <span className="form-label form-label--required">Kunde</span>
       <div className="vorvertrag-kundenart__options">
         <label className={`vorvertrag-kundenart__option${kundenArt === 'bestand' ? ' vorvertrag-kundenart__option--active' : ''}`}>
           <input
@@ -349,9 +365,10 @@ export default function VorvertragWizardForm({
   const renderStep1 = () => (
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">Schritt 1 – Grunddaten</h3>
+      {renderStepRequiredHint('Pflicht: Datum, Filiale in der Navbar, Kundenart. Bei Bestandskunde zusätzlich Kunde aus Archiv wählen.')}
       <div className="vorvertrag-form-grid">
         <div className="form-group">
-          <label htmlFor="vv-datum" className="form-label">Datum</label>
+          <label htmlFor="vv-datum" className="form-label form-label--required">Datum</label>
           <input
             id="vv-datum"
             type="date"
@@ -378,6 +395,9 @@ export default function VorvertragWizardForm({
       <h3 className="vorvertrag-section-title">
         Schritt 2 – {kundenArt === 'bestand' ? 'Kundendaten prüfen & anpassen' : 'Neukunde erfassen'}
       </h3>
+      {kundenArt === 'bestand'
+        ? renderStepRequiredHint('Pflicht: Bestandskunde aus dem Archiv auswählen (Schritt 1). Alle weiteren Kundendaten optional.')
+        : renderStepRequiredHint('Pflicht: mindestens Vor- oder Nachname. Alle weiteren Kundendaten optional.')}
       {kundenArt === 'bestand' && selectedKundeKey ? (
         <p className="vorvertrag-step-hint">
           Daten aus dem Archiv – alle Felder können geändert werden.
@@ -390,6 +410,7 @@ export default function VorvertragWizardForm({
   const renderStep3 = () => (
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">Schritt 3 – Ausgabe Details</h3>
+      {renderStepRequiredHint('Alle Felder optional: Gerät, Farbe, Verfügbarkeit.')}
       <div className="vorvertrag-form-grid">
         <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
           <VorvertragGeraetPicker
@@ -422,6 +443,7 @@ export default function VorvertragWizardForm({
 
   const renderStep4 = () => (
     <>
+      {renderStepRequiredHint('Alle Felder optional: Anschluss, Zuzahlung, IMEIs, HW-Voucher, Kombi, VVL, Notiz.')}
       <div className="vorvertrag-section">
         <h3 className="vorvertrag-section-title">Schritt 4 – Anschluss &amp; Zuzahlung</h3>
         <div className="vorvertrag-ja-nein-row">
@@ -549,6 +571,11 @@ export default function VorvertragWizardForm({
 
   const renderStep5 = () => (
     <div className="vorvertrag-section">
+      {renderStepRequiredHint(
+        mitMnp === 'ja'
+          ? 'Pflicht: Mit MNP = Ja, dann Postpaid/Prepaid, MNP-Details, freigegeben/nach Vertragsende, MNP Typ. Alle anderen MNP-Felder optional.'
+          : 'Pflicht: Mit MNP? (Ja oder Nein). Bei Nein keine MNP-Felder nötig.'
+      )}
       {renderMitMnpChoice()}
       {mitMnp === 'nein' ? (
         <p className="vorvertrag-step-hint">
@@ -558,7 +585,7 @@ export default function VorvertragWizardForm({
       {mitMnp === 'ja' ? (
         <>
           <p className="vorvertrag-step-hint">
-            Pflichtfelder: Postpaid/Prepaid, MNP-Details, freigegeben?, MNP Typ.
+            Mit * markierte MNP-Felder sind Pflicht.
           </p>
           <MnpFieldsSection
             details={form.mnpDetails}
@@ -576,8 +603,10 @@ export default function VorvertragWizardForm({
       className="vorvertrag-panel vorvertrag-form-panel vorvertrag-form-panel--wizard"
       onSubmit={handleSubmit}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' && step !== STEPS.length) {
+        if (event.key !== 'Enter') return;
+        if (step < STEPS.length) {
           event.preventDefault();
+          goNext();
         }
       }}
     >

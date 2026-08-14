@@ -603,6 +603,23 @@
   }
 }
 
+.form-label--required::after {
+  content: ' *';
+  color: darken($danger-color, 5%);
+  font-weight: $font-weight-bold;
+}
+
+.vorvertrag-step-required-hint {
+  margin: 0 0 $spacing-sm;
+  padding: 0.45rem 0.65rem;
+  border-radius: $border-radius-sm;
+  background: mix(#fff, $primary-color, 92%);
+  border: 1px solid mix(#fff, $primary-color, 70%);
+  color: darken($primary-color, 18%);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 .vorvertrag-archive-search {
   display: flex;
   flex-direction: column;
