@@ -1322,4 +1322,39 @@
       transform: translateX(-50%) translateY(0);
     }
   }
+
+  .imeis-accepted-archive-modal {
+    max-width: min(96vw, 56rem);
+  }
+
+  .imeis-accepted-archive-hint {
+    margin: 0 0 $spacing-md;
+    font-size: 0.88rem;
+    color: $text-light;
+    line-height: 1.45;
+  }
+
+  .imeis-accepted-archive-error {
+    margin: 0 0 $spacing-sm;
+    color: $danger-color;
+    font-size: 0.9rem;
+  }
+
+  .imeis-accepted-archive-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    align-items: flex-end;
+    margin-bottom: $spacing-md;
+
+    .form-group {
+      margin: 0;
+      min-width: 9rem;
+    }
+  }
+
+  .imeis-accepted-archive-table-wrap {
+    max-height: min(60vh, 480px);
+    overflow: auto;
+  }
 }

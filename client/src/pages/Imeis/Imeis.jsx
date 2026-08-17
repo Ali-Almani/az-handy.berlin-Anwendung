@@ -15,6 +15,7 @@ import { sendImeiReminderApi, getMyImeiRemindersApi, markImeiReminderReadApi, cr
 import ImeisZustandModal from './components/ImeisZustandModal';
 import ImeisRateLimitModal from './components/ImeisRateLimitModal';
 import ImeisSonderOfficeModal from './components/ImeisSonderOfficeModal';
+import ImeisAcceptedArchiveModal from './components/ImeisAcceptedArchiveModal';
 import './Imeis.scss';
 
 const Imeis = () => {
@@ -99,6 +100,9 @@ const Imeis = () => {
     sonderOnly,
     setSonderOnly,
     sonderImeiKeySet,
+    acceptedReuploadOnly,
+    setAcceptedReuploadOnly,
+    acceptedReuploadCount,
     showSonderOfficeModal,
     setShowSonderOfficeModal,
     sonderApproveBusy,
@@ -111,6 +115,9 @@ const Imeis = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [reminderImeiFilter, setReminderImeiFilter] = useState(null);
   const [imeiDeleteAllEnabled, setImeiDeleteAllEnabled] = useState(false);
+  const [showAcceptedArchiveModal, setShowAcceptedArchiveModal] = useState(false);
+
+  const canManageAcceptedArchive = Boolean(user && (isAdmin(user) || isBüroMitarbeiter(user)));
 
   useEffect(() => {
     let cancelled = false;
@@ -203,31 +210,56 @@ const Imeis = () => {
             }
             showSonderOfficeButton={Boolean(canOpenSonderOfficePopup && oldestTenCandidates.length > 0)}
             onOpenSonderOffice={() => setShowSonderOfficeModal(true)}
+            showAcceptedArchiveButton={canManageAcceptedArchive}
+            onShowAcceptedArchive={() => setShowAcceptedArchiveModal(true)}
           />
 
-          {canShowSonderShopTab && (
+          {(canShowSonderShopTab || canManageAcceptedArchive) && (
             <div className="imeis-scope-tabs" role="tablist" aria-label="IMEI Ansicht">
               <button
                 type="button"
                 role="tab"
-                aria-selected={!sonderOnly}
-                className={`imeis-scope-tab ${!sonderOnly ? 'imeis-scope-tab--active' : ''}`}
-                onClick={() => setSonderOnly(false)}
+                aria-selected={!sonderOnly && !acceptedReuploadOnly}
+                className={`imeis-scope-tab ${!sonderOnly && !acceptedReuploadOnly ? 'imeis-scope-tab--active' : ''}`}
+                onClick={() => {
+                  setSonderOnly(false);
+                  setAcceptedReuploadOnly(false);
+                }}
               >
                 Alle IMEIs
               </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sonderOnly}
-                className={`imeis-scope-tab ${sonderOnly ? 'imeis-scope-tab--active' : ''}`}
-                onClick={() => setSonderOnly(true)}
-              >
-                Sonder IMEI
-                {sonderImeiKeySet.size > 0 ? (
-                  <span className="imeis-scope-tab__badge"> {sonderImeiKeySet.size}</span>
-                ) : null}
-              </button>
+              {canShowSonderShopTab ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sonderOnly}
+                  className={`imeis-scope-tab ${sonderOnly ? 'imeis-scope-tab--active' : ''}`}
+                  onClick={() => {
+                    setSonderOnly(true);
+                    setAcceptedReuploadOnly(false);
+                  }}
+                >
+                  Sonder IMEI
+                  {sonderImeiKeySet.size > 0 ? (
+                    <span className="imeis-scope-tab__badge"> {sonderImeiKeySet.size}</span>
+                  ) : null}
+                </button>
+              ) : null}
+              {canManageAcceptedArchive && acceptedReuploadCount > 0 ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={acceptedReuploadOnly}
+                  className={`imeis-scope-tab ${acceptedReuploadOnly ? 'imeis-scope-tab--active' : ''}`}
+                  onClick={() => {
+                    setAcceptedReuploadOnly(true);
+                    setSonderOnly(false);
+                  }}
+                >
+                  Angenommen (Excel)
+                  <span className="imeis-scope-tab__badge"> {acceptedReuploadCount}</span>
+                </button>
+              ) : null}
             </div>
           )}
 
@@ -284,7 +316,7 @@ const Imeis = () => {
           />
 
           {filteredImeis.length === 0 ? (
-            <ImeisEmpty searchTerm={searchTerm} sonderOnly={sonderOnly} />
+            <ImeisEmpty searchTerm={searchTerm} sonderOnly={sonderOnly} acceptedReuploadOnly={acceptedReuploadOnly} />
           ) : (
             <>
               <ImeisTable
@@ -360,6 +392,11 @@ const Imeis = () => {
         message={rateLimitMessage}
         canRequestExtra={user && !isBüroMitarbeiter(user) && !isAdmin(user)}
         onRequestExtra={createExtraCopyRequestApi}
+      />
+
+      <ImeisAcceptedArchiveModal
+        isOpen={showAcceptedArchiveModal}
+        onClose={() => setShowAcceptedArchiveModal(false)}
       />
     </div>
   );

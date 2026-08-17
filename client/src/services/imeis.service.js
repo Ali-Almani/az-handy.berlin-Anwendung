@@ -53,17 +53,31 @@ export const approveSonderImeisApi = async (imeisList) => {
   }
 };
 
-export const updateHistoryActionApi = async (imei, userName, newAction, targetUserId, historyTimestamp) => {
+export const updateHistoryActionApi = async (imei, userName, newAction, targetUserId, historyTimestamp, product) => {
   try {
     const payload = { imei, userName, newAction };
     if (targetUserId != null && targetUserId !== '') payload.targetUserId = targetUserId;
     if (historyTimestamp != null && historyTimestamp !== '') payload.historyTimestamp = historyTimestamp;
+    if (product != null && String(product).trim() !== '') payload.product = String(product).trim();
     const res = await api.patch('/imeis/data/history-action', payload);
     return res.data;
   } catch (err) {
     console.error('Error updating history action:', err);
     throw err;
   }
+};
+
+export const getAcceptedImeisArchiveApi = async ({ from, to } = {}) => {
+  const params = {};
+  if (from) params.from = from;
+  if (to) params.to = to;
+  const res = await api.get('/imeis/accepted-archive', { params });
+  return res.data;
+};
+
+export const deleteAcceptedImeiArchiveEntryApi = async (id) => {
+  const res = await api.delete(`/imeis/accepted-archive/${encodeURIComponent(id)}`);
+  return res.data;
 };
 
 export const sendImeiReminderApi = async (targetUserName, imei, targetUserId) => {

@@ -14,7 +14,13 @@ import {
   isAdmin
 } from '../utils/imeiOfficeRoles.js';
 import { normalizeEinsatzOrtKey } from '../constants/einsatzorte.js';
-import { getSonderPublishedEntries, addSonderImeiApprovals } from '../utils/sonderImeiStore.js';
+import { getSonderPublishedEntries, addSonderImeiApprovals, normalizeSonderImeiKey } from '../utils/sonderImeiStore.js';
+import {
+  addAcceptedImeiEntry,
+  getAcceptedImeiKeySet,
+  listAcceptedImeis,
+  permanentlyDeleteAcceptedEntry
+} from '../utils/acceptedImeiStore.js';
 import * as redisCache from '../utils/redisCache.js';
 import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 
@@ -781,6 +787,19 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
   };
 }
 
+function tagMergedWithAcceptedArchive(merged, acceptedKeys) {
+  let acceptedArchiveMatches = 0;
+  const tagged = merged.map((row) => {
+    const k = normalizeSonderImeiKey(row?.imei);
+    if (k && acceptedKeys.has(k)) {
+      acceptedArchiveMatches += 1;
+      return { ...row, _acceptedArchiveMatch: true };
+    }
+    return { ...row, _acceptedArchiveMatch: false };
+  });
+  return { tagged, acceptedArchiveMatches };
+}
+
 /**
  * Excel-Upload (Büro/Admin): bestehende gemeinsame Liste lesen, mergen, unter Uploader speichern.
  */
@@ -803,16 +822,19 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     existing,
     incoming
   );
+  const acceptedKeys = getAcceptedImeiKeySet();
+  const { tagged, acceptedArchiveMatches } = tagMergedWithAcceptedArchive(merged, acceptedKeys);
   // Immer dieselbe user_id-Zeile wie die Quelle der bestehenden Liste (vermeidet Schreiben nur beim Uploader).
-  await saveImeisDataToStorage(baseUserId, { imeis: merged }, app);
+  await saveImeisDataToStorage(baseUserId, { imeis: tagged }, app);
   return {
-    merged,
+    merged: tagged,
     addedRows,
     added,
     skippedDuplicate,
     updatedFromUpload,
     previousCount,
-    total: merged.length
+    total: tagged.length,
+    acceptedArchiveMatches
   };
 }
 
@@ -1067,7 +1089,7 @@ export const updateHistoryAction = async (req, res, next) => {
     const isBüro = isBüroMitarbeiter(role);
     const isTeamleiter = isTeamleiterShop(role);
     const isAdminUser = isAdminUserEntity(currentUser);
-    const { imei, userName, newAction, targetUserId, historyTimestamp } = req.body;
+    const { imei, userName, newAction, targetUserId, historyTimestamp, product } = req.body;
     if (!imei || !userName) {
       return res.status(400).json({ message: 'imei und userName erforderlich' });
     }
@@ -1135,6 +1157,19 @@ export const updateHistoryAction = async (req, res, next) => {
     const did = { action: actionNorm, imei: imeiNorm };
 
     if (actionNorm === 'angenommen') {
+      try {
+        const editor = await editorFromReqAsync(req);
+        addAcceptedImeiEntry({
+          imei: imeiNorm,
+          product: String(product ?? '').trim(),
+          userName: targetDisplayName,
+          acceptedByUserId: userId,
+          acceptedByName: editor.userName || editor.name || '',
+          historyTimestamp: historyTimestamp ?? null
+        });
+      } catch (archiveErr) {
+        console.error('addAcceptedImeiEntry:', archiveErr);
+      }
       await removeImeiFromAllLists(imeiNorm);
       did.removedFromLists = true;
       did.removedFromHistories = true; // removeImeiFromAllLists() entfernt auch copy_history
@@ -1500,6 +1535,55 @@ export const markExtraCopyNotificationRead = async (req, res, next) => {
     const ok = ExtraCopyNotification.markAsRead(id, userId);
     if (!ok) return res.status(404).json({ message: 'Benachrichtigung nicht gefunden' });
     res.json({ success: true, message: 'Als gelesen markiert' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+async function assertOfficeOrAdmin(req, res) {
+  const userId = resolveAuthUserId(req.user);
+  if (userId == null) {
+    res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    return false;
+  }
+  const currentUser = await User.findByPk(userId);
+  if (!currentUser) {
+    res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    return false;
+  }
+  const role = getUserRole(currentUser);
+  if (!(isAdmin(role) || isBüroMitarbeiter(role))) {
+    res.status(403).json({ success: false, message: 'Nur Büro Mitarbeiter oder Administrator.' });
+    return false;
+  }
+  return true;
+}
+
+/** Büro/Admin: Archiv aller angenommenen IMEIs (Zeitraum optional). */
+export const getAcceptedImeisArchive = async (req, res, next) => {
+  try {
+    if (!(await assertOfficeOrAdmin(req, res))) return;
+    const { from, to } = req.query;
+    const entries = listAcceptedImeis({ from, to });
+    res.json({ success: true, entries });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro/Admin: Eintrag dauerhaft aus Angenommen-Archiv löschen. */
+export const deleteAcceptedImeiArchiveEntry = async (req, res, next) => {
+  try {
+    if (!(await assertOfficeOrAdmin(req, res))) return;
+    const id = String(req.params.id || '').trim();
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID erforderlich.' });
+    }
+    const removed = permanentlyDeleteAcceptedEntry(id);
+    if (!removed) {
+      return res.status(404).json({ success: false, message: 'Eintrag nicht gefunden.' });
+    }
+    res.json({ success: true, message: 'Eintrag dauerhaft gelöscht.' });
   } catch (error) {
     next(error);
   }

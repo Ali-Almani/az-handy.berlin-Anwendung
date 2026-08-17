@@ -15,6 +15,7 @@ export function useImeisMainFilter({
   rowActions,
   sonderOnly,
   sonderImeiKeySet,
+  acceptedReuploadOnly,
   getManufacturer,
   getProduct,
   getProductFull,
@@ -44,6 +45,9 @@ export function useImeisMainFilter({
           return k && sonderImeiKeySet.has(k);
         });
       }
+    }
+    if (acceptedReuploadOnly) {
+      filtered = filtered.filter((item) => item?._acceptedArchiveMatch === true);
     }
     if (activeSheet) filtered = filtered.filter(item => item.sheet === activeSheet);
 
@@ -144,12 +148,12 @@ export function useImeisMainFilter({
       setAllColumns([]);
     }
 
-    const filterKey = `${sonderOnly ? '1' : '0'}|${activeSheet}|${activeManufacturer}|${activeAppleHardwareTab || ''}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
+    const filterKey = `${sonderOnly ? '1' : '0'}|${acceptedReuploadOnly ? '1' : '0'}|${activeSheet}|${activeManufacturer}|${activeAppleHardwareTab || ''}|${activeProduct}|${activeVersion}|${activeVariant}|${activeGB}|${searchTerm}`;
     // Nur bei geänderter Suche/Filter/Tabs auf Seite 1 – nicht bei jedem imeis-/rowActions-Update
     if (prevFilterRef.current !== null && prevFilterRef.current !== filterKey) {
       setCurrentPage(1);
       setSelectedCells(new Set());
     }
     prevFilterRef.current = filterKey;
-  }, [activeSheet, activeManufacturer, activeAppleHardwareTab, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet]);
+  }, [activeSheet, activeManufacturer, activeAppleHardwareTab, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet, acceptedReuploadOnly]);
 }

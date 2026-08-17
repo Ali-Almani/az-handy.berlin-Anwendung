@@ -15,6 +15,8 @@ const ImeisControls = ({
   showDeleteAll = false,
   showSonderOfficeButton = false,
   onOpenSonderOffice,
+  showAcceptedArchiveButton = false,
+  onShowAcceptedArchive,
   itemsPerPage,
   onItemsPerPageChange,
   currentPage,
@@ -64,6 +66,16 @@ const ImeisControls = ({
           >
             Verlauf ({copyHistoryLength})
           </button>
+          {showAcceptedArchiveButton && (
+            <button
+              type="button"
+              onClick={onShowAcceptedArchive}
+              className="btn btn--outline btn--small"
+              title="Archiv aller angenommenen IMEIs aller Mitarbeiter"
+            >
+              Angenommen (Archiv)
+            </button>
+          )}
           {showAdvancedActions && imeisLength > 0 && (
             <>
               {showDeleteAll && (

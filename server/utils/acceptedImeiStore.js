@@ -1,0 +1,72 @@
+import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
+import { normalizeSonderImeiKey } from './sonderImeiStore.js';
+
+const FILE = 'accepted-imeis.json';
+const DEFAULT = () => ({ entries: [] });
+
+function parseRangeMs(value, endOfDay = false) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  if (Number.isNaN(ms)) return null;
+  if (endOfDay) return ms + 86400000 - 1;
+  return ms;
+}
+
+export function listAcceptedImeis({ from, to } = {}) {
+  const raw = readJsonStore(FILE, DEFAULT());
+  let entries = Array.isArray(raw?.entries) ? raw.entries : [];
+  const fromMs = parseRangeMs(from, false);
+  const toMs = parseRangeMs(to, true);
+  if (fromMs != null) {
+    entries = entries.filter((e) => {
+      const t = Date.parse(e?.acceptedAt || 0);
+      return !Number.isNaN(t) && t >= fromMs;
+    });
+  }
+  if (toMs != null) {
+    entries = entries.filter((e) => {
+      const t = Date.parse(e?.acceptedAt || 0);
+      return !Number.isNaN(t) && t <= toMs;
+    });
+  }
+  return entries
+    .slice()
+    .sort((a, b) => Date.parse(b?.acceptedAt || 0) - Date.parse(a?.acceptedAt || 0));
+}
+
+export function getAcceptedImeiKeySet() {
+  const raw = readJsonStore(FILE, DEFAULT());
+  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+  return new Set(entries.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
+}
+
+export function addAcceptedImeiEntry(entry = {}) {
+  const id = `acc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    state.entries.push({
+      id,
+      imei: String(entry.imei ?? '').trim(),
+      imeiKey: normalizeSonderImeiKey(entry.imei),
+      product: String(entry.product ?? '').trim(),
+      userName: String(entry.userName ?? '').trim(),
+      acceptedAt: entry.acceptedAt ? String(entry.acceptedAt) : new Date().toISOString(),
+      acceptedByUserId: entry.acceptedByUserId != null ? String(entry.acceptedByUserId) : '',
+      acceptedByName: String(entry.acceptedByName ?? '').trim(),
+      historyTimestamp: entry.historyTimestamp ? String(entry.historyTimestamp) : ''
+    });
+  });
+  return id;
+}
+
+export function permanentlyDeleteAcceptedEntry(id) {
+  let removed = false;
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    const before = state.entries.length;
+    state.entries = state.entries.filter((e) => String(e?.id) !== String(id));
+    removed = state.entries.length < before;
+  });
+  return removed;
+}

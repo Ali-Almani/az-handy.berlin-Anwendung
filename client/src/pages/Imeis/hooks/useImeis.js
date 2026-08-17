@@ -77,6 +77,7 @@ export function useImeis() {
   const [activeAppleHardwareTab, setActiveAppleHardwareTab] = useState(null);
   const [sonderImeis, setSonderImeis] = useState([]);
   const [sonderOnly, setSonderOnly] = useState(false);
+  const [acceptedReuploadOnly, setAcceptedReuploadOnly] = useState(false);
   const [showSonderOfficeModal, setShowSonderOfficeModal] = useState(false);
   const [sonderApproveBusy, setSonderApproveBusy] = useState(false);
 
@@ -131,6 +132,11 @@ export function useImeis() {
     return s;
   }, [sonderImeis]);
 
+  const acceptedReuploadCount = useMemo(
+    () => imeis.filter((item) => item?._acceptedArchiveMatch === true).length,
+    [imeis]
+  );
+
   const appleHardwareTabBar = useMemo(() => {
     if (!activeManufacturer || !isAppleManufacturerName(activeManufacturer)) {
       return { visible: false, showIphoneTab: false };
@@ -173,6 +179,7 @@ export function useImeis() {
     rowActions,
     sonderOnly,
     sonderImeiKeySet,
+    acceptedReuploadOnly,
     getManufacturer,
     getProduct,
     getProductFull,
@@ -189,6 +196,10 @@ export function useImeis() {
   useEffect(() => {
     if (!canViewSonderImeiShopTab(user) && sonderOnly) setSonderOnly(false);
   }, [user, sonderOnly]);
+
+  useEffect(() => {
+    if (acceptedReuploadOnly && acceptedReuploadCount === 0) setAcceptedReuploadOnly(false);
+  }, [acceptedReuploadOnly, acceptedReuploadCount]);
 
   const refreshImeisFromApi = useCallback(async () => {
     try {
@@ -472,6 +483,9 @@ export function useImeis() {
     sonderOnly,
     setSonderOnly,
     sonderImeiKeySet,
+    acceptedReuploadOnly,
+    setAcceptedReuploadOnly,
+    acceptedReuploadCount,
     showSonderOfficeModal,
     setShowSonderOfficeModal,
     sonderApproveBusy,

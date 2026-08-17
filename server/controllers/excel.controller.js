@@ -414,7 +414,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
   const append = await userCanAppendImeiExcel(uploaderId);
   if (append) {
     const parsePreview = imeis.slice(0, 5).map((r) => maskImeiPreview(r?.imei));
-    const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows, total } =
+    const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows, total, acceptedArchiveMatches } =
       await appendImeisFromExcelUpload(uploaderId, imeis, req.app);
     let message;
     if (added === 0 && (updatedFromUpload ?? 0) > 0) {
@@ -426,6 +426,9 @@ async function saveImeisAfterExcelParse(req, imeis) {
     } else {
       message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }
+    if ((acceptedArchiveMatches ?? 0) > 0) {
+      message = `${message} ${acceptedArchiveMatches} IMEI(s) aus dem Angenommen-Archiv – siehe Kategorie „Angenommen (Excel)“.`;
+    }
     return {
       success: true,
       message,
@@ -435,6 +438,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
       skippedDuplicate,
       updatedFromUpload: updatedFromUpload ?? 0,
       previousCount,
+      acceptedArchiveMatches: acceptedArchiveMatches ?? 0,
       saved: true,
       parsedFromFile: imeis.length,
       parsePreview
