@@ -196,8 +196,10 @@ export const loadImeisWithApi = async (user) => {
 
 let lastPersistTime = 0;
 let lastRemovedImeiTime = 0;
+let lastHistoryActionTime = 0;
 const PERSIST_COOLDOWN_MS = 1500;
 const REMOVED_IMEI_COOLDOWN_MS = 5000;
+const HISTORY_ACTION_COOLDOWN_MS = 4000;
 
 export const persistImeisState = async (user, partial = {}) => {
   const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = partial;
@@ -231,6 +233,7 @@ export const persistImeisState = async (user, partial = {}) => {
 };
 
 export const shouldSkipSync = () => {
+  if (Date.now() - lastHistoryActionTime < HISTORY_ACTION_COOLDOWN_MS) return true;
   const sinceRemoved = Date.now() - lastRemovedImeiTime;
   if (sinceRemoved < REMOVED_IMEI_COOLDOWN_MS) return true;
   return Date.now() - lastPersistTime < PERSIST_COOLDOWN_MS;
@@ -239,4 +242,9 @@ export const shouldSkipSync = () => {
 /** Nach IMEI-Entfernung via API aufrufen, damit Sync nicht überschreibt */
 export const setRemovedImeiCooldown = () => {
   lastRemovedImeiTime = Date.now();
+};
+
+/** Verhindert, dass Verlauf-Polling optimistische Updates direkt überschreibt */
+export const setHistoryActionCooldown = () => {
+  lastHistoryActionTime = Date.now();
 };

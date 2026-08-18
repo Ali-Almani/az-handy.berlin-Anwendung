@@ -68,6 +68,11 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
     }
   };
 
+  const handleClearFilters = () => {
+    setFromDate('');
+    setToDate('');
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -78,88 +83,103 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
         aria-labelledby="imeis-accepted-archive-title"
         onClick={(ev) => ev.stopPropagation()}
       >
-        <div className="imeis-history-modal-header">
-          <h2 id="imeis-accepted-archive-title">Angenommene IMEIs (Archiv)</h2>
+        <div className="imeis-accepted-archive-header">
+          <div className="imeis-accepted-archive-header__text">
+            <span className="imeis-accepted-archive-header__eyebrow">IMEI-Verwaltung</span>
+            <h2 id="imeis-accepted-archive-title">Angenommenes Archiv</h2>
+            <p className="imeis-accepted-archive-hint">
+              Alle angenommenen IMEIs aller Mitarbeiter. Excel-Treffer erscheinen unter „Angenommen (Excel)“.
+            </p>
+          </div>
           <button type="button" className="imeis-history-modal-close" onClick={onClose} aria-label="Schließen">
             ×
           </button>
         </div>
 
-        <div className="imeis-history-modal-body">
-          <p className="imeis-accepted-archive-hint">
-            Alle angenommenen IMEIs aller Mitarbeiter. Bei Excel-Upload werden Treffer in der Kategorie
-            „Angenommen (Excel)“ angezeigt.
-          </p>
-
-          <div className="imeis-accepted-archive-filters">
-          <div className="form-group">
-            <label htmlFor="accepted-from" className="form-label">Von</label>
-            <input
-              id="accepted-from"
-              type="date"
-              className="form-input"
-              value={fromDate}
-              onChange={(ev) => setFromDate(ev.target.value)}
-            />
+        <div className="imeis-history-modal-body imeis-accepted-archive-body">
+          <div className="imeis-accepted-archive-toolbar">
+            <div className="imeis-accepted-archive-filters">
+              <div className="form-group">
+                <label htmlFor="accepted-from" className="form-label">Von</label>
+                <input
+                  id="accepted-from"
+                  type="date"
+                  className="form-input"
+                  value={fromDate}
+                  onChange={(ev) => setFromDate(ev.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="accepted-to" className="form-label">Bis</label>
+                <input
+                  id="accepted-to"
+                  type="date"
+                  className="form-input"
+                  value={toDate}
+                  onChange={(ev) => setToDate(ev.target.value)}
+                />
+              </div>
+              <div className="imeis-accepted-archive-filters__actions">
+                <button type="button" className="btn btn--primary btn--small" onClick={loadEntries} disabled={loading}>
+                  {loading ? 'Laden…' : 'Anwenden'}
+                </button>
+                {(fromDate || toDate) && (
+                  <button type="button" className="btn btn--outline btn--small" onClick={handleClearFilters}>
+                    Zurücksetzen
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="imeis-accepted-archive-count">
+              {loading ? '…' : `${entries.length} Eintrag${entries.length === 1 ? '' : 'e'}`}
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="accepted-to" className="form-label">Bis</label>
-            <input
-              id="accepted-to"
-              type="date"
-              className="form-input"
-              value={toDate}
-              onChange={(ev) => setToDate(ev.target.value)}
-            />
-          </div>
-          <button type="button" className="btn btn--secondary btn--small" onClick={loadEntries} disabled={loading}>
-            {loading ? 'Laden…' : 'Filtern'}
-          </button>
-        </div>
 
-        {error ? <p className="imeis-accepted-archive-error" role="alert">{error}</p> : null}
+          {error ? <p className="imeis-accepted-archive-error" role="alert">{error}</p> : null}
 
-        <div className="imeis-accepted-archive-table-wrap">
-          {loading ? (
-            <p className="imeis-accepted-archive-hint">Laden…</p>
-          ) : entries.length === 0 ? (
-            <p className="imeis-accepted-archive-hint">Keine angenommenen IMEIs im gewählten Zeitraum.</p>
-          ) : (
-            <table className="imeis-history-table">
-              <thead>
-                <tr>
-                  <th>IMEI</th>
-                  <th>Produkt</th>
-                  <th>Mitarbeiter</th>
-                  <th>Angenommen am</th>
-                  <th>Angenommen von</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>{entry.imei}</td>
-                    <td>{entry.product || '–'}</td>
-                    <td>{entry.userName || '–'}</td>
-                    <td>{formatDateTime(entry.acceptedAt)}</td>
-                    <td>{entry.acceptedByName || '–'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn--danger btn--small"
-                        disabled={deletingId === entry.id}
-                        onClick={() => handleDelete(entry)}
-                      >
-                        {deletingId === entry.id ? '…' : 'Löschen'}
-                      </button>
-                    </td>
+          <div className="imeis-accepted-archive-table-wrap">
+            {loading ? (
+              <div className="imeis-accepted-archive-empty">Laden…</div>
+            ) : entries.length === 0 ? (
+              <div className="imeis-accepted-archive-empty">
+                Keine angenommenen IMEIs im gewählten Zeitraum.
+              </div>
+            ) : (
+              <table className="imeis-accepted-archive-table">
+                <thead>
+                  <tr>
+                    <th>IMEI</th>
+                    <th>Produkt</th>
+                    <th>Mitarbeiter</th>
+                    <th>Angenommen am</th>
+                    <th>Angenommen von</th>
+                    <th aria-label="Aktionen" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody>
+                  {entries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="imeis-accepted-archive-table__imei">{entry.imei}</td>
+                      <td className="imeis-accepted-archive-table__product">{entry.product || '–'}</td>
+                      <td>{entry.userName || '–'}</td>
+                      <td className="imeis-accepted-archive-table__date">{formatDateTime(entry.acceptedAt)}</td>
+                      <td>{entry.acceptedByName || '–'}</td>
+                      <td className="imeis-accepted-archive-table__actions">
+                        <button
+                          type="button"
+                          className="imeis-accepted-archive-delete"
+                          disabled={deletingId === entry.id}
+                          onClick={() => handleDelete(entry)}
+                        >
+                          {deletingId === entry.id ? '…' : 'Löschen'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1324,20 +1324,77 @@
   }
 
   .imeis-accepted-archive-modal {
-    max-width: min(96vw, 56rem);
+    max-width: min(96vw, 64rem);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .imeis-accepted-archive-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-md;
+    padding: $spacing-lg $spacing-lg $spacing-md;
+    background: linear-gradient(135deg, lighten($primary-color, 46%) 0%, #fff 100%);
+    border-bottom: 1px solid rgba($primary-color, 0.12);
+
+    h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+      color: $text-color;
+    }
+
+    &__eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: $font-weight-medium;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: $primary-color;
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  .imeis-accepted-archive-body {
+    background: #fafbfc;
   }
 
   .imeis-accepted-archive-hint {
-    margin: 0 0 $spacing-md;
+    margin: 0;
     font-size: 0.88rem;
     color: $text-light;
     line-height: 1.45;
+    max-width: 42rem;
   }
 
   .imeis-accepted-archive-error {
     margin: 0 0 $spacing-sm;
-    color: $danger-color;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    background: rgba($danger-color, 0.08);
+    color: darken($danger-color, 8%);
     font-size: 0.9rem;
+  }
+
+  .imeis-accepted-archive-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    padding: $spacing-md;
+    background: #fff;
+    border: 1px solid $border-color;
+    border-radius: 10px;
+  }
+
+  .imeis-accepted-archive-count {
+    font-size: 0.88rem;
+    font-weight: $font-weight-medium;
+    color: $text-light;
+    white-space: nowrap;
+    padding-bottom: 0.15rem;
   }
 
   .imeis-accepted-archive-filters {
@@ -1345,16 +1402,131 @@
     flex-wrap: wrap;
     gap: $spacing-md;
     align-items: flex-end;
-    margin-bottom: $spacing-md;
 
     .form-group {
       margin: 0;
-      min-width: 9rem;
+      min-width: 10rem;
+    }
+
+    &__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-sm;
+      align-items: center;
     }
   }
 
   .imeis-accepted-archive-table-wrap {
-    max-height: min(60vh, 480px);
+    background: #fff;
+    border: 1px solid $border-color;
+    border-radius: 10px;
     overflow: auto;
+    max-height: min(58vh, 520px);
+  }
+
+  .imeis-accepted-archive-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: $text-light;
+    font-size: 0.95rem;
+  }
+
+  .imeis-accepted-archive-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: $bg-light;
+
+      th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-weight: $font-weight-medium;
+        color: $text-color;
+        border-bottom: 1px solid $border-color;
+        white-space: nowrap;
+      }
+    }
+
+    tbody tr {
+      transition: background 0.15s ease;
+
+      &:nth-child(even) {
+        background: rgba($bg-light, 0.55);
+      }
+
+      &:hover {
+        background: lighten($primary-color, 48%);
+      }
+    }
+
+    td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid rgba($border-color, 0.7);
+      vertical-align: middle;
+    }
+
+    &__imei {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    &__product {
+      max-width: 16rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    &__date {
+      white-space: nowrap;
+      color: $text-light;
+      font-size: 0.85rem;
+    }
+
+    &__actions {
+      text-align: right;
+      white-space: nowrap;
+    }
+  }
+
+  .imeis-accepted-archive-delete {
+    border: none;
+    background: transparent;
+    color: $danger-color;
+    font-size: 0.85rem;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba($danger-color, 0.08);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .imeis-history-action-select {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.9rem;
+    border: 1px solid $border-color;
+    border-radius: 6px;
+    background-color: #fff;
+    cursor: pointer;
+    min-width: 130px;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
   }
 }

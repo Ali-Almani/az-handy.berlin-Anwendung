@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import { setRemovedImeiCooldown, notifyReminderResponseApi } from '../../../services/imeis.service';
+import { useCallback, useRef } from 'react';
+import { setHistoryActionCooldown, notifyReminderResponseApi } from '../../../services/imeis.service';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -30,7 +30,14 @@ export function useImeisCopyHandlers({
   setImeis,
   refreshImeisFromApi
 }) {
+  const historyActionPendingRef = useRef(new Set());
   const normHistName = useCallback((s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(), []);
+
+  const historyActionKey = useCallback(
+    (entry) =>
+      `${String(entry?.imei || '').trim()}|${String(entry?.timestamp || '')}|${normHistName(entry?.userName)}`,
+    [normHistName]
+  );
 
   const addHistoryEntry = useCallback((entry) => {
     if (!entry?.imei) return;
@@ -151,8 +158,11 @@ export function useImeisCopyHandlers({
   }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError, persistImeis, setRowActions, getProductFull, addHistoryEntry]);
 
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {
-    if (index < 0 || index >= copyHistory.length) return;
+    if (index < 0 || index >= copyHistory.length) return false;
     const entry = copyHistory[index];
+    const pendingKey = historyActionKey(entry);
+    if (historyActionPendingRef.current.has(pendingKey)) return false;
+
     const oldAction = entry.action || null;
     const isSelfHistoryEntry =
       entry.userName &&
@@ -169,6 +179,21 @@ export function useImeisCopyHandlers({
     }
 
     if (isServerHistoryAction) {
+      historyActionPendingRef.current.add(pendingKey);
+      const imeiStr = String(entry.imei || '').trim();
+      const updatedHistory = copyHistory.filter((_, i) => i !== index);
+      const updatedRowActions = { ...rowActions };
+      Object.keys(updatedRowActions).forEach((rowId) => {
+        if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
+      });
+
+      setCopyHistory(updatedHistory);
+      setRowActions(updatedRowActions);
+      if (newAction === 'angenommen' && setImeis) {
+        setImeis((prev) => prev.filter((it) => String(it?.imei || '').trim() !== imeiStr));
+      }
+      setHistoryActionCooldown();
+
       try {
         const targetUserId = canUpdateOthersHistory ? undefined : user?.id;
         await updateHistoryActionApi(
@@ -179,33 +204,18 @@ export function useImeisCopyHandlers({
           entry.timestamp,
           entry.product
         );
-        // UI sofort aktualisieren (Server-Refresh kann durch Cache/Timing verzögert sein)
-        const imeiStr = String(entry.imei || '').trim();
-        if (newAction === 'angenommen' || newAction === 'abgelehnt') {
-          const updatedHistory = copyHistory.filter((_, i) => i !== index);
-          setCopyHistory(updatedHistory);
-          if (newAction === 'angenommen') {
-            if (setImeis) setImeis((prev) => prev.filter((it) => String(it?.imei || '').trim() !== imeiStr));
-          }
-          const updatedRowActions = { ...rowActions };
-          Object.keys(updatedRowActions).forEach((rowId) => {
-            if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
-          });
-          setRowActions(updatedRowActions);
-          // NICHT persistImeis() aufrufen: Das würde per PUT /imeis/data lokale (evtl. gemergte)
-          // Zustände zurückschreiben und kann die Server-Änderung wieder überschreiben.
+        if (isSelfHistoryEntry) {
+          notifyReminderResponseApi(imeiStr, newAction);
         }
-        // Kein setRemovedImeiCooldown: sonst blockiert shouldSkipSync() den Verlauf-Polling-Refresh 5s
-        await refreshImeisFromApi?.();
-        await new Promise((r) => setTimeout(r, 300));
-        await refreshImeisFromApi?.();
-        if (isSelfHistoryEntry && (newAction === 'angenommen' || newAction === 'abgelehnt')) {
-          notifyReminderResponseApi(String(entry.imei || '').trim(), newAction);
-        }
+        return true;
       } catch (err) {
+        setCopyHistory(copyHistory);
+        setRowActions(rowActions);
         alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));
+        throw err;
+      } finally {
+        historyActionPendingRef.current.delete(pendingKey);
       }
-      return;
     }
 
     if (newAction === 'angenommen') {
@@ -239,6 +249,7 @@ export function useImeisCopyHandlers({
     updatedHistory[index] = { ...updatedHistory[index], action: newAction || null, userName: user?.name || updatedHistory[index].userName || 'Unbekannt', timestamp: new Date().toISOString() };
     setCopyHistory(updatedHistory);
     persistImeis?.({ copyHistory: updatedHistory });
+    return true;
   }, [
     copyHistory,
     user,
@@ -246,11 +257,12 @@ export function useImeisCopyHandlers({
     setCopyHistory,
     setRowActions,
     setHistoryUndoStack,
-    canUpdateOthersHistory, // nur Büro/Admin/Teamleiter; eigene Zeile nutzt isSelfHistoryEntry + PATCH
+    canUpdateOthersHistory,
     updateHistoryActionApi,
     setImeis,
-    refreshImeisFromApi,
-    normHistName
+    historyActionKey,
+    normHistName,
+    persistImeis
   ]);
 
   const handleHistoryModalUndo = useCallback(() => {

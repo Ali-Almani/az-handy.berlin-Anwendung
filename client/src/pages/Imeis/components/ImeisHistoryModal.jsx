@@ -14,6 +14,8 @@ const ImeisHistoryModal = ({
   onSendReminder
 }) => {
   const [confirmation, setConfirmation] = useState(null); // { index, action, message }
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [processingIndex, setProcessingIndex] = useState(null);
   const [toast, setToast] = useState(null); // { message, type: 'success' }
   const [toastProgress, setToastProgress] = useState(100);
   const [sendingReminderFor, setSendingReminderFor] = useState(null);
@@ -60,17 +62,26 @@ const ImeisHistoryModal = ({
     }
   };
 
-  const handleConfirmYes = () => {
-    if (!confirmation) return;
-    onUpdateHistoryAction(confirmation.index, confirmation.action);
-    setToast({
-      message:
-        confirmation.action === 'angenommen'
-          ? 'Angenommen: IMEI wurde aus der Liste und dem Verlauf entfernt.'
-          : 'Abgelehnt: Verlauf entfernt, IMEI wieder in der Liste.',
-      type: 'success'
-    });
-    setConfirmation(null);
+  const handleConfirmYes = async () => {
+    if (!confirmation || confirmBusy) return;
+    setConfirmBusy(true);
+    setProcessingIndex(confirmation.index);
+    try {
+      await onUpdateHistoryAction(confirmation.index, confirmation.action);
+      setToast({
+        message:
+          confirmation.action === 'angenommen'
+            ? 'Angenommen: IMEI wurde aus der Liste und dem Verlauf entfernt.'
+            : 'Abgelehnt: Verlauf entfernt, IMEI wieder in der Liste.',
+        type: 'success'
+      });
+      setConfirmation(null);
+    } catch {
+      // Fehler wird im Handler angezeigt
+    } finally {
+      setConfirmBusy(false);
+      setProcessingIndex(null);
+    }
   };
 
   const handleConfirmNo = () => {
@@ -155,19 +166,12 @@ const ImeisHistoryModal = ({
                                 ? 'abgelehnt'
                                 : ''
                           }
+                          disabled={processingIndex === originalIndex || confirmBusy}
                           onChange={(e) => {
                             const selectedValue = e.target.value;
                             handleActionSelect(originalIndex, selectedValue);
                           }}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.9rem',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            backgroundColor: '#fff',
-                            cursor: 'pointer',
-                            minWidth: '120px'
-                          }}
+                          className="imeis-history-action-select"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <option value="">Aktion wählen</option>
@@ -258,12 +262,14 @@ const ImeisHistoryModal = ({
                 <button
                   onClick={handleConfirmYes}
                   className="btn btn--primary btn--small"
+                  disabled={confirmBusy}
                 >
-                  Ja
+                  {confirmBusy ? 'Wird übernommen…' : 'Ja'}
                 </button>
                 <button
                   onClick={handleConfirmNo}
                   className="btn btn--secondary btn--small"
+                  disabled={confirmBusy}
                 >
                   Nein
                 </button>

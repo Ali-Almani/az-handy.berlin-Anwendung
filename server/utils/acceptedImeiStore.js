@@ -35,20 +35,53 @@ export function listAcceptedImeis({ from, to } = {}) {
     .sort((a, b) => Date.parse(b?.acceptedAt || 0) - Date.parse(a?.acceptedAt || 0));
 }
 
+/** Anzeige: pro IMEI+Verlauf-Timestamp nur den neuesten Eintrag */
+function dedupeEntriesForDisplay(entries) {
+  const byKey = new Map();
+  for (const entry of entries) {
+    const key = `${entry?.imeiKey || normalizeSonderImeiKey(entry?.imei)}|${entry?.historyTimestamp || ''}`;
+    if (!byKey.has(key)) byKey.set(key, entry);
+  }
+  return Array.from(byKey.values()).sort(
+    (a, b) => Date.parse(b?.acceptedAt || 0) - Date.parse(a?.acceptedAt || 0)
+  );
+}
+
+export function listAcceptedImeisForDisplay(options) {
+  return dedupeEntriesForDisplay(listAcceptedImeis(options));
+}
+
 export function getAcceptedImeiKeySet() {
   const raw = readJsonStore(FILE, DEFAULT());
   const entries = Array.isArray(raw?.entries) ? raw.entries : [];
   return new Set(entries.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
 }
 
+function isDuplicateAcceptedEntry(existing, entry, imeiKey) {
+  if (!existing || !imeiKey || existing.imeiKey !== imeiKey) return false;
+  const historyTs = entry.historyTimestamp ? String(entry.historyTimestamp) : '';
+  const existingTs = existing.historyTimestamp ? String(existing.historyTimestamp) : '';
+  if (historyTs && existingTs === historyTs) return true;
+  if (historyTs) return false;
+  const acceptedMs = Date.parse(existing.acceptedAt || 0);
+  return !Number.isNaN(acceptedMs) && Date.now() - acceptedMs < 120000;
+}
+
 export function addAcceptedImeiEntry(entry = {}) {
-  const id = `acc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const imeiKey = normalizeSonderImeiKey(entry.imei);
+  let resultId = null;
   updateJsonStore(FILE, DEFAULT(), (state) => {
     if (!Array.isArray(state.entries)) state.entries = [];
+    const dup = state.entries.find((e) => isDuplicateAcceptedEntry(e, entry, imeiKey));
+    if (dup) {
+      resultId = dup.id;
+      return { value: dup.id };
+    }
+    const id = `acc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     state.entries.push({
       id,
       imei: String(entry.imei ?? '').trim(),
-      imeiKey: normalizeSonderImeiKey(entry.imei),
+      imeiKey,
       product: String(entry.product ?? '').trim(),
       userName: String(entry.userName ?? '').trim(),
       acceptedAt: entry.acceptedAt ? String(entry.acceptedAt) : new Date().toISOString(),
@@ -56,8 +89,10 @@ export function addAcceptedImeiEntry(entry = {}) {
       acceptedByName: String(entry.acceptedByName ?? '').trim(),
       historyTimestamp: entry.historyTimestamp ? String(entry.historyTimestamp) : ''
     });
+    resultId = id;
+    return { value: id };
   });
-  return id;
+  return resultId;
 }
 
 export function permanentlyDeleteAcceptedEntry(id) {

@@ -19,6 +19,7 @@ import {
   addAcceptedImeiEntry,
   getAcceptedImeiKeySet,
   listAcceptedImeis,
+  listAcceptedImeisForDisplay,
   permanentlyDeleteAcceptedEntry
 } from '../utils/acceptedImeiStore.js';
 import * as redisCache from '../utils/redisCache.js';
@@ -930,30 +931,6 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   } catch (_) {}
 
   if (removedImei) {
-    const imeiNorm = String(removedImei).trim();
-    try {
-      let product = '';
-      let historyUserName = '';
-      let historyTimestamp = null;
-      const merged = await getMergedCopyHistory();
-      const match = merged.find((e) => String(e?.imei || '').trim() === imeiNorm);
-      if (match) {
-        product = String(match.product ?? '').trim();
-        historyUserName = String(match.userName ?? '').trim();
-        historyTimestamp = match.timestamp ?? null;
-      }
-      const acceptorName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim() || 'Unbekannt';
-      addAcceptedImeiEntry({
-        imei: imeiNorm,
-        product,
-        userName: historyUserName,
-        acceptedByUserId: userId,
-        acceptedByName: acceptorName,
-        historyTimestamp
-      });
-    } catch (archiveErr) {
-      console.error('addAcceptedImeiEntry (removedImei):', archiveErr);
-    }
     await removeImeiFromAllLists(removedImei);
   }
 
@@ -1603,7 +1580,7 @@ export const getAcceptedImeisArchive = async (req, res, next) => {
   try {
     if (!(await assertOfficeOrAdmin(req, res))) return;
     const { from, to } = req.query;
-    const entries = listAcceptedImeis({ from, to });
+    const entries = listAcceptedImeisForDisplay({ from, to });
     res.json({ success: true, entries });
   } catch (error) {
     next(error);
