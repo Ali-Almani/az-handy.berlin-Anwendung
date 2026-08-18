@@ -51,6 +51,21 @@ const normHistUserName = (s) =>
     .replace(/\s+/g, ' ')
     .toLowerCase();
 
+async function editorFromReqAsync(req) {
+  const userId = resolveAuthUserId(req.user);
+  let userName = String(req.user?.name ?? req.user?.userName ?? '').trim();
+  const email = String(req.user?.email ?? '').trim();
+  if (userId) {
+    try {
+      const u = await User.findByPk(userId);
+      const dbName = String(u?.name ?? u?.get?.('name') ?? '').trim();
+      if (dbName) userName = dbName;
+    } catch (_) {}
+  }
+  if (!userName) userName = email || 'Unbekannt';
+  return { userId, name: userName, userName, email };
+}
+
 /** Verlauf „Benutzer“ wie im gemischten Modal – exakt, Groß/klein, Mehrfach-Leerzeichen */
 async function resolveTargetUserByName(rawName) {
   const t = String(rawName || '').trim().replace(/\s+/g, ' ');
@@ -915,6 +930,30 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   } catch (_) {}
 
   if (removedImei) {
+    const imeiNorm = String(removedImei).trim();
+    try {
+      let product = '';
+      let historyUserName = '';
+      let historyTimestamp = null;
+      const merged = await getMergedCopyHistory();
+      const match = merged.find((e) => String(e?.imei || '').trim() === imeiNorm);
+      if (match) {
+        product = String(match.product ?? '').trim();
+        historyUserName = String(match.userName ?? '').trim();
+        historyTimestamp = match.timestamp ?? null;
+      }
+      const acceptorName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim() || 'Unbekannt';
+      addAcceptedImeiEntry({
+        imei: imeiNorm,
+        product,
+        userName: historyUserName,
+        acceptedByUserId: userId,
+        acceptedByName: acceptorName,
+        historyTimestamp
+      });
+    } catch (archiveErr) {
+      console.error('addAcceptedImeiEntry (removedImei):', archiveErr);
+    }
     await removeImeiFromAllLists(removedImei);
   }
 

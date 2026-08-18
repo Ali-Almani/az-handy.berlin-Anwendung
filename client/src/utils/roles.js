@@ -139,9 +139,8 @@ export const isPartner = (user) => {
  */
 export const canActAsImeiOfficeForHistory = (user) => {
   if (!user) return false;
-  if (isBüroMitarbeiter(user) || isTeamleiterShop(user)) return true;
-  const r = normRole(user.role);
-  return r.includes('admin') || r === 'administrator';
+  if (isAdmin(user) || isBüroMitarbeiter(user) || isTeamleiterShop(user)) return true;
+  return false;
 };
 
 // Prüfe ob Benutzer IMEI-Seite sehen darf – alle eingeloggten Benutzer (gemeinsame Liste nach Büro-Upload)

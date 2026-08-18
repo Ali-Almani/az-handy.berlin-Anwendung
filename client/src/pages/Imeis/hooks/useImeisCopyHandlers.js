@@ -157,12 +157,11 @@ export function useImeisCopyHandlers({
     const isSelfHistoryEntry =
       entry.userName &&
       normHistName(entry.userName) === normHistName(user?.name || '');
-    /** Server-PATCH: Büro/Fremde oder eigene Zeile (Mitarbeiter) */
+    /** Server-PATCH: alle Rollen für angenommen/abgelehnt (Server prüft Berechtigung) */
     const isServerHistoryAction =
       (newAction === 'angenommen' || newAction === 'abgelehnt') &&
       updateHistoryActionApi &&
-      entry.userName &&
-      (canUpdateOthersHistory || isSelfHistoryEntry);
+      entry.userName;
 
     if (!isServerHistoryAction) {
       const undoState = { index, entry: { ...entry }, oldAction, newAction, rowActionsSnapshot: { ...rowActions } };
