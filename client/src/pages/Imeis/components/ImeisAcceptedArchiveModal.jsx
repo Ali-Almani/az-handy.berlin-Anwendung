@@ -83,20 +83,14 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
         aria-labelledby="imeis-accepted-archive-title"
         onClick={(ev) => ev.stopPropagation()}
       >
-        <div className="imeis-accepted-archive-header">
-          <div className="imeis-accepted-archive-header__text">
-            <span className="imeis-accepted-archive-header__eyebrow">IMEI-Verwaltung</span>
-            <h2 id="imeis-accepted-archive-title">Angenommenes Archiv</h2>
-            <p className="imeis-accepted-archive-hint">
-              Alle angenommenen IMEIs aller Mitarbeiter. Excel-Treffer erscheinen unter „Angenommen (Excel)“.
-            </p>
-          </div>
+        <div className="imeis-history-modal-header">
+          <h3 id="imeis-accepted-archive-title">Angenommenes Archiv</h3>
           <button type="button" className="imeis-history-modal-close" onClick={onClose} aria-label="Schließen">
             ×
           </button>
         </div>
 
-        <div className="imeis-history-modal-body imeis-accepted-archive-body">
+        <div className="imeis-history-modal-body">
           <div className="imeis-accepted-archive-toolbar">
             <div className="imeis-accepted-archive-filters">
               <div className="form-group">
@@ -120,7 +114,7 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
                 />
               </div>
               <div className="imeis-accepted-archive-filters__actions">
-                <button type="button" className="btn btn--primary btn--small" onClick={loadEntries} disabled={loading}>
+                <button type="button" className="btn btn--secondary btn--small" onClick={loadEntries} disabled={loading}>
                   {loading ? 'Laden…' : 'Anwenden'}
                 </button>
                 {(fromDate || toDate) && (
@@ -167,7 +161,7 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
                       <td className="imeis-accepted-archive-table__actions">
                         <button
                           type="button"
-                          className="imeis-accepted-archive-delete"
+                          className="btn btn--danger btn--small"
                           disabled={deletingId === entry.id}
                           onClick={() => handleDelete(entry)}
                         >
