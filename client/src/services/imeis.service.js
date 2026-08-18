@@ -248,3 +248,41 @@ export const setRemovedImeiCooldown = () => {
 export const setHistoryActionCooldown = () => {
   lastHistoryActionTime = Date.now();
 };
+
+const pendingHistoryRemovalKeys = new Set();
+
+export function historyEntryKey(entry) {
+  const imei = String(entry?.imei ?? '').trim();
+  const ts = String(entry?.timestamp ?? '').trim();
+  const userName = String(entry?.userName ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+  return `${imei}|${ts}|${userName}`;
+}
+
+/** Verlauf-Eintrag sofort ausblenden, bis Server ihn nicht mehr liefert */
+export function markHistoryEntryPendingRemoval(entry) {
+  const imei = String(entry?.imei ?? '').trim();
+  if (!imei) return;
+  pendingHistoryRemovalKeys.add(historyEntryKey(entry));
+  setHistoryActionCooldown();
+}
+
+export function clearHistoryEntryPendingRemoval(entry) {
+  pendingHistoryRemovalKeys.delete(historyEntryKey(entry));
+}
+
+export function filterPendingHistoryRemovals(entries) {
+  if (!pendingHistoryRemovalKeys.size) return entries ?? [];
+  return (entries ?? []).filter((e) => !pendingHistoryRemovalKeys.has(historyEntryKey(e)));
+}
+
+/** Entfernt Pending-Keys, sobald der Server den Eintrag nicht mehr sendet */
+export function reconcilePendingHistoryRemovals(serverEntries) {
+  if (!pendingHistoryRemovalKeys.size) return;
+  const serverKeys = new Set((serverEntries ?? []).map(historyEntryKey));
+  for (const key of [...pendingHistoryRemovalKeys]) {
+    if (!serverKeys.has(key)) pendingHistoryRemovalKeys.delete(key);
+  }
+}

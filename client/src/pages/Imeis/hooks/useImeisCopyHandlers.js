@@ -1,5 +1,10 @@
 import { useCallback, useRef } from 'react';
-import { setHistoryActionCooldown, notifyReminderResponseApi } from '../../../services/imeis.service';
+import {
+  markHistoryEntryPendingRemoval,
+  clearHistoryEntryPendingRemoval,
+  historyEntryKey,
+  notifyReminderResponseApi
+} from '../../../services/imeis.service';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -33,11 +38,10 @@ export function useImeisCopyHandlers({
   const historyActionPendingRef = useRef(new Set());
   const normHistName = useCallback((s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(), []);
 
-  const historyActionKey = useCallback(
-    (entry) =>
-      `${String(entry?.imei || '').trim()}|${String(entry?.timestamp || '')}|${normHistName(entry?.userName)}`,
-    [normHistName]
-  );
+  const removeEntryFromHistory = useCallback((history, entry) => {
+    const key = historyEntryKey(entry);
+    return (history ?? []).filter((e) => historyEntryKey(e) !== key);
+  }, []);
 
   const addHistoryEntry = useCallback((entry) => {
     if (!entry?.imei) return;
@@ -160,7 +164,7 @@ export function useImeisCopyHandlers({
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {
     if (index < 0 || index >= copyHistory.length) return false;
     const entry = copyHistory[index];
-    const pendingKey = historyActionKey(entry);
+    const pendingKey = historyEntryKey(entry);
     if (historyActionPendingRef.current.has(pendingKey)) return false;
 
     const oldAction = entry.action || null;
@@ -181,7 +185,8 @@ export function useImeisCopyHandlers({
     if (isServerHistoryAction) {
       historyActionPendingRef.current.add(pendingKey);
       const imeiStr = String(entry.imei || '').trim();
-      const updatedHistory = copyHistory.filter((_, i) => i !== index);
+      markHistoryEntryPendingRemoval(entry);
+      const updatedHistory = removeEntryFromHistory(copyHistory, entry);
       const updatedRowActions = { ...rowActions };
       Object.keys(updatedRowActions).forEach((rowId) => {
         if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
@@ -192,7 +197,6 @@ export function useImeisCopyHandlers({
       if (newAction === 'angenommen' && setImeis) {
         setImeis((prev) => prev.filter((it) => String(it?.imei || '').trim() !== imeiStr));
       }
-      setHistoryActionCooldown();
 
       try {
         const targetUserId = canUpdateOthersHistory ? undefined : user?.id;
@@ -209,6 +213,7 @@ export function useImeisCopyHandlers({
         }
         return true;
       } catch (err) {
+        clearHistoryEntryPendingRemoval(entry);
         setCopyHistory(copyHistory);
         setRowActions(rowActions);
         alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));
@@ -220,7 +225,8 @@ export function useImeisCopyHandlers({
 
     if (newAction === 'angenommen') {
       const imeiStr = String(entry.imei || '').trim();
-      const updatedHistory = copyHistory.filter((_, i) => i !== index);
+      markHistoryEntryPendingRemoval(entry);
+      const updatedHistory = removeEntryFromHistory(copyHistory, entry);
       setCopyHistory(updatedHistory);
       if (setImeis) setImeis(prev => prev.filter(item => String(item?.imei || '').trim() !== imeiStr));
       const updatedRowActions = { ...rowActions };
@@ -234,12 +240,13 @@ export function useImeisCopyHandlers({
     }
     if (newAction === 'abgelehnt') {
       const imeiToReject = entry.imei;
+      markHistoryEntryPendingRemoval(entry);
       const updatedRowActions = { ...rowActions };
       Object.keys(updatedRowActions).forEach(rowId => {
         if (rowId.includes(`-${imeiToReject}-`)) delete updatedRowActions[rowId];
       });
       setRowActions(updatedRowActions);
-      const updatedHistory = copyHistory.filter((_, i) => i !== index);
+      const updatedHistory = removeEntryFromHistory(copyHistory, entry);
       setCopyHistory(updatedHistory);
       persistImeis?.({ rowActions: updatedRowActions, copyHistory: updatedHistory });
       notifyReminderResponseApi(String(imeiToReject || '').trim(), 'abgelehnt');
@@ -260,7 +267,7 @@ export function useImeisCopyHandlers({
     canUpdateOthersHistory,
     updateHistoryActionApi,
     setImeis,
-    historyActionKey,
+    removeEntryFromHistory,
     normHistName,
     persistImeis
   ]);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync } from '../../../services/imeis.service';
+import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync, filterPendingHistoryRemovals, reconcilePendingHistoryRemovals } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst } from '../utils/imeisSortUtils';
 
@@ -53,7 +53,8 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   setImeis(storedImeis);
   setCellTextColors(data.cellColors ?? {});
   setRowActions(data.rowActions ?? {});
-  const processedHistory = processCopyHistory(data.copyHistory ?? []);
+  const processedHistory = processCopyHistory(filterPendingHistoryRemovals(data.copyHistory ?? []));
+  reconcilePendingHistoryRemovals(data.copyHistory ?? []);
   setCopyHistory(processedHistory);
   setCopyTimestamps?.(data.copyTimestamps ?? []);
 
@@ -176,6 +177,7 @@ export function useImeisData(
     const intervalId = socketIsRealtime ? null : setInterval(syncFromServer, POLL_INTERVAL_MS);
 
     const onImeisUpdated = () => {
+      if (shouldSkipSync()) return;
       getImeisDataFromApi().then((data) => {
         if (data) applyImeisData(data, setters, getManufacturer, false);
       });
