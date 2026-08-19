@@ -365,7 +365,6 @@ export default function VorvertragWizardForm({
   const renderStep1 = () => (
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">Schritt 1 – Grunddaten</h3>
-      {renderStepRequiredHint('Pflicht: Datum, Filiale in der Navbar, Kundenart. Bei Bestandskunde zusätzlich Kunde aus Archiv wählen.')}
       <div className="vorvertrag-form-grid">
         <div className="form-group">
           <label htmlFor="vv-datum" className="form-label form-label--required">Datum</label>
