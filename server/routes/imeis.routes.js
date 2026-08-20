@@ -19,6 +19,7 @@ import {
   markExtraCopyNotificationRead,
   approveSonderImeis,
   getAcceptedImeisArchive,
+  deleteAcceptedImeiArchiveEntriesBulk,
   deleteAcceptedImeiArchiveEntry
 } from '../controllers/imeis.controller.js';
 
@@ -44,6 +45,7 @@ router.get('/extra-copy-notifications', getExtraCopyNotifications);
 router.patch('/extra-copy-notifications/:id/read', markExtraCopyNotificationRead);
 router.post('/sonder-approve', approveSonderImeis);
 router.get('/accepted-archive', getAcceptedImeisArchive);
+router.post('/accepted-archive/bulk-delete', deleteAcceptedImeiArchiveEntriesBulk);
 router.delete('/accepted-archive/:id', deleteAcceptedImeiArchiveEntry);
 
 export default router;

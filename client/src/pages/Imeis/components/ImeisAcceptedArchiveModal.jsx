@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   deleteAcceptedImeiArchiveEntryApi,
+  deleteAcceptedImeiArchiveEntriesBulkApi,
   getAcceptedImeisArchiveApi
 } from '../../../services/imeis.service';
 
@@ -26,6 +27,8 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
@@ -35,10 +38,13 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
         from: fromDate || undefined,
         to: toDate || undefined
       });
-      setEntries(Array.isArray(res?.entries) ? res.entries : []);
+      const list = Array.isArray(res?.entries) ? res.entries : [];
+      setEntries(list);
+      setSelectedIds(new Set());
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Laden fehlgeschlagen.');
       setEntries([]);
+      setSelectedIds(new Set());
     } finally {
       setLoading(false);
     }
@@ -48,6 +54,31 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
     if (!isOpen) return;
     loadEntries();
   }, [isOpen, loadEntries]);
+
+  useEffect(() => {
+    if (!isOpen) setSelectedIds(new Set());
+  }, [isOpen]);
+
+  const entryIds = useMemo(() => entries.map((e) => e.id).filter(Boolean), [entries]);
+  const allSelected = entryIds.length > 0 && entryIds.every((id) => selectedIds.has(id));
+  const selectedCount = selectedIds.size;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(entryIds));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleDelete = async (entry) => {
     if (!entry?.id) return;
@@ -60,11 +91,49 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
     try {
       await deleteAcceptedImeiArchiveEntryApi(entry.id);
       setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
       onChanged?.();
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Löschen fehlgeschlagen.');
     } finally {
       setDeletingId('');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCount === 0 || bulkDeleting) return;
+    const ok = window.confirm(
+      `${selectedCount} Eintrag${selectedCount === 1 ? '' : 'e'} dauerhaft aus dem Angenommen-Archiv löschen?`
+    );
+    if (!ok) return;
+    setBulkDeleting(true);
+    setError('');
+    try {
+      const ids = [...selectedIds];
+      const useRangeDelete =
+        allSelected &&
+        ids.length > 0 &&
+        (fromDate || toDate);
+      const res = useRangeDelete
+        ? await deleteAcceptedImeiArchiveEntriesBulkApi({
+            allInRange: true,
+            from: fromDate || undefined,
+            to: toDate || undefined
+          })
+        : await deleteAcceptedImeiArchiveEntriesBulkApi({ ids });
+      await loadEntries();
+      onChanged?.();
+      if (res?.message) {
+        // optional feedback – errors only via setError
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Löschen fehlgeschlagen.');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -124,8 +193,22 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
                 )}
               </div>
             </div>
-            <div className="imeis-accepted-archive-count">
-              {loading ? '…' : `${entries.length} Eintrag${entries.length === 1 ? '' : 'e'}`}
+            <div className="imeis-accepted-archive-toolbar__meta">
+              <span className="imeis-accepted-archive-count">
+                {loading ? '…' : `${entries.length} Eintrag${entries.length === 1 ? '' : 'e'}`}
+              </span>
+              {selectedCount > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn--danger btn--small"
+                  disabled={bulkDeleting || loading}
+                  onClick={handleBulkDelete}
+                >
+                  {bulkDeleting
+                    ? 'Löschen…'
+                    : `Ausgewählte löschen (${selectedCount})`}
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -142,6 +225,15 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
               <table className="imeis-accepted-archive-table">
                 <thead>
                   <tr>
+                    <th className="imeis-accepted-archive-table__check">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Alle auswählen"
+                        disabled={bulkDeleting}
+                      />
+                    </th>
                     <th>IMEI</th>
                     <th>Produkt</th>
                     <th>Mitarbeiter</th>
@@ -152,7 +244,16 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
                 </thead>
                 <tbody>
                   {entries.map((entry) => (
-                    <tr key={entry.id}>
+                    <tr key={entry.id} className={selectedIds.has(entry.id) ? 'imeis-accepted-archive-table__row--selected' : ''}>
+                      <td className="imeis-accepted-archive-table__check">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(entry.id)}
+                          onChange={() => toggleSelectOne(entry.id)}
+                          aria-label={`IMEI ${entry.imei} auswählen`}
+                          disabled={bulkDeleting}
+                        />
+                      </td>
                       <td className="imeis-accepted-archive-table__imei">{entry.imei}</td>
                       <td className="imeis-accepted-archive-table__product">{entry.product || '–'}</td>
                       <td>{entry.userName || '–'}</td>
@@ -162,7 +263,7 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
                         <button
                           type="button"
                           className="btn btn--danger btn--small"
-                          disabled={deletingId === entry.id}
+                          disabled={deletingId === entry.id || bulkDeleting}
                           onClick={() => handleDelete(entry)}
                         >
                           {deletingId === entry.id ? '…' : 'Löschen'}

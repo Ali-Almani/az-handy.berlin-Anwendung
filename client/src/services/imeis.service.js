@@ -80,6 +80,11 @@ export const deleteAcceptedImeiArchiveEntryApi = async (id) => {
   return res.data;
 };
 
+export const deleteAcceptedImeiArchiveEntriesBulkApi = async ({ ids, from, to, allInRange } = {}) => {
+  const res = await api.post('/imeis/accepted-archive/bulk-delete', { ids, from, to, allInRange });
+  return res.data;
+};
+
 export const sendImeiReminderApi = async (targetUserName, imei, targetUserId) => {
   try {
     const body = { targetUserName, imei };

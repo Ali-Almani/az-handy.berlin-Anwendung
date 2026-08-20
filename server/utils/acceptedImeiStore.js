@@ -105,3 +105,37 @@ export function permanentlyDeleteAcceptedEntry(id) {
   });
   return removed;
 }
+
+/** Mehrere Einträge in einem Schreibvorgang dauerhaft löschen. */
+export function permanentlyDeleteAcceptedEntriesByIds(ids = []) {
+  const idSet = new Set((Array.isArray(ids) ? ids : []).map((id) => String(id)).filter(Boolean));
+  if (idSet.size === 0) return 0;
+  let removed = 0;
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    const before = state.entries.length;
+    state.entries = state.entries.filter((e) => !idSet.has(String(e?.id)));
+    removed = before - state.entries.length;
+  });
+  return removed;
+}
+
+/** Alle Einträge im Zeitraum löschen (inkl. nicht angezeigter Duplikate). */
+export function permanentlyDeleteAcceptedEntriesInRange({ from, to } = {}) {
+  const fromMs = parseRangeMs(from, false);
+  const toMs = parseRangeMs(to, true);
+  let removed = 0;
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    const before = state.entries.length;
+    state.entries = state.entries.filter((e) => {
+      const t = Date.parse(e?.acceptedAt || 0);
+      if (Number.isNaN(t)) return true;
+      if (fromMs != null && t < fromMs) return true;
+      if (toMs != null && t > toMs) return true;
+      return false;
+    });
+    removed = before - state.entries.length;
+  });
+  return removed;
+}

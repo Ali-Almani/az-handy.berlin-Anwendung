@@ -20,7 +20,9 @@ import {
   getAcceptedImeiKeySet,
   listAcceptedImeis,
   listAcceptedImeisForDisplay,
-  permanentlyDeleteAcceptedEntry
+  permanentlyDeleteAcceptedEntry,
+  permanentlyDeleteAcceptedEntriesByIds,
+  permanentlyDeleteAcceptedEntriesInRange
 } from '../utils/acceptedImeiStore.js';
 import * as redisCache from '../utils/redisCache.js';
 import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
@@ -1582,6 +1584,37 @@ export const getAcceptedImeisArchive = async (req, res, next) => {
     const { from, to } = req.query;
     const entries = listAcceptedImeisForDisplay({ from, to });
     res.json({ success: true, entries });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Büro/Admin: Mehrere Einträge dauerhaft aus Angenommen-Archiv löschen. */
+export const deleteAcceptedImeiArchiveEntriesBulk = async (req, res, next) => {
+  try {
+    if (!(await assertOfficeOrAdmin(req, res))) return;
+    const { ids, from, to, allInRange } = req.body ?? {};
+    if (allInRange === true) {
+      const removed = permanentlyDeleteAcceptedEntriesInRange({ from, to });
+      return res.json({
+        success: true,
+        message: `${removed} Eintrag/Einträge dauerhaft gelöscht.`,
+        removed
+      });
+    }
+    const idList = Array.isArray(ids) ? ids.map((id) => String(id).trim()).filter(Boolean) : [];
+    if (idList.length === 0) {
+      return res.status(400).json({ success: false, message: 'ids (Array) oder allInRange erforderlich.' });
+    }
+    const removed = permanentlyDeleteAcceptedEntriesByIds(idList);
+    if (removed === 0) {
+      return res.status(404).json({ success: false, message: 'Keine Einträge gefunden.' });
+    }
+    res.json({
+      success: true,
+      message: `${removed} Eintrag/Einträge dauerhaft gelöscht.`,
+      removed
+    });
   } catch (error) {
     next(error);
   }
