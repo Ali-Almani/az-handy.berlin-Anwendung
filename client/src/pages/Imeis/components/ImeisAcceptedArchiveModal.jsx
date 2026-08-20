@@ -20,6 +20,34 @@ function formatDateTime(iso) {
   }
 }
 
+function escapeCsvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function downloadAcceptedArchiveCsv(rows, { fromDate, toDate } = {}) {
+  if (!rows.length) return;
+  const headers = ['IMEI', 'Produkt', 'Mitarbeiter', 'Angenommen am', 'Angenommen von'];
+  const csvRows = rows.map((entry) => [
+    entry.imei ?? '',
+    entry.product ?? '',
+    entry.userName ?? '',
+    formatDateTime(entry.acceptedAt),
+    entry.acceptedByName ?? ''
+  ]);
+  const csvContent = `\uFEFF${[headers, ...csvRows]
+    .map((row) => row.map(escapeCsvCell).join(','))
+    .join('\n')}`;
+  const rangePart = [fromDate, toDate].filter(Boolean).join('_') || 'alle';
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+  link.download = `angenommen-archiv_${rangePart}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
 export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }) {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -142,6 +170,20 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
     setToDate('');
   };
 
+  const handleExportCsv = () => {
+    const rows =
+      selectedCount > 0
+        ? entries.filter((e) => selectedIds.has(e.id))
+        : entries;
+    if (rows.length === 0) return;
+    downloadAcceptedArchiveCsv(rows, { fromDate, toDate });
+  };
+
+  const exportLabel =
+    selectedCount > 0
+      ? `Exportieren (CSV, ${selectedCount})`
+      : 'Exportieren (CSV)';
+
   if (!isOpen) return null;
 
   return (
@@ -197,6 +239,14 @@ export default function ImeisAcceptedArchiveModal({ isOpen, onClose, onChanged }
               <span className="imeis-accepted-archive-count">
                 {loading ? '…' : `${entries.length} Eintrag${entries.length === 1 ? '' : 'e'}`}
               </span>
+              <button
+                type="button"
+                className="btn btn--secondary btn--small"
+                disabled={loading || bulkDeleting || entries.length === 0}
+                onClick={handleExportCsv}
+              >
+                {exportLabel}
+              </button>
               {selectedCount > 0 ? (
                 <button
                   type="button"
