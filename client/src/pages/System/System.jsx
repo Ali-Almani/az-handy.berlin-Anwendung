@@ -13,9 +13,15 @@ import VorvertragForm, {
   formFromEntry,
   buildVorvertragPayload
 } from './VorvertragForm';
+import MnpForm, {
+  emptyMnpForm,
+  formFromMnpEntry,
+  buildMnpPayload
+} from './MnpForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import { emptyMnpDetails } from './mnpConstants';
+import { isMnpOnlyEntry } from './vorvertragEntryType';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
@@ -39,6 +45,7 @@ const System = () => {
   const [form, setForm] = useState(emptyVorvertragForm);
   const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
+  const [formKind, setFormKind] = useState('vorvertrag');
   const [listTab, setListTab] = useState('neu');
   const [archivSearch, setArchivSearch] = useState('');
   const [statusSavingId, setStatusSavingId] = useState('');
@@ -120,9 +127,14 @@ const System = () => {
   }, [user, loadList]);
 
   useEffect(() => {
-    if (!showForm || mode !== 'new' || !navbarFiliale) return;
+    if (!showForm || mode !== 'new' || formKind !== 'vorvertrag' || !navbarFiliale) return;
     setForm((prev) => (prev.filiale === navbarFiliale ? prev : { ...prev, filiale: navbarFiliale }));
-  }, [showForm, mode, navbarFiliale]);
+  }, [showForm, mode, formKind, navbarFiliale]);
+
+  useEffect(() => {
+    if (!showForm || mode !== 'new' || formKind !== 'mnp' || !navbarFiliale) return;
+    setForm((prev) => (prev.filiale === navbarFiliale ? prev : { ...prev, filiale: navbarFiliale }));
+  }, [showForm, mode, formKind, navbarFiliale]);
 
   const scrollToCard = (id) => {
     if (!id) return;
@@ -134,6 +146,7 @@ const System = () => {
 
   const startNew = () => {
     setActiveId(null);
+    setFormKind('vorvertrag');
     setForm({
       ...emptyVorvertragForm(),
       filiale: navbarFiliale,
@@ -151,11 +164,33 @@ const System = () => {
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
+  const startNewMnp = () => {
+    setActiveId(null);
+    setFormKind('mnp');
+    setForm({
+      ...emptyMnpForm(),
+      filiale: navbarFiliale,
+      mnpDetails: {
+        ...emptyMnpDetails(),
+        mitarbeiter: defaultMitarbeiter,
+        neuesVertragsdatum: new Date().toISOString().slice(0, 10)
+      }
+    });
+    setGeraetSeed('');
+    setMode('new');
+    setShowForm(true);
+    setError('');
+    setSuccessToast(null);
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+
   const startEdit = (entry) => {
+    const mnpOnly = isMnpOnlyEntry(entry);
+    setFormKind(mnpOnly ? 'mnp' : 'vorvertrag');
     setActiveId(entry.id);
-    const nextForm = formFromEntry(entry);
+    const nextForm = mnpOnly ? formFromMnpEntry(entry) : formFromEntry(entry);
     setForm(nextForm);
-    setGeraetSeed(nextForm.ausgabeGeraet);
+    setGeraetSeed(mnpOnly ? '' : nextForm.ausgabeGeraet);
     setMode('edit');
     setShowForm(true);
     setError('');
@@ -169,6 +204,7 @@ const System = () => {
     setForm(emptyVorvertragForm());
     setGeraetSeed('');
     setMode('new');
+    setFormKind('vorvertrag');
   };
 
   const handleFormChange = (field, value) => {
@@ -196,7 +232,9 @@ const System = () => {
         setSaving(false);
         return;
       }
-      const payload = buildVorvertragPayload({ ...form, filiale: filialeForSave });
+      const payload = formKind === 'mnp'
+        ? buildMnpPayload({ ...form, filiale: filialeForSave })
+        : buildVorvertragPayload({ ...form, filiale: filialeForSave });
       let savedId = activeId;
 
       if (mode === 'edit' && activeId) {
@@ -204,14 +242,18 @@ const System = () => {
         savedId = res?.entry?.id || activeId;
         setSuccessToast({
           type: 'success',
-          message: 'Vorvertrag wurde aktualisiert. Die Karte in der Liste ist bearbeitbar.'
+          message: formKind === 'mnp'
+            ? 'MNP wurde aktualisiert. Die Karte in der Liste ist bearbeitbar.'
+            : 'Vorvertrag wurde aktualisiert. Die Karte in der Liste ist bearbeitbar.'
         });
       } else {
         const res = await createVorvertragApi(payload);
         savedId = res?.entry?.id || null;
         setSuccessToast({
           type: 'success',
-          message: 'Vorvertrag eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
+          message: formKind === 'mnp'
+            ? 'MNP eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
+            : 'Vorvertrag eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
         });
       }
 
@@ -291,6 +333,9 @@ const System = () => {
         <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
           Neuer Vorvertrag
         </button>
+        <button type="button" className="btn btn--secondary" onClick={startNewMnp} disabled={showForm}>
+          Neues MNP
+        </button>
       </div>
 
       {successToast ? (
@@ -313,22 +358,35 @@ const System = () => {
 
       {showForm ? (
         <div ref={formRef}>
-          <VorvertragForm
-            form={form}
-            onChange={handleFormChange}
-            onPatch={handleFormPatch}
-            onSubmit={handleSubmit}
-            onCancel={cancelForm}
-            filialeOptions={filialeOptions}
-            navbarFiliale={navbarFiliale}
-            existingEntries={entries}
-            archivedEntries={archivedEntries}
-            imeis={imeis}
-            geraeteLoading={geraeteLoading}
-            geraetSeed={geraetSeed}
-            saving={saving}
-            mode={mode}
-          />
+          {formKind === 'mnp' ? (
+            <MnpForm
+              form={form}
+              onPatch={handleFormPatch}
+              onSubmit={handleSubmit}
+              onCancel={cancelForm}
+              filialeOptions={filialeOptions}
+              navbarFiliale={navbarFiliale}
+              saving={saving}
+              mode={mode}
+            />
+          ) : (
+            <VorvertragForm
+              form={form}
+              onChange={handleFormChange}
+              onPatch={handleFormPatch}
+              onSubmit={handleSubmit}
+              onCancel={cancelForm}
+              filialeOptions={filialeOptions}
+              navbarFiliale={navbarFiliale}
+              existingEntries={entries}
+              archivedEntries={archivedEntries}
+              imeis={imeis}
+              geraeteLoading={geraeteLoading}
+              geraetSeed={geraetSeed}
+              saving={saving}
+              mode={mode}
+            />
+          )}
         </div>
       ) : null}
 
@@ -354,8 +412,8 @@ const System = () => {
             {listTab === 'archiv' && archivSearch.trim()
               ? 'Keine Treffer für diesen Kundenname im Archiv.'
               : listTab === 'archiv'
-                ? 'Keine erledigten Vorverträge im Archiv.'
-                : 'Keine offenen Vorverträge.'}
+                ? 'Keine erledigten Einträge im Archiv.'
+                : 'Keine offenen Einträge.'}
           </p>
         ) : (
           <div className="vorvertrag-cards-grid">

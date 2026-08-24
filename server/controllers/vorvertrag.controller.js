@@ -176,6 +176,36 @@ function normalizeMnpDetails(raw = {}) {
   };
 }
 
+function normalizeEntryType(value) {
+  return String(value ?? '').trim().toLowerCase() === 'mnp' ? 'mnp' : 'vorvertrag';
+}
+
+function validateMnpDetailsRequired(details = {}) {
+  if (!String(details.postpaidPrepaid ?? '').trim()) {
+    return 'Bitte Postpaid/Prepaid wählen.';
+  }
+  if (!String(details.mnpDetails ?? '').trim()) {
+    return 'Bitte MNP-Details wählen.';
+  }
+  if (!String(details.freigegebenNachVertragsende ?? '').trim()) {
+    return 'Bitte freigegeben/nach Vertragsende wählen.';
+  }
+  if (!String(details.mnpTyp ?? '').trim()) {
+    return 'Bitte MNP Typ wählen.';
+  }
+  return '';
+}
+
+function applyMnpCustomerNames(normalized) {
+  if (normalizeEntryType(normalized.entryType) !== 'mnp') return normalized;
+  const mnp = normalized.eingabeDetails?.mnpDetails || {};
+  return {
+    ...normalized,
+    kundeVorname: String(mnp.kundenVorname ?? '').trim(),
+    kundeNachname: String(mnp.kundenNachname ?? '').trim()
+  };
+}
+
 function normalizeEingabeDetails(raw = {}) {
   const mnpDetails = normalizeMnpDetails(raw);
   return {
@@ -203,6 +233,7 @@ function normalizeEntryBody(body = {}) {
   const anschlussJa = normalizeJaNein(body.anschlussJaNein ?? body.anschluss?.jaNein);
   const zuzahlungJa = normalizeJaNein(body.zuzahlungJaNein ?? body.zuzahlung?.jaNein);
   return {
+    entryType: normalizeEntryType(body.entryType),
     datum: String(body.datum ?? '').trim(),
     filiale,
     kundeVorname: String(body.kundeVorname ?? body.kunde_vorname ?? '').trim(),
@@ -284,7 +315,7 @@ export async function getVorvertrag(req, res) {
 
 export async function createVorvertrag(req, res) {
   if (!(await requireAdmin(req, res))) return;
-  const normalized = normalizeEntryBody(req.body);
+  let normalized = normalizeEntryBody(req.body);
   if (normalized.error) {
     return res.status(400).json({ success: false, message: normalized.error });
   }
@@ -293,6 +324,13 @@ export async function createVorvertrag(req, res) {
   }
   if (!normalized.filiale) {
     return res.status(400).json({ success: false, message: 'Filiale ist erforderlich.' });
+  }
+  normalized = applyMnpCustomerNames(normalized);
+  if (normalized.entryType === 'mnp') {
+    const mnpErr = validateMnpDetailsRequired(normalized.eingabeDetails?.mnpDetails);
+    if (mnpErr) {
+      return res.status(400).json({ success: false, message: mnpErr });
+    }
   }
 
   const now = new Date().toISOString();
@@ -327,7 +365,7 @@ export async function createVorvertrag(req, res) {
 export async function updateVorvertrag(req, res) {
   if (!(await requireAdmin(req, res))) return;
   const id = String(req.params.id || '').trim();
-  const normalized = normalizeEntryBody(req.body);
+  let normalized = normalizeEntryBody(req.body);
   if (normalized.error) {
     return res.status(400).json({ success: false, message: normalized.error });
   }
@@ -336,6 +374,13 @@ export async function updateVorvertrag(req, res) {
   }
   if (!normalized.filiale) {
     return res.status(400).json({ success: false, message: 'Filiale ist erforderlich.' });
+  }
+  normalized = applyMnpCustomerNames(normalized);
+  if (normalized.entryType === 'mnp') {
+    const mnpErr = validateMnpDetailsRequired(normalized.eingabeDetails?.mnpDetails);
+    if (mnpErr) {
+      return res.status(400).json({ success: false, message: mnpErr });
+    }
   }
 
   const now = new Date().toISOString();

@@ -66,6 +66,7 @@ export function formFromEntry(entry) {
 
 export function buildVorvertragPayload(form) {
   return {
+    entryType: 'vorvertrag',
     datum: form.datum,
     filiale: form.filiale,
     kundeVorname: form.kundeVorname,

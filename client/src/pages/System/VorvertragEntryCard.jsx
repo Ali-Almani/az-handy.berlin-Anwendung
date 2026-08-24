@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { formatVerfuegbarkeit, parseAusgabeDetails, normalizeMitOhne } from './vorvertragGeraeteUtils';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { hasMnpDetailsContent, mnpDetailsFromEingabe, MNP_FIELD_LABELS } from './mnpConstants';
+import { isMnpOnlyEntry } from './vorvertragEntryType';
 import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_OPTIONS,
@@ -123,13 +124,16 @@ export default function VorvertragEntryCard({
 }) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
-  const hasMnp = hasMnpDetailsContent(mnp);
+  const mnpOnly = isMnpOnlyEntry(entry);
+  const hasMnp = mnpOnly || hasMnpDetailsContent(mnp);
   const ausgabe = parseAusgabeDetails(entry?.ausgabeDetails);
-  const name = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
+  const nameFromMnp = [mnp.kundenVorname, mnp.kundenNachname].filter(Boolean).join(' ');
+  const nameFromEntry = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ');
+  const name = nameFromEntry || nameFromMnp || 'Ohne Kundenname';
   const mitarbeiter = mitarbeiterName(entry);
   const ticketStatus = normalizeVorvertragTicketStatus(entry?.ticketStatus);
   const hasDevice = Boolean(ausgabe.geraet);
-  const [openSection, setOpenSection] = useState(hasDevice ? 'device' : 'vertrag');
+  const [openSection, setOpenSection] = useState(mnpOnly ? 'mnp' : (hasDevice ? 'device' : 'vertrag'));
 
   const toggleSection = (id) => {
     setOpenSection((prev) => (prev === id ? null : id));
@@ -146,6 +150,7 @@ export default function VorvertragEntryCard({
           <div className="vorvertrag-entry-card__meta">
             <MetaChip>{formatDatum(entry?.datum)}</MetaChip>
             <MetaChip accent>{formatEinsatzOrt(entry?.filiale)}</MetaChip>
+            {mnpOnly ? <MetaChip accent>MNP</MetaChip> : null}
             <span
               className={`vorvertrag-entry-card__badge vorvertrag-entry-card__badge--${vorvertragTicketStatusBadge(ticketStatus)}`}
             >
@@ -176,7 +181,7 @@ export default function VorvertragEntryCard({
       </header>
 
       <div className="vorvertrag-entry-card__body">
-        {hasDevice ? (
+        {!mnpOnly && hasDevice ? (
           <AccordionSection
             id="device"
             title="Gerät & Ausgabe"
@@ -199,56 +204,62 @@ export default function VorvertragEntryCard({
           </AccordionSection>
         ) : null}
 
-        <AccordionSection
-          id="vertrag"
-          title="Vertrag"
-          open={openSection === 'vertrag'}
-          onToggle={toggleSection}
-        >
-          <div className="vorvertrag-entry-card__fields">
-            <Field
-              label="Anschluss"
-              value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)}
-              badge={jaNeinBadge(entry?.anschluss?.jaNein)}
-            />
-            <Field
-              label="Zuzahlung"
-              value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)}
-              badge={jaNeinBadge(entry?.zuzahlung?.jaNein)}
-            />
-            <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
-            <Field label="HW-Voucher" value={e.hwVoucher} />
-            <Field label="Kombi" value={normalizeMitOhne(e.kombi)} badge={mitOhneBadge(e.kombi)} />
-            <Field label="VVL" value={normalizeMitOhne(e.vvl)} badge={mitOhneBadge(e.vvl)} />
-          </div>
-        </AccordionSection>
+        {!mnpOnly ? (
+          <AccordionSection
+            id="vertrag"
+            title="Vertrag"
+            open={openSection === 'vertrag'}
+            onToggle={toggleSection}
+          >
+            <div className="vorvertrag-entry-card__fields">
+              <Field
+                label="Anschluss"
+                value={jaNeinLabel(entry?.anschluss?.jaNein, entry?.anschluss?.wert)}
+                badge={jaNeinBadge(entry?.anschluss?.jaNein)}
+              />
+              <Field
+                label="Zuzahlung"
+                value={jaNeinLabel(entry?.zuzahlung?.jaNein, entry?.zuzahlung?.wert)}
+                badge={jaNeinBadge(entry?.zuzahlung?.jaNein)}
+              />
+              <Field label="IMEIs – 24/36 Monaten" value={e.imeisMonate} />
+              <Field label="HW-Voucher" value={e.hwVoucher} />
+              <Field label="Kombi" value={normalizeMitOhne(e.kombi)} badge={mitOhneBadge(e.kombi)} />
+              <Field label="VVL" value={normalizeMitOhne(e.vvl)} badge={mitOhneBadge(e.vvl)} />
+            </div>
+          </AccordionSection>
+        ) : null}
 
-        <AccordionSection
-          id="kunde"
-          title="Kunde & Zahlung"
-          open={openSection === 'kunde'}
-          onToggle={toggleSection}
-        >
-          <div className="vorvertrag-entry-card__fields">
-            <Field label="Nationalität" value={e.nationalitaet} />
-            <Field label="Pass / PA-Nr." value={e.passNummer} />
-            <Field label="PA Ablauf" value={e.passAblaufDatum} />
-            <Field label="IBAN" value={e.iban} />
-            <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
-          </div>
-        </AccordionSection>
+        {!mnpOnly ? (
+          <AccordionSection
+            id="kunde"
+            title="Kunde & Zahlung"
+            open={openSection === 'kunde'}
+            onToggle={toggleSection}
+          >
+            <div className="vorvertrag-entry-card__fields">
+              <Field label="Nationalität" value={e.nationalitaet} />
+              <Field label="Pass / PA-Nr." value={e.passNummer} />
+              <Field label="PA Ablauf" value={e.passAblaufDatum} />
+              <Field label="IBAN" value={e.iban} />
+              <Field label="IBAN-Inhaber" value={e.ibanInhaber} />
+            </div>
+          </AccordionSection>
+        ) : null}
 
-        <AccordionSection
-          id="sonstiges"
-          title="Sonstiges"
-          open={openSection === 'sonstiges'}
-          onToggle={toggleSection}
-        >
-          <div className="vorvertrag-entry-card__fields">
-            <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
-            <Field label="Notiz" value={e.notiz} />
-          </div>
-        </AccordionSection>
+        {!mnpOnly ? (
+          <AccordionSection
+            id="sonstiges"
+            title="Sonstiges"
+            open={openSection === 'sonstiges'}
+            onToggle={toggleSection}
+          >
+            <div className="vorvertrag-entry-card__fields">
+              <Field label="ePOS-Kundenummer" value={e.eposKundenummer} />
+              <Field label="Notiz" value={e.notiz} />
+            </div>
+          </AccordionSection>
+        ) : null}
 
         {hasMnp ? (
           <AccordionSection
