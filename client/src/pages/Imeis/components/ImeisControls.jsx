@@ -95,7 +95,7 @@ const ImeisControls = ({
                   Bestand
                 </button>
               )}
-              {showSonderOfficeButton && imeisLength > 0 && (
+              {false && showSonderOfficeButton && imeisLength > 0 && (
                 <button
                   type="button"
                   onClick={onOpenSonderOffice}

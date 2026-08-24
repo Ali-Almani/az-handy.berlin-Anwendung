@@ -245,7 +245,7 @@ const Imeis = () => {
                   ) : null}
                 </button>
               ) : null}
-              {canManageAcceptedArchive && acceptedReuploadCount > 0 ? (
+              {false && canManageAcceptedArchive && acceptedReuploadCount > 0 ? (
                 <button
                   type="button"
                   role="tab"
