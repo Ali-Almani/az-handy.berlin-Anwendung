@@ -216,6 +216,7 @@ const Imeis = () => {
 
           {(canShowSonderShopTab || canManageAcceptedArchive) && (
             <div className="imeis-scope-tabs" role="tablist" aria-label="IMEI Ansicht">
+              {false && (
               <button
                 type="button"
                 role="tab"
@@ -228,6 +229,7 @@ const Imeis = () => {
               >
                 Alle IMEIs
               </button>
+              )}
               {canShowSonderShopTab ? (
                 <button
                   type="button"
