@@ -394,14 +394,9 @@ export default function VorvertragWizardForm({
       <h3 className="vorvertrag-section-title">
         Schritt 2 – {kundenArt === 'bestand' ? 'Kundendaten prüfen & anpassen' : 'Neukunde erfassen'}
       </h3>
-      {kundenArt === 'bestand'
-        ? renderStepRequiredHint('Pflicht: Bestandskunde aus dem Archiv auswählen (Schritt 1). Alle weiteren Kundendaten optional.')
-        : renderStepRequiredHint('Pflicht: mindestens Vor- oder Nachname. Alle weiteren Kundendaten optional.')}
-      {kundenArt === 'bestand' && selectedKundeKey ? (
-        <p className="vorvertrag-step-hint">
-          Daten aus dem Archiv – alle Felder können geändert werden.
-        </p>
-      ) : null}
+      {kundenArt === 'neu'
+        ? renderStepRequiredHint('Pflicht: mindestens Vor- oder Nachname. Alle weiteren Kundendaten optional.')
+        : null}
       {renderCustomerFields()}
     </div>
   );
@@ -409,7 +404,6 @@ export default function VorvertragWizardForm({
   const renderStep3 = () => (
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">Schritt 3 – Ausgabe Details</h3>
-      {renderStepRequiredHint('Alle Felder optional: Gerät, Farbe, Verfügbarkeit.')}
       <div className="vorvertrag-form-grid">
         <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
           <VorvertragGeraetPicker
@@ -442,7 +436,6 @@ export default function VorvertragWizardForm({
 
   const renderStep4 = () => (
     <>
-      {renderStepRequiredHint('Alle Felder optional: Anschluss, Zuzahlung, IMEIs, HW-Voucher, Kombi, VVL, Notiz.')}
       <div className="vorvertrag-section">
         <h3 className="vorvertrag-section-title">Schritt 4 – Anschluss &amp; Zuzahlung</h3>
         <div className="vorvertrag-ja-nein-row">
@@ -570,11 +563,6 @@ export default function VorvertragWizardForm({
 
   const renderStep5 = () => (
     <div className="vorvertrag-section">
-      {renderStepRequiredHint(
-        mitMnp === 'ja'
-          ? 'Pflicht: Mit MNP = Ja, dann Postpaid/Prepaid, MNP-Details, freigegeben/nach Vertragsende, MNP Typ. Alle anderen MNP-Felder optional.'
-          : 'Pflicht: Mit MNP? (Ja oder Nein). Bei Nein keine MNP-Felder nötig.'
-      )}
       {renderMitMnpChoice()}
       {mitMnp === 'nein' ? (
         <p className="vorvertrag-step-hint">

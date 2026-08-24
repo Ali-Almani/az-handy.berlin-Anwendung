@@ -86,7 +86,7 @@ export function validateMnpDetailsForSubmit(details = {}) {
 
 export const MNP_FIELD_LABELS = {
   mitarbeiter: 'Mitarbeiter',
-  neuesVertragsdatum: 'Neues Vertragsdatum',
+  neuesVertragsdatum: 'Vertragsdatum',
   neueO2Rufnummer: 'Neue O2 Rufnummer',
   eposKn: 'ePOS KN',
   iban: 'IBAN',

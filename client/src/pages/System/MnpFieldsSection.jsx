@@ -73,7 +73,7 @@ export default function MnpFieldsSection({
           />
           <TextField
             id={`${idPrefix}-neues-vertragsdatum`}
-            label="Neues Vertragsdatum"
+            label="Vertragsdatum"
             type="date"
             value={d.neuesVertragsdatum || ''}
             onChange={(v) => handleChange('neuesVertragsdatum', v)}
