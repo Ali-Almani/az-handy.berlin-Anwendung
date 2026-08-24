@@ -5,6 +5,7 @@ import {
   MNP_STATUS_OPTIONS,
   MNP_TYP_OPTIONS
 } from './mnpConstants';
+import OriginalAnbieterPicker from './OriginalAnbieterPicker';
 
 function SelectField({ id, label, value, options, onChange, required = false }) {
   return (
@@ -168,9 +169,8 @@ export default function MnpFieldsSection({
             value={d.mnpRufnummer || ''}
             onChange={(v) => handleChange('mnpRufnummer', v)}
           />
-          <TextField
+          <OriginalAnbieterPicker
             id={`${idPrefix}-original`}
-            label="Original Anbieter"
             value={d.originalAnbieter || ''}
             onChange={(v) => handleChange('originalAnbieter', v)}
           />

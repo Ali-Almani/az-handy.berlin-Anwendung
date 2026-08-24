@@ -445,6 +445,106 @@
   position: relative;
 }
 
+.original-anbieter-picker {
+  position: relative;
+}
+
+.original-anbieter-picker__dropdown {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  max-height: 16rem;
+  overflow: auto;
+  border: 1px solid $border-color;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.original-anbieter-picker__header,
+.original-anbieter-picker__option {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+}
+
+.original-anbieter-picker__header {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: $text-light;
+  background: mix(#fff, $border-color, 35%);
+  border-bottom: 1px solid $border-color;
+}
+
+.original-anbieter-picker__option {
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid mix(#fff, $border-color, 55%);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: $text-color;
+
+  &:hover,
+  &--active {
+    background: mix(#fff, $primary-color, 92%);
+  }
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.original-anbieter-picker__marke {
+  font-size: 0.88rem;
+  font-weight: $font-weight-medium;
+}
+
+.original-anbieter-picker__netz {
+  font-size: 0.8rem;
+  color: $text-light;
+}
+
+.original-anbieter-picker__empty {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 0.84rem;
+  color: $text-light;
+}
+
+.original-anbieter-picker__custom {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  border-top: 1px solid $border-color;
+  background: mix(#fff, $primary-color, 94%);
+  text-align: left;
+  font: inherit;
+  font-size: 0.84rem;
+  color: $text-color;
+  cursor: pointer;
+
+  &:hover {
+    background: mix(#fff, $primary-color, 88%);
+  }
+
+  strong {
+    font-weight: $font-weight-bold;
+    color: darken($primary-color, 6%);
+  }
+}
+
 .vorvertrag-filiale-select {
   appearance: none;
   padding-right: 2.25rem;

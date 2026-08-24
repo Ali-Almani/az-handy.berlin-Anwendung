@@ -20,6 +20,53 @@ export const MNP_STATUS_OPTIONS = [
   'Erledigt'
 ];
 
+/** Vordefinierte Original-Anbieter (Marke + Netz) für MNP */
+export const MNP_ORIGINAL_ANBIETER_OPTIONS = [
+  { marke: 'ALDI TALK', netz: 'O2 / Telefónica' },
+  { marke: 'Blau', netz: 'O2 / Telefónica' },
+  { marke: 'FONIC', netz: 'O2 / Telefónica' },
+  { marke: 'Tchibo MOBIL', netz: 'O2 / Telefónica' },
+  { marke: 'Lebara', netz: 'O2 / Telefónica' },
+  { marke: 'AY YILDIZ', netz: 'O2 / Telefónica' },
+  { marke: 'Lidl Connect', netz: 'Vodafone' },
+  { marke: 'otelo', netz: 'Vodafone' },
+  { marke: 'SIMon mobile', netz: 'Vodafone' },
+  { marke: 'FYVE', netz: 'Vodafone' },
+  { marke: 'congstar', netz: 'Telekom' },
+  { marke: 'fraenk', netz: 'Telekom' },
+  { marke: 'EDEKA smart', netz: 'Telekom' },
+  { marke: 'ja! mobil', netz: 'Telekom' },
+  { marke: 'PENNY Mobil', netz: 'Telekom' },
+  { marke: 'Kaufland mobil', netz: 'Telekom' },
+  { marke: 'NORMA connect', netz: 'Telekom' },
+  { marke: '1&1', netz: '1&1' },
+  { marke: 'sim.de', netz: '1&1' },
+  { marke: 'winSIM', netz: '1&1' },
+  { marke: 'PremiumSIM', netz: '1&1' },
+  { marke: 'smartmobil.de', netz: '1&1' },
+  { marke: 'sim24', netz: '1&1' },
+  { marke: 'handyvertrag.de', netz: '1&1' },
+  { marke: 'yourfone', netz: '1&1' },
+  { marke: 'maXXim', netz: '1&1' },
+  { marke: 'BLACKSIM', netz: '1&1' },
+  { marke: 'BILDconnect', netz: '1&1' }
+];
+
+export const MNP_ORIGINAL_ANBIETER_MARKEN = MNP_ORIGINAL_ANBIETER_OPTIONS.map((o) => o.marke);
+
+export function filterOriginalAnbieterOptions(query = '') {
+  const q = String(query).trim().toLowerCase();
+  if (!q) return MNP_ORIGINAL_ANBIETER_OPTIONS;
+  return MNP_ORIGINAL_ANBIETER_OPTIONS.filter(
+    ({ marke, netz }) => marke.toLowerCase().includes(q) || netz.toLowerCase().includes(q)
+  );
+}
+
+export function isKnownOriginalAnbieter(marke = '') {
+  const m = String(marke).trim();
+  return MNP_ORIGINAL_ANBIETER_MARKEN.some((known) => known.toLowerCase() === m.toLowerCase());
+}
+
 export const emptyMnpDetails = () => ({
   mitarbeiter: '',
   neuesVertragsdatum: new Date().toISOString().slice(0, 10),
