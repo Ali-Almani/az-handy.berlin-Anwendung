@@ -6,6 +6,7 @@ import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_DEFAULT
 } from '../constants/vorvertragTicketStatus.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
@@ -359,6 +360,13 @@ export async function createVorvertrag(req, res) {
   await mutateStore((data) => {
     data.entries.push(entry);
   });
+  const customerLabel = [normalized.kundeVorname, normalized.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
+  writeAuditLog(req, {
+    category: 'vorvertrag',
+    action: normalized.entryType === 'mnp' ? 'vorvertrag.mnp.create' : 'vorvertrag.create',
+    summary: `${normalized.entryType === 'mnp' ? 'MNP' : 'Vorvertrag'} erstellt: ${customerLabel}`,
+    meta: { entryId: id, entryType: normalized.entryType, filiale: normalized.filiale }
+  });
   return res.status(201).json({ success: true, entry: await enrichEntryForClient(entry) });
 }
 
@@ -420,6 +428,13 @@ export async function updateVorvertrag(req, res) {
   if (notFound === true) {
     return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
   }
+  const customerLabel = [updated?.kundeVorname, updated?.kundeNachname].filter(Boolean).join(' ') || id;
+  writeAuditLog(req, {
+    category: 'vorvertrag',
+    action: updated?.entryType === 'mnp' ? 'vorvertrag.mnp.update' : 'vorvertrag.update',
+    summary: `${updated?.entryType === 'mnp' ? 'MNP' : 'Vorvertrag'} bearbeitet: ${customerLabel}`,
+    meta: { entryId: id, entryType: updated?.entryType }
+  });
   return res.json({ success: true, entry: await enrichEntryForClient(updated) });
 }
 
@@ -464,6 +479,12 @@ export async function updateVorvertragTicketStatus(req, res) {
   if (notFound === true) {
     return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
   }
+  writeAuditLog(req, {
+    category: 'vorvertrag',
+    action: 'vorvertrag.status',
+    summary: `Ticket-Status geändert: ${ticketStatus} (${id})`,
+    meta: { entryId: id, ticketStatus }
+  });
   return res.json({ success: true, entry: await enrichEntryForClient(updated) });
 }
 
@@ -478,5 +499,11 @@ export async function deleteVorvertrag(req, res) {
   if (notFound === true) {
     return res.status(404).json({ success: false, message: 'Vorvertrag nicht gefunden.' });
   }
+  writeAuditLog(req, {
+    category: 'vorvertrag',
+    action: 'vorvertrag.delete',
+    summary: `Eintrag gelöscht: ${id}`,
+    meta: { entryId: id }
+  });
   return res.json({ success: true });
 }

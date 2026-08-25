@@ -6,6 +6,7 @@ import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js'
 import { saveJson, loadJson } from '../utils/filePersistence.js';
 import { getVoucherDeleteAllEnabled } from '../utils/voucherSettings.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
 const VOUCHER_USER_STATE_FILE = 'voucher-user-state.json';
@@ -429,6 +430,12 @@ async function saveImeisAfterExcelParse(req, imeis) {
     if ((acceptedArchiveMatches ?? 0) > 0) {
       message = `${message} ${acceptedArchiveMatches} IMEI(s) aus dem Angenommen-Archiv – siehe Kategorie „Angenommen (Excel)“.`;
     }
+    writeAuditLog(req, {
+      category: 'excel',
+      action: 'excel.upload',
+      summary: `Excel-Upload: ${added} neu, ${updatedFromUpload ?? 0} aktualisiert (${total} gesamt)`,
+      meta: { added, updatedFromUpload: updatedFromUpload ?? 0, total, fileRows: imeis.length }
+    });
     return {
       success: true,
       message,
@@ -445,6 +452,12 @@ async function saveImeisAfterExcelParse(req, imeis) {
     };
   }
   await saveImeisDataToStorage(uploaderId, { imeis }, req.app);
+  writeAuditLog(req, {
+    category: 'excel',
+    action: 'excel.upload',
+    summary: `Excel-Upload: ${imeis.length} IMEI(s) gespeichert`,
+    meta: { count: imeis.length }
+  });
   return {
     success: true,
     message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,

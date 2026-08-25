@@ -24,6 +24,7 @@ import {
   permanentlyDeleteAcceptedEntriesByIds,
   permanentlyDeleteAcceptedEntriesInRange
 } from '../utils/acceptedImeiStore.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 import * as redisCache from '../utils/redisCache.js';
 import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 
@@ -1086,6 +1087,14 @@ export const saveImeisData = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
     }
     await saveImeisDataToStorage(userId, req.body, req.app);
+    const clearingAll = Array.isArray(req.body?.imeis) && req.body.imeis.length === 0;
+    if (clearingAll) {
+      writeAuditLog(req, {
+        category: 'imei',
+        action: 'imei.delete_all',
+        summary: 'Alle IMEIs gelöscht'
+      });
+    }
     res.json({ success: true, message: 'IMEIS-Daten gespeichert' });
   } catch (error) {
     next(error);
@@ -1223,6 +1232,13 @@ export const updateHistoryAction = async (req, res, next) => {
     // Echtzeit: Alle Benutzer benachrichtigen (IMEI-Liste hat sich geändert: angenommen = entfernt, abgelehnt = rowActions geändert)
     const io = req.app?.get?.('io');
     if (io) io.emit('imeis:updated');
+
+    writeAuditLog(req, {
+      category: 'imei',
+      action: `imei.history.${actionNorm}`,
+      summary: `Verlauf: IMEI ${String(imei).trim()} → ${actionNorm}`,
+      meta: { imei: String(imei).trim(), action: actionNorm, targetUserName: targetDisplayName }
+    });
 
     res.json({
       success: true,
@@ -1596,6 +1612,12 @@ export const deleteAcceptedImeiArchiveEntriesBulk = async (req, res, next) => {
     const { ids, from, to, allInRange } = req.body ?? {};
     if (allInRange === true) {
       const removed = permanentlyDeleteAcceptedEntriesInRange({ from, to });
+      writeAuditLog(req, {
+        category: 'imei',
+        action: 'imei.accepted_archive.delete',
+        summary: `${removed} Angenommen-Archiv Eintrag/Einträge gelöscht (Zeitraum)`,
+        meta: { removed, from, to }
+      });
       return res.json({
         success: true,
         message: `${removed} Eintrag/Einträge dauerhaft gelöscht.`,
@@ -1610,6 +1632,12 @@ export const deleteAcceptedImeiArchiveEntriesBulk = async (req, res, next) => {
     if (removed === 0) {
       return res.status(404).json({ success: false, message: 'Keine Einträge gefunden.' });
     }
+    writeAuditLog(req, {
+      category: 'imei',
+      action: 'imei.accepted_archive.delete',
+      summary: `${removed} Angenommen-Archiv Eintrag/Einträge gelöscht`,
+      meta: { removed, count: idList.length }
+    });
     res.json({
       success: true,
       message: `${removed} Eintrag/Einträge dauerhaft gelöscht.`,
@@ -1632,6 +1660,12 @@ export const deleteAcceptedImeiArchiveEntry = async (req, res, next) => {
     if (!removed) {
       return res.status(404).json({ success: false, message: 'Eintrag nicht gefunden.' });
     }
+    writeAuditLog(req, {
+      category: 'imei',
+      action: 'imei.accepted_archive.delete',
+      summary: `Angenommen-Archiv Eintrag gelöscht: ${id}`,
+      meta: { entryId: id }
+    });
     res.json({ success: true, message: 'Eintrag dauerhaft gelöscht.' });
   } catch (error) {
     next(error);

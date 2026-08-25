@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import { ALLOWED_EINSATZ_ORT, canonicalizeEinsatzOrt } from '../constants/einsatzorte.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 
 const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
 const ALLOWED_TSHIRT_GROESSEN = new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']);
@@ -264,6 +265,12 @@ export const createUserByAdmin = async (req, res, next) => {
       telefon: normalizeTelefonInput(telefon) ?? null
     });
     const createdAt = user.createdAt ?? user.created_at ?? new Date();
+    writeAuditLog(req, {
+      category: 'user',
+      action: 'user.create',
+      summary: `Benutzer angelegt: ${user.name} (${user.email})`,
+      meta: { targetUserId: String(user.id), targetEmail: user.email, role: user.role }
+    });
     res.status(201).json({
       success: true,
       message: 'Benutzer erfolgreich erstellt',
@@ -325,6 +332,12 @@ export const updateUserByAdmin = async (req, res, next) => {
     }
     if (telefon !== undefined) user.telefon = normalizeTelefonInput(telefon);
     await user.save();
+    writeAuditLog(req, {
+      category: 'user',
+      action: 'user.update',
+      summary: `Benutzer bearbeitet: ${user.name} (${user.email})`,
+      meta: { targetUserId: String(user.id), targetEmail: user.email, role: user.role }
+    });
     res.json({
       success: true,
       message: 'Benutzer erfolgreich aktualisiert',
@@ -414,6 +427,12 @@ export const setPasswordByAdmin = async (req, res, next) => {
     }
     user.password = newPassword;
     await user.save();
+    writeAuditLog(req, {
+      category: 'user',
+      action: 'user.password.reset',
+      summary: `Passwort zurückgesetzt für: ${user.name} (${user.email})`,
+      meta: { targetUserId: String(user.id), targetEmail: user.email }
+    });
     res.json({ success: true, message: 'Passwort erfolgreich gesetzt' });
   } catch (error) {
     console.error('setPasswordByAdmin:', error);
@@ -440,7 +459,15 @@ export const deleteUserById = async (req, res, next) => {
     if (String(user.id) === String(currentUser.id)) {
       return res.status(400).json({ message: 'Sie können sich nicht selbst löschen' });
     }
+    const deletedName = user.name;
+    const deletedEmail = user.email;
     await User.destroy({ where: { id } });
+    writeAuditLog(req, {
+      category: 'user',
+      action: 'user.delete',
+      summary: `Benutzer gelöscht: ${deletedName} (${deletedEmail})`,
+      meta: { targetUserId: String(id), targetEmail: deletedEmail }
+    });
     res.json({ success: true, message: 'Benutzer erfolgreich gelöscht' });
   } catch (error) {
     next(error);

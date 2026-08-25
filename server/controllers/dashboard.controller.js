@@ -6,6 +6,7 @@ import { loadJson, saveJson } from '../utils/filePersistence.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import { getImeiDeleteAllEnabled, saveImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 import { getVoucherDeleteAllEnabled, saveVoucherDeleteAllEnabled } from '../utils/voucherSettings.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -147,6 +148,11 @@ export const saveNote = async (req, res, next) => {
       }
       await note.update({ content: '' });
       broadcastNewsIfAdmin(req, content, userId);
+      writeAuditLog(req, {
+        category: 'dashboard',
+        action: 'dashboard.instruction.save',
+        summary: 'Anweisung veröffentlicht'
+      });
       return res.json({
         success: true,
         message: 'Notiz gespeichert',
@@ -167,6 +173,11 @@ export const saveNote = async (req, res, next) => {
     }
     await note.update({ content: '' });
     broadcastNewsIfAdmin(req, content, userId);
+    writeAuditLog(req, {
+      category: 'dashboard',
+      action: 'dashboard.instruction.save',
+      summary: 'Anweisung veröffentlicht'
+    });
 
     res.json({
       success: true,
@@ -391,6 +402,13 @@ export const deleteNewsArchiveEntry = async (req, res, next) => {
       await DashboardNoteHistory.destroy({ where: { id, user_id: adminId } });
     }
 
+    writeAuditLog(req, {
+      category: 'dashboard',
+      action: 'dashboard.instruction.delete',
+      summary: `Anweisung aus Archiv gelöscht: ${id}`,
+      meta: { entryId: id }
+    });
+
     return res.json({ success: true, message: 'Nachricht gelöscht' });
   } catch (error) {
     next(error);
@@ -572,6 +590,11 @@ export const saveSiteNews = async (req, res, next) => {
       io.emit('siteNews:updated', { updatedAt: data.updatedAt });
       io.emit('siteNewsHistory:updated', { action: 'prepend' });
     }
+    writeAuditLog(req, {
+      category: 'dashboard',
+      action: 'dashboard.news.save',
+      summary: 'Startseiten-NEWS gespeichert'
+    });
     return res.json({ success: true, message: 'NEWS gespeichert', updatedAt: data.updatedAt });
   } catch (error) {
     next(error);
@@ -636,6 +659,12 @@ export const deleteSiteNewsHistoryEntry = async (req, res, next) => {
     if (io) {
       io.emit('siteNewsHistory:updated', { id, action: 'delete' });
     }
+    writeAuditLog(req, {
+      category: 'dashboard',
+      action: 'dashboard.news.delete',
+      summary: `NEWS-Archiv Eintrag gelöscht: ${id}`,
+      meta: { entryId: id }
+    });
     return res.json({ success: true });
   } catch (error) {
     next(error);

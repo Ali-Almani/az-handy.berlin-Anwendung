@@ -20,6 +20,7 @@ const MitarbeiterProfile = React.lazy(() => import('./pages/Mitarbeiter/Mitarbei
 const MarketingShopTshirtGroessen = React.lazy(() => import('./pages/MarketingShopTshirtGroessen/MarketingShopTshirtGroessen'));
 const System = React.lazy(() => import('./pages/System/System'));
 const Vorvertrag = React.lazy(() => import('./pages/System/Vorvertrag'));
+const Logs = React.lazy(() => import('./pages/Logs/Logs'));
 
 const PageLoader = () => (
   <div
@@ -154,6 +155,16 @@ function App() {
               <ProtectedRoute>
                 <PartnerRestrictedRoute>
                   <Vorvertrag />
+                </PartnerRestrictedRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/logs"
+            element={
+              <ProtectedRoute>
+                <PartnerRestrictedRoute>
+                  <Logs />
                 </PartnerRestrictedRoute>
               </ProtectedRoute>
             }

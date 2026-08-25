@@ -4,6 +4,7 @@ import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js'
 import { loadJson, saveJson } from '../utils/filePersistence.js';
 import { mergeVoucherRowsAppend } from './excel.controller.js';
 import { getVoucherTabById, normalizeVoucherTabId } from '../constants/voucherTabs.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 
 const VOUCHERS_FILE = 'vouchers.json';
 
@@ -249,6 +250,12 @@ export const approveVoucherManualRequest = async (req, res, next) => {
     VoucherManualRequest.markApproved(id, userId);
     emit(req, 'vouchers:updated', {});
     emit(req, 'voucherManualRequests:updated', {});
+    writeAuditLog(req, {
+      category: 'voucher',
+      action: 'voucher.request.approve',
+      summary: `Voucher-Anfrage genehmigt: ${pending.nummer ?? id}`,
+      meta: { requestId: id, nummer: pending.nummer }
+    });
     return res.json({ success: true, message: 'Voucher wurde in der Liste eingetragen' });
   } catch (e) {
     next(e);
@@ -270,6 +277,12 @@ export const rejectVoucherManualRequest = async (req, res, next) => {
     }
     VoucherManualRequest.markRejected(id, userId);
     emit(req, 'voucherManualRequests:updated', {});
+    writeAuditLog(req, {
+      category: 'voucher',
+      action: 'voucher.request.reject',
+      summary: `Voucher-Anfrage abgelehnt: ${pending.nummer ?? id}`,
+      meta: { requestId: id, nummer: pending.nummer }
+    });
     return res.json({ success: true, message: 'Anfrage abgelehnt' });
   } catch (e) {
     next(e);

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { normalizeUserId, coerceUserId } from '../utils/normalizeUserId.js';
+import { writeAuditLog } from '../utils/auditLog.js';
 
 const generateToken = (userId, role, name) => {
   const secret = process.env.JWT_SECRET;
@@ -84,8 +85,17 @@ export const login = async (req, res, next) => {
     }
 
     if (!user) {
+      writeAuditLog(req, {
+        category: 'auth',
+        action: 'login.failed',
+        summary: `Fehlgeschlagener Login: ${email.toLowerCase().trim()}`,
+        meta: { email: email.toLowerCase().trim() }
+      });
       return res.status(401).json({ message: 'E-Mail oder Passwort ungültig' });
     }
+
+    const userId = user.id ?? user.get?.('id');
+    const userEmail = (user.email || '').toLowerCase();
 
     let isPasswordValid = false;
     try {
@@ -95,11 +105,17 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ message: 'E-Mail oder Passwort ungültig' });
     }
     if (!isPasswordValid) {
+      writeAuditLog(req, {
+        category: 'auth',
+        action: 'login.failed',
+        summary: `Fehlgeschlagener Login: ${userEmail}`,
+        meta: { email: userEmail },
+        userId: String(userId ?? ''),
+        userName: user.name ?? user.get?.('name') ?? userEmail
+      });
       return res.status(401).json({ message: 'E-Mail oder Passwort ungültig' });
     }
 
-    const userId = user.id ?? user.get?.('id');
-    const userEmail = (user.email || '').toLowerCase();
     let role = String(user.role ?? user.get?.('role') ?? '').trim();
     if (role === 'Adminstrator' || (userEmail === 'admin@az-handy.berlin' && !['admin', 'Administrator'].includes(role))) {
       role = 'Administrator';
@@ -116,6 +132,15 @@ export const login = async (req, res, next) => {
     const token = generateToken(userId, role, user.name ?? user.get?.('name'));
 
     const uidOut = userId ?? user._id ?? user.get?.('id');
+    writeAuditLog(req, {
+      category: 'auth',
+      action: 'login.success',
+      summary: `Login: ${user.name ?? user.get?.('name') ?? userEmail}`,
+      userId: String(normalizeUserId(uidOut) ?? uidOut ?? ''),
+      userName: user.name ?? user.get?.('name') ?? userEmail,
+      userRole: role,
+      meta: { email: userEmail }
+    });
     res.json({
       success: true,
       message: 'Login successful',

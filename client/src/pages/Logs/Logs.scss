@@ -1,0 +1,156 @@
+.logs-page {
+  padding-bottom: 2rem;
+
+  &__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  &__hint {
+    margin: 0 0 1.25rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+
+  &__error {
+    color: #b42318;
+    margin: 0 0 1rem;
+  }
+
+  &__empty {
+    margin: 1.5rem 0;
+    color: #6c757d;
+    text-align: center;
+  }
+}
+
+.logs-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+    align-items: end;
+  }
+
+  &__search {
+    @media (min-width: 640px) {
+      grid-column: 1 / -1;
+    }
+    @media (min-width: 900px) {
+      grid-column: auto;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+}
+
+.logs-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+
+  th,
+  td {
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: top;
+  }
+
+  th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+    background: #f8f9fa;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  &__time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__user {
+    display: block;
+    font-weight: 500;
+  }
+
+  &__role {
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+
+  &__category {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: #e7f1ff;
+    color: #0d47a1;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  &__action {
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: #495057;
+  }
+
+  &__summary {
+    max-width: 28rem;
+    word-break: break-word;
+  }
+}
+
+.logs-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  &__info {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  &__buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+}
