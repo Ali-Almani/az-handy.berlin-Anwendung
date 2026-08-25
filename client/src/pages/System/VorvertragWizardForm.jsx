@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { COUNTRY_OPTIONS } from './countries';
 import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 import MnpFieldsSection from './MnpFieldsSection';
-import { patchFromImeisMonate } from './vorvertragGeraeteUtils';
+import { patchFromImeisMonate, buildFarbenForGeraet } from './vorvertragGeraeteUtils';
 import { emptyMnpDetails, validateMnpDetailsForSubmit } from './mnpConstants';
 import {
   buildCustomerCatalog,
@@ -136,6 +136,12 @@ export default function VorvertragWizardForm({
       if (kundenArt === 'neu' && !form.kundeVorname?.trim() && !form.kundeNachname?.trim()) {
         return 'Bitte mindestens Vor- oder Nachname eingeben.';
       }
+    }
+    if (currentStep === 3) {
+      if (!form.ausgabeGeraet?.trim()) return 'Bitte Gerät wählen.';
+      const farben = buildFarbenForGeraet(imeis, form.ausgabeGeraet);
+      if (farben.length > 0 && !form.ausgabeFarbe?.trim()) return 'Bitte Farbe wählen.';
+      if (!form.ausgabeVerfuegbarkeit?.trim()) return 'Bitte Verfügbarkeit wählen.';
     }
     if (currentStep === 5) {
       if (!mitMnp) return 'Bitte wählen, ob MNP durchgeführt wird.';
@@ -418,15 +424,17 @@ export default function VorvertragWizardForm({
             onGeraetChange={(value) => handleChange('ausgabeGeraet', value)}
             onFarbeChange={(value) => handleChange('ausgabeFarbe', value)}
             loading={geraeteLoading}
+            required
           />
         </div>
         <div className="form-group">
-          <label htmlFor="vv-verfuegbarkeit" className="form-label">Verfügbarkeit</label>
+          <label htmlFor="vv-verfuegbarkeit" className="form-label form-label--required">Verfügbarkeit</label>
           <select
             id="vv-verfuegbarkeit"
             className="form-input"
             value={form.ausgabeVerfuegbarkeit}
             onChange={(ev) => handleChange('ausgabeVerfuegbarkeit', ev.target.value)}
+            required
           >
             <option value="">— auswählen —</option>
             <option value="bestellen">Bestellen</option>

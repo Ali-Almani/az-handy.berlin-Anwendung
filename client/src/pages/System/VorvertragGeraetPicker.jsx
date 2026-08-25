@@ -10,8 +10,10 @@ export default function VorvertragGeraetPicker({
   selectedFarbe = '',
   onGeraetChange,
   onFarbeChange,
-  loading = false
+  loading = false,
+  required = false
 }) {
+  const requiredClass = required ? ' form-label--required' : '';
   const tabs = useVorvertragGeraetTabs(imeis, seedGeraet);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function VorvertragGeraetPicker({
 
   return (
     <div className="vorvertrag-geraet-picker">
-      <span className="form-label">Gerät</span>
+      <span className={`form-label${requiredClass}`}>Gerät</span>
       {loading ? (
         <p className="vorvertrag-geraet-picker__hint">Geräte werden geladen…</p>
       ) : imeis.length === 0 ? (
@@ -101,13 +103,19 @@ export default function VorvertragGeraetPicker({
       ) : null}
 
       <div className="form-group vorvertrag-geraet-picker__farbe">
-        <label htmlFor="vv-farbe" className="form-label">Farbe</label>
+        <label
+          htmlFor="vv-farbe"
+          className={`form-label${required && tabs.availableColors.length > 0 ? ' form-label--required' : ''}`}
+        >
+          Farbe
+        </label>
         <select
           id="vv-farbe"
           className="form-input"
           value={selectedFarbe}
           onChange={(ev) => onFarbeChange?.(ev.target.value)}
           disabled={!selectedGeraet}
+          required={required && tabs.availableColors.length > 0}
         >
           <option value="">
             {!selectedGeraet
