@@ -106,9 +106,6 @@ export default function Logs() {
   return (
     <div className="logs-page container">
       <h1 className="logs-page__title">Audit-Log</h1>
-      <p className="logs-page__hint">
-        Protokoll wichtiger Aktionen der letzten 30 Tage (nur für Administratoren).
-      </p>
 
       <div className="logs-filters">
         <div className="form-group">
