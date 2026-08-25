@@ -72,7 +72,7 @@ export default function VorvertragWizardForm({
   const renderArchiveCustomerSearch = () => (
     <div className="vorvertrag-archive-search">
       <div className="form-group">
-        <label htmlFor="vv-kunde-suche" className="form-label">Kunde im Archiv suchen</label>
+        <label htmlFor="vv-kunde-suche" className="form-label form-label--required">Kunde im Archiv suchen</label>
         <input
           id="vv-kunde-suche"
           type="search"
@@ -200,10 +200,6 @@ export default function VorvertragWizardForm({
     onSubmit(event);
   };
 
-  const renderStepRequiredHint = (text) => (
-    <p className="vorvertrag-step-required-hint" role="note">{text}</p>
-  );
-
   const renderMitMnpChoice = () => (
     <div className="vorvertrag-kundenart">
       <span className="form-label form-label--required">Mit MNP?</span>
@@ -273,7 +269,12 @@ export default function VorvertragWizardForm({
   const renderCustomerFields = () => (
     <div className="vorvertrag-form-grid">
       <div className="form-group">
-        <label htmlFor="vv-vorname" className="form-label">Kunde Vorname</label>
+        <label
+          htmlFor="vv-vorname"
+          className={`form-label${kundenArt === 'neu' ? ' form-label--required' : ''}`}
+        >
+          Kunde Vorname
+        </label>
         <input
           id="vv-vorname"
           type="text"
@@ -283,7 +284,12 @@ export default function VorvertragWizardForm({
         />
       </div>
       <div className="form-group">
-        <label htmlFor="vv-nachname" className="form-label">Kunde Nachname</label>
+        <label
+          htmlFor="vv-nachname"
+          className={`form-label${kundenArt === 'neu' ? ' form-label--required' : ''}`}
+        >
+          Kunde Nachname
+        </label>
         <input
           id="vv-nachname"
           type="text"
@@ -394,9 +400,6 @@ export default function VorvertragWizardForm({
       <h3 className="vorvertrag-section-title">
         Schritt 2 – {kundenArt === 'bestand' ? 'Kundendaten prüfen & anpassen' : 'Neukunde erfassen'}
       </h3>
-      {kundenArt === 'neu'
-        ? renderStepRequiredHint('Pflicht: mindestens Vor- oder Nachname. Alle weiteren Kundendaten optional.')
-        : null}
       {renderCustomerFields()}
     </div>
   );
@@ -570,17 +573,12 @@ export default function VorvertragWizardForm({
         </p>
       ) : null}
       {mitMnp === 'ja' ? (
-        <>
-          <p className="vorvertrag-step-hint">
-            Mit * markierte MNP-Felder sind Pflicht.
-          </p>
           <MnpFieldsSection
             details={form.mnpDetails}
             onChange={handleMnpChange}
             idPrefix="vv-wizard-mnp"
             showTitle={false}
           />
-        </>
       ) : null}
     </div>
   );

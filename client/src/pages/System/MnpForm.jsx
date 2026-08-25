@@ -124,16 +124,12 @@ export default function MnpForm({
             </div>
           ) : navbarFiliale ? (
             <div className="form-group">
-              <span className="form-label">Filiale</span>
+              <span className="form-label form-label--required">Filiale</span>
               <p className="vorvertrag-step-hint" style={{ margin: '0.35rem 0 0' }}>{navbarFiliale}</p>
             </div>
           ) : null}
         </div>
       </div>
-
-      <p className="vorvertrag-step-hint">
-        Mit * markierte MNP-Felder sind Pflicht.
-      </p>
 
       <MnpFieldsSection
         details={form.mnpDetails}
