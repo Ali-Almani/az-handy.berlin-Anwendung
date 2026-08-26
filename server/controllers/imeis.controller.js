@@ -35,6 +35,11 @@ import {
   buildImeiRowId
 } from '../utils/imeiKey.js';
 import {
+  buildImeiProductLookup,
+  enrichCopyHistoryWithProducts,
+  isEmptyHistoryProduct
+} from '../utils/imeiProductLookup.js';
+import {
   COPY_HISTORY_RETENTION_MS,
   copyHistoryEntryKey,
   mergeCopyHistoryEntries,
@@ -220,7 +225,7 @@ function finalizeOfficeCopyHistory(merged) {
   return trimCopyHistoryByRetention(merged);
 }
 
-function copyHistoryFromRowActions(rowActions, userName, rowUserId) {
+function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLookup) {
   const out = [];
   if (!rowActions || typeof rowActions !== 'object' || Array.isArray(rowActions)) return out;
   for (const [rowId, act] of Object.entries(rowActions)) {
@@ -231,9 +236,14 @@ function copyHistoryFromRowActions(rowActions, userName, rowUserId) {
     if (!imei) continue;
     const ts = String(act.timestamp || '').trim() || new Date().toISOString();
     if (!copyHistoryEntryInOfficeWindow({ timestamp: ts })) continue;
+    let product = String(act.product ?? '').trim();
+    if (isEmptyHistoryProduct(product) && productLookup?.get) {
+      product = productLookup.get(normalizeImeiKey(imei)) || '-';
+    }
+    if (isEmptyHistoryProduct(product)) product = '-';
     out.push({
       imei,
-      product: String(act.product ?? '-').trim() || '-',
+      product,
       action,
       timestamp: ts,
       userName: String(act.userName || userName || '').trim() || userName,
@@ -294,6 +304,7 @@ const safeJsonParse = (raw, fallback) => {
 
 /** Merge copy_history (+ rowActions-Fallback) aus User-Zeilen für Verlauf */
 async function collectMergedCopyHistoryFromRows(rows) {
+  const productLookup = await loadSharedImeiProductLookup();
   const merged = [];
   const seenKeys = new Set();
   for (const row of rows) {
@@ -327,13 +338,13 @@ async function collectMergedCopyHistoryFromRows(rows) {
     if (rowActionsJson) {
       try {
         const rowActions = JSON.parse(rowActionsJson);
-        for (const e of copyHistoryFromRowActions(rowActions, rowUserName, rowUserId)) {
+        for (const e of copyHistoryFromRowActions(rowActions, rowUserName, rowUserId, productLookup)) {
           pushEntry(e, rowUserName);
         }
       } catch (_) {}
     }
   }
-  return finalizeOfficeCopyHistory(merged);
+  return finalizeOfficeCopyHistory(enrichCopyHistoryWithProducts(merged, productLookup));
 }
 
 /** Merge copy_history aus allen Benutzern für Verlauf (Büro/Admin: letzte 4 Tage) */
@@ -507,6 +518,19 @@ const getSharedImeiOwnerId = async () => {
   return coerceUserId(admin?.id ?? admin?._id ?? admin?.get?.('id')) ?? null;
 };
 
+async function loadSharedImeiProductLookup() {
+  try {
+    const ownerId = await getSharedImeiOwnerId();
+    if (ownerId == null) return new Map();
+    const row = await ImeisUserData.findOne({ where: { user_id: ownerId } });
+    const imeisJson = (row?.get && row.get('imeis_json')) ?? row?.imeis_json;
+    const imeis = safeJsonParse(imeisJson, []);
+    return buildImeiProductLookup(Array.isArray(imeis) ? imeis : []);
+  } catch {
+    return new Map();
+  }
+}
+
 export const getImeisData = async (req, res, next) => {
   try {
     const userId = resolveAuthUserId(req.user);
@@ -612,6 +636,9 @@ export const getImeisData = async (req, res, next) => {
         }
       }
 
+      const productLookup = buildImeiProductLookup(imeis);
+      copyHistory = enrichCopyHistoryWithProducts(copyHistory, productLookup);
+
       const response = {
         success: true,
         imeis,
@@ -696,6 +723,9 @@ export const getImeisData = async (req, res, next) => {
         copyHistory = [];
       }
     }
+
+    const productLookup = buildImeiProductLookup(imeis);
+    copyHistory = enrichCopyHistoryWithProducts(copyHistory, productLookup);
 
     const response = {
       success: true,
@@ -1063,6 +1093,11 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
           )
         );
 
+        const productLookup =
+          Array.isArray(imeis) && imeis.length > 0
+            ? buildImeiProductLookup(imeis)
+            : await loadSharedImeiProductLookup();
+
         const additions = [];
         Object.entries(rowActions).forEach(([rowId, act]) => {
           if (!act || typeof act !== 'object') return;
@@ -1079,7 +1114,12 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
           const key = `${imei}|${normHistUserName(myName)}|${ts}|${action}`;
           if (existingKey.has(key)) return;
           existingKey.add(key);
-          additions.push({ imei, product: '-', action, timestamp: ts, userName: myName });
+          let product = String(act.product ?? '').trim();
+          if (isEmptyHistoryProduct(product)) {
+            product = productLookup.get(normalizeImeiKey(imei)) || '-';
+          }
+          if (isEmptyHistoryProduct(product)) product = '-';
+          additions.push({ imei, product, action, timestamp: ts, userName: myName });
         });
 
         if (additions.length > 0) {
@@ -1117,6 +1157,13 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     if (shouldUseMergedOfficeCopyHistory(role)) {
       historyToSave = undefined;
     } else {
+      const saveProductLookup =
+        Array.isArray(imeis) && imeis.length > 0
+          ? buildImeiProductLookup(imeis)
+          : await loadSharedImeiProductLookup();
+      if (Array.isArray(historyToSave)) {
+        historyToSave = enrichCopyHistoryWithProducts(historyToSave, saveProductLookup);
+      }
       historyToSave = await resolveCopyHistoryForSave(userId, historyToSave);
       await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
     }

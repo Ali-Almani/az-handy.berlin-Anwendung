@@ -129,7 +129,8 @@ export function useImeisCopyHandlers({
     // Timestamp einmal erzeugen und für rowAction + Verlauf wiederverwenden,
     // damit Server-Synthese (aus rowActions) keinen doppelten Verlaufseintrag erzeugt.
     const ts = new Date().toISOString();
-    const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: ts };
+    const productFull = getProductFull(item) || '-';
+    const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: ts, product: productFull };
     const updatedActions = { ...rowActions, [rowId]: actionData };
     setRowActions(updatedActions);
     persistImeis?.({ rowActions: updatedActions });
@@ -145,10 +146,9 @@ export function useImeisCopyHandlers({
           setSelectedRowForDropdown?.(null);
         } catch (_) {}
       }
-      const productFull = getProductFull(item);
       addHistoryEntry({
         imei: String(item?.imei || '').trim(),
-        product: productFull || '-',
+        product: productFull,
         action: 'reservieren',
         timestamp: ts,
         userName: user?.name || 'Unbekannt'
