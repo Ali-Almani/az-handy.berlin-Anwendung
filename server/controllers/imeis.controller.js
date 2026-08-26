@@ -37,6 +37,9 @@ import {
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
 const MERGED_COPY_HISTORY_TTL = 30;
+/** Büro/Admin: gemergter Mitarbeiter-Verlauf der letzten N Tage */
+const OFFICE_VERLAUF_DAYS = 4;
+const OFFICE_VERLAUF_MS = OFFICE_VERLAUF_DAYS * 24 * 60 * 60 * 1000;
 const USER_DATA_CACHE_PREFIX = 'imeis:userData:';
 const USER_DATA_CACHE_TTL = 20;
 
@@ -191,6 +194,23 @@ const isAdminUserEntity = (user) => {
 /** Alle Benutzer sehen die gemeinsame IMEI-Liste (von Büro/Admin hochgeladen) */
 const shouldUseSharedImeiData = () => true;
 
+function shouldUseMergedOfficeCopyHistory(role) {
+  return isBüroMitarbeiter(role) || isAdmin(role);
+}
+
+function copyHistoryEntryInOfficeWindow(entry, sinceMs) {
+  const ts = Date.parse(entry?.timestamp || '');
+  if (Number.isNaN(ts)) return true;
+  return ts >= sinceMs;
+}
+
+function finalizeOfficeCopyHistory(merged) {
+  const sinceMs = Date.now() - OFFICE_VERLAUF_MS;
+  return merged
+    .filter((e) => copyHistoryEntryInOfficeWindow(e, sinceMs))
+    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+}
+
 /** Einsatzort/Standort-Key normalisieren (Legacy-Kurznamen und Straßennamen) */
 const safeJsonParse = (raw, fallback) => {
   try {
@@ -223,7 +243,7 @@ const safeJsonParse = (raw, fallback) => {
   }
 };
 
-/** Merge copy_history aus allen Benutzern für Verlauf (Büro Mitarbeiter sieht gesamte Historie) */
+/** Merge copy_history aus allen Benutzern für Verlauf (Büro/Admin: letzte 4 Tage) */
 const computeMergedCopyHistory = async () => {
   const all = await ImeisUserData.findAll();
   // Cache: user_id -> name (damit "Benutzer" im Verlauf immer sichtbar ist)
@@ -261,9 +281,7 @@ const computeMergedCopyHistory = async () => {
       } catch (_) {}
     }
   }
-  return merged
-    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-    .slice(0, 200);
+  return finalizeOfficeCopyHistory(merged);
 };
 
 const getMergedCopyHistory = async () => {
@@ -336,9 +354,7 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
       } catch (_) {}
     }
   }
-  return merged
-    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-    .slice(0, 200);
+  return finalizeOfficeCopyHistory(merged);
 };
 
 /** Verlauf (copy_history) zu dieser IMEI bei allen Benutzern löschen – nötig für gemergten Büro-Verlauf */
@@ -556,7 +572,7 @@ export const getImeisData = async (req, res, next) => {
         copyTimestamps = safeJsonParse(data.copy_timestamps_json, []);
         if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
       }
-      if (isBüroMitarbeiter(role)) {
+      if (shouldUseMergedOfficeCopyHistory(role)) {
         try {
           copyHistory = await getMergedCopyHistory();
         } catch (err) {
@@ -641,7 +657,7 @@ export const getImeisData = async (req, res, next) => {
       copyTimestamps = safeJsonParse(data.copy_timestamps_json, []);
       if (!Array.isArray(copyTimestamps)) copyTimestamps = [];
     }
-    if (isBüroMitarbeiter(role)) {
+    if (shouldUseMergedOfficeCopyHistory(role)) {
       try {
         copyHistory = await getMergedCopyHistory();
       } catch (err) {
