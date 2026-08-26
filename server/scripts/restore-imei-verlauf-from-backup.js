@@ -11,7 +11,8 @@
  *   --all-days      Alle Einträge aus Backup (kein Datumsfilter)
  *   --env-from-pm2  DB-Zugangsdaten aus laufendem PM2-Prozess (az-api)
  *   --database-url=postgresql://…  DB-URL überschreiben
- *   --use-postgres    Direkt via sudo -u postgres psql (empfohlen auf dem Server)
+ *   --use-postgres    Direkt via sudo -u postgres psql (nur numerische PG-User-IDs)
+ *   --target=auto|json|postgres  Speicherziel (auto: UUID→imeis.json, Zahl→PostgreSQL)
  */
 import '../loadEnv.js';
 import fs from 'fs';
@@ -22,7 +23,8 @@ import { execSync, spawnSync } from 'child_process';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { updateJsonStore } from '../utils/jsonClusterStore.js';
+import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
+import { getDataDir } from '../utils/filePersistence.js';
 import { copyHistoryEntryKey } from '../utils/copyHistoryRetention.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -103,17 +105,53 @@ function loadEnvFromPm2(appName) {
   }
 }
 
-function dbHint(sourcePath, retentionDays, allDays) {
+function dbHint(sourcePath, retentionDays, allDays, preferJson = false) {
   const daysArg = allDays ? ' --all-days' : ` --days ${retentionDays ?? 30}`;
   console.error('');
-  console.error('💡 Auf dem Server (DB wie PM2):');
+  console.error('💡 Auf dem Server:');
   console.error('   cd ~/az-handy.berlin-Anwendung/server');
-  console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --use-postgres`);
+  if (preferJson) {
+    console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --target=json`);
+  } else {
+    console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --use-postgres`);
+    console.error('');
+    console.error('   Bei UUID-Benutzern (server-data.tar.gz):');
+    console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --target=json`);
+  }
   console.error('');
-  console.error('   Alternativ mit App-DB-User:');
-  console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --env-from-pm2`);
-  console.error('');
-  console.error('   Oder .env prüfen: grep -E "DATABASE|PG_" .env ../.env');
+  console.error('   Oder .env prüfen: grep -E "DATABASE|USE_MEMORY|PG_" .env ../.env');
+}
+
+function isUuidUserId(id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id ?? ''));
+}
+
+function isNumericUserId(id) {
+  return /^\d+$/.test(String(id ?? ''));
+}
+
+function resolveRestoreTarget(backupUsers) {
+  const targetArg = process.argv.find((a) => a.startsWith('--target='));
+  const explicit = targetArg?.slice('--target='.length);
+  if (explicit === 'json' || explicit === 'postgres') return explicit;
+
+  const uuidUsers = backupUsers.filter((u) => isUuidUserId(u.userId)).length;
+  const numericUsers = backupUsers.filter((u) => isNumericUserId(u.userId)).length;
+
+  if (uuidUsers > 0 && numericUsers === 0) return 'json';
+  if (numericUsers > 0 && uuidUsers === 0) return 'postgres';
+  if (process.env.USE_MEMORY_DB === 'true') return 'json';
+  const hasPostgresConfig = process.env.DATABASE_URL || process.env.PG_DATABASE || process.env.PG_USER;
+  if (!hasPostgresConfig) return 'json';
+  if (uuidUsers >= numericUsers) return 'json';
+  return 'postgres';
+}
+
+function restoreHintArgs(sourcePath, backupUsers) {
+  const target = resolveRestoreTarget(backupUsers);
+  const daysArg = allDays ? ' --all-days' : ` --days ${retentionDays}`;
+  const targetArg = target === 'json' ? ' --target=json' : ' --use-postgres';
+  return `${sourcePath}${daysArg}${targetArg}`;
 }
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -448,6 +486,65 @@ ON CONFLICT (user_id) DO NOTHING`]);
   return { updatedUsers, addedEntries };
 }
 
+async function restoreUsersViaJsonStore(backupUsers) {
+  const storePath = path.join(getDataDir(), 'imeis.json');
+  console.log(`📁 Wiederherstellung in ${storePath} (Datei-Modus)…`);
+
+  const currentState = readJsonStore('imeis.json', {});
+  const updates = [];
+
+  for (const bu of backupUsers) {
+    const uid = bu.userId;
+    if (uid == null || !(bu.copyHistory?.length > 0)) continue;
+    const key = String(uid);
+    const row = currentState[key] || {};
+    const currentHistory = safeParseJson(row.copy_history_json, []);
+    const merged = mergeHistoryRaw(currentHistory, bu.copyHistory ?? []);
+    const delta = merged.length - (Array.isArray(currentHistory) ? currentHistory.length : 0);
+    if (delta <= 0) continue;
+    updates.push({
+      key,
+      uid,
+      merged,
+      copyTimestamps: bu.copyTimestamps,
+      currentHistory,
+      delta
+    });
+  }
+
+  if (updates.length > 0) {
+    updateJsonStore('imeis.json', {}, (state) => {
+      if (!state || typeof state !== 'object') state = {};
+      for (const u of updates) {
+        const existing = state[u.key] || {};
+        const row = {
+          user_id: u.uid,
+          imeis_json: existing.imeis_json ?? null,
+          cell_colors_json: existing.cell_colors_json ?? '{}',
+          row_actions_json: existing.row_actions_json ?? '{}',
+          copy_history_json: JSON.stringify(u.merged),
+          copy_timestamps_json:
+            Array.isArray(u.copyTimestamps) && u.copyTimestamps.length > 0
+              ? JSON.stringify(u.copyTimestamps)
+              : (existing.copy_timestamps_json ?? '[]'),
+          created_at: existing.created_at ?? new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        state[u.key] = row;
+      }
+    });
+  }
+
+  let addedEntries = 0;
+  for (const u of updates) {
+    addedEntries += u.delta;
+    const label = String(u.uid).length > 12 ? `${String(u.uid).slice(0, 8)}…` : u.uid;
+    console.log(`  ✓ User ${label}: ${u.currentHistory.length} → ${u.merged.length} (+${u.delta})`);
+  }
+
+  return { updatedUsers: updates.length, addedEntries };
+}
+
 async function restoreUsersViaSequelize(backupUsers) {
   const { connectDatabase } = await import('../models/index.js');
   const { default: ImeisUserData } = await import('../models/ImeisUserData.js');
@@ -540,8 +637,7 @@ async function main() {
     console.log('ℹ️  Analyse/Dry-Run – Datenbank wird nicht beschrieben.');
     if (backupHistoryTotal > 0) {
       console.log('   Zum Speichern (ohne --dry-run):');
-      const daysArg = allDays ? ' --all-days' : ` --days ${retentionDays}`;
-      console.log(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --use-postgres`);
+      console.log(`   npm run restore-imei-verlauf -- ${restoreHintArgs(sourcePath, backupUsers)}`);
     }
     return;
   }
@@ -553,8 +649,14 @@ async function main() {
   console.log('');
   let updatedUsers = 0;
   let addedEntries = 0;
+  const restoreTarget = resolveRestoreTarget(backupUsers);
 
-  if (usePostgres) {
+  if (restoreTarget === 'json') {
+    if (usePostgres) {
+      console.log('ℹ️  Backup mit UUID-Benutzern → speichere in imeis.json (nicht PostgreSQL).');
+    }
+    ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(backupUsers));
+  } else if (usePostgres) {
     ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(backupUsers));
   } else {
     console.log('🔄 Verbinde mit Datenbank…');
@@ -570,9 +672,29 @@ async function main() {
       } catch (pgErr) {
         console.error('');
         console.error('❌ postgres-Fallback fehlgeschlagen:', pgErr.message);
-        dbHint(sourcePath, retentionDays, allDays);
-        process.exit(1);
+        console.log('');
+        console.log('↪️  Fallback: server/data/imeis.json…');
+        try {
+          ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(backupUsers));
+        } catch (jsonErr) {
+          console.error('');
+          console.error('❌ JSON-Fallback fehlgeschlagen:', jsonErr.message);
+          dbHint(sourcePath, retentionDays, allDays, backupUsers.some((u) => isUuidUserId(u.userId)));
+          process.exit(1);
+        }
       }
+    }
+  }
+
+  if (updatedUsers === 0 && backupHistoryTotal > 0) {
+    console.warn('');
+    console.warn('⚠️  Keine Einträge ergänzt – der aktuelle Stand enthält den Backup-Verlauf bereits.');
+    if (restoreTarget === 'postgres' && backupUsers.some((u) => isUuidUserId(u.userId))) {
+      console.warn('   Dieses Backup nutzt UUID-Benutzer. Die App liest vermutlich server/data/imeis.json.');
+      console.warn(`   → npm run restore-imei-verlauf -- ${restoreHintArgs(sourcePath, backupUsers)}`);
+    } else if (restoreTarget === 'postgres') {
+      console.warn('   PostgreSQL enthält den Verlauf bereits. Für den Datei-Modus:');
+      console.warn('   → server-data.tar.gz mit --target=json verwenden.');
     }
   }
 
