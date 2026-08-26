@@ -37,7 +37,10 @@ const Navbar = ({
   hasVoucherManualRequestBadge = false,
   voucherManualRequestCount = 0,
   onOpenVoucherManualRequestsModal,
-  onOpenVoucherRequestModal
+  onOpenVoucherRequestModal,
+  hasAuditCriticalBadge = false,
+  auditCriticalCount = 0,
+  onOpenAuditCriticalModal
 }) => {
   const { user, logout, setUser } = useAuth();
   const navigate = useNavigate();
@@ -226,6 +229,13 @@ const Navbar = ({
 
   const handleOpenVoucherManualRequestsModal = () => {
     onOpenVoucherManualRequestsModal?.();
+    setDropdownOpen(false);
+    setArchivOpen(false);
+    setMobileMenuOpen(false);
+  };
+
+  const handleOpenAuditCriticalModal = () => {
+    onOpenAuditCriticalModal?.();
     setDropdownOpen(false);
     setArchivOpen(false);
     setMobileMenuOpen(false);
@@ -455,6 +465,9 @@ const Navbar = ({
               </svg>
             </span>
             Audit-Log
+            {hasAuditCriticalBadge ? (
+              <span className="navbar-link-badge">{auditCriticalCount > 9 ? '9+' : auditCriticalCount}</span>
+            ) : null}
           </span>
         </NavLink>
       </li>
@@ -609,6 +622,18 @@ const Navbar = ({
                       {voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}
                     </span>
                   )}
+                  {hasAuditCriticalBadge && isAdmin(user) && onOpenAuditCriticalModal && (
+                    <span
+                      className="navbar-avatar-badge navbar-avatar-badge--audit-critical"
+                      title="Kritisches Audit-Event – Klicken zum Öffnen"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenAuditCriticalModal(); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenAuditCriticalModal(); } }}
+                    >
+                      {auditCriticalCount > 9 ? '9+' : auditCriticalCount}
+                    </span>
+                  )}
                     </>
                   )}
                   </span>
@@ -674,6 +699,16 @@ const Navbar = ({
                       >
                         <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--voucher-request">{voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}</span>
                         <span>Voucher anfrage</span>
+                      </button>
+                    )}
+                    {hasAuditCriticalBadge && isAdmin(user) && onOpenAuditCriticalModal && (
+                      <button
+                        type="button"
+                        className="navbar-dropdown-item navbar-dropdown-item--reminder"
+                        onClick={handleOpenAuditCriticalModal}
+                      >
+                        <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--audit-critical">{auditCriticalCount > 9 ? '9+' : auditCriticalCount}</span>
+                        <span>Kritisches Audit-Event</span>
                       </button>
                     )}
                     {canSubmitVoucherManualRequest(user) && onOpenVoucherRequestModal && (
@@ -815,6 +850,17 @@ const Navbar = ({
                     {voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}
                   </span>
                 )}
+                {hasAuditCriticalBadge && isAdmin(user) && onOpenAuditCriticalModal && (
+                  <span
+                    className="navbar-avatar-badge navbar-avatar-badge--audit-critical"
+                    title="Kritisches Audit-Event"
+                    onClick={(e) => { e.stopPropagation(); handleOpenAuditCriticalModal(); }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {auditCriticalCount > 9 ? '9+' : auditCriticalCount}
+                  </span>
+                )}
                   </>
                 )}
                 </span>
@@ -860,6 +906,12 @@ const Navbar = ({
                     <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenVoucherManualRequestsModal}>
                       <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--voucher-request">{voucherManualRequestCount > 9 ? '9+' : voucherManualRequestCount}</span>
                       <span>Voucher anfrage</span>
+                    </button>
+                  )}
+                  {hasAuditCriticalBadge && isAdmin(user) && onOpenAuditCriticalModal && (
+                    <button type="button" className="navbar-dropdown-item navbar-dropdown-item--reminder" onClick={handleOpenAuditCriticalModal}>
+                      <span className="navbar-avatar-badge navbar-avatar-badge--small navbar-avatar-badge--audit-critical">{auditCriticalCount > 9 ? '9+' : auditCriticalCount}</span>
+                      <span>Kritisches Audit-Event</span>
                     </button>
                   )}
                   {canSubmitVoucherManualRequest(user) && onOpenVoucherRequestModal && (

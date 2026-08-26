@@ -175,6 +175,46 @@
       background: darken(#563d7c, 8%);
     }
   }
+
+  &--audit-critical {
+    background: #b42318;
+    left: auto;
+    right: -8px;
+    top: auto;
+    bottom: -2px;
+
+    &:hover {
+      background: darken(#b42318, 8%);
+    }
+  }
+
+  &--small.navbar-avatar-badge--audit-critical {
+    position: static;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    background: #b42318;
+
+    &:hover {
+      background: darken(#b42318, 8%);
+    }
+  }
+}
+
+.navbar-link-badge {
+  margin-left: 0.35rem;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #b42318;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: $font-weight-bold;
+  border-radius: 999px;
+  line-height: 1;
 }
 
 .navbar-avatar-btn {

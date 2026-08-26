@@ -1,8 +1,17 @@
 .logs-page {
   padding-bottom: 2rem;
 
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
   &__title {
-    margin: 0 0 1.25rem;
+    margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
   }

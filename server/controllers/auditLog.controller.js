@@ -1,5 +1,13 @@
 import User from '../models/User.js';
-import { listAuditLogs, AUDIT_CATEGORIES } from '../utils/auditLog.js';
+import {
+  listAuditLogs,
+  exportAuditLogsToCsv,
+  listUnreadCriticalNotifications,
+  markCriticalNotificationRead,
+  markAllCriticalNotificationsRead,
+  AUDIT_CATEGORIES,
+  AUDIT_EXPORT_MAX_ROWS
+} from '../utils/auditLog.js';
 
 async function isAdminUser(userId) {
   if (!userId) return false;
@@ -40,4 +48,47 @@ export async function listAuditLogsHandler(req, res) {
     ...result,
     categories: AUDIT_CATEGORIES
   });
+}
+
+export async function exportAuditLogsHandler(req, res) {
+  if (!(await requireAdmin(req, res))) return;
+
+  const csv = exportAuditLogsToCsv({
+    from: req.query.from,
+    to: req.query.to,
+    category: req.query.category,
+    userId: req.query.userId,
+    search: req.query.search
+  });
+
+  const datePart = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="audit-log_${datePart}.csv"`);
+  res.setHeader('X-Export-Max-Rows', String(AUDIT_EXPORT_MAX_ROWS));
+  return res.send(csv);
+}
+
+export async function listCriticalNotificationsHandler(req, res) {
+  if (!(await requireAdmin(req, res))) return;
+
+  return res.json({
+    success: true,
+    notifications: listUnreadCriticalNotifications()
+  });
+}
+
+export async function markCriticalNotificationReadHandler(req, res) {
+  if (!(await requireAdmin(req, res))) return;
+
+  const { id } = req.params;
+  if (id === 'all') {
+    markAllCriticalNotificationsRead();
+    return res.json({ success: true });
+  }
+
+  const ok = markCriticalNotificationRead(id);
+  if (!ok) {
+    return res.status(404).json({ success: false, message: 'Benachrichtigung nicht gefunden.' });
+  }
+  return res.json({ success: true });
 }

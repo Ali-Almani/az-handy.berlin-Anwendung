@@ -6,6 +6,7 @@ import NewsPopup from '../NewsPopup/NewsPopup';
 import ExtraCopyRequestsModal from '../ExtraCopyRequestsModal/ExtraCopyRequestsModal';
 import ExtraCopyNotificationModal from '../ExtraCopyNotificationModal/ExtraCopyNotificationModal';
 import ReminderResponseNotificationModal from '../ReminderResponseNotificationModal/ReminderResponseNotificationModal';
+import AuditLogCriticalModal from '../AuditLogCriticalModal/AuditLogCriticalModal';
 import VoucherRequestModal from '../VoucherRequestModal/VoucherRequestModal';
 import VoucherManualRequestsModal from '../VoucherManualRequestsModal/VoucherManualRequestsModal';
 import { useAuth } from '../../hooks/useAuth';
@@ -16,6 +17,7 @@ import { useExtraCopyRequests } from '../../hooks/useExtraCopyRequests';
 import { useExtraCopyNotification } from '../../hooks/useExtraCopyNotification';
 import { useReminderResponseNotification } from '../../hooks/useReminderResponseNotification';
 import { useVoucherManualRequests } from '../../hooks/useVoucherManualRequests';
+import { useAuditLogCriticalNotifications } from '../../hooks/useAuditLogCriticalNotifications';
 import './Layout.scss';
 
 const Layout = ({ children }) => {
@@ -44,12 +46,14 @@ const Layout = ({ children }) => {
   const [showReminderResponseModal, setShowReminderResponseModal] = useState(false);
   const [showVoucherRequestModal, setShowVoucherRequestModal] = useState(false);
   const [showVoucherManualRequestsModal, setShowVoucherManualRequestsModal] = useState(false);
+  const [showAuditLogCriticalModal, setShowAuditLogCriticalModal] = useState(false);
   const { showPopup, content, onMarkAsRead } = useNewsPopup();
   const { hasUnreadReminders, reminderCount } = useImeiReminderBadge();
   const { requests, hasPendingRequests, requestCount, loading, approve, reject } = useExtraCopyRequests();
   const { notifications, hasUnreadNotifications, notificationCount, markAsRead } = useExtraCopyNotification();
   const { notifications: reminderResponseNotifications, hasUnreadNotifications: hasReminderResponseNotifications, notificationCount: reminderResponseCount, markAsRead: markReminderResponseRead } = useReminderResponseNotification();
   const voucherManualReq = useVoucherManualRequests();
+  const auditCritical = useAuditLogCriticalNotifications();
 
   const openVerlauf = () => {
     navigate('/imeis?showVerlauf=1');
@@ -62,6 +66,10 @@ const Layout = ({ children }) => {
   useEffect(() => {
     if (hasReminderResponseNotifications) setShowReminderResponseModal(true);
   }, [hasReminderResponseNotifications]);
+
+  useEffect(() => {
+    if (auditCritical.hasUnreadNotifications) setShowAuditLogCriticalModal(true);
+  }, [auditCritical.hasUnreadNotifications]);
 
   return (
     <div className="app">
@@ -82,6 +90,9 @@ const Layout = ({ children }) => {
         voucherManualRequestCount={voucherManualReq.requestCount}
         onOpenVoucherManualRequestsModal={() => setShowVoucherManualRequestsModal(true)}
         onOpenVoucherRequestModal={() => setShowVoucherRequestModal(true)}
+        hasAuditCriticalBadge={auditCritical.hasUnreadNotifications}
+        auditCriticalCount={auditCritical.notificationCount}
+        onOpenAuditCriticalModal={() => setShowAuditLogCriticalModal(true)}
       />
       <main className="main">
         <div className="container">
@@ -140,6 +151,12 @@ const Layout = ({ children }) => {
             window.alert(e.response?.data?.message || e.message || 'Ablehnen fehlgeschlagen');
           }
         }}
+      />
+      <AuditLogCriticalModal
+        isOpen={showAuditLogCriticalModal}
+        onClose={() => setShowAuditLogCriticalModal(false)}
+        notifications={auditCritical.notifications}
+        onMarkAsRead={auditCritical.markAsRead}
       />
     </div>
   );

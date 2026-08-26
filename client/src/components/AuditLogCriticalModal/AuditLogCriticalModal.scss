@@ -1,0 +1,71 @@
+.audit-log-critical-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.audit-log-critical-modal {
+  width: min(100%, 28rem);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+.audit-log-critical-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #b42318;
+  }
+}
+
+.audit-log-critical-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.audit-log-critical-body {
+  padding: 1rem;
+}
+
+.audit-log-critical-summary {
+  margin: 0 0 0.75rem;
+  font-weight: 500;
+  color: #212529;
+}
+
+.audit-log-critical-meta {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.audit-log-critical-more {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: #856404;
+}
+
+.audit-log-critical-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+}

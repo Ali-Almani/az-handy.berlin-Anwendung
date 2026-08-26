@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { isAdmin } from '../../utils/roles';
-import { listAuditLogsApi } from '../../services/auditLog.service';
+import { listAuditLogsApi, exportAuditLogsApi } from '../../services/auditLog.service';
 import './Logs.scss';
 
 const PAGE_SIZE = 50;
@@ -44,6 +44,7 @@ export default function Logs() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
   const page = Math.floor(offset / PAGE_SIZE) + 1;
@@ -103,9 +104,45 @@ export default function Logs() {
     setOffset(0);
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setError('');
+    try {
+      const blob = await exportAuditLogsApi({
+        from: fromDate || undefined,
+        to: toDate || undefined,
+        category: category || undefined,
+        search: search.trim() || undefined
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `audit-log_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Export fehlgeschlagen.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="logs-page container">
-      <h1 className="logs-page__title">Audit-Log</h1>
+      <div className="logs-page__header">
+        <h1 className="logs-page__title">Audit-Log</h1>
+        <button
+          type="button"
+          className="btn btn--secondary btn--small"
+          onClick={handleExport}
+          disabled={exporting || loading}
+        >
+          {exporting ? 'Export…' : 'CSV exportieren'}
+        </button>
+      </div>
 
       <div className="logs-filters">
         <div className="form-group">
