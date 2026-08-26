@@ -34,12 +34,15 @@ import {
   imeiKeyFromRowId,
   buildImeiRowId
 } from '../utils/imeiKey.js';
+import {
+  COPY_HISTORY_RETENTION_MS,
+  copyHistoryEntryKey,
+  mergeCopyHistoryEntries,
+  trimCopyHistoryByRetention
+} from '../utils/copyHistoryRetention.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
 const MERGED_COPY_HISTORY_TTL = 30;
-/** Büro/Admin: gemergter Mitarbeiter-Verlauf der letzten N Tage */
-const OFFICE_VERLAUF_DAYS = 4;
-const OFFICE_VERLAUF_MS = OFFICE_VERLAUF_DAYS * 24 * 60 * 60 * 1000;
 const USER_DATA_CACHE_PREFIX = 'imeis:userData:';
 const USER_DATA_CACHE_TTL = 20;
 
@@ -198,17 +201,54 @@ function shouldUseMergedOfficeCopyHistory(role) {
   return isBüroMitarbeiter(role) || isAdmin(role);
 }
 
-function copyHistoryEntryInOfficeWindow(entry, sinceMs) {
+function copyHistoryEntryInOfficeWindow(entry, sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS) {
   const ts = Date.parse(entry?.timestamp || '');
   if (Number.isNaN(ts)) return true;
   return ts >= sinceMs;
 }
 
 function finalizeOfficeCopyHistory(merged) {
-  const sinceMs = Date.now() - OFFICE_VERLAUF_MS;
-  return merged
-    .filter((e) => copyHistoryEntryInOfficeWindow(e, sinceMs))
-    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+  return trimCopyHistoryByRetention(merged);
+}
+
+function copyHistoryFromRowActions(rowActions, userName, rowUserId) {
+  const out = [];
+  if (!rowActions || typeof rowActions !== 'object' || Array.isArray(rowActions)) return out;
+  for (const [rowId, act] of Object.entries(rowActions)) {
+    if (!act || typeof act !== 'object') continue;
+    const action = String(act.action || '').trim();
+    if (action !== 'reservieren' && action !== 'dereserviert' && action !== 'checkout') continue;
+    const imei = imeiKeyFromRowId(rowId);
+    if (!imei) continue;
+    const ts = String(act.timestamp || '').trim() || new Date().toISOString();
+    if (!copyHistoryEntryInOfficeWindow({ timestamp: ts })) continue;
+    out.push({
+      imei,
+      product: String(act.product ?? '-').trim() || '-',
+      action,
+      timestamp: ts,
+      userName: String(act.userName || userName || '').trim() || userName,
+      historyOwnerUserId: rowUserId
+    });
+  }
+  return out;
+}
+
+async function resolveCopyHistoryForSave(userId, incomingCopyHistory) {
+  if (!Array.isArray(incomingCopyHistory)) return [];
+  const [ownData] = await ImeisUserData.findOrCreate({
+    where: { user_id: userId },
+    defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+  });
+  const existingRaw = (ownData.get && ownData.get('copy_history_json')) ?? ownData.copy_history_json;
+  let existing = [];
+  try {
+    existing = existingRaw ? JSON.parse(existingRaw) : [];
+  } catch (_) {
+    existing = [];
+  }
+  if (!Array.isArray(existing)) existing = [];
+  return mergeCopyHistoryEntries(existing, incomingCopyHistory);
 }
 
 /** Einsatzort/Standort-Key normalisieren (Legacy-Kurznamen und Straßennamen) */
@@ -243,45 +283,54 @@ const safeJsonParse = (raw, fallback) => {
   }
 };
 
-/** Merge copy_history aus allen Benutzern für Verlauf (Büro/Admin: letzte 4 Tage) */
-const computeMergedCopyHistory = async () => {
-  const all = await ImeisUserData.findAll();
-  // Cache: user_id -> name (damit "Benutzer" im Verlauf immer sichtbar ist)
-  const userNameById = new Map();
+/** Merge copy_history (+ rowActions-Fallback) aus User-Zeilen für Verlauf */
+async function collectMergedCopyHistoryFromRows(rows) {
   const merged = [];
-  for (const row of all) {
+  const seenKeys = new Set();
+  for (const row of rows) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    let rowUserName = '';
+    if (rowUserId != null) {
+      try {
+        const u = await User.findByPk(rowUserId);
+        rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
+      } catch (_) {}
+    }
+    const pushEntry = (e, fallbackUserName) => {
+      if (!e || (!e.imei && !e.timestamp)) return;
+      const userName = e.userName || fallbackUserName;
+      const entry = { ...e, userName, historyOwnerUserId: rowUserId };
+      const key = copyHistoryEntryKey(entry);
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+      merged.push(entry);
+    };
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
     if (historyJson) {
       try {
         const arr = JSON.parse(historyJson);
         if (Array.isArray(arr)) {
-          for (const e of arr) {
-            if (e && (e.imei || e.timestamp)) {
-              let userName = e.userName;
-              if (!userName) {
-                const k = String(rowUserId ?? '');
-                if (k) {
-                  if (!userNameById.has(k)) {
-                    try {
-                      const u = await User.findByPk(rowUserId);
-                      const n = String(u?.name ?? u?.get?.('name') ?? '').trim();
-                      userNameById.set(k, n || null);
-                    } catch (_) {
-                      userNameById.set(k, null);
-                    }
-                  }
-                  userName = userNameById.get(k) || userName;
-                }
-              }
-              merged.push({ ...e, userName, historyOwnerUserId: rowUserId });
-            }
-          }
+          for (const e of arr) pushEntry(e, rowUserName);
+        }
+      } catch (_) {}
+    }
+    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
+    if (rowActionsJson) {
+      try {
+        const rowActions = JSON.parse(rowActionsJson);
+        for (const e of copyHistoryFromRowActions(rowActions, rowUserName, rowUserId)) {
+          pushEntry(e, rowUserName);
         }
       } catch (_) {}
     }
   }
   return finalizeOfficeCopyHistory(merged);
+}
+
+/** Merge copy_history aus allen Benutzern für Verlauf (Büro/Admin: letzte 4 Tage) */
+const computeMergedCopyHistory = async () => {
+  const all = await ImeisUserData.findAll();
+  return collectMergedCopyHistoryFromRows(all);
 };
 
 const getMergedCopyHistory = async () => {
@@ -319,42 +368,7 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   const all = await ImeisUserData.findAll({
     where: { user_id: { [Op.in]: ids } }
   });
-  // Cache: user_id -> name (damit "Benutzer" im Verlauf immer sichtbar ist)
-  const userNameById = new Map();
-  const merged = [];
-  for (const row of all) {
-    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
-    if (historyJson) {
-      try {
-        const arr = JSON.parse(historyJson);
-        if (Array.isArray(arr)) {
-          for (const e of arr) {
-            if (e && (e.imei || e.timestamp)) {
-              let userName = e.userName;
-              if (!userName) {
-                const k = String(rowUserId ?? '');
-                if (k) {
-                  if (!userNameById.has(k)) {
-                    try {
-                      const u = await User.findByPk(rowUserId);
-                      const n = String(u?.name ?? u?.get?.('name') ?? '').trim();
-                      userNameById.set(k, n || null);
-                    } catch (_) {
-                      userNameById.set(k, null);
-                    }
-                  }
-                  userName = userNameById.get(k) || userName;
-                }
-              }
-              merged.push({ ...e, userName, historyOwnerUserId: rowUserId });
-            }
-          }
-        }
-      } catch (_) {}
-    }
-  }
-  return finalizeOfficeCopyHistory(merged);
+  return collectMergedCopyHistoryFromRows(all);
 };
 
 /** Verlauf (copy_history) zu dieser IMEI bei allen Benutzern löschen – nötig für gemergten Büro-Verlauf */
@@ -1060,9 +1074,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
         });
 
         if (additions.length > 0) {
-          augmentedCopyHistory = [...additions, ...(existingArr || [])]
-            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-            .slice(0, 200);
+          augmentedCopyHistory = mergeCopyHistoryEntries(existingArr, additions);
         }
       }
     }
@@ -1091,13 +1103,22 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
 
   const usesSharedData = shouldUseSharedImeiData(role) && ownerId && ownerId !== userId;
 
+  let historyToSave = augmentedCopyHistory !== undefined ? augmentedCopyHistory : copyHistory;
+  if (historyToSave !== undefined && !clearingMasterList) {
+    if (shouldUseMergedOfficeCopyHistory(role)) {
+      historyToSave = undefined;
+    } else {
+      historyToSave = await resolveCopyHistoryForSave(userId, historyToSave);
+      await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
+    }
+  }
+
   const payload = {
     user_id: userId,
     ...(!isMitarbeiter && !canEditSharedImeiList && imeis !== undefined && { imeis_json: JSON.stringify(imeis) }),
     ...(!isMitarbeiter && !canEditSharedImeiList && cellColors !== undefined && { cell_colors_json: JSON.stringify(cellColors) }),
     ...(!isMitarbeiter && !usesSharedData && rowActions !== undefined && { row_actions_json: JSON.stringify(rowActions) }),
-    ...((augmentedCopyHistory !== undefined ? augmentedCopyHistory : copyHistory) !== undefined &&
-      !clearingMasterList && { copy_history_json: JSON.stringify(augmentedCopyHistory !== undefined ? augmentedCopyHistory : copyHistory) }),
+    ...(historyToSave !== undefined && !clearingMasterList && { copy_history_json: JSON.stringify(historyToSave) }),
     ...(copyTimestamps !== undefined && !clearingMasterList && { copy_timestamps_json: JSON.stringify(copyTimestamps) })
   };
 
@@ -1204,7 +1225,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     ownerData.row_actions_json = JSON.stringify(merged);
     await ownerData.save();
   }
-  if (copyHistory !== undefined && !clearingMasterList) data.copy_history_json = JSON.stringify(copyHistory);
+  if (historyToSave !== undefined && !clearingMasterList) data.copy_history_json = JSON.stringify(historyToSave);
   if (copyTimestamps !== undefined && !clearingMasterList) data.copy_timestamps_json = JSON.stringify(copyTimestamps);
   await data.save();
 

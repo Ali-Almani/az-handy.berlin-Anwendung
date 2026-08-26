@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync, filterPendingHistoryRemovals, reconcilePendingHistoryRemovals } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst } from '../utils/imeisSortUtils';
+import { isOfficeImeiRole, trimCopyHistoryByRetention } from '../utils/copyHistoryRetention';
 
 const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
@@ -13,7 +14,8 @@ function processCopyHistory(savedCopyHistory) {
     const imei = String(entry?.imei || '').trim();
     const userName = String(entry?.userName || '').trim();
     const action = String(entry?.action || '').trim();
-    const key = `${imei}|${userName}|${action}`;
+    const ts = String(entry?.timestamp || '').trim();
+    const key = `${imei}|${userName}|${action}|${ts}`;
     const existingEntry = uniqueHistoryMap.get(key);
     if (!existingEntry || new Date(entry.timestamp || 0) > new Date(existingEntry.timestamp || 0)) {
       uniqueHistoryMap.set(key, entry);
@@ -125,9 +127,11 @@ export function useImeisData(
       try {
         const data = await loadImeisWithApi(user);
         applyImeisData(data, setters, getManufacturer, true);
-        const processedHistory = processCopyHistory(data.copyHistory ?? []);
-        if (processedHistory.length !== (data.copyHistory ?? []).length) {
-          persistImeisState(user, { copyHistory: processedHistory });
+        if (!isOfficeImeiRole(user?.role)) {
+          const processedHistory = processCopyHistory(data.copyHistory ?? []);
+          if (processedHistory.length !== (data.copyHistory ?? []).length) {
+            persistImeisState(user, { copyHistory: processedHistory });
+          }
         }
       } catch (error) {
         console.error('Error loading IMEIs:', error);
