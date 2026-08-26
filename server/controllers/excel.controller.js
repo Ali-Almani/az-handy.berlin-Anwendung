@@ -428,7 +428,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
       message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }
     if ((acceptedArchiveMatches ?? 0) > 0) {
-      message = `${message} ${acceptedArchiveMatches} IMEI(s) aus dem Angenommen-Archiv – siehe Kategorie „Angenommen (Excel)“.`;
+      message = `${message} ${acceptedArchiveMatches} IMEI(s) aus dem Angenommen-Archiv wieder in die Liste übernommen.`;
     }
     writeAuditLog(req, {
       category: 'excel',

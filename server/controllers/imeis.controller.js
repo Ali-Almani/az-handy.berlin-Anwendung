@@ -22,7 +22,8 @@ import {
   listAcceptedImeisForDisplay,
   permanentlyDeleteAcceptedEntry,
   permanentlyDeleteAcceptedEntriesByIds,
-  permanentlyDeleteAcceptedEntriesInRange
+  permanentlyDeleteAcceptedEntriesInRange,
+  removeAcceptedImeiEntriesByImeiKeys
 } from '../utils/acceptedImeiStore.js';
 import { writeAuditLog } from '../utils/auditLog.js';
 import * as redisCache from '../utils/redisCache.js';
@@ -806,17 +807,118 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
   };
 }
 
-function tagMergedWithAcceptedArchive(merged, acceptedKeys) {
-  let acceptedArchiveMatches = 0;
-  const tagged = merged.map((row) => {
-    const k = normalizeSonderImeiKey(row?.imei);
-    if (k && acceptedKeys.has(k)) {
-      acceptedArchiveMatches += 1;
-      return { ...row, _acceptedArchiveMatch: true };
+function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKeys) {
+  const incomingByKey = new Map();
+  for (const item of incomingImeis) {
+    if (!item || typeof item !== 'object') continue;
+    const k = normalizeImeiDedupKey(item?.imei);
+    if (k && acceptedKeys.has(k)) incomingByKey.set(k, item);
+  }
+
+  const keysToRestore = [...incomingByKey.keys()];
+  if (keysToRestore.length === 0) {
+    return {
+      merged: merged.map((row) => {
+        const next = { ...row };
+        delete next._acceptedArchiveMatch;
+        return next;
+      }),
+      restoredFromArchive: 0,
+      reAddedFromArchive: 0
+    };
+  }
+
+  removeAcceptedImeiEntriesByImeiKeys(keysToRestore);
+
+  const nowIso = new Date().toISOString();
+  const result = [...merged];
+  const keyToIndex = new Map();
+  for (let i = 0; i < result.length; i++) {
+    const k = normalizeImeiDedupKey(result[i]?.imei);
+    if (k && !keyToIndex.has(k)) keyToIndex.set(k, i);
+  }
+
+  let reAddedFromArchive = 0;
+  for (const k of keysToRestore) {
+    const incoming = incomingByKey.get(k);
+    const idx = keyToIndex.get(k);
+    if (idx !== undefined) {
+      const prev = result[idx];
+      result[idx] = {
+        ...prev,
+        ...incoming,
+        rowData: incoming?.rowData ? { ...incoming.rowData } : prev?.rowData,
+        columnOrder: Array.isArray(incoming?.columnOrder) ? [...incoming.columnOrder] : prev?.columnOrder,
+        rowDataFormats: incoming?.rowDataFormats ? { ...incoming.rowDataFormats } : prev?.rowDataFormats,
+        sheet: incoming?.sheet ?? prev?.sheet,
+        row: incoming?.row ?? prev?.row,
+        imei:
+          incoming?.imei != null && String(incoming.imei).trim() !== ''
+            ? String(incoming.imei).trim()
+            : prev?.imei,
+        _addedAt: prev?._addedAt || nowIso,
+        _excelUpdatedAt: nowIso,
+        _restoredFromAcceptedArchiveAt: nowIso
+      };
+      delete result[idx]._acceptedArchiveMatch;
+    } else {
+      result.push({
+        ...incoming,
+        imei:
+          incoming?.imei != null && String(incoming.imei).trim() !== ''
+            ? String(incoming.imei).trim()
+            : String(incoming?.imei ?? ''),
+        _addedAt: nowIso,
+        _restoredFromAcceptedArchiveAt: nowIso
+      });
+      keyToIndex.set(k, result.length - 1);
+      reAddedFromArchive += 1;
     }
-    return { ...row, _acceptedArchiveMatch: false };
+  }
+
+  const restoredKeys = new Set(keysToRestore);
+  const cleaned = result.map((row) => {
+    const next = { ...row };
+    const k = normalizeImeiDedupKey(next?.imei);
+    if (!k || !restoredKeys.has(k)) {
+      delete next._acceptedArchiveMatch;
+    }
+    return next;
   });
-  return { tagged, acceptedArchiveMatches };
+
+  return {
+    merged: cleaned,
+    restoredFromArchive: keysToRestore.length,
+    reAddedFromArchive
+  };
+}
+
+async function clearRowActionsForImeiKeys(ownerUserId, imeiKeys = []) {
+  const keys = (Array.isArray(imeiKeys) ? imeiKeys : []).map((k) => String(k).trim()).filter(Boolean);
+  if (!keys.length || ownerUserId == null) return;
+  const row = await ImeisUserData.findOne({ where: { user_id: ownerUserId } });
+  if (!row) return;
+  const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
+  let rowActions = {};
+  try {
+    rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
+  } catch (_) {
+    rowActions = {};
+  }
+  if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) return;
+  let changed = false;
+  Object.keys(rowActions).forEach((rowId) => {
+    if (keys.some((k) => rowId.includes(`-${k}-`))) {
+      delete rowActions[rowId];
+      changed = true;
+    }
+  });
+  if (changed) {
+    await ImeisUserData.upsert({
+      user_id: ownerUserId,
+      row_actions_json: JSON.stringify(rowActions)
+    });
+  }
 }
 
 /**
@@ -842,18 +944,30 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     incoming
   );
   const acceptedKeys = getAcceptedImeiKeySet();
-  const { tagged, acceptedArchiveMatches } = tagMergedWithAcceptedArchive(merged, acceptedKeys);
-  // Immer dieselbe user_id-Zeile wie die Quelle der bestehenden Liste (vermeidet Schreiben nur beim Uploader).
-  await saveImeisDataToStorage(baseUserId, { imeis: tagged }, app);
+  const restoreKeys = incoming
+    .map((item) => normalizeImeiDedupKey(item?.imei))
+    .filter((k) => k && acceptedKeys.has(k));
+  const { merged: restoredMerged, restoredFromArchive, reAddedFromArchive } = restoreAcceptedArchiveFromExcelUpload(
+    merged,
+    incoming,
+    acceptedKeys
+  );
+  if (restoreKeys.length > 0) {
+    await clearRowActionsForImeiKeys(baseUserId, restoreKeys);
+  }
+  const totalAdded = added + reAddedFromArchive;
+  await saveImeisDataToStorage(baseUserId, { imeis: restoredMerged }, app);
   return {
-    merged: tagged,
+    merged: restoredMerged,
     addedRows,
-    added,
+    added: totalAdded,
     skippedDuplicate,
     updatedFromUpload,
     previousCount,
-    total: tagged.length,
-    acceptedArchiveMatches
+    total: restoredMerged.length,
+    restoredFromArchive,
+    reAddedFromArchive,
+    acceptedArchiveMatches: restoredFromArchive
   };
 }
 

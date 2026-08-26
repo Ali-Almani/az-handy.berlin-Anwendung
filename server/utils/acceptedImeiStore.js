@@ -139,3 +139,21 @@ export function permanentlyDeleteAcceptedEntriesInRange({ from, to } = {}) {
   });
   return removed;
 }
+
+/** Excel-Re-Import: Archiv-Einträge für diese IMEI-Keys entfernen (Wiederherstellung in Hauptliste). */
+export function removeAcceptedImeiEntriesByImeiKeys(imeiKeys = []) {
+  const keySet = new Set(
+    (Array.isArray(imeiKeys) ? imeiKeys : [])
+      .map((k) => normalizeSonderImeiKey(k))
+      .filter(Boolean)
+  );
+  if (keySet.size === 0) return 0;
+  let removed = 0;
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    const before = state.entries.length;
+    state.entries = state.entries.filter((e) => !keySet.has(normalizeSonderImeiKey(e?.imei)));
+    removed = before - state.entries.length;
+  });
+  return removed;
+}
