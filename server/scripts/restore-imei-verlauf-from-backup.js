@@ -9,33 +9,117 @@
  *   --analyze-only  Nur Backup analysieren, keine DB
  *   --days 30       Nur Einträge der letzten N Tage (Standard: 30)
  *   --all-days      Alle Einträge aus Backup (kein Datumsfilter)
+ *   --env-from-pm2  DB-Zugangsdaten aus laufendem PM2-Prozess (az-api)
+ *   --database-url=postgresql://…  DB-URL überschreiben
+ *   --use-postgres    Direkt via sudo -u postgres psql (empfohlen auf dem Server)
  */
 import '../loadEnv.js';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { createGunzip } from 'zlib';
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { connectDatabase } from '../models/index.js';
-import ImeisUserData from '../models/ImeisUserData.js';
 import { updateJsonStore } from '../utils/jsonClusterStore.js';
 import { copyHistoryEntryKey } from '../utils/copyHistoryRetention.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// PM2/.env auf dem Server – mehrere übliche Pfade
-for (const p of [
+
+const ENV_PATHS = [
   path.join(__dirname, '..', '.env'),
   path.join(__dirname, '..', '..', '.env'),
-  '/root/az-handy.berlin-Anwendung/server/.env'
-]) {
-  if (fs.existsSync(p)) dotenv.config({ path: p, override: true });
+  '/root/az-handy.berlin-Anwendung/server/.env',
+  '/root/az-handy.berlin-Anwendung/.env'
+];
+
+/** Env vor dynamischem DB-Import setzen (ESM importiert database.js sonst zu früh). */
+function bootstrapEnv() {
+  for (const p of ENV_PATHS) {
+    if (fs.existsSync(p)) dotenv.config({ path: p, override: false });
+  }
+
+  const dbUrlArg = process.argv.find((a) => a.startsWith('--database-url='));
+  if (dbUrlArg) {
+    process.env.DATABASE_URL = dbUrlArg.slice('--database-url='.length);
+  }
+
+  if (process.argv.includes('--env-from-pm2')) {
+    loadEnvFromPm2(process.env.PM2_APP_NAME || 'az-api');
+  }
+}
+
+function loadEnvFromPm2(appName) {
+  const keys = ['DATABASE_URL', 'PG_USER', 'PG_PASSWORD', 'PG_HOST', 'PG_PORT', 'PG_DATABASE'];
+
+  const applyEnv = (envObj, override) => {
+    if (!envObj) return 0;
+    let n = 0;
+    for (const key of keys) {
+      const val = envObj[key];
+      if (val == null || val === '') continue;
+      if (override || !process.env[key]) {
+        process.env[key] = String(val);
+        n += 1;
+      }
+    }
+    return n;
+  };
+
+  try {
+    const out = execSync('pm2 jlist', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const list = JSON.parse(out);
+    const app = list.find((a) => a.name === appName);
+    if (!app) {
+      console.warn(`⚠️  PM2-App "${appName}" nicht gefunden – .env wird verwendet.`);
+      return false;
+    }
+
+    let loaded = applyEnv(app.pm2_env?.env, true);
+    const pid = app.pid;
+    if (pid && fs.existsSync(`/proc/${pid}/environ`)) {
+      const procEnv = {};
+      const buf = fs.readFileSync(`/proc/${pid}/environ`);
+      for (const part of buf.toString('utf-8').split('\0')) {
+        const i = part.indexOf('=');
+        if (i <= 0) continue;
+        procEnv[part.slice(0, i)] = part.slice(i + 1);
+      }
+      loaded += applyEnv(procEnv, true);
+    }
+
+    if (loaded === 0) {
+      console.warn(`⚠️  Keine DB-Variablen in PM2 (${appName}) – .env wird verwendet.`);
+      return false;
+    }
+
+    const dbUser = process.env.DATABASE_URL?.match(/\/\/([^:@/]+)/)?.[1] ?? process.env.PG_USER ?? '?';
+    console.log(`🔑 DB-Zugang aus PM2 (${appName}, User: ${dbUser}) geladen.`);
+    return true;
+  } catch (err) {
+    console.warn(`⚠️  PM2 env nicht lesbar: ${err.message}`);
+    return false;
+  }
+}
+
+function dbHint(sourcePath, retentionDays, allDays) {
+  const daysArg = allDays ? ' --all-days' : ` --days ${retentionDays ?? 30}`;
+  console.error('');
+  console.error('💡 Auf dem Server (DB wie PM2):');
+  console.error('   cd ~/az-handy.berlin-Anwendung/server');
+  console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --use-postgres`);
+  console.error('');
+  console.error('   Alternativ mit App-DB-User:');
+  console.error(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --env-from-pm2`);
+  console.error('');
+  console.error('   Oder .env prüfen: grep -E "DATABASE|PG_" .env ../.env');
 }
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const dryRun = process.argv.includes('--dry-run');
 const analyzeOnly = process.argv.includes('--analyze-only');
+const usePostgres = process.argv.includes('--use-postgres');
 const allDays = process.argv.includes('--all-days');
 const daysIdx = process.argv.indexOf('--days');
 const retentionDays = allDays
@@ -130,8 +214,21 @@ function listTarMembers(tarPath) {
   }
 }
 
-function shQuote(p) {
-  return `'${String(p).replace(/'/g, `'\"'\"'`)}'`;
+function extractTarMemberToTempFile(tarPath, member) {
+  const tmp = path.join(os.tmpdir(), `restore-imeis-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  const fd = fs.openSync(tmp, 'w');
+  try {
+    const result = spawnSync('tar', ['-xOf', tarPath, member], {
+      stdio: ['ignore', fd, 'pipe']
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+      throw new Error(result.stderr?.toString('utf-8').trim() || `tar exit ${result.status}`);
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  return tmp;
 }
 
 function extractFromTar(tarPath) {
@@ -154,12 +251,7 @@ function extractFromTar(tarPath) {
 
   console.log(`   Tar: ${imeisMember}${acceptedMember ? ` + ${acceptedMember}` : ''}`);
 
-  const json = execSync(`tar -xOf ${shQuote(tarPath)} ${shQuote(imeisMember)}`, {
-    encoding: 'utf-8',
-    stdio: ['pipe', 'pipe', 'pipe']
-  });
-  const tmp = path.join(process.cwd(), '.restore-imeis-tmp.json');
-  fs.writeFileSync(tmp, json, 'utf-8');
+  const tmp = extractTarMemberToTempFile(tarPath, imeisMember);
   const result = loadFromImeisJson(tmp);
   try {
     fs.unlinkSync(tmp);
@@ -168,11 +260,11 @@ function extractFromTar(tarPath) {
   let acceptedImeis = null;
   if (acceptedMember) {
     try {
-      const accRaw = execSync(`tar -xOf ${shQuote(tarPath)} ${shQuote(acceptedMember)}`, {
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
-      acceptedImeis = JSON.parse(accRaw);
+      const accTmp = extractTarMemberToTempFile(tarPath, acceptedMember);
+      acceptedImeis = JSON.parse(fs.readFileSync(accTmp, 'utf-8'));
+      try {
+        fs.unlinkSync(accTmp);
+      } catch (_) {}
     } catch (_) {}
   }
   return { ...result, acceptedImeis };
@@ -279,7 +371,127 @@ async function restoreAcceptedArchive(acceptedImeis) {
   return added;
 }
 
+function getPgDatabaseName() {
+  if (process.env.PG_DATABASE) return process.env.PG_DATABASE;
+  const url = process.env.DATABASE_URL;
+  if (url) {
+    try {
+      const parsed = new URL(url.replace(/^postgresql:/, 'postgres:'));
+      const name = parsed.pathname.replace(/^\//, '').split('?')[0];
+      if (name) return name;
+    } catch (_) {}
+  }
+  return 'az_handy_berlin';
+}
+
+function sqlLiteral(str) {
+  return `'${String(str).replace(/'/g, "''")}'`;
+}
+
+function runPsql(dbName, psqlArgs, stdinSql) {
+  const cmd = ['-u', 'postgres', 'psql', '-d', dbName, '-v', 'ON_ERROR_STOP=1', ...psqlArgs];
+  const result = spawnSync('sudo', cmd, {
+    encoding: 'utf-8',
+    input: stdinSql ?? undefined,
+    stdio: stdinSql != null ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe']
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error((result.stderr || result.stdout || 'psql fehlgeschlagen').trim());
+  }
+  return (result.stdout ?? '').trim();
+}
+
+async function restoreUsersViaPostgres(backupUsers) {
+  const dbName = getPgDatabaseName();
+  console.log(`🔐 Wiederherstellung via sudo -u postgres psql (${dbName})…`);
+  runPsql(dbName, ['-t', '-A', '-c', 'SELECT 1']);
+
+  let updatedUsers = 0;
+  let addedEntries = 0;
+
+  for (const bu of backupUsers) {
+    const uid = bu.userId;
+    if (uid == null || !(bu.copyHistory?.length > 0)) continue;
+    const uidNum = parseInt(uid, 10);
+    if (!Number.isFinite(uidNum)) continue;
+
+    const existing = runPsql(
+      dbName,
+      ['-t', '-A', '-c', `SELECT COALESCE(copy_history_json, '[]') FROM imeis_user_data WHERE user_id = ${uidNum} LIMIT 1`]
+    );
+
+    let currentHistory = [];
+    if (existing) {
+      currentHistory = safeParseJson(existing, []);
+    } else {
+      runPsql(dbName, ['-c', `INSERT INTO imeis_user_data (user_id, cell_colors_json, row_actions_json, copy_history_json, copy_timestamps_json, created_at, updated_at)
+VALUES (${uidNum}, '{}', '{}', '[]', '[]', NOW(), NOW())
+ON CONFLICT (user_id) DO NOTHING`]);
+    }
+
+    const merged = mergeHistoryRaw(currentHistory, bu.copyHistory ?? []);
+    const delta = merged.length - (Array.isArray(currentHistory) ? currentHistory.length : 0);
+    if (delta <= 0) continue;
+
+    let sql = `UPDATE imeis_user_data SET copy_history_json = ${sqlLiteral(JSON.stringify(merged))}, updated_at = NOW() WHERE user_id = ${uidNum};`;
+    if (Array.isArray(bu.copyTimestamps) && bu.copyTimestamps.length > 0) {
+      sql += `\nUPDATE imeis_user_data SET copy_timestamps_json = ${sqlLiteral(JSON.stringify(bu.copyTimestamps))}, updated_at = NOW() WHERE user_id = ${uidNum};`;
+    }
+    runPsql(dbName, [], `${sql}\n`);
+
+    addedEntries += delta;
+    updatedUsers += 1;
+    console.log(`  ✓ User ${uidNum}: ${currentHistory.length} → ${merged.length} (+${delta})`);
+  }
+
+  return { updatedUsers, addedEntries };
+}
+
+async function restoreUsersViaSequelize(backupUsers) {
+  const { connectDatabase } = await import('../models/index.js');
+  const { default: ImeisUserData } = await import('../models/ImeisUserData.js');
+
+  await connectDatabase();
+
+  let updatedUsers = 0;
+  let addedEntries = 0;
+
+  for (const bu of backupUsers) {
+    const uid = bu.userId;
+    if (uid == null || !(bu.copyHistory?.length > 0)) continue;
+    const [row] = await ImeisUserData.findOrCreate({
+      where: { user_id: uid },
+      defaults: {
+        cell_colors_json: '{}',
+        row_actions_json: '{}',
+        copy_history_json: '[]',
+        copy_timestamps_json: '[]'
+      }
+    });
+    const currentHistory = safeParseJson(row.copy_history_json ?? row.get?.('copy_history_json'), []);
+    const merged = mergeHistoryRaw(currentHistory, bu.copyHistory ?? []);
+    const delta = merged.length - (Array.isArray(currentHistory) ? currentHistory.length : 0);
+    if (delta > 0) {
+      addedEntries += delta;
+      updatedUsers += 1;
+      await ImeisUserData.upsert({
+        user_id: uid,
+        copy_history_json: JSON.stringify(merged),
+        ...(Array.isArray(bu.copyTimestamps) && bu.copyTimestamps.length > 0
+          ? { copy_timestamps_json: JSON.stringify(bu.copyTimestamps) }
+          : {})
+      });
+      console.log(`  ✓ User ${uid}: ${currentHistory.length} → ${merged.length} (+${delta})`);
+    }
+  }
+
+  return { updatedUsers, addedEntries };
+}
+
 async function main() {
+  bootstrapEnv();
+
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     console.error('❌ Backup-Datei nicht gefunden.');
     process.exit(1);
@@ -328,9 +540,8 @@ async function main() {
     console.log('ℹ️  Analyse/Dry-Run – Datenbank wird nicht beschrieben.');
     if (backupHistoryTotal > 0) {
       console.log('   Zum Speichern (ohne --dry-run):');
-      console.log(`   set -a && source .env && set +a`);
       const daysArg = allDays ? ' --all-days' : ` --days ${retentionDays}`;
-      console.log(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg}`);
+      console.log(`   npm run restore-imei-verlauf -- ${sourcePath}${daysArg} --use-postgres`);
     }
     return;
   }
@@ -340,51 +551,28 @@ async function main() {
   }
 
   console.log('');
-  console.log('🔄 Verbinde mit Datenbank…');
-  try {
-    await connectDatabase();
-  } catch (err) {
-    console.error('');
-    console.error('❌ Datenbank-Verbindung fehlgeschlagen:', err.message);
-    console.error('');
-    console.error('💡 Auf dem Server (wie PM2):');
-    console.error('   cd ~/az-handy.berlin-Anwendung/server');
-    console.error('   set -a && source .env && set +a');
-    console.error(`   npm run restore-imei-verlauf -- ${sourcePath} --days ${retentionDays ?? 30}`);
-    console.error('');
-    console.error('   Oder DB prüfen: grep DATABASE .env');
-    process.exit(1);
-  }
-
   let updatedUsers = 0;
   let addedEntries = 0;
 
-  for (const bu of backupUsers) {
-    const uid = bu.userId;
-    if (uid == null || !(bu.copyHistory?.length > 0)) continue;
-    const [row] = await ImeisUserData.findOrCreate({
-      where: { user_id: uid },
-      defaults: {
-        cell_colors_json: '{}',
-        row_actions_json: '{}',
-        copy_history_json: '[]',
-        copy_timestamps_json: '[]'
+  if (usePostgres) {
+    ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(backupUsers));
+  } else {
+    console.log('🔄 Verbinde mit Datenbank…');
+    try {
+      ({ updatedUsers, addedEntries } = await restoreUsersViaSequelize(backupUsers));
+    } catch (err) {
+      console.error('');
+      console.error('❌ App-DB-Verbindung fehlgeschlagen:', err.message);
+      console.log('');
+      console.log('↪️  Fallback: postgres-Superuser (sudo -u postgres psql)…');
+      try {
+        ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(backupUsers));
+      } catch (pgErr) {
+        console.error('');
+        console.error('❌ postgres-Fallback fehlgeschlagen:', pgErr.message);
+        dbHint(sourcePath, retentionDays, allDays);
+        process.exit(1);
       }
-    });
-    const currentHistory = safeParseJson(row.copy_history_json ?? row.get?.('copy_history_json'), []);
-    const merged = mergeHistoryRaw(currentHistory, bu.copyHistory ?? []);
-    const delta = merged.length - (Array.isArray(currentHistory) ? currentHistory.length : 0);
-    if (delta > 0) {
-      addedEntries += delta;
-      updatedUsers += 1;
-      await ImeisUserData.upsert({
-        user_id: uid,
-        copy_history_json: JSON.stringify(merged),
-        ...(Array.isArray(bu.copyTimestamps) && bu.copyTimestamps.length > 0
-          ? { copy_timestamps_json: JSON.stringify(bu.copyTimestamps) }
-          : {})
-      });
-      console.log(`  ✓ User ${uid}: ${currentHistory.length} → ${merged.length} (+${delta})`);
     }
   }
 
