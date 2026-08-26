@@ -13,8 +13,25 @@ export function copyHistoryEntryKey(entry) {
   return `${imei}|${userName}|${ts}|${action}`;
 }
 
+export function parseCopyHistoryTimestamp(raw) {
+  if (raw == null || raw === '') return NaN;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return raw < 1e12 ? raw * 1000 : raw;
+  }
+  const s = String(raw).trim();
+  if (!s) return NaN;
+  let ts = Date.parse(s);
+  if (!Number.isNaN(ts)) return ts;
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    const [, d, mo, y, h, mi, sec] = m;
+    return new Date(+y, +mo - 1, +d, +h, +mi, +(sec || 0)).getTime();
+  }
+  return NaN;
+}
+
 export function copyHistoryEntryInRetentionWindow(entry, sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS) {
-  const ts = Date.parse(entry?.timestamp || '');
+  const ts = parseCopyHistoryTimestamp(entry?.timestamp);
   if (Number.isNaN(ts)) return true;
   return ts >= sinceMs;
 }

@@ -38,7 +38,8 @@ import {
   COPY_HISTORY_RETENTION_MS,
   copyHistoryEntryKey,
   mergeCopyHistoryEntries,
-  trimCopyHistoryByRetention
+  trimCopyHistoryByRetention,
+  parseCopyHistoryTimestamp
 } from '../utils/copyHistoryRetention.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
@@ -202,7 +203,7 @@ function shouldUseMergedOfficeCopyHistory(role) {
 }
 
 function copyHistoryEntryInOfficeWindow(entry, sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS) {
-  const ts = Date.parse(entry?.timestamp || '');
+  const ts = parseCopyHistoryTimestamp(entry?.timestamp);
   if (Number.isNaN(ts)) return true;
   return ts >= sinceMs;
 }

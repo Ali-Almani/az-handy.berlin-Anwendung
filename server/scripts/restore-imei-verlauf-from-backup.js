@@ -25,7 +25,12 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
 import { getDataDir } from '../utils/filePersistence.js';
-import { copyHistoryEntryKey } from '../utils/copyHistoryRetention.js';
+import {
+  copyHistoryEntryKey,
+  COPY_HISTORY_RETENTION_MS,
+  parseCopyHistoryTimestamp
+} from '../utils/copyHistoryRetention.js';
+import * as redisCache from '../utils/redisCache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -154,6 +159,175 @@ function restoreHintArgs(sourcePath, backupUsers) {
   return `${sourcePath}${daysArg}${targetArg}`;
 }
 
+function countOfficeWindowStats(backupUsers) {
+  const sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayAt16 = new Date();
+  todayAt16.setHours(16, 0, 0, 0);
+
+  let total = 0;
+  let inOfficeWindow = 0;
+  let invalidTs = 0;
+  let todayBefore16 = 0;
+  let todayAfter16 = 0;
+
+  for (const bu of backupUsers) {
+    for (const e of bu.copyHistory ?? []) {
+      total += 1;
+      const ts = parseCopyHistoryTimestamp(e?.timestamp);
+      if (Number.isNaN(ts)) {
+        invalidTs += 1;
+        inOfficeWindow += 1;
+        continue;
+      }
+      if (ts >= sinceMs) inOfficeWindow += 1;
+      if (ts >= todayStart.getTime() && ts < todayAt16.getTime()) todayBefore16 += 1;
+      if (ts >= todayAt16.getTime()) todayAfter16 += 1;
+    }
+  }
+
+  return { total, inOfficeWindow, invalidTs, todayBefore16, todayAfter16 };
+}
+
+function printOfficeWindowStats(label, backupUsers) {
+  const s = countOfficeWindowStats(backupUsers);
+  console.log(`   ${label} – Büro-Anzeige (letzte 4 Tage): ${s.inOfficeWindow} / ${s.total} Einträge`);
+  console.log(`     Heute vor 16:00: ${s.todayBefore16} | ab 16:00: ${s.todayAfter16} | ohne gültiges Datum: ${s.invalidTs}`);
+  if (s.total > 0 && s.inOfficeWindow === 0) {
+    console.warn('     ⚠️  Kein Eintrag liegt im 4-Tage-Fenster – in der App erscheint nichts aus diesem Backup.');
+  } else if (s.todayBefore16 === 0 && s.todayAfter16 > 0) {
+    console.warn('     ⚠️  Keine Einträge von heute vor 16:00 – ggf. fehlt ein Backup kurz vor dem Excel-Vorfall.');
+  }
+  return s;
+}
+
+async function invalidateImeisCachesAfterRestore() {
+  await redisCache.del('imeis:mergedCopyHistory');
+  await redisCache.delPattern('imeis:userData:*');
+  console.log('♻️  Redis-Cache für IMEI-Verlauf geleert.');
+}
+
+function loadUsersJsonIndex() {
+  const byEmail = new Map();
+  const byName = new Map();
+  const users = readJsonStore('users.json', []);
+  for (const u of users) {
+    const uid = u._id ?? u.id;
+    if (!uid) continue;
+    const email = String(u.email ?? '').toLowerCase().trim();
+    const name = String(u.name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+    if (email) byEmail.set(email, uid);
+    if (name) byName.set(name, uid);
+  }
+  return { byEmail, byName };
+}
+
+function parseUsersCopyLine(line) {
+  const parts = line.split('\t');
+  if (parts.length < 3) return null;
+  const id = parseInt(parts[0], 10);
+  if (!Number.isFinite(id)) return null;
+  const name = unescapeCopyField(parts[1]);
+  const email = unescapeCopyField(parts[2])?.toLowerCase()?.trim();
+  if (!email) return null;
+  return { id, name, email };
+}
+
+async function loadSqlUsersFromDump(filePath) {
+  const users = [];
+  const isGz = filePath.endsWith('.gz');
+  const stream = isGz
+    ? fs.createReadStream(filePath).pipe(createGunzip())
+    : fs.createReadStream(filePath);
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+  let inCopy = false;
+  for await (const line of rl) {
+    if (!inCopy) {
+      if (/COPY public\.users\b/i.test(line)) inCopy = true;
+      continue;
+    }
+    if (line === '\\.' || line === '.') break;
+    const parsed = parseUsersCopyLine(line);
+    if (parsed) users.push(parsed);
+  }
+  return users;
+}
+
+async function buildSqlUserIdToUuidMap(sqlPath) {
+  const sqlUsers = await loadSqlUsersFromDump(sqlPath);
+  const { byEmail, byName } = loadUsersJsonIndex();
+  const map = new Map();
+  let matched = 0;
+  for (const su of sqlUsers) {
+    const uuid = byEmail.get(su.email) ?? byName.get(String(su.name ?? '').trim().replace(/\s+/g, ' ').toLowerCase());
+    if (uuid) {
+      map.set(su.id, uuid);
+      matched += 1;
+    }
+  }
+  console.log(`   SQL→UUID: ${matched} / ${sqlUsers.length} Benutzer gemappt (E-Mail/Name)`);
+  return map;
+}
+
+function mapBackupUsersToUuids(backupUsers, idMap) {
+  const byUuid = new Map();
+  for (const bu of backupUsers) {
+    const numericId = parseInt(bu.userId, 10);
+    const uid = idMap.get(numericId) ?? idMap.get(bu.userId);
+    if (!uid) continue;
+    const existing = byUuid.get(String(uid));
+    if (existing) {
+      existing.copyHistory = mergeHistoryRaw(existing.copyHistory, bu.copyHistory ?? []);
+      existing.copyHistoryRawCount = (existing.copyHistoryRawCount ?? 0) + (bu.copyHistoryRawCount ?? bu.copyHistory?.length ?? 0);
+    } else {
+      byUuid.set(String(uid), {
+        ...bu,
+        userId: uid,
+        copyHistory: [...(bu.copyHistory ?? [])],
+        copyHistoryRawCount: bu.copyHistoryRawCount ?? bu.copyHistory?.length ?? 0
+      });
+    }
+  }
+  return Array.from(byUuid.values());
+}
+
+function isSqlSource(filePath) {
+  const base = path.basename(filePath).toLowerCase();
+  return filePath.endsWith('.sql') || filePath.endsWith('.sql.gz') || base.includes('az_handy');
+}
+
+async function prepareUsersForJsonRestore(backupUsers, filePath) {
+  if (!backupUsers.some((u) => isNumericUserId(u.userId))) return backupUsers;
+  if (backupUsers.some((u) => isUuidUserId(u.userId))) return backupUsers;
+
+  const isSql = isSqlSource(filePath);
+  if (!isSql) return backupUsers;
+
+  console.log('');
+  console.log('🔗 SQL-Backup → imeis.json (PostgreSQL-ID → UUID)…');
+  const idMap = await buildSqlUserIdToUuidMap(filePath);
+  const mapped = mapBackupUsersToUuids(backupUsers, idMap);
+  if (mapped.length === 0) {
+    console.warn('⚠️  Keine SQL-Benutzer konnten users.json zugeordnet werden.');
+  }
+  return mapped;
+}
+
+function countLiveJsonOfficeStats() {
+  const state = readJsonStore('imeis.json', {});
+  const users = [];
+  for (const val of Object.values(state)) {
+    if (!val || typeof val !== 'object') continue;
+    users.push({
+      userId: val.user_id,
+      copyHistory: safeParseJson(val.copy_history_json, [])
+    });
+  }
+  return countOfficeWindowStats(users);
+}
+
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const dryRun = process.argv.includes('--dry-run');
 const analyzeOnly = process.argv.includes('--analyze-only');
@@ -180,7 +354,7 @@ function safeParseJson(raw, fallback) {
 
 function entryInWindow(entry) {
   if (retentionMs == null) return true;
-  const ts = Date.parse(entry?.timestamp || '');
+  const ts = parseCopyHistoryTimestamp(entry?.timestamp);
   if (Number.isNaN(ts)) return true;
   return ts >= Date.now() - retentionMs;
 }
@@ -621,6 +795,15 @@ async function main() {
     }
   }
 
+  if (backupHistoryTotal > 0 || rawHistoryTotal > 0) {
+    console.log('');
+    const officeStats = printOfficeWindowStats('Backup', backupUsers);
+    if (officeStats.inOfficeWindow < officeStats.total / 4 && isSqlSource(sourcePath)) {
+      console.log('   💡 Zusätzlich SQL-Backup in imeis.json laden:');
+      console.log(`      npm run restore-imei-verlauf -- ${sourcePath} --all-days --target=json`);
+    }
+  }
+
   if (backupHistoryTotal === 0 && rawHistoryTotal === 0) {
     console.warn('');
     console.warn('⚠️  Im Backup ist kein Verlauf (copy_history_json) gespeichert.');
@@ -655,7 +838,16 @@ async function main() {
     if (usePostgres) {
       console.log('ℹ️  Backup mit UUID-Benutzern → speichere in imeis.json (nicht PostgreSQL).');
     }
-    ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(backupUsers));
+    const usersForRestore = await prepareUsersForJsonRestore(backupUsers, sourcePath);
+    if (usersForRestore.length === 0) {
+      console.error('❌ Keine Benutzer für imeis.json-Restore (Mapping prüfen).');
+      process.exit(1);
+    }
+    if (usersForRestore !== backupUsers) {
+      printOfficeWindowStats('Nach SQL→UUID Mapping', usersForRestore);
+    }
+    ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(usersForRestore));
+    await invalidateImeisCachesAfterRestore();
   } else if (usePostgres) {
     ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(backupUsers));
   } else {
@@ -675,7 +867,9 @@ async function main() {
         console.log('');
         console.log('↪️  Fallback: server/data/imeis.json…');
         try {
-          ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(backupUsers));
+          const mapped = await prepareUsersForJsonRestore(backupUsers, sourcePath);
+          ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(mapped.length ? mapped : backupUsers));
+          await invalidateImeisCachesAfterRestore();
         } catch (jsonErr) {
           console.error('');
           console.error('❌ JSON-Fallback fehlgeschlagen:', jsonErr.message);
@@ -711,6 +905,14 @@ async function main() {
   console.log(`✅ Benutzer aktualisiert: ${updatedUsers}`);
   console.log(`✅ Verlauf-Einträge ergänzt: ~${addedEntries}`);
   if (acceptedImeis) console.log(`✅ Angenommen-Archiv ergänzt: ${acceptedAdded}`);
+
+  if (restoreTarget === 'json' || updatedUsers > 0) {
+    const live = countLiveJsonOfficeStats();
+    console.log('');
+    console.log(`📊 imeis.json jetzt – Büro-Anzeige (4 Tage): ${live.inOfficeWindow} Einträge sichtbar`);
+    console.log(`     Heute vor 16:00: ${live.todayBefore16} | ab 16:00: ${live.todayAfter16}`);
+  }
+
   console.log('');
   console.log('💡 pm2 restart all  →  IMEI-Seite Strg+Shift+R');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
