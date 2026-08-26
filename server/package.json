@@ -11,7 +11,11 @@
     "dev:ps1": "powershell -ExecutionPolicy Bypass -File start-server.ps1",
     "create-admin": "node scripts/create-admin.js",
     "import-users-excel": "node scripts/import-users-from-excel.js",
-    "import-users-excel:update": "node scripts/import-users-from-excel.js --update"
+    "import-users-excel:update": "node scripts/import-users-from-excel.js --update",
+    "backup-users": "node scripts/backup-users.js",
+    "restore-users": "node scripts/restore-users-from-backup.js",
+    "backup-imei-verlauf": "node scripts/backup-imei-verlauf.js",
+    "restore-imei-verlauf": "node scripts/restore-imei-verlauf-from-backup.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
