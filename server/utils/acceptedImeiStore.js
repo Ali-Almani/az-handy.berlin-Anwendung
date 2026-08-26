@@ -54,7 +54,14 @@ export function listAcceptedImeisForDisplay(options) {
 export function getAcceptedImeiKeySet() {
   const raw = readJsonStore(FILE, DEFAULT());
   const entries = Array.isArray(raw?.entries) ? raw.entries : [];
-  return new Set(entries.map((e) => normalizeSonderImeiKey(e?.imei)).filter(Boolean));
+  const set = new Set();
+  for (const e of entries) {
+    const k1 = normalizeSonderImeiKey(e?.imei);
+    const k2 = normalizeSonderImeiKey(e?.imeiKey);
+    if (k1) set.add(k1);
+    if (k2) set.add(k2);
+  }
+  return set;
 }
 
 function isDuplicateAcceptedEntry(existing, entry, imeiKey) {
@@ -152,7 +159,11 @@ export function removeAcceptedImeiEntriesByImeiKeys(imeiKeys = []) {
   updateJsonStore(FILE, DEFAULT(), (state) => {
     if (!Array.isArray(state.entries)) state.entries = [];
     const before = state.entries.length;
-    state.entries = state.entries.filter((e) => !keySet.has(normalizeSonderImeiKey(e?.imei)));
+    state.entries = state.entries.filter((e) => {
+      const k = normalizeSonderImeiKey(e?.imei);
+      const k2 = normalizeSonderImeiKey(e?.imeiKey);
+      return !keySet.has(k) && !keySet.has(k2);
+    });
     removed = before - state.entries.length;
   });
   return removed;

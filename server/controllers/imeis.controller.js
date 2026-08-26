@@ -22,12 +22,18 @@ import {
   listAcceptedImeisForDisplay,
   permanentlyDeleteAcceptedEntry,
   permanentlyDeleteAcceptedEntriesByIds,
-  permanentlyDeleteAcceptedEntriesInRange,
-  removeAcceptedImeiEntriesByImeiKeys
+  permanentlyDeleteAcceptedEntriesInRange
 } from '../utils/acceptedImeiStore.js';
 import { writeAuditLog } from '../utils/auditLog.js';
 import * as redisCache from '../utils/redisCache.js';
 import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
+import {
+  normalizeImeiKey,
+  canonicalImeiString,
+  collectImeiKeysFromUploadRow,
+  imeiKeyFromRowId,
+  buildImeiRowId
+} from '../utils/imeiKey.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
 const MERGED_COPY_HISTORY_TTL = 30;
@@ -359,8 +365,8 @@ const removeImeiFromAllCopyHistories = async (imeiToRemove) => {
 
 /** Entfernt ein IMEI aus allen Benutzer-IMEI-Listen (sichtbar für alle Rollen) */
 const removeImeiFromAllLists = async (imeiToRemove) => {
-  const imeiStr = String(imeiToRemove || '').trim();
-  if (!imeiStr) return;
+  const removeKey = normalizeImeiKey(imeiToRemove);
+  if (!removeKey) return;
   const all = await ImeisUserData.findAll();
   for (const row of all) {
     const imeisJson = (row.get && row.get('imeis_json')) ?? row.imeis_json;
@@ -374,10 +380,13 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
     try {
       rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
     } catch (_) {}
-    const filtered = Array.isArray(arr) ? arr.filter((item) => String(item?.imei || '').trim() !== imeiStr) : [];
+    const filtered = Array.isArray(arr)
+      ? arr.filter((item) => normalizeImeiKey(item?.imei) !== removeKey)
+      : [];
     let hadRowAction = false;
     Object.keys(rowActions).forEach((rowId) => {
-      if (rowId.includes(`-${imeiStr}-`)) {
+      const rk = normalizeImeiKey(imeiKeyFromRowId(rowId));
+      if (rk === removeKey) {
         delete rowActions[rowId];
         hadRowAction = true;
       }
@@ -706,42 +715,8 @@ export const approveSonderImeis = async (req, res, next) => {
   }
 };
 
-/** Wissenschaftliche Notation in Ziffernfolge (ohne JS-Number-Rundung), z. B. für Excel-Exporte. */
-function sciNotationToDigitString(s) {
-  const t = String(s ?? '').trim().replace(/\s+/g, '');
-  const match = t.match(/^([+-]?)(\d+(?:\.\d+)?)[eE]([+-]?\d+)$/i);
-  if (!match) return null;
-  const sign = match[1];
-  const mant = match[2];
-  const exp = parseInt(match[3], 10);
-  const dot = mant.indexOf('.');
-  const intPart = dot === -1 ? mant : mant.slice(0, dot);
-  const frac = dot === -1 ? '' : mant.slice(dot + 1);
-  let all = intPart + frac;
-  const decShift = frac.length;
-  let shift = exp - decShift;
-  if (shift >= 0) {
-    all += '0'.repeat(shift);
-  } else {
-    const rm = -shift;
-    if (all.length <= rm) return null;
-    all = all.slice(0, all.length - rm);
-  }
-  all = all.replace(/^0+/, '') || '0';
-  if (sign === '-') return null;
-  return all;
-}
-
 function normalizeImeiDedupKey(imei) {
-  const raw = String(imei ?? '').trim().replace(/\s+/g, '');
-  if (!raw) return '';
-  if (/[eE][+-]?\d+/.test(raw)) {
-    const fromSci = sciNotationToDigitString(raw);
-    if (fromSci && fromSci.length >= 14) return fromSci;
-  }
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length >= 14) return digits;
-  return raw;
+  return normalizeImeiKey(imei);
 }
 
 /**
@@ -776,10 +751,9 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
         rowDataFormats: item?.rowDataFormats ? { ...item.rowDataFormats } : prev?.rowDataFormats,
         sheet: prev?.sheet ?? item.sheet,
         row: prev?.row ?? item.row,
-        imei:
-          item.imei != null && String(item.imei).trim() !== ''
-            ? String(item.imei).trim()
-            : prev?.imei,
+        imei: canonicalImeiString(
+          item.imei != null && String(item.imei).trim() !== '' ? item.imei : prev?.imei
+        ),
         _addedAt: prev?._addedAt || item._addedAt || nowIso,
         _excelUpdatedAt: nowIso
       };
@@ -789,8 +763,7 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
     keyToIndex.set(k, merged.length);
     const row = {
       ...item,
-      imei:
-        item.imei != null && String(item.imei).trim() !== '' ? String(item.imei).trim() : String(item.imei),
+      imei: canonicalImeiString(item.imei),
       _addedAt: item._addedAt || nowIso
     };
     merged.push(row);
@@ -811,8 +784,9 @@ function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKe
   const incomingByKey = new Map();
   for (const item of incomingImeis) {
     if (!item || typeof item !== 'object') continue;
-    const k = normalizeImeiDedupKey(item?.imei);
-    if (k && acceptedKeys.has(k)) incomingByKey.set(k, item);
+    for (const k of collectImeiKeysFromUploadRow(item)) {
+      if (acceptedKeys.has(k)) incomingByKey.set(k, item);
+    }
   }
 
   const keysToRestore = [...incomingByKey.keys()];
@@ -828,8 +802,7 @@ function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKe
     };
   }
 
-  removeAcceptedImeiEntriesByImeiKeys(keysToRestore);
-
+  // Archiv + Verlauf bleiben erhalten – IMEIs nur wieder in die Hauptliste aufnehmen.
   const nowIso = new Date().toISOString();
   const result = [...merged];
   const keyToIndex = new Map();
@@ -852,10 +825,7 @@ function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKe
         rowDataFormats: incoming?.rowDataFormats ? { ...incoming.rowDataFormats } : prev?.rowDataFormats,
         sheet: incoming?.sheet ?? prev?.sheet,
         row: incoming?.row ?? prev?.row,
-        imei:
-          incoming?.imei != null && String(incoming.imei).trim() !== ''
-            ? String(incoming.imei).trim()
-            : prev?.imei,
+        imei: canonicalImeiString(incoming?.imei ?? k),
         _addedAt: prev?._addedAt || nowIso,
         _excelUpdatedAt: nowIso,
         _restoredFromAcceptedArchiveAt: nowIso
@@ -864,10 +834,9 @@ function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKe
     } else {
       result.push({
         ...incoming,
-        imei:
-          incoming?.imei != null && String(incoming.imei).trim() !== ''
-            ? String(incoming.imei).trim()
-            : String(incoming?.imei ?? ''),
+        imei: canonicalImeiString(incoming?.imei ?? k),
+        sheet: incoming?.sheet ?? 'Excel',
+        row: incoming?.row ?? result.length + 1,
         _addedAt: nowIso,
         _restoredFromAcceptedArchiveAt: nowIso
       });
@@ -893,31 +862,53 @@ function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKe
   };
 }
 
-async function clearRowActionsForImeiKeys(ownerUserId, imeiKeys = []) {
-  const keys = (Array.isArray(imeiKeys) ? imeiKeys : []).map((k) => String(k).trim()).filter(Boolean);
-  if (!keys.length || ownerUserId == null) return;
-  const row = await ImeisUserData.findOne({ where: { user_id: ownerUserId } });
-  if (!row) return;
-  const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
-  let rowActions = {};
-  try {
-    rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
-  } catch (_) {
-    rowActions = {};
+function rowActionMatchesImeiKeys(rowId, keySet) {
+  const rk = normalizeImeiKey(imeiKeyFromRowId(rowId));
+  if (rk && keySet.has(rk)) return true;
+  const digits = String(rowId).replace(/\D/g, '');
+  if (!digits) return false;
+  for (const k of keySet) {
+    if (digits.includes(k)) return true;
   }
-  if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) return;
-  let changed = false;
-  Object.keys(rowActions).forEach((rowId) => {
-    if (keys.some((k) => rowId.includes(`-${k}-`))) {
-      delete rowActions[rowId];
-      changed = true;
+  return false;
+}
+
+async function clearReservierenRowActionsForImeiKeys(imeiKeys = [], explicitRowIds = []) {
+  const keySet = new Set(
+    (Array.isArray(imeiKeys) ? imeiKeys : [])
+      .map((k) => normalizeImeiKey(k))
+      .filter(Boolean)
+  );
+  const rowIdSet = new Set(
+    (Array.isArray(explicitRowIds) ? explicitRowIds : []).filter(Boolean)
+  );
+  if (!keySet.size && !rowIdSet.size) return;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
+    let rowActions = {};
+    try {
+      rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
+    } catch (_) {
+      rowActions = {};
     }
-  });
-  if (changed) {
-    await ImeisUserData.upsert({
-      user_id: ownerUserId,
-      row_actions_json: JSON.stringify(rowActions)
+    if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) continue;
+    let changed = false;
+    Object.keys(rowActions).forEach((rowId) => {
+      const act = rowActions[rowId];
+      if (act?.action !== 'reservieren') return;
+      if (rowIdSet.has(rowId) || rowActionMatchesImeiKeys(rowId, keySet)) {
+        delete rowActions[rowId];
+        changed = true;
+      }
     });
+    if (changed) {
+      await ImeisUserData.upsert({
+        user_id: rowUserId,
+        row_actions_json: JSON.stringify(rowActions)
+      });
+    }
   }
 }
 
@@ -944,19 +935,33 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     incoming
   );
   const acceptedKeys = getAcceptedImeiKeySet();
-  const restoreKeys = incoming
-    .map((item) => normalizeImeiDedupKey(item?.imei))
-    .filter((k) => k && acceptedKeys.has(k));
+  const restoreKeysSet = new Set();
+  for (const item of incoming) {
+    for (const k of collectImeiKeysFromUploadRow(item)) {
+      if (acceptedKeys.has(k)) restoreKeysSet.add(k);
+    }
+  }
+  const restoreKeys = [...restoreKeysSet];
   const { merged: restoredMerged, restoredFromArchive, reAddedFromArchive } = restoreAcceptedArchiveFromExcelUpload(
     merged,
     incoming,
     acceptedKeys
   );
   if (restoreKeys.length > 0) {
-    await clearRowActionsForImeiKeys(baseUserId, restoreKeys);
+    const restoreKeySet = new Set(restoreKeys);
+    const explicitRowIds = restoredMerged
+      .filter((item) => {
+        const k = normalizeImeiKey(item?.imei);
+        return k && restoreKeySet.has(k);
+      })
+      .map((item) => buildImeiRowId(item));
+    await clearReservierenRowActionsForImeiKeys(restoreKeys, explicitRowIds);
   }
   const totalAdded = added + reAddedFromArchive;
   await saveImeisDataToStorage(baseUserId, { imeis: restoredMerged }, app);
+  const io = app?.get?.('io');
+  if (io) io.emit('imeis:updated');
+  await invalidateImeisCaches(baseUserId, { sharedListChanged: true });
   return {
     merged: restoredMerged,
     addedRows,

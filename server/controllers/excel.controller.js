@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.controller.js';
 import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRoles.js';
+import { canonicalImeiString } from '../utils/imeiKey.js';
 import User from '../models/User.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
@@ -428,7 +429,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
       message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }
     if ((acceptedArchiveMatches ?? 0) > 0) {
-      message = `${message} ${acceptedArchiveMatches} IMEI(s) aus dem Angenommen-Archiv wieder in die Liste übernommen.`;
+      message = `${message} ${acceptedArchiveMatches} IMEI(s) mit Eintrag im Angenommen-Archiv wieder in die Liste aufgenommen (nur Reservierungen aufgehoben, Archiv und Verlauf bleiben erhalten).`;
     }
     writeAuditLog(req, {
       category: 'excel',
@@ -522,7 +523,7 @@ export const processExcelFile = async (req, res) => {
         }
         if (imeiValue) {
           imeis.push({
-            imei: imeiValue,
+            imei: canonicalImeiString(imeiValue),
             row: p.row,
             sheet: 'Sheet1',
             sheetIndex: 0,
@@ -570,7 +571,7 @@ export const processExcelFile = async (req, res) => {
         if (!cellLooksLikeImeiString(imeiValue)) continue;
         const { rowData, rowDataFormats } = buildRowDataFromHeaders(headers, e.rowArray, e.fmtByCol);
         imeis.push({
-          imei: imeiValue,
+          imei: canonicalImeiString(imeiValue),
           row: e.rowNumber,
           sheet: sheetName,
           sheetIndex: sheetId - 1,
