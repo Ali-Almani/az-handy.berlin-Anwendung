@@ -1,6 +1,45 @@
 /** Verlauf-Aufbewahrung: Büro/Admin sehen Einträge der letzten N Tage aller Mitarbeiter. */
-export const COPY_HISTORY_RETENTION_DAYS = 4;
+export const COPY_HISTORY_RETENTION_DAYS = Math.max(
+  1,
+  parseInt(process.env.COPY_HISTORY_RETENTION_DAYS || '4', 10) || 4
+);
 export const COPY_HISTORY_RETENTION_MS = COPY_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+const MIN_VALID_MS = Date.UTC(2020, 0, 1);
+
+function extractTimestampRaw(entryOrRaw) {
+  if (entryOrRaw != null && typeof entryOrRaw === 'object' && !Array.isArray(entryOrRaw)) {
+    return (
+      entryOrRaw.timestamp ??
+      entryOrRaw.date ??
+      entryOrRaw.time ??
+      entryOrRaw.createdAt ??
+      entryOrRaw.created_at
+    );
+  }
+  return entryOrRaw;
+}
+
+export function parseCopyHistoryTimestamp(entryOrRaw) {
+  const raw = extractTimestampRaw(entryOrRaw);
+  if (raw == null || raw === '') return NaN;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    if (raw === 0) return NaN;
+    const ms = raw < 1e12 ? raw * 1000 : raw;
+    return ms >= MIN_VALID_MS ? ms : NaN;
+  }
+  const s = String(raw).trim();
+  if (!s || s === '0') return NaN;
+  let ts = Date.parse(s);
+  if (!Number.isNaN(ts)) return ts >= MIN_VALID_MS ? ts : NaN;
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    const [, d, mo, y, h, mi, sec] = m;
+    ts = new Date(+y, +mo - 1, +d, +h, +mi, +(sec || 0)).getTime();
+    return ts >= MIN_VALID_MS ? ts : NaN;
+  }
+  return NaN;
+}
 
 export function copyHistoryEntryKey(entry) {
   const imei = String(entry?.imei ?? '').trim();
@@ -13,25 +52,8 @@ export function copyHistoryEntryKey(entry) {
   return `${imei}|${userName}|${ts}|${action}`;
 }
 
-export function parseCopyHistoryTimestamp(raw) {
-  if (raw == null || raw === '') return NaN;
-  if (typeof raw === 'number' && Number.isFinite(raw)) {
-    return raw < 1e12 ? raw * 1000 : raw;
-  }
-  const s = String(raw).trim();
-  if (!s) return NaN;
-  let ts = Date.parse(s);
-  if (!Number.isNaN(ts)) return ts;
-  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-  if (m) {
-    const [, d, mo, y, h, mi, sec] = m;
-    return new Date(+y, +mo - 1, +d, +h, +mi, +(sec || 0)).getTime();
-  }
-  return NaN;
-}
-
 export function copyHistoryEntryInRetentionWindow(entry, sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS) {
-  const ts = parseCopyHistoryTimestamp(entry?.timestamp);
+  const ts = parseCopyHistoryTimestamp(entry);
   if (Number.isNaN(ts)) return true;
   return ts >= sinceMs;
 }
@@ -39,7 +61,10 @@ export function copyHistoryEntryInRetentionWindow(entry, sinceMs = Date.now() - 
 export function trimCopyHistoryByRetention(entries, sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS) {
   return (Array.isArray(entries) ? entries : [])
     .filter((e) => e && (e.imei || e.timestamp) && copyHistoryEntryInRetentionWindow(e, sinceMs))
-    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    .sort(
+      (a, b) =>
+        (parseCopyHistoryTimestamp(b) || 0) - (parseCopyHistoryTimestamp(a) || 0)
+    );
 }
 
 /** Bestehende Server-Einträge behalten – Client sendet oft nur die letzten 100. */

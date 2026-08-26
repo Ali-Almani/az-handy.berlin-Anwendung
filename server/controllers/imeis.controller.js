@@ -203,12 +203,20 @@ function shouldUseMergedOfficeCopyHistory(role) {
 }
 
 function copyHistoryEntryInOfficeWindow(entry, sinceMs = Date.now() - COPY_HISTORY_RETENTION_MS) {
-  const ts = parseCopyHistoryTimestamp(entry?.timestamp);
+  const ts = parseCopyHistoryTimestamp(entry);
   if (Number.isNaN(ts)) return true;
   return ts >= sinceMs;
 }
 
 function finalizeOfficeCopyHistory(merged) {
+  if (
+    process.env.COPY_HISTORY_OFFICE_SHOW_ALL === 'true' ||
+    process.env.COPY_HISTORY_OFFICE_SHOW_ALL === '1'
+  ) {
+    return [...merged].sort(
+      (a, b) => (parseCopyHistoryTimestamp(b) || 0) - (parseCopyHistoryTimestamp(a) || 0)
+    );
+  }
   return trimCopyHistoryByRetention(merged);
 }
 

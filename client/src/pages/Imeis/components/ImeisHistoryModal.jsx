@@ -1,4 +1,17 @@
 import { useState, useEffect } from 'react';
+import { parseCopyHistoryTimestamp } from '../utils/copyHistoryRetention';
+
+function formatHistoryTimestamp(entry) {
+  const ts = parseCopyHistoryTimestamp(entry);
+  if (Number.isNaN(ts)) return '–';
+  return new Date(ts).toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
 const ImeisHistoryModal = ({
   isOpen,
@@ -217,15 +230,7 @@ const ImeisHistoryModal = ({
                           </button>
                         )}
                       </td>
-                      <td>
-                        {new Date(entry.timestamp).toLocaleString('de-DE', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </td>
+                      <td>{formatHistoryTimestamp(entry)}</td>
                     </tr>
                   ))}
                 </tbody>

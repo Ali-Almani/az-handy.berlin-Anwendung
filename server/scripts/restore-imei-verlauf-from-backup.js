@@ -27,6 +27,7 @@ import { readJsonStore, updateJsonStore } from '../utils/jsonClusterStore.js';
 import { getDataDir } from '../utils/filePersistence.js';
 import {
   copyHistoryEntryKey,
+  COPY_HISTORY_RETENTION_DAYS,
   COPY_HISTORY_RETENTION_MS,
   parseCopyHistoryTimestamp
 } from '../utils/copyHistoryRetention.js';
@@ -168,34 +169,58 @@ function countOfficeWindowStats(backupUsers) {
 
   let total = 0;
   let inOfficeWindow = 0;
-  let invalidTs = 0;
+  let undated = 0;
   let todayBefore16 = 0;
   let todayAfter16 = 0;
+  let minTs = Infinity;
+  let maxTs = -Infinity;
 
   for (const bu of backupUsers) {
     for (const e of bu.copyHistory ?? []) {
       total += 1;
-      const ts = parseCopyHistoryTimestamp(e?.timestamp);
+      const ts = parseCopyHistoryTimestamp(e);
       if (Number.isNaN(ts)) {
-        invalidTs += 1;
+        undated += 1;
         inOfficeWindow += 1;
         continue;
       }
+      if (ts < minTs) minTs = ts;
+      if (ts > maxTs) maxTs = ts;
       if (ts >= sinceMs) inOfficeWindow += 1;
       if (ts >= todayStart.getTime() && ts < todayAt16.getTime()) todayBefore16 += 1;
       if (ts >= todayAt16.getTime()) todayAfter16 += 1;
     }
   }
 
-  return { total, inOfficeWindow, invalidTs, todayBefore16, todayAfter16 };
+  return {
+    total,
+    inOfficeWindow,
+    undated,
+    todayBefore16,
+    todayAfter16,
+    minTs: Number.isFinite(minTs) ? minTs : null,
+    maxTs: Number.isFinite(maxTs) ? maxTs : null
+  };
+}
+
+function formatTs(ms) {
+  if (ms == null || !Number.isFinite(ms)) return '–';
+  return new Date(ms).toISOString().replace('T', ' ').slice(0, 19);
 }
 
 function printOfficeWindowStats(label, backupUsers) {
   const s = countOfficeWindowStats(backupUsers);
-  console.log(`   ${label} – Büro-Anzeige (letzte 4 Tage): ${s.inOfficeWindow} / ${s.total} Einträge`);
-  console.log(`     Heute vor 16:00: ${s.todayBefore16} | ab 16:00: ${s.todayAfter16} | ohne gültiges Datum: ${s.invalidTs}`);
+  console.log(`   ${label} – Büro-Anzeige (letzte ${COPY_HISTORY_RETENTION_DAYS} Tage): ${s.inOfficeWindow} / ${s.total} Einträge`);
+  console.log(
+    `     Heute vor 16:00: ${s.todayBefore16} | ab 16:00: ${s.todayAfter16} | ohne Datum / ungültig (werden angezeigt): ${s.undated}`
+  );
+  if (s.minTs != null || s.maxTs != null) {
+    console.log(`     Zeitspanne gültiger Timestamps: ${formatTs(s.minTs)} … ${formatTs(s.maxTs)}`);
+  }
   if (s.total > 0 && s.inOfficeWindow === 0) {
     console.warn('     ⚠️  Kein Eintrag liegt im 4-Tage-Fenster – in der App erscheint nichts aus diesem Backup.');
+  } else if (s.undated > 0) {
+    console.warn(`     ℹ️  ${s.undated} Einträge ohne gültiges Datum – werden nach Fix in der App sichtbar.`);
   } else if (s.todayBefore16 === 0 && s.todayAfter16 > 0) {
     console.warn('     ⚠️  Keine Einträge von heute vor 16:00 – ggf. fehlt ein Backup kurz vor dem Excel-Vorfall.');
   }
@@ -354,7 +379,7 @@ function safeParseJson(raw, fallback) {
 
 function entryInWindow(entry) {
   if (retentionMs == null) return true;
-  const ts = parseCopyHistoryTimestamp(entry?.timestamp);
+  const ts = parseCopyHistoryTimestamp(entry);
   if (Number.isNaN(ts)) return true;
   return ts >= Date.now() - retentionMs;
 }

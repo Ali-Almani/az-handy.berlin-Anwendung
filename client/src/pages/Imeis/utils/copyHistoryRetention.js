@@ -1,5 +1,40 @@
 const COPY_HISTORY_RETENTION_DAYS = 4;
 const COPY_HISTORY_RETENTION_MS = COPY_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const MIN_VALID_MS = Date.UTC(2020, 0, 1);
+
+function extractTimestampRaw(entryOrRaw) {
+  if (entryOrRaw != null && typeof entryOrRaw === 'object' && !Array.isArray(entryOrRaw)) {
+    return (
+      entryOrRaw.timestamp ??
+      entryOrRaw.date ??
+      entryOrRaw.time ??
+      entryOrRaw.createdAt ??
+      entryOrRaw.created_at
+    );
+  }
+  return entryOrRaw;
+}
+
+export function parseCopyHistoryTimestamp(entryOrRaw) {
+  const raw = extractTimestampRaw(entryOrRaw);
+  if (raw == null || raw === '') return NaN;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    if (raw === 0) return NaN;
+    const ms = raw < 1e12 ? raw * 1000 : raw;
+    return ms >= MIN_VALID_MS ? ms : NaN;
+  }
+  const s = String(raw).trim();
+  if (!s || s === '0') return NaN;
+  let ts = Date.parse(s);
+  if (!Number.isNaN(ts)) return ts >= MIN_VALID_MS ? ts : NaN;
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    const [, d, mo, y, h, mi, sec] = m;
+    ts = new Date(+y, +mo - 1, +d, +h, +mi, +(sec || 0)).getTime();
+    return ts >= MIN_VALID_MS ? ts : NaN;
+  }
+  return NaN;
+}
 
 export function copyHistoryEntryKey(entry) {
   const imei = String(entry?.imei ?? '').trim();
@@ -17,11 +52,14 @@ export function trimCopyHistoryByRetention(entries) {
   return (Array.isArray(entries) ? entries : [])
     .filter((e) => {
       if (!e || (!e.imei && !e.timestamp)) return false;
-      const ts = Date.parse(e?.timestamp || '');
+      const ts = parseCopyHistoryTimestamp(e);
       if (Number.isNaN(ts)) return true;
       return ts >= sinceMs;
     })
-    .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    .sort(
+      (a, b) =>
+        (parseCopyHistoryTimestamp(b) || 0) - (parseCopyHistoryTimestamp(a) || 0)
+    );
 }
 
 export function isOfficeImeiRole(role) {
