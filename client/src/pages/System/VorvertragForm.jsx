@@ -1,6 +1,6 @@
 import { COUNTRY_OPTIONS } from './countries';
-import { parseAusgabeDetails, normalizeMitOhne, patchFromImeisMonate } from './vorvertragGeraeteUtils';
-import VorvertragGeraetPicker from './VorvertragGeraetPicker';
+import { parseAusgabeDetails, normalizeMitOhne, patchFromImeisMonate, verfuegbarkeitFilialeOptions } from './vorvertragGeraeteUtils';
+import VorvertragGeraetSuggestField from './VorvertragGeraetSuggestField';
 import VorvertragWizardForm from './VorvertragWizardForm';
 import MnpFieldsSection from './MnpFieldsSection';
 import { emptyMnpDetails, mnpDetailsFromEingabe } from './mnpConstants';
@@ -128,6 +128,7 @@ export default function VorvertragForm({
         geraeteLoading={geraeteLoading}
         geraetSeed={geraetSeed}
         saving={saving}
+        filialeOptions={filialeOptions}
       />
     );
   }
@@ -138,6 +139,11 @@ export default function VorvertragForm({
       mnpDetails: { ...(form.mnpDetails || emptyMnpDetails()), [field]: value }
     });
   };
+  const verfuegbarkeitOptions = verfuegbarkeitFilialeOptions(filialeOptions);
+  const currentVerfuegbarkeit = String(form.ausgabeVerfuegbarkeit || '').trim();
+  if (currentVerfuegbarkeit && !verfuegbarkeitOptions.includes(currentVerfuegbarkeit)) {
+    verfuegbarkeitOptions.unshift(currentVerfuegbarkeit);
+  }
 
   return (
     <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={onSubmit}>
@@ -210,18 +216,13 @@ export default function VorvertragForm({
       <div className="vorvertrag-section">
         <h3 className="vorvertrag-section-title">Ausgabe Details</h3>
         <div className="vorvertrag-form-grid">
-          <div className="form-group vorvertrag-form-grid--full">
-            <VorvertragGeraetPicker
-              key={`${mode}-${geraetSeed || 'new'}`}
-              imeis={imeis}
-              seedGeraet={geraetSeed}
-              selectedGeraet={form.ausgabeGeraet}
-              selectedFarbe={form.ausgabeFarbe}
-              onGeraetChange={(value) => handleChange('ausgabeGeraet', value)}
-              onFarbeChange={(value) => handleChange('ausgabeFarbe', value)}
-              loading={geraeteLoading}
-            />
-          </div>
+          <VorvertragGeraetSuggestField
+            id="vv-geraet"
+            value={form.ausgabeGeraet}
+            onChange={(value) => onPatch?.({ ausgabeGeraet: value, ausgabeFarbe: '' })}
+            imeis={imeis}
+            loading={geraeteLoading}
+          />
           <div className="form-group">
             <label htmlFor="vv-verfuegbarkeit" className="form-label">Verfügbarkeit</label>
             <select
@@ -231,8 +232,9 @@ export default function VorvertragForm({
               onChange={(ev) => handleChange('ausgabeVerfuegbarkeit', ev.target.value)}
             >
               <option value="">— auswählen —</option>
-              <option value="bestellen">Bestellen</option>
-              <option value="in_shop">Im Shop</option>
+              {verfuegbarkeitOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
             </select>
           </div>
         </div>

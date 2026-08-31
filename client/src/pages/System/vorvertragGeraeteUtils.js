@@ -1,3 +1,4 @@
+import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import {
   getProductFull,
   extractGB,
@@ -81,10 +82,23 @@ export function buildFarbenForGeraet(imeis = [], geraet) {
   return Array.from(colors).sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
 }
 
+export function verfuegbarkeitFilialeOptions(filialeOptions = []) {
+  const extras = Array.isArray(filialeOptions) ? filialeOptions : [];
+  const merged = ['Zentrale', ...extras, ...FILIALE_OPTIONS];
+  const seen = new Set();
+  return merged.filter((item) => {
+    const value = normalizeEinsatzOrt(item) || String(item ?? '').trim();
+    if (!value || seen.has(value)) return false;
+    seen.add(value);
+    return true;
+  });
+}
+
 export function formatVerfuegbarkeit(value) {
   if (value === 'bestellen') return 'Bestellen';
   if (value === 'in_shop') return 'Im Shop';
-  return '';
+  const n = normalizeEinsatzOrt(value);
+  return n || String(value ?? '').trim();
 }
 
 export function parseAusgabeDetails(raw) {

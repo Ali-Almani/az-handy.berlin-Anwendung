@@ -16,7 +16,6 @@ import {
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
-const VERFUEGBARKEIT_OPTIONS = ['bestellen', 'in_shop'];
 
 const ROLE_LABELS = new Set([
   'admin',
@@ -142,10 +141,16 @@ function normalizeJaNein(value) {
 function normalizeAusgabeDetails(raw) {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     const verf = String(raw.verfuegbarkeit ?? '').trim();
+    let verfuegbarkeit = '';
+    if (verf === 'bestellen' || verf === 'in_shop') {
+      verfuegbarkeit = verf;
+    } else if (isValidFiliale(verf)) {
+      verfuegbarkeit = normalizeFiliale(verf);
+    }
     return {
       geraet: String(raw.geraet ?? '').trim(),
       farbe: String(raw.farbe ?? '').trim(),
-      verfuegbarkeit: VERFUEGBARKEIT_OPTIONS.includes(verf) ? verf : ''
+      verfuegbarkeit
     };
   }
   const legacy = String(raw ?? '').trim();

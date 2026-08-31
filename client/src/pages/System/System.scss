@@ -412,6 +412,22 @@
   position: relative;
 }
 
+.vorvertrag-geraet-suggest {
+  grid-column: 1 / -1;
+
+  @media (min-width: $breakpoint-md) {
+    grid-column: span 2;
+  }
+
+  @media (min-width: $breakpoint-lg) {
+    grid-column: span 3;
+  }
+
+  .original-anbieter-picker__option {
+    grid-template-columns: 1fr;
+  }
+}
+
 .original-anbieter-picker__dropdown {
   position: absolute;
   z-index: 40;

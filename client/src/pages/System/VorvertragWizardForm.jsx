@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { COUNTRY_OPTIONS } from './countries';
-import VorvertragGeraetPicker from './VorvertragGeraetPicker';
 import MnpFieldsSection from './MnpFieldsSection';
-import { patchFromImeisMonate, buildFarbenForGeraet } from './vorvertragGeraeteUtils';
+import VorvertragGeraetSuggestField from './VorvertragGeraetSuggestField';
+import { patchFromImeisMonate, verfuegbarkeitFilialeOptions } from './vorvertragGeraeteUtils';
 import { emptyMnpDetails, validateMnpDetailsForSubmit } from './mnpConstants';
 import {
   buildCustomerCatalog,
@@ -32,7 +32,8 @@ export default function VorvertragWizardForm({
   imeis = [],
   geraeteLoading = false,
   geraetSeed = '',
-  saving = false
+  saving = false,
+  filialeOptions = []
 }) {
   const [step, setStep] = useState(1);
   const [kundenArt, setKundenArt] = useState('');
@@ -57,6 +58,15 @@ export default function VorvertragWizardForm({
     });
   };
 
+  const verfuegbarkeitOptions = useMemo(
+    () => {
+      const options = verfuegbarkeitFilialeOptions(filialeOptions);
+      const current = String(form.ausgabeVerfuegbarkeit || '').trim();
+      if (current && !options.includes(current)) options.unshift(current);
+      return options;
+    },
+    [filialeOptions, form.ausgabeVerfuegbarkeit]
+  );
   const catalog = useMemo(() => buildCustomerCatalog(archivedEntries), [archivedEntries]);
   const filteredCatalog = useMemo(
     () => filterCustomerCatalogByName(catalog, kundeSearch),
@@ -138,9 +148,7 @@ export default function VorvertragWizardForm({
       }
     }
     if (currentStep === 3) {
-      if (!form.ausgabeGeraet?.trim()) return 'Bitte Gerät wählen.';
-      const farben = buildFarbenForGeraet(imeis, form.ausgabeGeraet);
-      if (farben.length > 0 && !form.ausgabeFarbe?.trim()) return 'Bitte Farbe wählen.';
+      if (!form.ausgabeGeraet?.trim()) return 'Bitte Gerät eingeben.';
       if (!form.ausgabeVerfuegbarkeit?.trim()) return 'Bitte Verfügbarkeit wählen.';
     }
     if (currentStep === 5) {
@@ -414,19 +422,14 @@ export default function VorvertragWizardForm({
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">Schritt 3 – Ausgabe Details</h3>
       <div className="vorvertrag-form-grid">
-        <div className="form-group vorvertrag-form-grid--full">
-          <VorvertragGeraetPicker
-            key={`wizard-${geraetSeed || 'new'}`}
-            imeis={imeis}
-            seedGeraet={geraetSeed}
-            selectedGeraet={form.ausgabeGeraet}
-            selectedFarbe={form.ausgabeFarbe}
-            onGeraetChange={(value) => handleChange('ausgabeGeraet', value)}
-            onFarbeChange={(value) => handleChange('ausgabeFarbe', value)}
-            loading={geraeteLoading}
-            required
-          />
-        </div>
+        <VorvertragGeraetSuggestField
+          id="vv-geraet"
+          value={form.ausgabeGeraet}
+          onChange={(value) => onPatch?.({ ausgabeGeraet: value, ausgabeFarbe: '' })}
+          imeis={imeis}
+          loading={geraeteLoading}
+          required
+        />
         <div className="form-group">
           <label htmlFor="vv-verfuegbarkeit" className="form-label form-label--required">Verfügbarkeit</label>
           <select
@@ -437,8 +440,9 @@ export default function VorvertragWizardForm({
             required
           >
             <option value="">— auswählen —</option>
-            <option value="bestellen">Bestellen</option>
-            <option value="in_shop">Im Shop</option>
+            {verfuegbarkeitOptions.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
           </select>
         </div>
       </div>
