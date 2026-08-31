@@ -309,6 +309,16 @@
     color: darken($info-color, 18%);
     background: mix(#fff, $info-color, 82%);
   }
+
+  &--orten {
+    color: darken($primary-color, 8%);
+    background: mix(#fff, $primary-color, 82%);
+  }
+
+  &--callcenter {
+    color: darken($info-color, 18%);
+    background: mix(#fff, $info-color, 82%);
+  }
 }
 
 .vorvertrag-panel {

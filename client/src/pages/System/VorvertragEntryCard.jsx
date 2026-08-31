@@ -2,6 +2,12 @@ import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
 import {
+  isLeadEntry,
+  LEAD_STATUS_OPTIONS,
+  leadStatusBadge,
+  normalizeLeadStatus
+} from './callcenterLeadData';
+import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_OPTIONS,
   vorvertragTicketStatusBadge
@@ -63,9 +69,16 @@ export default function VorvertragEntryCard({
   const mnpOnly = isMnpOnlyEntry(entry);
   const nameFromMnp = [mnp.kundenVorname, mnp.kundenNachname].filter(Boolean).join(' ');
   const nameFromEntry = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ');
-  const name = nameFromEntry || nameFromMnp || 'Ohne Kundenname';
+  const lead = isLeadEntry(entry);
+  const name = lead
+    ? (entry?.rufnummer || entry?.angebot || 'Ohne Rufnummer')
+    : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
   const mitarbeiter = mitarbeiterName(entry);
-  const ticketStatus = normalizeVorvertragTicketStatus(entry?.ticketStatus);
+  const ticketStatus = lead
+    ? (normalizeLeadStatus(entry?.ticketStatus) || LEAD_STATUS_OPTIONS[0])
+    : normalizeVorvertragTicketStatus(entry?.ticketStatus);
+  const statusOptions = lead ? LEAD_STATUS_OPTIONS : VORVERTRAG_TICKET_STATUS_OPTIONS;
+  const badgeMod = lead ? leadStatusBadge(ticketStatus) : vorvertragTicketStatusBadge(ticketStatus);
   const filiale = formatEinsatzOrt(entry?.filiale);
 
   return (
@@ -80,12 +93,18 @@ export default function VorvertragEntryCard({
         {filiale ? <MetaChip accent>{filiale}</MetaChip> : '—'}
       </td>
       <td className="vorvertrag-ticket-row__typ">
-        {mnpOnly ? <MetaChip accent>MNP</MetaChip> : 'Vorvertrag'}
+        {lead ? (
+          <MetaChip accent>{entry?.angebot || 'Nachricht'}</MetaChip>
+        ) : mnpOnly ? (
+          <MetaChip accent>MNP</MetaChip>
+        ) : (
+          'Vorvertrag'
+        )}
       </td>
       <td className="vorvertrag-ticket-row__status">
         <div className="vorvertrag-ticket-row__status-inner">
           <span
-            className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${vorvertragTicketStatusBadge(ticketStatus)}`}
+            className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${badgeMod}`}
           >
             {ticketStatus}
           </span>
@@ -96,7 +115,7 @@ export default function VorvertragEntryCard({
             onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
             aria-label={`Status für ${name}`}
           >
-            {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+            {statusOptions.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>

@@ -25,8 +25,15 @@ import { isMnpOnlyEntry } from './vorvertragEntryType';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
-import SocialZentrale from './SocialZentrale';
-import { countUnreadSocialTickets, loadSocialTickets } from './socialZentraleDemoData';
+import CallcenterNachrichten from './CallcenterNachrichten';
+import {
+  isLeadEntry,
+  isLeadInNeu,
+  leadToNeuEntry,
+  loadLeadTickets,
+  normalizeLeadStatus,
+  saveLeadTickets
+} from './callcenterLeadData';
 import './System.scss';
 
 const TOAST_MS = 4500;
@@ -48,10 +55,11 @@ const System = () => {
   const [geraetSeed, setGeraetSeed] = useState('');
   const [mode, setMode] = useState('new');
   const [formKind, setFormKind] = useState('vorvertrag');
-  const [listTab, setListTab] = useState('neu');
+  const [listTab, setListTab] = useState('nachrichten');
   const [archivSearch, setArchivSearch] = useState('');
   const [statusSavingId, setStatusSavingId] = useState('');
-  const [socialUnread, setSocialUnread] = useState(() => countUnreadSocialTickets(loadSocialTickets()));
+  const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
+  const [openLeadId, setOpenLeadId] = useState('');
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -63,8 +71,13 @@ const System = () => {
     [user?.einsatz_ort]
   );
 
+  const leadNeuEntries = useMemo(
+    () => leadTickets.filter(isLeadInNeu).map(leadToNeuEntry),
+    [leadTickets]
+  );
+
   const filteredEntries = useMemo(() => {
-    return entries.filter((entry) => {
+    const vv = entries.filter((entry) => {
       const archived = isVorvertragArchived(entry);
       const inTab = listTab === 'archiv' ? archived : !archived;
       if (!inTab) return false;
@@ -73,11 +86,13 @@ const System = () => {
       }
       return true;
     });
-  }, [entries, listTab, archivSearch]);
+    if (listTab === 'neu') return [...leadNeuEntries, ...vv];
+    return vv;
+  }, [entries, listTab, archivSearch, leadNeuEntries]);
 
   const neuCount = useMemo(
-    () => entries.filter((entry) => !isVorvertragArchived(entry)).length,
-    [entries]
+    () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadNeuEntries.length,
+    [entries, leadNeuEntries]
   );
   const archivCount = useMemo(
     () => entries.filter((entry) => isVorvertragArchived(entry)).length,
@@ -99,6 +114,10 @@ const System = () => {
     loading: geraeteLoading,
     error: geraeteError
   } = useVorvertragImeiCatalog(Boolean(user && isAdmin(user)));
+
+  useEffect(() => {
+    saveLeadTickets(leadTickets);
+  }, [leadTickets]);
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -193,6 +212,11 @@ const System = () => {
   };
 
   const startEdit = (entry) => {
+    if (isLeadEntry(entry)) {
+      setOpenLeadId(entry.id);
+      setListTab('nachrichten');
+      return;
+    }
     const mnpOnly = isMnpOnlyEntry(entry);
     setFormKind(mnpOnly ? 'mnp' : 'vorvertrag');
     setActiveId(entry.id);
@@ -285,6 +309,18 @@ const System = () => {
   const handleStatusChange = async (entry, ticketStatus) => {
     const id = entry?.id;
     if (!id) return;
+
+    if (isLeadEntry(entry)) {
+      const nextLead = normalizeLeadStatus(ticketStatus);
+      if (!nextLead || normalizeLeadStatus(entry?.ticketStatus) === nextLead) return;
+      setLeadTickets((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ticketStatus: nextLead } : t))
+      );
+      setListTab('neu');
+      setHighlightedId(id);
+      return;
+    }
+
     const nextStatus = normalizeVorvertragTicketStatus(ticketStatus);
     if (normalizeVorvertragTicketStatus(entry?.ticketStatus) === nextStatus) return;
 
@@ -317,6 +353,15 @@ const System = () => {
         <button
           type="button"
           role="tab"
+          aria-selected={listTab === 'nachrichten'}
+          className={`system-tab${listTab === 'nachrichten' ? ' system-tab--active' : ''}`}
+          onClick={() => setListTab('nachrichten')}
+        >
+          Nachrichten
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={listTab === 'neu'}
           className={`system-tab${listTab === 'neu' ? ' system-tab--active' : ''}`}
           onClick={() => {
@@ -334,15 +379,6 @@ const System = () => {
           onClick={() => setListTab('archiv')}
         >
           Archiv ({archivCount})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={listTab === 'nachrichten'}
-          className={`system-tab${listTab === 'nachrichten' ? ' system-tab--active' : ''}`}
-          onClick={() => setListTab('nachrichten')}
-        >
-          Nachrichten{socialUnread > 0 ? ` (${socialUnread})` : ''}
         </button>
       </div>
 
@@ -380,9 +416,18 @@ const System = () => {
       ) : null}
 
       {listTab === 'nachrichten' ? (
-        <SocialZentrale
+        <CallcenterNachrichten
           agentName={defaultMitarbeiter}
-          onUnreadChange={setSocialUnread}
+          tickets={leadTickets}
+          onTicketsChange={setLeadTickets}
+          openTicketId={openLeadId}
+          filialeOptions={filialeOptions}
+          onStatusApplied={(id) => {
+            setOpenLeadId('');
+            setListTab('neu');
+            if (id) setHighlightedId(id);
+          }}
+          onOpened={() => setOpenLeadId('')}
         />
       ) : null}
 
@@ -440,14 +485,14 @@ const System = () => {
             />
           </div>
         ) : null}
-        {loading ? (
+        {loading && listTab !== 'archiv' ? (
           <p className="vorvertrag-empty">Laden…</p>
         ) : filteredEntries.length === 0 ? (
           <p className="vorvertrag-empty">
             {listTab === 'archiv' && archivSearch.trim()
               ? 'Keine Treffer für diesen Kundenname oder diese ID im Archiv.'
               : listTab === 'archiv'
-                ? 'Keine erledigten Einträge im Archiv.'
+                ? 'Keine Einträge im Archiv.'
                 : 'Keine offenen Einträge.'}
           </p>
         ) : (

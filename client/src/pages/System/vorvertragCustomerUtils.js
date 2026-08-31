@@ -20,6 +20,11 @@ function archiveSearchHaystack(entry) {
     customerLabel(entry),
     entry?.kundeVorname,
     entry?.kundeNachname,
+    entry?.handle,
+    entry?.channel,
+    entry?.rufnummer,
+    entry?.angebot,
+    entry?.shop,
     id,
     id.replace(/[^a-zA-Z0-9]/g, '')
   ]
