@@ -14,9 +14,15 @@ export function customerKey(entry) {
   return `name:${vorname}|${nachname}`;
 }
 
-function customerNameHaystack(entry) {
-  const label = customerLabel(entry);
-  return [label, entry?.kundeVorname, entry?.kundeNachname]
+function archiveSearchHaystack(entry) {
+  const id = String(entry?.id ?? '').trim();
+  return [
+    customerLabel(entry),
+    entry?.kundeVorname,
+    entry?.kundeNachname,
+    id,
+    id.replace(/[^a-zA-Z0-9]/g, '')
+  ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
@@ -26,8 +32,8 @@ export function entryMatchesCustomerNameSearch(entry, query) {
   const q = String(query ?? '').trim().toLowerCase();
   if (!q) return true;
   const terms = q.split(/\s+/).filter(Boolean);
-  const nameHaystack = customerNameHaystack(entry);
-  return terms.every((term) => nameHaystack.includes(term));
+  const haystack = archiveSearchHaystack(entry);
+  return terms.every((term) => haystack.includes(term));
 }
 
 /** Eindeutige Kunden aus bestehenden Vorverträgen (neueste Daten pro Schlüssel). */

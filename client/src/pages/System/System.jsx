@@ -395,14 +395,14 @@ const System = () => {
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
-            <label htmlFor="archiv-kunde-suche" className="form-label">Kunde suchen</label>
+            <label htmlFor="archiv-kunde-suche" className="form-label">Kunde oder ID suchen</label>
             <input
               id="archiv-kunde-suche"
               type="search"
               className="form-input"
               value={archivSearch}
               onChange={(ev) => setArchivSearch(ev.target.value)}
-              placeholder="Nach Kundenname suchen…"
+              placeholder="Nach Kundenname oder Ticket-ID suchen…"
               autoComplete="off"
             />
           </div>
@@ -412,7 +412,7 @@ const System = () => {
         ) : filteredEntries.length === 0 ? (
           <p className="vorvertrag-empty">
             {listTab === 'archiv' && archivSearch.trim()
-              ? 'Keine Treffer für diesen Kundenname im Archiv.'
+              ? 'Keine Treffer für diesen Kundenname oder diese ID im Archiv.'
               : listTab === 'archiv'
                 ? 'Keine erledigten Einträge im Archiv.'
                 : 'Keine offenen Einträge.'}
