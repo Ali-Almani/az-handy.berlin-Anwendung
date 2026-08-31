@@ -3,17 +3,13 @@ import {
   LEAD_ANGEBOT_OPTIONS,
   LEAD_O2_OPTIONS,
   LEAD_STADT_OPTIONS,
-  LEAD_STATUS_OPTIONS,
-  NACHRICHT_ART_OPTIONS,
   SOCIAL_CHANNELS,
   TEMPLATE_QUESTIONS,
   formFromLead,
   lastMessageAt,
-  leadStatusBadge,
-  nachrichtArtLabel,
   normalizeLeadStatus,
-  normalizeNachrichtArt,
   shopFitsOrten,
+  shopOptionLabel,
   shopOptionsForOrten
 } from './callcenterLeadData';
 import './System.scss';
@@ -79,45 +75,22 @@ function ChannelIcon({ channel }) {
   );
 }
 
-function NachrichtArtChecks({ value, onChange, namePrefix, compact }) {
-  const current = normalizeNachrichtArt(value);
+function StatusShopSelect({ status, shop, shops, onChange, ariaLabel }) {
+  const isOrten = normalizeLeadStatus(status) === 'Orten';
+  const value = isOrten && shopFitsOrten(shop) ? shop : 'Callcenter';
   return (
-    <div className={`sz-arts${compact ? ' sz-arts--compact' : ''}`} role="group" aria-label="Nachrichtenart">
-      {NACHRICHT_ART_OPTIONS.map((opt) => (
-        <label key={opt.id} className="sz-arts-item">
-          <input
-            type="checkbox"
-            name={`${namePrefix}-art`}
-            checked={current === opt.id}
-            onChange={() => onChange?.(current === opt.id ? '' : opt.id)}
-            onClick={(ev) => ev.stopPropagation()}
-          />
-          <span>{opt.label}</span>
-        </label>
+    <select
+      className="form-input vorvertrag-ticket-row__status-select"
+      value={value}
+      onChange={(ev) => onChange?.(ev.target.value)}
+      onClick={(ev) => ev.stopPropagation()}
+      aria-label={ariaLabel || 'Orten oder Callcenter'}
+    >
+      <option value="Callcenter">Callcenter</option>
+      {shops.map((opt) => (
+        <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
       ))}
-    </div>
-  );
-}
-
-function StatusControl({ status, onChange, ariaLabel }) {
-  const ticketStatus = normalizeLeadStatus(status) || LEAD_STATUS_OPTIONS[0];
-  return (
-    <div className="vorvertrag-ticket-row__status-inner">
-      <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${leadStatusBadge(ticketStatus)}`}>
-        {ticketStatus}
-      </span>
-      <select
-        className="form-input vorvertrag-ticket-row__status-select"
-        value={ticketStatus}
-        onChange={(ev) => onChange?.(ev.target.value)}
-        onClick={(ev) => ev.stopPropagation()}
-        aria-label={ariaLabel || 'Status'}
-      >
-        {LEAD_STATUS_OPTIONS.map((opt) => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
-    </div>
+    </select>
   );
 }
 
@@ -198,19 +171,15 @@ const CallcenterNachrichten = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTicketId]);
 
-  const handleStatus = (id, ticketStatus) => {
-    const next = normalizeLeadStatus(ticketStatus);
-    if (!next) return;
-    patchTicket(id, (t) => ({
-      ...t,
-      ticketStatus: next,
-      shop: next === 'Orten' && t.shop && !shopFitsOrten(t.shop) ? '' : t.shop
-    }));
+  const handleStatusOrShop = (id, value) => {
+    if (value === 'Callcenter') {
+      patchTicket(id, (t) => ({ ...t, ticketStatus: 'Callcenter' }));
+    } else if (shopFitsOrten(value)) {
+      patchTicket(id, (t) => ({ ...t, ticketStatus: 'Orten', shop: value }));
+    } else {
+      return;
+    }
     onStatusApplied?.(id);
-  };
-
-  const handleArt = (id, nachrichtArt) => {
-    patchTicket(id, (t) => ({ ...t, nachrichtArt: normalizeNachrichtArt(nachrichtArt) }));
   };
 
   const patchAnswer = (field, value) => {
@@ -326,22 +295,11 @@ const CallcenterNachrichten = ({
                         <span className="sz-ticket-meta">
                           <span className="sz-ticket-id">{t.id}</span>
                           <span>{t.handle || t.rufnummer || ''}</span>
-                          {nachrichtArtLabel(t.nachrichtArt) ? (
-                            <span>{nachrichtArtLabel(t.nachrichtArt)}</span>
-                          ) : null}
                         </span>
                         <span className="sz-ticket-preview">{last?.text || '—'}</span>
                       </span>
                       {t.unread ? <span className="sz-unread-dot" aria-label="ungelesen" /> : null}
                     </button>
-                    <div className="sz-ticket-arts">
-                      <NachrichtArtChecks
-                        namePrefix={t.id}
-                        value={t.nachrichtArt}
-                        onChange={(art) => handleArt(t.id, art)}
-                        compact
-                      />
-                    </div>
                   </li>
                 );
               })
@@ -373,35 +331,15 @@ const CallcenterNachrichten = ({
                   </p>
                 </div>
                 <div className="sz-chat-status">
-                  <StatusControl
+                  <StatusShopSelect
                     status={active.ticketStatus}
-                    onChange={(value) => handleStatus(active.id, value)}
-                    ariaLabel={`Status für ${active.customerName || active.id}`}
+                    shop={active.shop}
+                    shops={ortenShops}
+                    onChange={(value) => handleStatusOrShop(active.id, value)}
+                    ariaLabel={`Callcenter oder Shop für ${active.customerName || active.id}`}
                   />
-                  {normalizeLeadStatus(active.ticketStatus) === 'Orten' ? (
-                    <label className="sz-orten-shop">
-                      Shop
-                      <select
-                        className="form-input vorvertrag-ticket-row__status-select"
-                        value={shopFitsOrten(active.shop) ? active.shop : ''}
-                        onChange={(ev) => patchAnswer('shop', ev.target.value)}
-                      >
-                        <option value="">— Shop wählen —</option>
-                        {ortenShops.map((opt) => (
-                          <option key={opt} value={opt}>{opt === 'Sonnenallee 16' ? 'Sonnenallee' : opt}</option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
                 </div>
               </header>
-              <div className="sz-chat-arts">
-                <NachrichtArtChecks
-                  namePrefix={`chat-${active.id}`}
-                  value={active.nachrichtArt}
-                  onChange={(art) => handleArt(active.id, art)}
-                />
-              </div>
 
               <div className="sz-thread" ref={threadRef}>
                 {(active.messages || []).map((m) => (
@@ -552,22 +490,6 @@ const CallcenterNachrichten = ({
                   onChange={(ev) => patchAnswer('terminZeit', ev.target.value)}
                 />
               </div>
-              {normalizeLeadStatus(active.ticketStatus) === 'Orten' ? (
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-shop">Shop?</label>
-                <select
-                  id="q-shop"
-                  className="form-input"
-                  value={shopFitsOrten(answers.shop) ? answers.shop : ''}
-                  onChange={(ev) => patchAnswer('shop', ev.target.value)}
-                >
-                  <option value="">— Shop wählen —</option>
-                  {ortenShops.map((opt) => (
-                    <option key={opt} value={opt}>{opt === 'Sonnenallee 16' ? 'Sonnenallee' : opt}</option>
-                  ))}
-                </select>
-              </div>
-              ) : null}
             </div>
           </aside>
         ) : null}

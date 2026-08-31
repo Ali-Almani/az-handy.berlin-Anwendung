@@ -318,19 +318,21 @@ const System = () => {
     if (!id) return;
 
     if (isLeadEntry(entry)) {
-      const nextLead = normalizeLeadStatus(ticketStatus);
-      if (!nextLead || normalizeLeadStatus(entry?.ticketStatus) === nextLead) return;
-      setLeadTickets((prev) =>
-        prev.map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                ticketStatus: nextLead,
-                shop: nextLead === 'Orten' && t.shop && !shopFitsOrten(t.shop) ? '' : t.shop
-              }
-            : t
-        )
-      );
+      if (ticketStatus === 'Callcenter') {
+        if (normalizeLeadStatus(entry?.ticketStatus) === 'Callcenter') return;
+        setLeadTickets((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, ticketStatus: 'Callcenter' } : t))
+        );
+      } else if (shopFitsOrten(ticketStatus)) {
+        if (normalizeLeadStatus(entry?.ticketStatus) === 'Orten' && entry?.shop === ticketStatus) return;
+        setLeadTickets((prev) =>
+          prev.map((t) =>
+            t.id === id ? { ...t, ticketStatus: 'Orten', shop: ticketStatus } : t
+          )
+        );
+      } else {
+        return;
+      }
       setListTab('neu');
       setHighlightedId(id);
       return;
@@ -397,7 +399,7 @@ const System = () => {
         </button>
       </div>
 
-      {listTab !== 'nachrichten' ? (
+      {listTab === 'neu' ? (
         <div className="system-toolbar">
           <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
             Neuer Vorvertrag

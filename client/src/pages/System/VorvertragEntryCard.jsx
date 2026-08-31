@@ -3,10 +3,10 @@ import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
 import {
   isLeadEntry,
-  LEAD_STATUS_OPTIONS,
-  leadStatusBadge,
-  nachrichtArtLabel,
-  normalizeLeadStatus
+  normalizeLeadStatus,
+  shopFitsOrten,
+  shopOptionLabel,
+  shopOptionsForOrten
 } from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
@@ -76,10 +76,12 @@ export default function VorvertragEntryCard({
     : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
   const mitarbeiter = mitarbeiterName(entry);
   const ticketStatus = lead
-    ? (normalizeLeadStatus(entry?.ticketStatus) || LEAD_STATUS_OPTIONS[0])
+    ? (normalizeLeadStatus(entry?.ticketStatus) || 'Callcenter')
     : normalizeVorvertragTicketStatus(entry?.ticketStatus);
-  const statusOptions = lead ? LEAD_STATUS_OPTIONS : VORVERTRAG_TICKET_STATUS_OPTIONS;
-  const badgeMod = lead ? leadStatusBadge(ticketStatus) : vorvertragTicketStatusBadge(ticketStatus);
+  const ortenShops = shopOptionsForOrten();
+  const leadSelectValue =
+    ticketStatus === 'Orten' && shopFitsOrten(entry?.shop) ? entry.shop : 'Callcenter';
+  const badgeMod = vorvertragTicketStatusBadge(ticketStatus);
   const filiale = formatEinsatzOrt(entry?.filiale);
 
   return (
@@ -95,9 +97,7 @@ export default function VorvertragEntryCard({
       </td>
       <td className="vorvertrag-ticket-row__typ">
         {lead ? (
-          <MetaChip accent>
-            {[nachrichtArtLabel(entry?.nachrichtArt), entry?.angebot].filter(Boolean).join(' · ') || 'Nachricht'}
-          </MetaChip>
+          <MetaChip accent>{entry?.angebot || 'Nachricht'}</MetaChip>
         ) : mnpOnly ? (
           <MetaChip accent>MNP</MetaChip>
         ) : (
@@ -105,24 +105,39 @@ export default function VorvertragEntryCard({
         )}
       </td>
       <td className="vorvertrag-ticket-row__status">
-        <div className="vorvertrag-ticket-row__status-inner">
-          <span
-            className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${badgeMod}`}
-          >
-            {ticketStatus}
-          </span>
+        {lead ? (
           <select
             className="form-input vorvertrag-ticket-row__status-select"
-            value={ticketStatus}
+            value={leadSelectValue}
             disabled={statusSaving}
             onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
-            aria-label={`Status für ${name}`}
+            aria-label={`Callcenter oder Shop für ${name}`}
           >
-            {statusOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
+            <option value="Callcenter">Callcenter</option>
+            {ortenShops.map((opt) => (
+              <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
             ))}
           </select>
-        </div>
+        ) : (
+          <div className="vorvertrag-ticket-row__status-inner">
+            <span
+              className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${badgeMod}`}
+            >
+              {ticketStatus}
+            </span>
+            <select
+              className="form-input vorvertrag-ticket-row__status-select"
+              value={ticketStatus}
+              disabled={statusSaving}
+              onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
+              aria-label={`Status für ${name}`}
+            >
+              {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">{mitarbeiter || '—'}</td>
       <td className="vorvertrag-ticket-row__actions">

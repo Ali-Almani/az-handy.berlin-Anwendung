@@ -50,8 +50,7 @@ export const TEMPLATE_QUESTIONS = [
   { field: 'stadt', label: 'Stadt?', text: 'In welcher Stadt sind Sie?' },
   { field: 'marketingNotiz', label: 'Marketing Notiz?', text: 'Gibt es eine Marketing-Notiz oder Empfehlung?' },
   { field: 'terminDatum', label: 'Termin Datum?', text: 'An welchem Datum passt Ihnen ein Termin?' },
-  { field: 'terminZeit', label: 'Termin Zeit?', text: 'Zu welcher Uhrzeit passt Ihnen der Termin?' },
-  { field: 'shop', label: 'Shop?', text: 'In welchem Shop sollen wir den Termin anlegen?' }
+  { field: 'terminZeit', label: 'Termin Zeit?', text: 'Zu welcher Uhrzeit passt Ihnen der Termin?' }
 ];
 
 export const LEAD_STORAGE_KEY = 'az-callcenter-inbox-v2';
@@ -131,6 +130,12 @@ export function shopOptionsForOrten() {
 
 export function shopFitsOrten(shop) {
   return ORTEN_SHOP_OPTIONS.includes(String(shop ?? '').trim());
+}
+
+export function shopOptionLabel(shop) {
+  const s = String(shop ?? '').trim();
+  if (s === 'Sonnenallee 16') return 'Sonnenallee';
+  return s;
 }
 
 export function lastMessageAt(ticket) {

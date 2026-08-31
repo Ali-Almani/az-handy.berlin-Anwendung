@@ -244,47 +244,12 @@
   background: $danger-color;
 }
 
-.sz-ticket-arts {
-  padding: 0 0.75rem 0.55rem 3.15rem;
+.sz-chat-status {
+  margin-left: auto;
 }
 
-.sz-arts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.7rem;
-}
-
-.sz-arts--compact {
-  gap: 0.25rem 0.55rem;
-}
-
-.sz-arts-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-  margin: 0;
-  font-size: 0.72rem;
-  color: $text-color;
-  cursor: pointer;
-  white-space: nowrap;
-
-  input {
-    margin: 0;
-  }
-}
-
-.sz-chat-arts {
-  padding: 0.4rem $spacing-md;
-  border-bottom: 1px solid $border-color;
-  background: $bg-color;
-}
-
-.sz-orten-shop {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  font-size: 0.72rem;
-  color: $text-light;
+.sz-chat-status .vorvertrag-ticket-row__status-select {
+  min-width: 11.5rem;
 }
 
 .sz-chat-pane {
@@ -347,10 +312,6 @@
   margin: 0.1rem 0 0;
   font-size: 0.78rem;
   color: $text-light;
-}
-
-.sz-chat-status {
-  margin-left: auto;
 }
 
 .sz-thread {
