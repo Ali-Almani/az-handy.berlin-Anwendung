@@ -54,7 +54,8 @@ export default function MnpForm({
   filialeOptions = FILIALE_OPTIONS,
   navbarFiliale = '',
   saving = false,
-  mode = 'new'
+  mode = 'new',
+  ticketId = ''
 }) {
   const [validationError, setValidationError] = useState('');
 
@@ -79,7 +80,10 @@ export default function MnpForm({
   return (
     <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={handleSubmit}>
       <div className="vorvertrag-form-panel__head">
-        <h2>{mode === 'edit' ? 'MNP bearbeiten' : 'Neues MNP'}</h2>
+        <div className="vorvertrag-form-panel__title">
+          <h2>{mode === 'edit' ? 'MNP bearbeiten' : 'Neues MNP'}</h2>
+          {ticketId ? <p className="vorvertrag-ticket-id">{ticketId}</p> : null}
+        </div>
         {onCancel ? (
           <button type="button" className="btn btn--secondary btn--small" onClick={onCancel}>
             Abbrechen

@@ -73,6 +73,7 @@ export default function VorvertragEntryCard({
       className={`vorvertrag-ticket-row${highlighted ? ' vorvertrag-ticket-row--highlight' : ''}`}
       data-entry-id={entry?.id}
     >
+      <td className="vorvertrag-ticket-row__id">{entry?.id || '—'}</td>
       <td className="vorvertrag-ticket-row__kunde">{name}</td>
       <td className="vorvertrag-ticket-row__datum">{formatDatum(entry?.datum)}</td>
       <td className="vorvertrag-ticket-row__filiale">

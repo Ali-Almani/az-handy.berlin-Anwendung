@@ -199,6 +199,33 @@
   background: mix(#fff, $success-color, 88%) !important;
 }
 
+.vorvertrag-form-panel__title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.vorvertrag-ticket-id {
+  margin: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.02em;
+  color: darken($primary-color, 5%);
+}
+
+.vorvertrag-ticket-row__id {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
 .vorvertrag-ticket-row__kunde {
   font-weight: $font-weight-bold;
   white-space: nowrap;

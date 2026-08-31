@@ -368,6 +368,7 @@ const System = () => {
               navbarFiliale={navbarFiliale}
               saving={saving}
               mode={mode}
+              ticketId={mode === 'edit' ? activeId : ''}
             />
           ) : (
             <VorvertragForm
@@ -385,6 +386,7 @@ const System = () => {
               geraetSeed={geraetSeed}
               saving={saving}
               mode={mode}
+              ticketId={mode === 'edit' ? activeId : ''}
             />
           )}
         </div>
@@ -420,6 +422,7 @@ const System = () => {
             <table className="vorvertrag-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Kunde</th>
                   <th>Datum</th>
                   <th>Filiale</th>

@@ -7,6 +7,12 @@ import {
   VORVERTRAG_TICKET_STATUS_DEFAULT
 } from '../constants/vorvertragTicketStatus.js';
 import { writeAuditLog } from '../utils/auditLog.js';
+import {
+  backfillTicketIds,
+  needsTicketIdBackfill,
+  nextTicketId,
+  ticketIdPrefixForType
+} from '../utils/vorvertragTicketId.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
@@ -109,9 +115,15 @@ function newId(prefix = 'vv') {
 
 async function loadStore() {
   const raw = readJsonStore(VORVERTRAG_FILE, VORVERTRAG_DEFAULT());
-  return {
-    entries: Array.isArray(raw?.entries) ? raw.entries : []
-  };
+  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+  if (!needsTicketIdBackfill(entries)) {
+    return { entries };
+  }
+  return updateJsonStore(VORVERTRAG_FILE, VORVERTRAG_DEFAULT(), (state) => {
+    if (!Array.isArray(state.entries)) state.entries = [];
+    backfillTicketIds(state.entries);
+    return { value: { entries: state.entries } };
+  });
 }
 
 async function mutateStore(updater) {
@@ -336,28 +348,34 @@ export async function createVorvertrag(req, res) {
 
   const now = new Date().toISOString();
   const editor = await editorFromReqAsync(req);
-  const id = newId();
-  const entry = {
-    id,
-    createdAt: now,
-    updatedAt: now,
-    createdBy: editor,
-    lastEditedBy: editor,
-    ...normalized,
-    editHistory: [
-      {
-        id: newId('hist'),
-        timestamp: now,
-        action: 'created',
-        editorUserId: editor.userId,
-        editorUserName: editor.userName,
-        editorEmail: editor.email,
-        snapshot: entrySnapshot({ ...normalized })
-      }
-    ]
-  };
+  let entry = null;
 
   await mutateStore((data) => {
+    if (needsTicketIdBackfill(data.entries)) backfillTicketIds(data.entries);
+    const id = nextTicketId(data.entries, {
+      prefix: ticketIdPrefixForType(normalized.entryType),
+      datum: normalized.datum,
+      createdAt: now
+    });
+    entry = {
+      createdAt: now,
+      updatedAt: now,
+      createdBy: editor,
+      lastEditedBy: editor,
+      ...normalized,
+      id,
+      editHistory: [
+        {
+          id: newId('hist'),
+          timestamp: now,
+          action: 'created',
+          editorUserId: editor.userId,
+          editorUserName: editor.userName,
+          editorEmail: editor.email,
+          snapshot: entrySnapshot({ ...normalized })
+        }
+      ]
+    };
     data.entries.push(entry);
   });
   const customerLabel = [normalized.kundeVorname, normalized.kundeNachname].filter(Boolean).join(' ') || 'Ohne Kundenname';
@@ -365,7 +383,7 @@ export async function createVorvertrag(req, res) {
     category: 'vorvertrag',
     action: normalized.entryType === 'mnp' ? 'vorvertrag.mnp.create' : 'vorvertrag.create',
     summary: `${normalized.entryType === 'mnp' ? 'MNP' : 'Vorvertrag'} erstellt: ${customerLabel}`,
-    meta: { entryId: id, entryType: normalized.entryType, filiale: normalized.filiale }
+    meta: { entryId: entry.id, entryType: normalized.entryType, filiale: normalized.filiale }
   });
   return res.status(201).json({ success: true, entry: await enrichEntryForClient(entry) });
 }
@@ -414,6 +432,7 @@ export async function updateVorvertrag(req, res) {
     updated = {
       ...prev,
       ...normalized,
+      id: prev.id,
       ticketStatus:
         req.body?.ticketStatus != null
           ? normalizeVorvertragTicketStatus(req.body.ticketStatus)

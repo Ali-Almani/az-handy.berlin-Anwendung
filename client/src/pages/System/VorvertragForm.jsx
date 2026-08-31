@@ -111,7 +111,8 @@ export default function VorvertragForm({
   geraeteLoading = false,
   geraetSeed = '',
   saving = false,
-  mode = 'new'
+  mode = 'new',
+  ticketId = ''
 }) {
   if (mode === 'new') {
     return (
@@ -141,7 +142,10 @@ export default function VorvertragForm({
   return (
     <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={onSubmit}>
       <div className="vorvertrag-form-panel__head">
-        <h2>Vorvertrag bearbeiten</h2>
+        <div className="vorvertrag-form-panel__title">
+          <h2>Vorvertrag bearbeiten</h2>
+          {ticketId ? <p className="vorvertrag-ticket-id">{ticketId}</p> : null}
+        </div>
         {onCancel ? (
           <button type="button" className="btn btn--secondary btn--small" onClick={onCancel}>
             Abbrechen
