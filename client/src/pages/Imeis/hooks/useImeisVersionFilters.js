@@ -73,9 +73,9 @@ export function useImeisVersionFilters({
       if (version) versions.add(version);
     });
     const versionsArray = Array.from(versions).sort((a, b) => {
-      const numA = parseInt(a);
-      const numB = parseInt(b);
-      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB;
       return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
     });
     setAvailableVersions(versionsArray);

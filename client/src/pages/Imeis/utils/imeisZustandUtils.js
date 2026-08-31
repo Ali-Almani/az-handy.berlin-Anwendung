@@ -33,7 +33,7 @@ export const getProductToVersion = (item, getProductFullFn) => {
   }
 
   productStr = productStr.replace(/(\d+)\s+marin/gi, '$1').replace(/\s+marin\s*$/gi, '').replace(/\s+marin\b/gi, '').replace(/\s+marin\s+/gi, ' ');
-  productStr = productStr.replace(/(\d+)e\b/gi, '$1').replace(/iphone\s+(\d+)e/gi, 'iPhone $1').replace(/\s+/g, ' ').trim();
+  productStr = productStr.replace(/\s+/g, ' ').trim();
 
   const variants = ['pro max', 'pro plus', 'ultra max', 'note ultra', 'pro', 'plus', 'mini', 'ultra', 'max', 'standard', 'regular', 'lite', 'titan', 'titanium', 'fold', 'flip'];
   variants.forEach(v => { productStr = productStr.replace(new RegExp(`\\s+${v}\\s*`, 'i'), ' '); });

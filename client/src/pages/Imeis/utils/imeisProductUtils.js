@@ -32,15 +32,15 @@ export const getProductFull = (item) => {
   return '';
 };
 
-/** Tab „17“ soll auch Produkte wie „17T“ / „17t“ einschließen. */
+/** Tab „17“ soll Xiaomi „17T“ einschließen. iPhone 16e bleibt getrennt von 16. */
 export const productVersionMatches = (productVersion, activeVersion) => {
   if (!activeVersion) return true;
   if (!productVersion) return false;
   if (productVersion === activeVersion) return true;
   const pv = String(productVersion).toLowerCase();
   const av = String(activeVersion).toLowerCase();
-  if (pv.startsWith(av) && /^[a-z]$/.test(pv.slice(av.length))) return true;
-  if (av.startsWith(pv) && /^[a-z]$/.test(av.slice(pv.length))) return true;
+  const isTSuffix = (base, full) => full.startsWith(base) && full.slice(base.length) === 't';
+  if (isTSuffix(av, pv) || isTSuffix(pv, av)) return true;
   return false;
 };
 
@@ -71,7 +71,7 @@ export const extractProductVersion = (productName) => {
 
   // iPhone: optionales Buchstabensuffix direkt nach der Versionszahl (z. B. „16e“, „13c“).
   // So werden „iPhone 16“ und „iPhone 16e“ getrennte Version-/Tab-Zeilen, nicht zusammen unter „16 / Standard“.
-  const iPhoneMatch = productStr.match(/iphone[\s\-_]*(\d+)([a-z])?\b/i);
+  const iPhoneMatch = productStr.match(/iphone[\s\-_]*(\d+)\s*([a-z])?\b/i);
   if (iPhoneMatch) {
     const num = iPhoneMatch[1];
     const letter = iPhoneMatch[2];
