@@ -243,8 +243,8 @@ const System = () => {
         setSuccessToast({
           type: 'success',
           message: formKind === 'mnp'
-            ? 'MNP wurde aktualisiert. Die Karte in der Liste ist bearbeitbar.'
-            : 'Vorvertrag wurde aktualisiert. Die Karte in der Liste ist bearbeitbar.'
+            ? 'MNP wurde aktualisiert. Der Eintrag in der Liste ist bearbeitbar.'
+            : 'Vorvertrag wurde aktualisiert. Der Eintrag in der Liste ist bearbeitbar.'
         });
       } else {
         const res = await createVorvertragApi(payload);
@@ -252,8 +252,8 @@ const System = () => {
         setSuccessToast({
           type: 'success',
           message: formKind === 'mnp'
-            ? 'MNP eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
-            : 'Vorvertrag eingereicht. Die Daten wurden als Karte in der Ticketing-Liste gespeichert.'
+            ? 'MNP eingereicht. Der Eintrag steht in der Ticketing-Liste.'
+            : 'Vorvertrag eingereicht. Der Eintrag steht in der Ticketing-Liste.'
         });
       }
 
@@ -390,7 +390,7 @@ const System = () => {
         </div>
       ) : null}
 
-      <section className="vorvertrag-cards-section" ref={cardsSectionRef}>
+      <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
             <label htmlFor="archiv-kunde-suche" className="form-label">Kunde suchen</label>
@@ -416,17 +416,32 @@ const System = () => {
                 : 'Keine offenen Einträge.'}
           </p>
         ) : (
-          <div className="vorvertrag-cards-grid">
-            {filteredEntries.map((entry) => (
-              <VorvertragEntryCard
-                key={entry.id}
-                entry={entry}
-                onEdit={startEdit}
-                onStatusChange={handleStatusChange}
-                statusSaving={statusSavingId === entry.id}
-                highlighted={highlightedId === entry.id}
-              />
-            ))}
+          <div className="vorvertrag-table-wrapper">
+            <table className="vorvertrag-table">
+              <thead>
+                <tr>
+                  <th>Kunde</th>
+                  <th>Datum</th>
+                  <th>Filiale</th>
+                  <th>Typ</th>
+                  <th>Status</th>
+                  <th>Mitarbeiter</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEntries.map((entry) => (
+                  <VorvertragEntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onEdit={startEdit}
+                    onStatusChange={handleStatusChange}
+                    statusSaving={statusSavingId === entry.id}
+                    highlighted={highlightedId === entry.id}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
