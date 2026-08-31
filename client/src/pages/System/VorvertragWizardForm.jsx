@@ -389,11 +389,11 @@ export default function VorvertragWizardForm({
             required
           />
         </div>
-        <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
+        <div className="form-group vorvertrag-form-grid--full">
           {renderKundenArtChoice()}
         </div>
         {kundenArt === 'bestand' ? (
-          <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
+          <div className="form-group vorvertrag-form-grid--full">
             {renderArchiveCustomerSearch()}
           </div>
         ) : null}
@@ -414,7 +414,7 @@ export default function VorvertragWizardForm({
     <div className="vorvertrag-section">
       <h3 className="vorvertrag-section-title">Schritt 3 – Ausgabe Details</h3>
       <div className="vorvertrag-form-grid">
-        <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
+        <div className="form-group vorvertrag-form-grid--full">
           <VorvertragGeraetPicker
             key={`wizard-${geraetSeed || 'new'}`}
             imeis={imeis}
@@ -557,12 +557,12 @@ export default function VorvertragWizardForm({
               <span className="vorvertrag-checkbox-field__value">{form.vvl}</span>
             </label>
           </div>
-          <div className="form-group vorvertrag-form-grid--full" style={{ gridColumn: '1 / -1' }}>
+          <div className="form-group vorvertrag-form-grid--full">
             <label htmlFor="vv-notiz" className="form-label">Notiz</label>
             <textarea
               id="vv-notiz"
               className="form-input"
-              rows={3}
+              rows={2}
               value={form.notiz}
               onChange={(ev) => handleChange('notiz', ev.target.value)}
             />

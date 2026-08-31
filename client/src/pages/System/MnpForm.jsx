@@ -91,55 +91,53 @@ export default function MnpForm({
         ) : null}
       </div>
 
-      <div className="vorvertrag-section">
-        <h3 className="vorvertrag-section-title">Allgemein</h3>
-        <div className="vorvertrag-form-grid">
-          <div className="form-group">
-            <label htmlFor="mnp-datum" className="form-label form-label--required">Datum</label>
-            <input
-              id="mnp-datum"
-              type="date"
-              className="form-input"
-              value={form.datum}
-              onChange={(ev) => {
-                setValidationError('');
-                onPatch?.({ datum: ev.target.value });
-              }}
-              required
-            />
-          </div>
-          {mode === 'edit' ? (
-            <div className="form-group vorvertrag-filiale-field">
-              <label htmlFor="mnp-filiale" className="form-label form-label--required">Filiale</label>
-              <div className="vorvertrag-filiale-field__control">
-                <select
-                  id="mnp-filiale"
-                  className="form-input vorvertrag-filiale-select"
-                  value={form.filiale}
-                  onChange={(ev) => onPatch?.({ filiale: ev.target.value })}
-                  required
-                >
-                  <option value="">— auswählen —</option>
-                  {filialeOptions.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          ) : navbarFiliale ? (
-            <div className="form-group">
-              <span className="form-label form-label--required">Filiale</span>
-              <p className="vorvertrag-step-hint" style={{ margin: '0.35rem 0 0' }}>{navbarFiliale}</p>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
       <MnpFieldsSection
         details={form.mnpDetails}
         onChange={handleMnpChange}
         idPrefix="mnp-form"
         showTitle={false}
+        extraGeneralFields={(
+          <>
+            <div className="form-group">
+              <label htmlFor="mnp-datum" className="form-label form-label--required">Datum</label>
+              <input
+                id="mnp-datum"
+                type="date"
+                className="form-input"
+                value={form.datum}
+                onChange={(ev) => {
+                  setValidationError('');
+                  onPatch?.({ datum: ev.target.value });
+                }}
+                required
+              />
+            </div>
+            {mode === 'edit' ? (
+              <div className="form-group vorvertrag-filiale-field">
+                <label htmlFor="mnp-filiale" className="form-label form-label--required">Filiale</label>
+                <div className="vorvertrag-filiale-field__control">
+                  <select
+                    id="mnp-filiale"
+                    className="form-input vorvertrag-filiale-select"
+                    value={form.filiale}
+                    onChange={(ev) => onPatch?.({ filiale: ev.target.value })}
+                    required
+                  >
+                    <option value="">— auswählen —</option>
+                    {filialeOptions.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : navbarFiliale ? (
+              <div className="form-group">
+                <span className="form-label form-label--required">Filiale</span>
+                <p className="vorvertrag-step-hint">{navbarFiliale}</p>
+              </div>
+            ) : null}
+          </>
+        )}
       />
 
       {validationError ? (

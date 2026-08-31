@@ -114,7 +114,7 @@
   align-items: center;
   justify-content: space-between;
   gap: $spacing-sm;
-  margin-bottom: $spacing-md;
+  margin-bottom: $spacing-sm;
 }
 
 .vorvertrag-table-section {
@@ -300,18 +300,49 @@
   background: $bg-light;
   border: 1px solid $border-color;
   border-radius: $border-radius-card;
-  padding: $spacing-md $spacing-lg;
+  padding: $spacing-sm $spacing-md;
 }
 
 .vorvertrag-panel h2,
 .vorvertrag-panel h3 {
-  margin: 0 0 $spacing-md;
+  margin: 0 0 $spacing-sm;
   font-size: 1.05rem;
 }
 
+.vorvertrag-form-panel {
+  .form-group {
+    margin-bottom: 0;
+    min-width: 0;
+  }
+
+  .form-label {
+    margin-bottom: 0.15rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .form-input,
+  select.form-input,
+  textarea.form-input {
+    width: 100%;
+    min-height: 2rem;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+
+  textarea.form-input {
+    min-height: 3.2rem;
+  }
+
+  .vorvertrag-filiale-select {
+    padding-right: 1.85rem;
+  }
+}
+
 .vorvertrag-section {
-  margin-bottom: $spacing-lg;
-  padding-bottom: $spacing-md;
+  margin-bottom: $spacing-sm;
+  padding-bottom: $spacing-sm;
   border-bottom: 1px solid $border-color;
 
   &:last-child {
@@ -322,28 +353,55 @@
 }
 
 .vorvertrag-section-title {
-  margin: 0 0 $spacing-sm;
-  font-size: 0.95rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: $text-color;
 }
 
 .vorvertrag-form-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: $spacing-sm;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.65rem;
+  align-items: start;
 
-  @media (min-width: 600px) {
-    grid-template-columns: 1fr 1fr;
+  @media (min-width: $breakpoint-md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (min-width: $breakpoint-lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (max-width: 519px) {
+    grid-template-columns: 1fr;
   }
 }
 
 .vorvertrag-form-grid--full {
-  grid-template-columns: 1fr;
+  grid-column: 1 / -1;
+}
+
+.vorvertrag-form-grid__heading {
+  grid-column: 1 / -1;
+  margin: 0.35rem 0 0;
+  padding-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $text-light;
+  border-top: 1px solid mix(#fff, $border-color, 35%);
+
+  &:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
 }
 
 .vorvertrag-filiale-field {
-  margin-top: $spacing-xs;
+  margin-top: 0;
 }
 
 .vorvertrag-filiale-field__control {
@@ -485,8 +543,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 2.5rem;
-  padding: 0.45rem 0.65rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid $border-color;
   border-radius: 2px;
   background: #fff;
@@ -523,7 +581,7 @@
 }
 
 .vorvertrag-ja-nein-row--spaced {
-  margin-top: 0.75rem;
+  margin-top: 0.4rem;
 }
 
 .vorvertrag-actions {
