@@ -86,6 +86,11 @@ const System = () => {
     [entries]
   );
 
+  const activeEditLog = useMemo(() => {
+    if (mode !== 'edit' || !activeId) return [];
+    return entries.find((entry) => entry.id === activeId)?.editLog || [];
+  }, [mode, activeId, entries]);
+
   const {
     imeis,
     loading: geraeteLoading,
@@ -369,6 +374,7 @@ const System = () => {
               saving={saving}
               mode={mode}
               ticketId={mode === 'edit' ? activeId : ''}
+              editLog={activeEditLog}
             />
           ) : (
             <VorvertragForm
@@ -387,6 +393,7 @@ const System = () => {
               saving={saving}
               mode={mode}
               ticketId={mode === 'edit' ? activeId : ''}
+              editLog={activeEditLog}
             />
           )}
         </div>

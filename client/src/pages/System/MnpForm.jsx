@@ -7,6 +7,7 @@ import {
 } from './mnpConstants';
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import { VORVERTRAG_ENTRY_TYPE_MNP } from './vorvertragEntryType';
+import VorvertragEditLog from './VorvertragEditLog';
 
 export const emptyMnpForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
@@ -55,7 +56,8 @@ export default function MnpForm({
   navbarFiliale = '',
   saving = false,
   mode = 'new',
-  ticketId = ''
+  ticketId = '',
+  editLog = []
 }) {
   const [validationError, setValidationError] = useState('');
 
@@ -143,6 +145,8 @@ export default function MnpForm({
       {validationError ? (
         <p className="vorvertrag-step-error" role="alert">{validationError}</p>
       ) : null}
+
+      <VorvertragEditLog items={editLog} />
 
       <div className="vorvertrag-actions">
         <button type="submit" className="btn btn--primary" disabled={saving}>

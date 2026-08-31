@@ -3,6 +3,7 @@ import { parseAusgabeDetails, normalizeMitOhne, patchFromImeisMonate, verfuegbar
 import VorvertragGeraetSuggestField from './VorvertragGeraetSuggestField';
 import VorvertragWizardForm from './VorvertragWizardForm';
 import MnpFieldsSection from './MnpFieldsSection';
+import VorvertragEditLog from './VorvertragEditLog';
 import { emptyMnpDetails, mnpDetailsFromEingabe } from './mnpConstants';
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 
@@ -112,7 +113,8 @@ export default function VorvertragForm({
   geraetSeed = '',
   saving = false,
   mode = 'new',
-  ticketId = ''
+  ticketId = '',
+  editLog = []
 }) {
   if (mode === 'new') {
     return (
@@ -437,6 +439,8 @@ export default function VorvertragForm({
         onChange={handleMnpChange}
         idPrefix="vv-mnp"
       />
+
+      <VorvertragEditLog items={editLog} />
 
       <div className="vorvertrag-actions">
         <button type="submit" className="btn btn--primary" disabled={saving}>

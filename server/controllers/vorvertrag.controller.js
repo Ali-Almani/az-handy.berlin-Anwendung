@@ -13,6 +13,7 @@ import {
   nextTicketId,
   ticketIdPrefixForType
 } from '../utils/vorvertragTicketId.js';
+import { buildVorvertragEditLog } from '../utils/vorvertragEditLog.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
@@ -78,11 +79,25 @@ async function enrichEntryForClient(entry) {
     createdBy?.name ||
     createdBy?.userName ||
     (await resolveUserDisplayName(entry.createdBy?.userId, entry.createdBy?.userName || ''));
+  const editLog = await Promise.all(
+    buildVorvertragEditLog(editHistory).map(async (item) => {
+      const editorName = await resolveUserDisplayName(item.editorUserId, item.editorUserName);
+      return {
+        id: item.id,
+        timestamp: item.timestamp,
+        action: item.action,
+        actionLabel: item.actionLabel,
+        editorName: editorName || item.editorUserName || item.editorEmail || 'Unbekannt',
+        changes: item.changes
+      };
+    })
+  );
   return {
     ...rest,
     createdBy,
     lastEditedBy,
     mitarbeiterName,
+    editLog,
     historyCount: Array.isArray(editHistory) ? editHistory.length : 0
   };
 }
