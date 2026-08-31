@@ -246,7 +246,7 @@
 }
 
 .vorvertrag-ticket-row__status-select {
-  min-width: 9.5rem;
+  min-width: 12.5rem;
   min-height: 2rem;
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
@@ -293,6 +293,21 @@
   &--order {
     color: darken($warning-color, 28%);
     background: mix(#fff, $warning-color, 78%);
+  }
+
+  &--open {
+    color: $text-color;
+    background: mix(#fff, $border-color, 40%);
+  }
+
+  &--pickup {
+    color: darken($primary-color, 8%);
+    background: mix(#fff, $primary-color, 82%);
+  }
+
+  &--bestellen {
+    color: darken($info-color, 18%);
+    background: mix(#fff, $info-color, 82%);
   }
 }
 
