@@ -2,13 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SOCIAL_CHANNELS,
   SOCIAL_QUICK_REPLIES,
-  SOCIAL_TICKET_STATUS_OPTIONS,
   countUnreadSocialTickets,
   lastMessageAt,
   loadSocialTickets,
-  resetSocialTickets,
   saveSocialTickets
 } from './socialZentraleDemoData';
+import {
+  isVorvertragArchived,
+  normalizeVorvertragTicketStatus,
+  VORVERTRAG_TICKET_STATUS_OPTIONS,
+  vorvertragTicketStatusBadge
+} from './vorvertragTicketStatus';
+import './System.scss';
 import './SocialZentrale.scss';
 
 const channelLabel = (id) => SOCIAL_CHANNELS.find((c) => c.id === id)?.label || id;
@@ -38,6 +43,32 @@ function formatChatTime(iso) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function StatusControl({ status, onChange, ariaLabel }) {
+  const ticketStatus = normalizeVorvertragTicketStatus(status);
+  return (
+    <div className="vorvertrag-ticket-row__status-inner">
+      <span
+        className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${vorvertragTicketStatusBadge(ticketStatus)}`}
+      >
+        {ticketStatus}
+      </span>
+      <select
+        className="form-input vorvertrag-ticket-row__status-select"
+        value={ticketStatus}
+        onChange={(ev) => onChange?.(ev.target.value)}
+        onClick={(ev) => ev.stopPropagation()}
+        aria-label={ariaLabel || 'Status'}
+      >
+        {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 function ChannelIcon({ channel }) {
@@ -93,8 +124,8 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
     return tickets
       .filter((t) => (channel === 'all' ? true : t.channel === channel))
       .filter((t) => {
-        if (statusFilter === 'open') return t.ticketStatus !== 'Erledigt';
-        if (statusFilter === 'done') return t.ticketStatus === 'Erledigt';
+        if (statusFilter === 'open') return !isVorvertragArchived(t);
+        if (statusFilter === 'done') return isVorvertragArchived(t);
         return true;
       })
       .filter((t) => {
@@ -115,7 +146,7 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
   const unreadByChannel = useMemo(() => {
     const counts = { all: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
     tickets.forEach((t) => {
-      if (!t.unread || t.ticketStatus === 'Erledigt') return;
+      if (!t.unread || isVorvertragArchived(t)) return;
       counts.all += 1;
       counts[t.channel] = (counts[t.channel] || 0) + 1;
     });
@@ -138,10 +169,11 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
   };
 
   const handleStatus = (id, ticketStatus) => {
+    const next = normalizeVorvertragTicketStatus(ticketStatus);
     patchTicket(id, (t) => ({
       ...t,
-      ticketStatus,
-      unread: ticketStatus === 'Erledigt' ? false : t.unread
+      ticketStatus: next,
+      unread: next === 'Erledigt' ? false : t.unread
     }));
   };
 
@@ -156,8 +188,7 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
       from: 'agent',
       authorName: agentName || 'Zentrale',
       text,
-      at,
-      demoLocal: true
+      at
     };
     window.setTimeout(() => {
       patchTicket(active.id, (t) => ({
@@ -179,27 +210,14 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
     }
   };
 
-  const handleReset = () => {
-    const next = resetSocialTickets();
-    setTickets(next);
-    setActiveId(null);
-    setDraft('');
-    setMobileShowChat(false);
-  };
+  const activeStatus = normalizeVorvertragTicketStatus(active?.ticketStatus);
+  const activeDone = Boolean(active && isVorvertragArchived(active));
 
   return (
     <section
       className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}`}
       aria-label="Nachrichten-Zentrale"
     >
-      <p className="sz-demo-banner" role="note">
-        Frontend-Demo: Beispieldaten für WhatsApp, Instagram und TikTok. Antworten bleiben nur in
-        diesem Browser – die Kanäle werden später per API angebunden.
-        <button type="button" className="sz-demo-reset" onClick={handleReset}>
-          Demo zurücksetzen
-        </button>
-      </p>
-
       <div className="sz-layout">
         <aside className="sz-list-pane">
           <div className="sz-filters">
@@ -267,7 +285,7 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
                 const last = t.messages[t.messages.length - 1];
                 const selected = t.id === activeId;
                 return (
-                  <li key={t.id}>
+                  <li key={t.id} className="sz-ticket-item">
                     <button
                       type="button"
                       className={`sz-ticket${selected ? ' sz-ticket--active' : ''}${t.unread ? ' sz-ticket--unread' : ''}`}
@@ -291,6 +309,13 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
                       </span>
                       {t.unread ? <span className="sz-unread-dot" aria-label="ungelesen" /> : null}
                     </button>
+                    <div className="sz-ticket-status">
+                      <StatusControl
+                        status={t.ticketStatus}
+                        onChange={(value) => handleStatus(t.id, value)}
+                        ariaLabel={`Status für ${t.customerName}`}
+                      />
+                    </div>
                   </li>
                 );
               })
@@ -322,27 +347,20 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
                     {active.handle}
                   </p>
                 </div>
-                <label className="sz-status-label">
-                  Status
-                  <select
-                    className="form-input sz-status-select"
-                    value={active.ticketStatus}
-                    onChange={(ev) => handleStatus(active.id, ev.target.value)}
-                  >
-                    {SOCIAL_TICKET_STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="sz-chat-status">
+                  <StatusControl
+                    status={activeStatus}
+                    onChange={(value) => handleStatus(active.id, value)}
+                    ariaLabel={`Status für ${active.customerName}`}
+                  />
+                </div>
               </header>
 
               <div className="sz-thread" ref={threadRef}>
                 {active.messages.map((m) => (
                   <div
                     key={m.id}
-                    className={`sz-bubble sz-bubble--${m.from}${m.demoLocal ? ' sz-bubble--demo' : ''}`}
+                    className={`sz-bubble sz-bubble--${m.from}`}
                   >
                     <p className="sz-bubble-author">
                       {m.from === 'agent' ? m.authorName || 'Zentrale' : active.customerName}
@@ -350,7 +368,6 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
                     <p className="sz-bubble-text">{m.text}</p>
                     <time className="sz-bubble-time" dateTime={m.at}>
                       {formatChatTime(m.at)}
-                      {m.demoLocal ? ' · Demo' : ''}
                     </time>
                   </div>
                 ))}
@@ -382,21 +399,21 @@ const SocialZentrale = ({ agentName, onUnreadChange }) => {
                     onChange={(ev) => setDraft(ev.target.value)}
                     onKeyDown={handleComposerKey}
                     placeholder={`Antwort an ${active.customerName} über ${channelLabel(active.channel)}…`}
-                    disabled={sending || active.ticketStatus === 'Erledigt'}
+                    disabled={sending || activeDone}
                   />
                   <button
                     type="button"
                     className="btn btn--primary sz-send"
                     onClick={sendReply}
-                    disabled={sending || !draft.trim() || active.ticketStatus === 'Erledigt'}
+                    disabled={sending || !draft.trim() || activeDone}
                   >
                     {sending ? 'Senden…' : 'Senden'}
                   </button>
                 </div>
-                {active.ticketStatus === 'Erledigt' ? (
+                {activeDone ? (
                   <p className="sz-composer-hint">Ticket erledigt – zum Antworten Status wieder öffnen.</p>
                 ) : (
-                  <p className="sz-composer-hint">Enter sendet, Umschalt+Enter neue Zeile. Noch ohne Kanal-API.</p>
+                  <p className="sz-composer-hint">Enter sendet, Umschalt+Enter neue Zeile.</p>
                 )}
               </div>
             </>

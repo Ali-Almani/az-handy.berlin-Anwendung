@@ -1,10 +1,13 @@
+import {
+  isVorvertragArchived,
+  normalizeVorvertragTicketStatus
+} from './vorvertragTicketStatus';
+
 export const SOCIAL_CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', short: 'WA' },
   { id: 'instagram', label: 'Instagram', short: 'IG' },
   { id: 'tiktok', label: 'TikTok', short: 'TT' }
 ];
-
-export const SOCIAL_TICKET_STATUS_OPTIONS = ['Offen', 'In Bearbeitung', 'Erledigt'];
 
 export const SOCIAL_STORAGE_KEY = 'az-social-zentrale-demo-v1';
 
@@ -179,7 +182,14 @@ export function lastMessageAt(ticket) {
 }
 
 export function countUnreadSocialTickets(tickets) {
-  return (tickets || []).filter((t) => t.unread && t.ticketStatus !== 'Erledigt').length;
+  return (tickets || []).filter((t) => t.unread && !isVorvertragArchived(t)).length;
+}
+
+function normalizeTickets(tickets) {
+  return tickets.map((t) => ({
+    ...t,
+    ticketStatus: normalizeVorvertragTicketStatus(t.ticketStatus)
+  }));
 }
 
 export function loadSocialTickets() {
@@ -187,27 +197,18 @@ export function loadSocialTickets() {
     const raw = localStorage.getItem(SOCIAL_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return normalizeTickets(parsed);
     }
   } catch {
-    /* Demo-Store ungültig – Seed verwenden */
+    /* Store ungültig – Seed verwenden */
   }
-  return cloneSeed();
+  return normalizeTickets(cloneSeed());
 }
 
 export function saveSocialTickets(tickets) {
   try {
     localStorage.setItem(SOCIAL_STORAGE_KEY, JSON.stringify(tickets));
   } catch {
-    /* Quota / privater Modus – Demo läuft trotzdem im Speicher */
+    /* Quota / privater Modus – läuft trotzdem im Speicher */
   }
-}
-
-export function resetSocialTickets() {
-  try {
-    localStorage.removeItem(SOCIAL_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-  return cloneSeed();
 }
