@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync, filterPendingHistoryRemovals, reconcilePendingHistoryRemovals } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
-import { sortImeisOldestFirst } from '../utils/imeisSortUtils';
+import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUtils';
 import { isOfficeImeiRole, trimCopyHistoryByRetention } from '../utils/copyHistoryRetention';
+import { getProductFull } from '../utils/imeisProductUtils';
 
 const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
@@ -37,6 +38,23 @@ function processCopyHistory(savedCopyHistory) {
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
+function enrichCopyHistoryProductsFromImeis(history, imeis) {
+  const lookup = new Map();
+  for (const item of Array.isArray(imeis) ? imeis : []) {
+    const key = normalizeImeiSortKey(item?.imei);
+    const product = getProductFull(item);
+    if (key && product && product !== '-') lookup.set(key, product);
+  }
+  if (lookup.size === 0) return history;
+  return (history || []).map((entry) => {
+    const cur = String(entry?.product || '').trim();
+    if (cur && cur !== '-') return entry;
+    const key = normalizeImeiSortKey(entry?.imei);
+    const product = key ? lookup.get(key) : '';
+    return product ? { ...entry, product } : entry;
+  });
+}
+
 function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   const {
     setImeis,
@@ -55,7 +73,10 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   setImeis(storedImeis);
   setCellTextColors(data.cellColors ?? {});
   setRowActions(data.rowActions ?? {});
-  const processedHistory = processCopyHistory(filterPendingHistoryRemovals(data.copyHistory ?? []));
+  const processedHistory = enrichCopyHistoryProductsFromImeis(
+    processCopyHistory(filterPendingHistoryRemovals(data.copyHistory ?? [])),
+    storedImeis
+  );
   reconcilePendingHistoryRemovals(data.copyHistory ?? []);
   setCopyHistory(processedHistory);
   setCopyTimestamps?.(data.copyTimestamps ?? []);

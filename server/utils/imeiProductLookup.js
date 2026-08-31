@@ -1,40 +1,43 @@
 import { normalizeImeiKey } from './imeiKey.js';
 
 export function getProductFullFromImeiRow(item) {
-  if (!item?.rowData || typeof item.rowData !== 'object') return '';
-  const keysToCheck =
-    Array.isArray(item.columnOrder) && item.columnOrder.length > 0
-      ? item.columnOrder
-      : Object.keys(item.rowData);
+  if (item?.rowData && typeof item.rowData === 'object') {
+    const keysToCheck =
+      Array.isArray(item.columnOrder) && item.columnOrder.length > 0
+        ? item.columnOrder
+        : Object.keys(item.rowData);
 
-  for (const key of keysToCheck) {
-    if (!key) continue;
-    const lowerKey = String(key).toLowerCase().trim();
-    if (
-      (lowerKey === 'produkt' ||
-        lowerKey === 'product' ||
-        lowerKey.includes('produkt') ||
-        lowerKey.includes('product')) &&
-      item.rowData[key] != null &&
-      String(item.rowData[key]).trim()
-    ) {
-      return String(item.rowData[key]).trim();
+    for (const key of keysToCheck) {
+      if (!key) continue;
+      const lowerKey = String(key).toLowerCase().trim();
+      if (
+        (lowerKey === 'produkt' ||
+          lowerKey === 'product' ||
+          lowerKey.includes('produkt') ||
+          lowerKey.includes('product')) &&
+        item.rowData[key] != null &&
+        String(item.rowData[key]).trim()
+      ) {
+        return String(item.rowData[key]).trim();
+      }
+    }
+
+    for (const key of keysToCheck) {
+      if (!key) continue;
+      const lowerKey = String(key).toLowerCase().trim();
+      if (
+        lowerKey.includes('artikel') &&
+        (lowerKey.includes('bezeichnung') || lowerKey.includes('name')) &&
+        item.rowData[key] != null &&
+        String(item.rowData[key]).trim()
+      ) {
+        return String(item.rowData[key]).trim();
+      }
     }
   }
 
-  for (const key of keysToCheck) {
-    if (!key) continue;
-    const lowerKey = String(key).toLowerCase().trim();
-    if (
-      lowerKey.includes('artikel') &&
-      (lowerKey.includes('bezeichnung') || lowerKey.includes('name')) &&
-      item.rowData[key] != null &&
-      String(item.rowData[key]).trim()
-    ) {
-      return String(item.rowData[key]).trim();
-    }
-  }
-
+  const direct = String(item?.product ?? '').trim();
+  if (direct && direct !== '-') return direct;
   return '';
 }
 

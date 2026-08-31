@@ -357,6 +357,7 @@ const Imeis = () => {
         isOpen={showHistoryModal}
         onClose={() => { setShowHistoryModal(false); setReminderImeiFilter(null); }}
         copyHistory={copyHistory}
+        imeis={imeis}
         filterImeis={reminderImeiFilter}
         onUpdateHistoryAction={handleUpdateHistoryAction}
         historyUndoStack={historyUndoStack}

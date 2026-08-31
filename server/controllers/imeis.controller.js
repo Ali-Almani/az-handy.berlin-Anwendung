@@ -253,6 +253,18 @@ function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLooku
   return out;
 }
 
+function lookupWithRowActionProducts(imeis, rowActions) {
+  const lookup = buildImeiProductLookup(imeis);
+  if (!rowActions || typeof rowActions !== 'object' || Array.isArray(rowActions)) return lookup;
+  for (const [rowId, act] of Object.entries(rowActions)) {
+    const p = String(act?.product || '').trim();
+    if (!p || p === '-') continue;
+    const k = normalizeImeiKey(imeiKeyFromRowId(rowId));
+    if (k && !lookup.has(k)) lookup.set(k, p);
+  }
+  return lookup;
+}
+
 async function resolveCopyHistoryForSave(userId, incomingCopyHistory) {
   if (!Array.isArray(incomingCopyHistory)) return [];
   const [ownData] = await ImeisUserData.findOrCreate({
@@ -449,7 +461,7 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
       await ImeisUserData.upsert(upsertPayload);
     }
   }
-  await removeImeiFromAllCopyHistories(imeiStr);
+  await removeImeiFromAllCopyHistories(imeiToRemove);
 };
 
 /** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden. Bevorzugt Büro/Admin bei gleicher Anzahl. */
@@ -519,16 +531,28 @@ const getSharedImeiOwnerId = async () => {
 };
 
 async function loadSharedImeiProductLookup() {
+  const map = new Map();
+  const mergeFromJson = (imeisJson) => {
+    const imeis = safeJsonParse(imeisJson, []);
+    const partial = buildImeiProductLookup(Array.isArray(imeis) ? imeis : []);
+    for (const [k, v] of partial) {
+      if (k && v && !map.has(k)) map.set(k, v);
+    }
+  };
   try {
     const ownerId = await getSharedImeiOwnerId();
-    if (ownerId == null) return new Map();
-    const row = await ImeisUserData.findOne({ where: { user_id: ownerId } });
-    const imeisJson = (row?.get && row.get('imeis_json')) ?? row?.imeis_json;
-    const imeis = safeJsonParse(imeisJson, []);
-    return buildImeiProductLookup(Array.isArray(imeis) ? imeis : []);
-  } catch {
-    return new Map();
-  }
+    if (ownerId != null) {
+      const row = await ImeisUserData.findOne({ where: { user_id: ownerId } });
+      mergeFromJson((row?.get && row.get('imeis_json')) ?? row?.imeis_json);
+    }
+  } catch (_) {}
+  try {
+    const all = await ImeisUserData.findAll();
+    for (const row of all) {
+      mergeFromJson((row.get && row.get('imeis_json')) ?? row.imeis_json);
+    }
+  } catch (_) {}
+  return map;
 }
 
 export const getImeisData = async (req, res, next) => {
@@ -636,7 +660,7 @@ export const getImeisData = async (req, res, next) => {
         }
       }
 
-      const productLookup = buildImeiProductLookup(imeis);
+      const productLookup = lookupWithRowActionProducts(imeis, rowActions);
       copyHistory = enrichCopyHistoryWithProducts(copyHistory, productLookup);
 
       const response = {
@@ -724,7 +748,7 @@ export const getImeisData = async (req, res, next) => {
       }
     }
 
-    const productLookup = buildImeiProductLookup(imeis);
+    const productLookup = lookupWithRowActionProducts(imeis, rowActions);
     copyHistory = enrichCopyHistoryWithProducts(copyHistory, productLookup);
 
     const response = {

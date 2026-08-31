@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { parseCopyHistoryTimestamp } from '../utils/copyHistoryRetention';
+import { getProductFull } from '../utils/imeisProductUtils';
+import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
 
 function formatHistoryTimestamp(entry) {
   const ts = parseCopyHistoryTimestamp(entry);
@@ -13,10 +15,21 @@ function formatHistoryTimestamp(entry) {
   });
 }
 
+function historyProductLabel(entry, imeis) {
+  const stored = String(entry?.product || entry?.manufacturer || '').trim();
+  if (stored && stored !== '-') return stored;
+  const key = normalizeImeiSortKey(entry?.imei);
+  if (!key || !Array.isArray(imeis)) return stored || '-';
+  const item = imeis.find((it) => normalizeImeiSortKey(it?.imei) === key);
+  const fromList = getProductFull(item);
+  return fromList || stored || '-';
+}
+
 const ImeisHistoryModal = ({
   isOpen,
   onClose,
   copyHistory,
+  imeis = [],
   filterImeis,
   onUpdateHistoryAction,
   historyUndoStack,
@@ -207,7 +220,7 @@ const ImeisHistoryModal = ({
                           </div>
                         )}
                       </td>
-                      <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{entry.product || entry.manufacturer || '-'}</td>
+                      <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>{historyProductLabel(entry, imeis)}</td>
                       <td>
                         {entry.userName}
                         {canSendReminder && (() => {

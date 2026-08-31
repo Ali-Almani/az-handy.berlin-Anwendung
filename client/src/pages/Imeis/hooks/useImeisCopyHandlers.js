@@ -220,7 +220,7 @@ export function useImeisCopyHandlers({
         clearHistoryEntryPendingRemoval(entry);
         setCopyHistory(copyHistory);
         setRowActions(rowActions);
-        alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.message));
+        alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.response?.data?.error?.message || err.message));
         throw err;
       } finally {
         historyActionPendingRef.current.delete(pendingKey);
