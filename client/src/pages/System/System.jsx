@@ -25,6 +25,8 @@ import { isMnpOnlyEntry } from './vorvertragEntryType';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
+import SocialZentrale from './SocialZentrale';
+import { countUnreadSocialTickets, loadSocialTickets } from './socialZentraleDemoData';
 import './System.scss';
 
 const TOAST_MS = 4500;
@@ -49,6 +51,7 @@ const System = () => {
   const [listTab, setListTab] = useState('neu');
   const [archivSearch, setArchivSearch] = useState('');
   const [statusSavingId, setStatusSavingId] = useState('');
+  const [socialUnread, setSocialUnread] = useState(() => countUnreadSocialTickets(loadSocialTickets()));
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -332,18 +335,29 @@ const System = () => {
         >
           Archiv ({archivCount})
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={listTab === 'nachrichten'}
+          className={`system-tab${listTab === 'nachrichten' ? ' system-tab--active' : ''}`}
+          onClick={() => setListTab('nachrichten')}
+        >
+          Nachrichten{socialUnread > 0 ? ` (${socialUnread})` : ''}
+        </button>
       </div>
 
-      <div className="system-toolbar">
-        <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
-          Neuer Vorvertrag
-        </button>
-        <button type="button" className="btn btn--secondary" onClick={startNewMnp} disabled={showForm}>
-          Neues MNP
-        </button>
-      </div>
+      {listTab !== 'nachrichten' ? (
+        <div className="system-toolbar">
+          <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
+            Neuer Vorvertrag
+          </button>
+          <button type="button" className="btn btn--secondary" onClick={startNewMnp} disabled={showForm}>
+            Neues MNP
+          </button>
+        </div>
+      ) : null}
 
-      {successToast ? (
+      {listTab !== 'nachrichten' && successToast ? (
         <div className="system-toast system-toast--success" role="status" aria-live="polite">
           <span className="system-toast__icon" aria-hidden>✓</span>
           <span className="system-toast__message">{successToast.message}</span>
@@ -358,10 +372,21 @@ const System = () => {
         </div>
       ) : null}
 
-      {error ? <p className="vorvertrag-error" role="alert">{error}</p> : null}
-      {geraeteError ? <p className="vorvertrag-error" role="alert">{geraeteError}</p> : null}
+      {listTab !== 'nachrichten' && error ? (
+        <p className="vorvertrag-error" role="alert">{error}</p>
+      ) : null}
+      {listTab !== 'nachrichten' && geraeteError ? (
+        <p className="vorvertrag-error" role="alert">{geraeteError}</p>
+      ) : null}
 
-      {showForm ? (
+      {listTab === 'nachrichten' ? (
+        <SocialZentrale
+          agentName={defaultMitarbeiter}
+          onUnreadChange={setSocialUnread}
+        />
+      ) : null}
+
+      {listTab !== 'nachrichten' && showForm ? (
         <div ref={formRef}>
           {formKind === 'mnp' ? (
             <MnpForm
@@ -399,6 +424,7 @@ const System = () => {
         </div>
       ) : null}
 
+      {listTab !== 'nachrichten' ? (
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
@@ -455,6 +481,7 @@ const System = () => {
           </div>
         )}
       </section>
+      ) : null}
     </div>
   );
 };
