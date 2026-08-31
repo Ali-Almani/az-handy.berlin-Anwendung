@@ -1,9 +1,9 @@
 export const VORVERTRAG_TICKET_STATUS_OPTIONS = [
   'Offen',
   'In Bearbeitung',
-  'Erledigt',
   'Bestellen',
-  'Zur Abholung bereit'
+  'Zur Abholung bereit',
+  'Erledigt'
 ];
 
 export const VORVERTRAG_TICKET_STATUS_DEFAULT = 'Offen';
