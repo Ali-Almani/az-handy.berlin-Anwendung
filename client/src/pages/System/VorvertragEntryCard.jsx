@@ -5,6 +5,7 @@ import {
   isLeadEntry,
   LEAD_STATUS_OPTIONS,
   leadStatusBadge,
+  nachrichtArtLabel,
   normalizeLeadStatus
 } from './callcenterLeadData';
 import {
@@ -71,7 +72,7 @@ export default function VorvertragEntryCard({
   const nameFromEntry = [entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ');
   const lead = isLeadEntry(entry);
   const name = lead
-    ? (entry?.rufnummer || entry?.angebot || 'Ohne Rufnummer')
+    ? (entry?.customerName || entry?.rufnummer || entry?.angebot || 'Ohne Namen')
     : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
   const mitarbeiter = mitarbeiterName(entry);
   const ticketStatus = lead
@@ -94,7 +95,9 @@ export default function VorvertragEntryCard({
       </td>
       <td className="vorvertrag-ticket-row__typ">
         {lead ? (
-          <MetaChip accent>{entry?.angebot || 'Nachricht'}</MetaChip>
+          <MetaChip accent>
+            {[nachrichtArtLabel(entry?.nachrichtArt), entry?.angebot].filter(Boolean).join(' · ') || 'Nachricht'}
+          </MetaChip>
         ) : mnpOnly ? (
           <MetaChip accent>MNP</MetaChip>
         ) : (

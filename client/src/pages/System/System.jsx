@@ -27,12 +27,14 @@ import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvert
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
 import CallcenterNachrichten from './CallcenterNachrichten';
 import {
+  countUnreadLeadTickets,
   isLeadEntry,
   isLeadInNeu,
   leadToNeuEntry,
   loadLeadTickets,
   normalizeLeadStatus,
-  saveLeadTickets
+  saveLeadTickets,
+  shopFitsOrten
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -69,6 +71,11 @@ const System = () => {
   const navbarFiliale = useMemo(
     () => userFilialeFromEinsatzOrt(user?.einsatz_ort),
     [user?.einsatz_ort]
+  );
+
+  const leadUnread = useMemo(
+    () => countUnreadLeadTickets(leadTickets),
+    [leadTickets]
   );
 
   const leadNeuEntries = useMemo(
@@ -314,7 +321,15 @@ const System = () => {
       const nextLead = normalizeLeadStatus(ticketStatus);
       if (!nextLead || normalizeLeadStatus(entry?.ticketStatus) === nextLead) return;
       setLeadTickets((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, ticketStatus: nextLead } : t))
+        prev.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                ticketStatus: nextLead,
+                shop: nextLead === 'Orten' && t.shop && !shopFitsOrten(t.shop) ? '' : t.shop
+              }
+            : t
+        )
       );
       setListTab('neu');
       setHighlightedId(id);
@@ -357,7 +372,7 @@ const System = () => {
           className={`system-tab${listTab === 'nachrichten' ? ' system-tab--active' : ''}`}
           onClick={() => setListTab('nachrichten')}
         >
-          Nachrichten
+          Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
         </button>
         <button
           type="button"
