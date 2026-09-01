@@ -2,27 +2,15 @@ import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync, filterPendingHistoryRemovals, reconcilePendingHistoryRemovals } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUtils';
-import { isOfficeImeiRole, trimCopyHistoryByRetention } from '../utils/copyHistoryRetention';
+import { isOfficeImeiRole, dedupeCopyHistoryByImeiUser } from '../utils/copyHistoryRetention';
 import { getProductFull } from '../utils/imeisProductUtils';
 
 const POLL_INTERVAL_MS = 1500;
 const VERLAUF_REFRESH_MS = 1000;
 
 function processCopyHistory(savedCopyHistory) {
-  /** Dedup robust: IMEI+Benutzer+Aktion (Timestamp kann minimal abweichen durch Sync/Synthese) */
-  const uniqueHistoryMap = new Map();
-  (savedCopyHistory ?? []).forEach((entry) => {
-    const imei = String(entry?.imei || '').trim();
-    const userName = String(entry?.userName || '').trim();
-    const action = String(entry?.action || '').trim();
-    const ts = String(entry?.timestamp || '').trim();
-    const key = `${imei}|${userName}|${action}|${ts}`;
-    const existingEntry = uniqueHistoryMap.get(key);
-    if (!existingEntry || new Date(entry.timestamp || 0) > new Date(existingEntry.timestamp || 0)) {
-      uniqueHistoryMap.set(key, entry);
-    }
-  });
-  return Array.from(uniqueHistoryMap.values())
+  /** Eine Zeile pro IMEI und Mitarbeiter – Duplikate aus Sync/Reservieren zusammenfassen. */
+  return dedupeCopyHistoryByImeiUser(savedCopyHistory ?? [])
     .map((entry) => {
       const a = entry.action;
       // Wichtig: Aktionen wie "reservieren"/"dereserviert" im Verlauf NICHT auf "checkout" normalisieren

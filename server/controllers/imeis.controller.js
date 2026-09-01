@@ -42,7 +42,9 @@ import {
 import {
   COPY_HISTORY_RETENTION_MS,
   copyHistoryEntryKey,
+  copyHistorySlotKey,
   mergeCopyHistoryEntries,
+  dedupeCopyHistoryByImeiUser,
   trimCopyHistoryByRetention,
   parseCopyHistoryTimestamp
 } from '../utils/copyHistoryRetention.js';
@@ -218,11 +220,11 @@ function finalizeOfficeCopyHistory(merged) {
     process.env.COPY_HISTORY_OFFICE_SHOW_ALL === 'true' ||
     process.env.COPY_HISTORY_OFFICE_SHOW_ALL === '1'
   ) {
-    return [...merged].sort(
+    return dedupeCopyHistoryByImeiUser([...merged]).sort(
       (a, b) => (parseCopyHistoryTimestamp(b) || 0) - (parseCopyHistoryTimestamp(a) || 0)
     );
   }
-  return trimCopyHistoryByRetention(merged);
+  return trimCopyHistoryByRetention(dedupeCopyHistoryByImeiUser(merged));
 }
 
 function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLookup) {
@@ -1111,10 +1113,10 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
         }
 
         const existingKey = new Set(
-          (existingArr || []).map(
-            (e) =>
-              `${String(e?.imei || '').trim()}|${normHistUserName(e?.userName)}|${String(e?.timestamp || '').trim()}|${String(e?.action || '').trim()}`
-          )
+          (existingArr || []).map((e) => copyHistoryEntryKey(e))
+        );
+        const existingSlot = new Set(
+          (existingArr || []).map((e) => copyHistorySlotKey(e))
         );
 
         const productLookup =
@@ -1129,15 +1131,14 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
           if (actName !== myName) return;
           const action = String(act.action || '').trim();
           if (action !== 'reservieren' && action !== 'dereserviert') return;
-          // rowId enthält IMEI: `${sheet}-${imei}-${row}`
-          const parts = String(rowId || '').split('-');
-          if (parts.length < 3) return;
-          const imei = String(parts[1] || '').trim();
+          const imei = String(imeiKeyFromRowId(rowId) || '').trim();
           if (!imei) return;
           const ts = String(act.timestamp || new Date().toISOString()).trim();
-          const key = `${imei}|${normHistUserName(myName)}|${ts}|${action}`;
-          if (existingKey.has(key)) return;
+          const key = copyHistoryEntryKey({ imei, userName: myName, timestamp: ts, action });
+          const slot = copyHistorySlotKey({ imei, userName: myName });
+          if (existingKey.has(key) || existingSlot.has(slot)) return;
           existingKey.add(key);
+          existingSlot.add(slot);
           let product = String(act.product ?? '').trim();
           if (isEmptyHistoryProduct(product)) {
             product = productLookup.get(normalizeImeiKey(imei)) || '-';

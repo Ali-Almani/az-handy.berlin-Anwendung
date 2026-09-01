@@ -181,7 +181,7 @@ const ImeisHistoryModal = ({
                 </thead>
                 <tbody>
                   {filteredHistory.map(({ entry, originalIndex }) => (
-                    <tr key={`${entry.imei}-${entry.timestamp}-${entry.userName}`}>
+                    <tr key={`${entry.imei}-${entry.userName}-${entry.timestamp}-${originalIndex}`}>
                       <td className="imei-value">{entry.imei}</td>
                       <td>
                         <select

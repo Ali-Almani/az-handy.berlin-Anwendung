@@ -36,15 +36,45 @@ export function parseCopyHistoryTimestamp(entryOrRaw) {
   return NaN;
 }
 
-export function copyHistoryEntryKey(entry) {
-  const imei = String(entry?.imei ?? '').trim();
-  const ts = String(entry?.timestamp ?? '').trim();
-  const userName = String(entry?.userName ?? '')
+function normCopyHistoryUserName(name) {
+  return String(name ?? '')
     .trim()
     .replace(/\s+/g, ' ')
     .toLowerCase();
+}
+
+export function copyHistoryEntryKey(entry) {
+  const imei = String(entry?.imei ?? '').trim();
+  const ts = String(entry?.timestamp ?? '').trim();
+  const userName = normCopyHistoryUserName(entry?.userName);
   const action = String(entry?.action ?? '').trim();
   return `${imei}|${userName}|${ts}|${action}`;
+}
+
+export function copyHistorySlotKey(entry) {
+  const imei = String(entry?.imei ?? '').trim();
+  return `${imei}|${normCopyHistoryUserName(entry?.userName)}`;
+}
+
+export function dedupeCopyHistoryByImeiUser(entries) {
+  const bySlot = new Map();
+  for (const e of Array.isArray(entries) ? entries : []) {
+    if (!e || typeof e !== 'object') continue;
+    const imei = String(e.imei ?? '').trim();
+    if (!imei) continue;
+    const slot = copyHistorySlotKey(e);
+    const prev = bySlot.get(slot);
+    if (!prev) {
+      bySlot.set(slot, e);
+      continue;
+    }
+    const tNew = parseCopyHistoryTimestamp(e);
+    const tOld = parseCopyHistoryTimestamp(prev);
+    const n = Number.isNaN(tNew) ? -1 : tNew;
+    const o = Number.isNaN(tOld) ? -1 : tOld;
+    if (n >= o) bySlot.set(slot, e);
+  }
+  return Array.from(bySlot.values());
 }
 
 export function trimCopyHistoryByRetention(entries) {
