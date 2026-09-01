@@ -93,11 +93,11 @@ const System = () => {
       }
       return true;
     });
-    if (listTab === 'neu') return [...leadNeuEntries, ...vv];
+    if (listTab === 'offen') return [...leadNeuEntries, ...vv];
     return vv;
   }, [entries, listTab, archivSearch, leadNeuEntries]);
 
-  const neuCount = useMemo(
+  const offenCount = useMemo(
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadNeuEntries.length,
     [entries, leadNeuEntries]
   );
@@ -232,6 +232,7 @@ const System = () => {
     setGeraetSeed(mnpOnly ? '' : nextForm.ausgabeGeraet);
     setMode('edit');
     setShowForm(true);
+    setListTab('erstellen');
     setError('');
     setSuccessToast(null);
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -298,7 +299,7 @@ const System = () => {
 
       await loadList({ silent: true });
       cancelForm();
-      setListTab('neu');
+      setListTab('offen');
 
       if (savedId) {
         setHighlightedId(savedId);
@@ -333,7 +334,7 @@ const System = () => {
       } else {
         return;
       }
-      setListTab('neu');
+      setListTab('offen');
       setHighlightedId(id);
       return;
     }
@@ -349,7 +350,7 @@ const System = () => {
       if (nextStatus === 'Erledigt') {
         setListTab('archiv');
       } else {
-        setListTab('neu');
+        setListTab('offen');
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Status konnte nicht gespeichert werden.');
@@ -379,14 +380,23 @@ const System = () => {
         <button
           type="button"
           role="tab"
-          aria-selected={listTab === 'neu'}
-          className={`system-tab${listTab === 'neu' ? ' system-tab--active' : ''}`}
+          aria-selected={listTab === 'offen'}
+          className={`system-tab${listTab === 'offen' ? ' system-tab--active' : ''}`}
           onClick={() => {
-            setListTab('neu');
+            setListTab('offen');
             setArchivSearch('');
           }}
         >
-          Neu ({neuCount})
+          Offen ({offenCount})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={listTab === 'erstellen'}
+          className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
+          onClick={() => setListTab('erstellen')}
+        >
+          Ticketing erstellen
         </button>
         <button
           type="button"
@@ -399,7 +409,7 @@ const System = () => {
         </button>
       </div>
 
-      {listTab === 'neu' ? (
+      {listTab === 'erstellen' ? (
         <div className="system-toolbar">
           <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
             Neuer Vorvertrag
@@ -441,14 +451,14 @@ const System = () => {
           filialeOptions={filialeOptions}
           onStatusApplied={(id) => {
             setOpenLeadId('');
-            setListTab('neu');
+            setListTab('offen');
             if (id) setHighlightedId(id);
           }}
           onOpened={() => setOpenLeadId('')}
         />
       ) : null}
 
-      {listTab !== 'nachrichten' && showForm ? (
+      {listTab === 'erstellen' && showForm ? (
         <div ref={formRef}>
           {formKind === 'mnp' ? (
             <MnpForm
@@ -486,7 +496,7 @@ const System = () => {
         </div>
       ) : null}
 
-      {listTab !== 'nachrichten' ? (
+      {listTab === 'offen' || listTab === 'archiv' ? (
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
