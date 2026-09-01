@@ -146,6 +146,22 @@
   text-align: center;
 }
 
+.sz-note-pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: $spacing-sm;
+}
+
+.sz-note-input {
+  width: 100%;
+  min-height: 12rem;
+  height: 100%;
+  resize: none;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .sz-search {
   width: 100%;
   min-height: 2rem;

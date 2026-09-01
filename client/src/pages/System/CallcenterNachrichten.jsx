@@ -7,7 +7,9 @@ import {
   TEMPLATE_QUESTIONS,
   formFromLead,
   lastMessageAt,
+  loadInboxNotiz,
   normalizeLeadStatus,
+  saveInboxNotiz,
   shopFitsOrten,
   shopOptionLabel,
   shopOptionsForOrten
@@ -105,6 +107,7 @@ const CallcenterNachrichten = ({
   const ortenShops = useMemo(() => shopOptionsForOrten(), []);
   const [channel, setChannel] = useState('all');
   const [readTab, setReadTab] = useState('ungelesen');
+  const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
   const [search, setSearch] = useState('');
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
@@ -119,6 +122,7 @@ const CallcenterNachrichten = ({
     return list
       .filter((t) => (channel === 'all' ? true : t.channel === channel))
       .filter((t) => {
+        if (readTab === 'notiz') return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
         return !t.unread;
       })
@@ -142,6 +146,11 @@ const CallcenterNachrichten = ({
 
   const active = list.find((t) => t.id === activeId) || null;
   const answers = active ? formFromLead(active) : null;
+  const showNotiz = readTab === 'notiz';
+
+  useEffect(() => {
+    saveInboxNotiz(inboxNotiz);
+  }, [inboxNotiz]);
 
   useEffect(() => {
     if (!threadRef.current) return;
@@ -242,7 +251,7 @@ const CallcenterNachrichten = ({
       <div className={`sz-layout${active ? ' sz-layout--with-questions' : ''}`}>
         <aside className="sz-list-pane">
           <div className="sz-filters">
-            <div className="sz-read-tabs" role="tablist" aria-label="Gelesen oder ungelesen">
+            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen oder Notiz">
               <button
                 type="button"
                 role="tab"
@@ -267,46 +276,75 @@ const CallcenterNachrichten = ({
                   <span className="sz-read-tab-count">{readTabCounts.gelesen}</span>
                 ) : null}
               </button>
-            </div>
-            <div className="sz-channel-row" role="tablist" aria-label="Kanäle">
               <button
                 type="button"
                 role="tab"
-                aria-selected={channel === 'all'}
-                className={`sz-chip${channel === 'all' ? ' sz-chip--active' : ''}`}
-                onClick={() => setChannel('all')}
+                aria-selected={readTab === 'notiz'}
+                className={`sz-read-tab${readTab === 'notiz' ? ' sz-read-tab--active' : ''}`}
+                onClick={() => {
+                  setReadTab('notiz');
+                  setMobileShowChat(false);
+                }}
               >
-                Alle
-                {unreadByChannel.all > 0 ? <span className="sz-chip-count">{unreadByChannel.all}</span> : null}
+                Notiz
               </button>
-              {SOCIAL_CHANNELS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={channel === c.id}
-                  className={`sz-chip sz-chip--${c.id}${channel === c.id ? ' sz-chip--active' : ''}`}
-                  onClick={() => setChannel(c.id)}
-                >
-                  <ChannelIcon channel={c.id} />
-                  {c.label}
-                  {unreadByChannel[c.id] > 0 ? (
-                    <span className="sz-chip-count">{unreadByChannel[c.id]}</span>
-                  ) : null}
-                </button>
-              ))}
             </div>
-            <label className="visually-hidden" htmlFor="sz-search">Posteingang suchen</label>
-            <input
-              id="sz-search"
-              type="search"
-              className="form-input sz-search"
-              value={search}
-              onChange={(ev) => setSearch(ev.target.value)}
-              placeholder="Name, Nummer oder ID…"
-              autoComplete="off"
-            />
+            {showNotiz ? null : (
+              <>
+                <div className="sz-channel-row" role="tablist" aria-label="Kanäle">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={channel === 'all'}
+                    className={`sz-chip${channel === 'all' ? ' sz-chip--active' : ''}`}
+                    onClick={() => setChannel('all')}
+                  >
+                    Alle
+                    {unreadByChannel.all > 0 ? <span className="sz-chip-count">{unreadByChannel.all}</span> : null}
+                  </button>
+                  {SOCIAL_CHANNELS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={channel === c.id}
+                      className={`sz-chip sz-chip--${c.id}${channel === c.id ? ' sz-chip--active' : ''}`}
+                      onClick={() => setChannel(c.id)}
+                    >
+                      <ChannelIcon channel={c.id} />
+                      {c.label}
+                      {unreadByChannel[c.id] > 0 ? (
+                        <span className="sz-chip-count">{unreadByChannel[c.id]}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                <label className="visually-hidden" htmlFor="sz-search">Posteingang suchen</label>
+                <input
+                  id="sz-search"
+                  type="search"
+                  className="form-input sz-search"
+                  value={search}
+                  onChange={(ev) => setSearch(ev.target.value)}
+                  placeholder="Name, Nummer oder ID…"
+                  autoComplete="off"
+                />
+              </>
+            )}
           </div>
+          {showNotiz ? (
+            <div className="sz-note-pane">
+              <label className="visually-hidden" htmlFor="sz-inbox-notiz">Notiz</label>
+              <textarea
+                id="sz-inbox-notiz"
+                className="form-input sz-note-input"
+                value={inboxNotiz}
+                onChange={(ev) => setInboxNotiz(ev.target.value)}
+                placeholder="Notiz schreiben…"
+                spellCheck="true"
+              />
+            </div>
+          ) : (
           <ul className="sz-ticket-list">
             {filtered.length === 0 ? (
               <li className="sz-empty">
@@ -348,6 +386,7 @@ const CallcenterNachrichten = ({
               })
             )}
           </ul>
+          )}
         </aside>
 
         <div className="sz-chat-pane">

@@ -54,6 +54,7 @@ export const TEMPLATE_QUESTIONS = [
 ];
 
 export const LEAD_STORAGE_KEY = 'az-callcenter-inbox-v2';
+export const INBOX_NOTE_STORAGE_KEY = 'az-callcenter-inbox-notiz';
 
 const STATUS_ALIASES = {
   orten: 'Orten',
@@ -406,6 +407,22 @@ export function loadLeadTickets() {
 export function saveLeadTickets(tickets) {
   try {
     localStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(tickets));
+  } catch {
+    /* Quota / privater Modus */
+  }
+}
+
+export function loadInboxNotiz() {
+  try {
+    return String(localStorage.getItem(INBOX_NOTE_STORAGE_KEY) || '');
+  } catch {
+    return '';
+  }
+}
+
+export function saveInboxNotiz(text) {
+  try {
+    localStorage.setItem(INBOX_NOTE_STORAGE_KEY, String(text ?? ''));
   } catch {
     /* Quota / privater Modus */
   }
