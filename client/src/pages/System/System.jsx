@@ -19,7 +19,7 @@ import MnpForm, {
   buildMnpPayload
 } from './MnpForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
-import LeadFragenForm from './LeadFragenForm';
+import LeadNachrichtHistory from './LeadNachrichtHistory';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import { emptyMnpDetails } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
@@ -37,8 +37,8 @@ import {
   migrateLeadTicketStatus,
   saveLeadTickets,
   sanitizeMitarbeiterName,
-  formFromLead,
-  channelLabel
+  appendLeadEditLog,
+  leadFieldChange
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -284,13 +284,6 @@ const System = () => {
     setFormKind('vorvertrag');
   };
 
-  const patchLeadAnswer = (field, value) => {
-    if (!leadEditId) return;
-    setLeadTickets((prev) =>
-      prev.map((t) => (t.id === leadEditId ? { ...t, [field]: value } : t))
-    );
-  };
-
   const handleFormChange = (field, value) => {
     setForm((prev) => {
       if (field === 'ausgabeGeraet') {
@@ -368,11 +361,22 @@ const System = () => {
       setLeadTickets((prev) =>
         prev.map((t) =>
           t.id === id
-            ? {
-                ...t,
-                ticketStatus: nextLead,
-                mitarbeiterName: sanitizeMitarbeiterName(defaultMitarbeiter) || sanitizeMitarbeiterName(t.mitarbeiterName)
-              }
+            ? (() => {
+                const nextName = sanitizeMitarbeiterName(defaultMitarbeiter) || sanitizeMitarbeiterName(t.mitarbeiterName);
+                const next = {
+                  ...t,
+                  ticketStatus: nextLead,
+                  mitarbeiterName: nextName
+                };
+                const change = leadFieldChange(t, 'ticketStatus', nextLead);
+                return change
+                  ? appendLeadEditLog(next, {
+                      editorName: nextName,
+                      action: 'status_changed',
+                      changes: [change]
+                    })
+                  : next;
+              })()
             : t
         )
       );
@@ -544,13 +548,10 @@ const System = () => {
 
       {listTab === 'offen' && editingLead ? (
         <div ref={formRef}>
-          <LeadFragenForm
-            answers={formFromLead(editingLead)}
-            onChange={patchLeadAnswer}
-            idPrefix="offen-q"
-            title="Vorlage – Fragen"
-            subtitle={`${editingLead.id} · ${channelLabel(editingLead.channel)} · ${editingLead.customerName || editingLead.rufnummer || 'Nachricht'}`}
+          <LeadNachrichtHistory
+            ticket={editingLead}
             onClose={() => setLeadEditId('')}
+            editLog={editingLead.editLog}
           />
         </div>
       ) : null}

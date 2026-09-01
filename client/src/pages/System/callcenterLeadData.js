@@ -116,7 +116,8 @@ export function emptyLeadForm() {
     terminZeit: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
-    nachrichtArt: ''
+    nachrichtArt: '',
+    editLog: []
   };
 }
 
@@ -133,6 +134,84 @@ export function formFromLead(entry) {
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
     nachrichtArt: normalizeNachrichtArt(entry?.nachrichtArt)
+  };
+}
+
+const LEAD_FIELD_LABELS = {
+  rufnummer: 'Rufnummer',
+  o2Kunde: 'O2 Kunde',
+  angebot: 'Angebot / Produkt',
+  produktNotiz: 'Produkt Notiz',
+  stadt: 'Stadt',
+  marketingNotiz: 'Marketing Notiz',
+  terminDatum: 'Termin Datum',
+  terminZeit: 'Termin Zeit',
+  shop: 'Shop',
+  ticketStatus: 'Status',
+  mitarbeiterName: 'Mitarbeiter'
+};
+
+function formatLeadLogValue(value) {
+  const text = String(value ?? '').trim();
+  return text === '' ? '—' : text;
+}
+
+export function leadFieldChange(ticket, field, nextValue) {
+  const from = formatLeadLogValue(ticket?.[field]);
+  const to = formatLeadLogValue(nextValue);
+  if (from === to) return null;
+  return { field: LEAD_FIELD_LABELS[field] || field, from, to };
+}
+
+export function appendLeadEditLog(ticket, { editorName, action = 'updated', changes }) {
+  const valid = (changes || []).filter((c) => c && c.from !== c.to);
+  if (!valid.length) return ticket;
+  const now = new Date().toISOString();
+  const editor = String(editorName || '').trim() || 'Unbekannt';
+  const log = Array.isArray(ticket?.editLog) ? [...ticket.editLog] : [];
+  const last = log[0];
+  const canMerge =
+    last &&
+    last.editorName === editor &&
+    last.action === action &&
+    valid.length === 1 &&
+    Array.isArray(last.changes) &&
+    last.changes.length === 1 &&
+    last.changes[0].field === valid[0].field &&
+    Date.parse(now) - (Date.parse(last.timestamp || 0) || 0) < 4000;
+
+  if (canMerge) {
+    const mergedChange = { ...last.changes[0], to: valid[0].to };
+    const merged = {
+      ...last,
+      timestamp: now,
+      changes: [mergedChange],
+      actionLabel:
+        action === 'status_changed'
+          ? `Status: ${mergedChange.from} → ${mergedChange.to}`
+          : last.actionLabel || 'Bearbeitet'
+    };
+    return { ...ticket, editLog: [merged, ...log.slice(1)].slice(0, 200) };
+  }
+
+  const actionLabel =
+    action === 'status_changed' && valid[0]
+      ? `Status: ${valid[0].from} → ${valid[0].to}`
+      : 'Bearbeitet';
+
+  return {
+    ...ticket,
+    editLog: [
+      {
+        id: `lead-log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        timestamp: now,
+        editorName: editor,
+        action,
+        actionLabel,
+        changes: valid
+      },
+      ...log
+    ].slice(0, 200)
   };
 }
 
@@ -440,7 +519,8 @@ export function leadToNeuEntry(lead) {
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
     ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
-    mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName)
+    mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
+    editLog: Array.isArray(lead.editLog) ? lead.editLog : []
   };
 }
 
@@ -456,7 +536,8 @@ function hydrateLeadTicket(t) {
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: t?.shop || '',
-    mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName)
+    mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
+    editLog: Array.isArray(t?.editLog) ? t.editLog : []
   };
 }
 

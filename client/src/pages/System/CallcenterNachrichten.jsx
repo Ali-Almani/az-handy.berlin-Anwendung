@@ -3,6 +3,8 @@ import {
   SOCIAL_CHANNELS,
   TEMPLATE_QUESTIONS,
   formFromLead,
+  appendLeadEditLog,
+  leadFieldChange,
   lastMessageAt,
   loadInboxNotiz,
   migrateLeadTicketStatus,
@@ -200,12 +202,25 @@ const CallcenterNachrichten = ({
   const handleStatusOrShop = (id, value) => {
     const assignShop = (ticket) => {
       const current = migrateLeadTicketStatus(ticket.ticketStatus);
-      return {
+      const nextShop = value === 'Callcenter' ? '' : value;
+      const nextStatus = current === 'Erledigt' ? 'Offen' : current;
+      const editor = sanitizeMitarbeiterName(agentName);
+      const next = {
         ...ticket,
-        shop: value === 'Callcenter' ? '' : value,
-        ticketStatus: current === 'Erledigt' ? 'Offen' : current,
-        mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || sanitizeMitarbeiterName(agentName)
+        shop: nextShop,
+        ticketStatus: nextStatus,
+        mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || editor
       };
+      const changes = [
+        leadFieldChange(ticket, 'shop', nextShop),
+        leadFieldChange(ticket, 'ticketStatus', nextStatus)
+      ].filter(Boolean);
+      if (!changes.length) return next;
+      return appendLeadEditLog(next, {
+        editorName: editor,
+        action: changes.some((c) => c.field === 'Status') ? 'status_changed' : 'updated',
+        changes
+      });
     };
     if (value === 'Callcenter' || shopFitsOrten(value)) {
       patchTicket(id, assignShop);
@@ -215,7 +230,15 @@ const CallcenterNachrichten = ({
 
   const patchAnswer = (field, value) => {
     if (!active) return;
-    patchTicket(active.id, (t) => ({ ...t, [field]: value }));
+    patchTicket(active.id, (t) => {
+      const change = leadFieldChange(t, field, value);
+      const next = { ...t, [field]: value };
+      if (!change) return next;
+      return appendLeadEditLog(next, {
+        editorName: sanitizeMitarbeiterName(agentName),
+        changes: [change]
+      });
+    });
   };
 
   const sendText = (text) => {

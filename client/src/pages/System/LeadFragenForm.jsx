@@ -1,3 +1,4 @@
+import VorvertragEditLog from './VorvertragEditLog';
 import {
   LEAD_ANGEBOT_OPTIONS,
   LEAD_O2_OPTIONS,
@@ -11,7 +12,8 @@ export default function LeadFragenForm({
   title = 'Vorlage – Fragen',
   subtitle = '',
   onClose,
-  embedded = false
+  embedded = false,
+  editLog = []
 }) {
   const patch = (field, value) => onChange?.(field, value);
 
@@ -126,6 +128,7 @@ export default function LeadFragenForm({
         ) : null}
       </div>
       {fields}
+      <VorvertragEditLog items={editLog} />
     </section>
   );
 }
