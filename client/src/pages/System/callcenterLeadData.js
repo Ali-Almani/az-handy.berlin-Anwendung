@@ -150,6 +150,33 @@ export function shopOptionLabel(shop) {
   return s;
 }
 
+const INVALID_MITARBEITER_NAMES = new Set([
+  'admin',
+  'Administrator',
+  'Büro Mitarbeiter',
+  'Marketing',
+  'Callcenter',
+  'Shops',
+  'Buchhaltung',
+  'Einkauf',
+  'Partner',
+  'Teamleiter shop',
+  'Mitarbeiter shop',
+  'Mitarbeiter',
+  'Zentrale',
+  'Büro Zentrale'
+]);
+
+export function sanitizeMitarbeiterName(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return '';
+  if (INVALID_MITARBEITER_NAMES.has(v)) return '';
+  if (/^mitarbeiter(\s|$)/i.test(v)) return '';
+  if (/^büro(\s|$)/i.test(v)) return '';
+  if (ORTEN_SHOP_OPTIONS.includes(v)) return '';
+  return v;
+}
+
 export function lastMessageAt(ticket) {
   const last = ticket?.messages?.[ticket.messages.length - 1];
   return last?.at || ticket?.createdAt || '';
@@ -256,7 +283,7 @@ const SEED_LEADS = [
     ticketStatus: 'Callcenter',
     nachrichtArt: 'allgemeineInfo',
     unread: false,
-    mitarbeiterName: 'Büro Zentrale',
+    mitarbeiterName: '',
     createdAt: '2026-08-31T08:25:00.000Z',
     messages: [
       {
@@ -386,7 +413,7 @@ export function leadToNeuEntry(lead) {
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
     ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
-    mitarbeiterName: lead.mitarbeiterName || ''
+    mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName)
   };
 }
 
@@ -402,7 +429,8 @@ export function loadLeadTickets() {
           messages: Array.isArray(t.messages) ? t.messages : [],
           ticketStatus: migrateLeadTicketStatus(t.ticketStatus),
           nachrichtArt: normalizeNachrichtArt(t.nachrichtArt),
-          shop: t.shop || ''
+          shop: t.shop || '',
+          mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName)
         }));
       }
     }
@@ -411,7 +439,8 @@ export function loadLeadTickets() {
   }
   return cloneSeed().map((t) => ({
     ...t,
-    ticketStatus: migrateLeadTicketStatus(t.ticketStatus)
+    ticketStatus: migrateLeadTicketStatus(t.ticketStatus),
+    mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName)
   }));
 }
 

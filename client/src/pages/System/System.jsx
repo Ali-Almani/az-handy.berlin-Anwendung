@@ -34,7 +34,8 @@ import {
   leadToNeuEntry,
   loadLeadTickets,
   migrateLeadTicketStatus,
-  saveLeadTickets
+  saveLeadTickets,
+  sanitizeMitarbeiterName
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -135,6 +136,20 @@ const System = () => {
   useEffect(() => {
     saveLeadTickets(leadTickets);
   }, [leadTickets]);
+
+  useEffect(() => {
+    const name = sanitizeMitarbeiterName(defaultMitarbeiter);
+    if (!name) return;
+    setLeadTickets((prev) => {
+      let changed = false;
+      const next = prev.map((t) => {
+        if (sanitizeMitarbeiterName(t.mitarbeiterName)) return t;
+        changed = true;
+        return { ...t, mitarbeiterName: name };
+      });
+      return changed ? next : prev;
+    });
+  }, [defaultMitarbeiter]);
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -337,7 +352,7 @@ const System = () => {
             ? {
                 ...t,
                 ticketStatus: nextLead,
-                mitarbeiterName: defaultMitarbeiter || t.mitarbeiterName
+                mitarbeiterName: sanitizeMitarbeiterName(defaultMitarbeiter) || sanitizeMitarbeiterName(t.mitarbeiterName)
               }
             : t
         )
@@ -558,6 +573,7 @@ const System = () => {
                     onStatusChange={handleStatusChange}
                     statusSaving={statusSavingId === entry.id}
                     highlighted={highlightedId === entry.id}
+                    fallbackMitarbeiter={defaultMitarbeiter}
                   />
                 ))}
               </tbody>

@@ -1,7 +1,7 @@
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
-import { isLeadEntry, migrateLeadTicketStatus } from './callcenterLeadData';
+import { isLeadEntry, migrateLeadTicketStatus, sanitizeMitarbeiterName } from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_OPTIONS,
@@ -16,7 +16,7 @@ function MetaChip({ children, accent }) {
   );
 }
 
-function mitarbeiterName(entry) {
+function mitarbeiterName(entry, fallbackName = '') {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
   const candidates = [
@@ -26,27 +26,12 @@ function mitarbeiterName(entry) {
     entry?.lastEditedBy?.name,
     entry?.lastEditedBy?.userName,
     entry?.createdBy?.name,
-    entry?.createdBy?.userName
-  ];
-  const roleLike = [
-    'admin',
-    'Administrator',
-    'Büro Mitarbeiter',
-    'Marketing',
-    'Callcenter',
-    'Shops',
-    'Buchhaltung',
-    'Einkauf',
-    'Partner',
-    'Teamleiter shop',
-    'Mitarbeiter shop',
-    'Mitarbeiter'
+    entry?.createdBy?.userName,
+    fallbackName
   ];
   for (const candidate of candidates) {
-    const value = String(candidate ?? '').trim();
-    if (!value) continue;
-    if (roleLike.includes(value) || /^mitarbeiter(\s|$)/i.test(value)) continue;
-    return value;
+    const value = sanitizeMitarbeiterName(candidate);
+    if (value) return value;
   }
   return '';
 }
@@ -64,7 +49,8 @@ export default function VorvertragEntryCard({
   onEdit,
   onStatusChange,
   statusSaving = false,
-  highlighted = false
+  highlighted = false,
+  fallbackMitarbeiter = ''
 }) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
@@ -75,7 +61,7 @@ export default function VorvertragEntryCard({
   const name = lead
     ? (entry?.customerName || entry?.rufnummer || entry?.angebot || 'Ohne Namen')
     : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
-  const mitarbeiter = mitarbeiterName(entry);
+  const mitarbeiter = mitarbeiterName(entry, fallbackMitarbeiter);
   const ticketStatus = lead
     ? migrateLeadTicketStatus(entry?.ticketStatus)
     : normalizeVorvertragTicketStatus(entry?.ticketStatus);

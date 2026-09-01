@@ -12,7 +12,8 @@ import {
   saveInboxNotiz,
   shopFitsOrten,
   shopOptionLabel,
-  shopOptionsForOrten
+  shopOptionsForOrten,
+  sanitizeMitarbeiterName
 } from './callcenterLeadData';
 import './System.scss';
 import './CallcenterNachrichten.scss';
@@ -185,7 +186,7 @@ const CallcenterNachrichten = ({
     patchTicket(id, (t) => ({
       ...t,
       unread: false,
-      mitarbeiterName: t.mitarbeiterName || agentName || ''
+      mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName) || sanitizeMitarbeiterName(agentName)
     }));
   };
 
@@ -203,7 +204,7 @@ const CallcenterNachrichten = ({
         ...ticket,
         shop: value === 'Callcenter' ? '' : value,
         ticketStatus: current === 'Erledigt' ? 'Offen' : current,
-        mitarbeiterName: agentName || ticket.mitarbeiterName
+        mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || sanitizeMitarbeiterName(agentName)
       };
     };
     if (value === 'Callcenter' || shopFitsOrten(value)) {
@@ -233,7 +234,7 @@ const CallcenterNachrichten = ({
       patchTicket(active.id, (t) => ({
         ...t,
         unread: false,
-        mitarbeiterName: agentName || t.mitarbeiterName,
+        mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName) || sanitizeMitarbeiterName(agentName),
         messages: [...(t.messages || []), message]
       }));
       setDraft('');
