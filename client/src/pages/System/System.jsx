@@ -284,6 +284,22 @@ const System = () => {
     setFormKind('vorvertrag');
   };
 
+  const patchLeadAnswer = (field, value) => {
+    if (!leadEditId) return;
+    setLeadTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== leadEditId) return t;
+        const change = leadFieldChange(t, field, value);
+        const next = { ...t, [field]: value };
+        if (!change) return next;
+        return appendLeadEditLog(next, {
+          editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
+          changes: [change]
+        });
+      })
+    );
+  };
+
   const handleFormChange = (field, value) => {
     setForm((prev) => {
       if (field === 'ausgabeGeraet') {
@@ -552,6 +568,7 @@ const System = () => {
             ticket={editingLead}
             onClose={() => setLeadEditId('')}
             editLog={editingLead.editLog}
+            onAnswerChange={patchLeadAnswer}
           />
         </div>
       ) : null}

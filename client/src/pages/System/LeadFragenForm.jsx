@@ -13,6 +13,7 @@ export default function LeadFragenForm({
   subtitle = '',
   onClose,
   embedded = false,
+  fieldsOnly = false,
   editLog = []
 }) {
   const patch = (field, value) => onChange?.(field, value);
@@ -112,7 +113,7 @@ export default function LeadFragenForm({
     </div>
   );
 
-  if (embedded) return fields;
+  if (embedded || fieldsOnly) return fields;
 
   return (
     <section className="lead-fragen-panel" aria-label={title}>
