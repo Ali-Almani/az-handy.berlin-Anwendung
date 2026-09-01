@@ -115,10 +115,10 @@
     background: mix(#fff, $primary-color, 90%);
   }
 
-  &--whatsapp.sz-chip--active {
-    color: #128c47;
-    border-color: #25d366;
-    background: mix(#fff, #25d366, 88%);
+  &--facebook.sz-chip--active {
+    color: #1877f2;
+    border-color: #1877f2;
+    background: mix(#fff, #1877f2, 90%);
   }
 
   &--instagram.sz-chip--active {
@@ -225,8 +225,8 @@
   border-radius: 50%;
   color: #fff;
 
-  &--whatsapp {
-    background: #25d366;
+  &--facebook {
+    background: #1877f2;
   }
 
   &--instagram {

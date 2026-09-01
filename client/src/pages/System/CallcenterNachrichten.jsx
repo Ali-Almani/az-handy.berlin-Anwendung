@@ -1,24 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  LEAD_ANGEBOT_OPTIONS,
-  LEAD_O2_OPTIONS,
-  LEAD_STADT_OPTIONS,
   SOCIAL_CHANNELS,
   TEMPLATE_QUESTIONS,
   formFromLead,
   lastMessageAt,
   loadInboxNotiz,
   migrateLeadTicketStatus,
+  normalizeSocialChannel,
   saveInboxNotiz,
   shopFitsOrten,
   shopOptionLabel,
   shopOptionsForOrten,
-  sanitizeMitarbeiterName
+  sanitizeMitarbeiterName,
+  channelLabel
 } from './callcenterLeadData';
+import LeadFragenForm from './LeadFragenForm';
 import './System.scss';
 import './CallcenterNachrichten.scss';
-
-const channelLabel = (id) => SOCIAL_CHANNELS.find((c) => c.id === id)?.label || 'Posteingang';
 
 function formatListTime(iso) {
   if (!iso) return '';
@@ -48,17 +46,18 @@ function formatChatTime(iso) {
 }
 
 function ChannelIcon({ channel }) {
-  if (channel === 'whatsapp') {
+  const id = normalizeSocialChannel(channel);
+  if (id === 'facebook') {
     return (
       <svg className="sz-channel-icon" viewBox="0 0 24 24" aria-hidden>
         <path
           fill="currentColor"
-          d="M19.05 4.91A9.82 9.82 0 0012.04 2C6.55 2 2.08 6.46 2.08 11.94c0 1.76.46 3.48 1.34 5L2 22l5.2-1.36a9.9 9.9 0 004.84 1.23h.01c5.49 0 9.96-4.46 9.96-9.94a9.86 9.86 0 00-2.96-7.02zm-7 15.24h-.01a8.23 8.23 0 01-4.19-1.15l-.3-.18-3.08.81.82-3-.2-.31a8.2 8.2 0 01-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.42 5.83c0 4.55-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.12-.17.25-.64.8-.79.97-.14.17-.3.19-.55.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.3.37-.44.12-.15.17-.25.25-.41.08-.17.04-.31-.02-.44-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.09 0 1.24.9 2.43 1.03 2.6.12.17 1.78 2.72 4.3 3.81.6.26 1.07.41 1.44.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.23-.17-.48-.29z"
+          d="M14 8h3V4.5h-3c-2.5 0-4.5 2-4.5 4.5v2H7v3.5h2.5V21H13v-6.5h2.7l.6-3.5H13V9c0-.6.4-1 1-1z"
         />
       </svg>
     );
   }
-  if (channel === 'instagram') {
+  if (id === 'instagram') {
     return (
       <svg className="sz-channel-icon" viewBox="0 0 24 24" aria-hidden>
         <path
@@ -120,7 +119,7 @@ const CallcenterNachrichten = ({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return list
-      .filter((t) => (channel === 'all' ? true : t.channel === channel))
+      .filter((t) => (channel === 'all' ? true : normalizeSocialChannel(t.channel) === channel))
       .filter((t) => {
         if (readTab === 'notiz') return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
@@ -158,11 +157,12 @@ const CallcenterNachrichten = ({
   }, [active?.id, active?.messages?.length]);
 
   const unreadByChannel = useMemo(() => {
-    const counts = { all: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
+    const counts = { all: 0, facebook: 0, instagram: 0, tiktok: 0 };
     list.forEach((t) => {
       if (!t.unread) return;
       counts.all += 1;
-      if (t.channel) counts[t.channel] = (counts[t.channel] || 0) + 1;
+      const ch = normalizeSocialChannel(t.channel);
+      counts[ch] = (counts[ch] || 0) + 1;
     });
     return counts;
   }, [list]);
@@ -372,7 +372,7 @@ const CallcenterNachrichten = ({
                       className={`sz-ticket${selected ? ' sz-ticket--active' : ''}${t.unread ? ' sz-ticket--unread' : ''}`}
                       onClick={() => openTicket(t.id)}
                     >
-                      <span className={`sz-ticket-channel sz-ticket-channel--${t.channel || 'whatsapp'}`}>
+                      <span className={`sz-ticket-channel sz-ticket-channel--${normalizeSocialChannel(t.channel)}`}>
                         <ChannelIcon channel={t.channel} />
                       </span>
                       <span className="sz-ticket-body">
@@ -409,7 +409,7 @@ const CallcenterNachrichten = ({
                 <button type="button" className="sz-back" onClick={() => setMobileShowChat(false)}>
                   ← Liste
                 </button>
-                <span className={`sz-ticket-channel sz-ticket-channel--${active.channel || 'whatsapp'}`}>
+                <span className={`sz-ticket-channel sz-ticket-channel--${normalizeSocialChannel(active.channel)}`}>
                   <ChannelIcon channel={active.channel} />
                 </span>
                 <div className="sz-chat-head-text">
@@ -489,98 +489,7 @@ const CallcenterNachrichten = ({
         {active && answers ? (
           <aside className="sz-questions" aria-label="Vorlage Fragen">
             <h3 className="sz-questions-title">Vorlage – Fragen</h3>
-            <div className="sz-questions-form">
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-rufnummer">Rufnummer?</label>
-                <input
-                  id="q-rufnummer"
-                  className="form-input"
-                  type="tel"
-                  value={answers.rufnummer}
-                  onChange={(ev) => patchAnswer('rufnummer', ev.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-o2">O2 Kunde?</label>
-                <select
-                  id="q-o2"
-                  className="form-input"
-                  value={answers.o2Kunde}
-                  onChange={(ev) => patchAnswer('o2Kunde', ev.target.value)}
-                >
-                  <option value="">—</option>
-                  {LEAD_O2_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-angebot">Angebot / Produkt?</label>
-                <select
-                  id="q-angebot"
-                  className="form-input"
-                  value={answers.angebot}
-                  onChange={(ev) => patchAnswer('angebot', ev.target.value)}
-                >
-                  <option value="">—</option>
-                  {LEAD_ANGEBOT_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-produkt">Produkt Notiz?</label>
-                <input
-                  id="q-produkt"
-                  className="form-input"
-                  value={answers.produktNotiz}
-                  onChange={(ev) => patchAnswer('produktNotiz', ev.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-stadt">Stadt?</label>
-                <select
-                  id="q-stadt"
-                  className="form-input"
-                  value={answers.stadt}
-                  onChange={(ev) => patchAnswer('stadt', ev.target.value)}
-                >
-                  <option value="">—</option>
-                  {LEAD_STADT_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-marketing">Marketing Notiz?</label>
-                <input
-                  id="q-marketing"
-                  className="form-input"
-                  value={answers.marketingNotiz}
-                  onChange={(ev) => patchAnswer('marketingNotiz', ev.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-datum">Termin Datum?</label>
-                <input
-                  id="q-datum"
-                  className="form-input"
-                  type="date"
-                  value={answers.terminDatum}
-                  onChange={(ev) => patchAnswer('terminDatum', ev.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="q-zeit">Termin Zeit?</label>
-                <input
-                  id="q-zeit"
-                  className="form-input"
-                  type="time"
-                  value={answers.terminZeit}
-                  onChange={(ev) => patchAnswer('terminZeit', ev.target.value)}
-                />
-              </div>
-            </div>
+            <LeadFragenForm embedded answers={answers} onChange={patchAnswer} />
           </aside>
         ) : null}
       </div>

@@ -39,7 +39,7 @@ export const NACHRICHT_ART_OPTIONS = [
 ];
 
 export const SOCIAL_CHANNELS = [
-  { id: 'whatsapp', label: 'WhatsApp', short: 'WA' },
+  { id: 'facebook', label: 'Facebook', short: 'FB' },
   { id: 'instagram', label: 'Instagram', short: 'IG' },
   { id: 'tiktok', label: 'TikTok', short: 'TT' }
 ];
@@ -190,15 +190,41 @@ function pad3(n) {
   return String(n).padStart(3, '0');
 }
 
-function todayIdPrefix(date = new Date()) {
+function dateStamp(date = new Date()) {
   const d = String(date.getDate()).padStart(2, '0');
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const y = String(date.getFullYear());
-  return `CC-${d}${m}${y}-`;
+  return `${d}${m}${y}`;
 }
 
-export function nextLeadId(tickets = [], date = new Date()) {
-  const prefix = todayIdPrefix(date);
+export function normalizeSocialChannel(value) {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (v === 'instagram' || v === 'ig') return 'instagram';
+  if (v === 'tiktok' || v === 'tt') return 'tiktok';
+  return 'facebook';
+}
+
+export function channelShort(channel) {
+  const id = normalizeSocialChannel(channel);
+  return SOCIAL_CHANNELS.find((c) => c.id === id)?.short || 'FB';
+}
+
+export function channelLabel(channel) {
+  const id = normalizeSocialChannel(channel);
+  return SOCIAL_CHANNELS.find((c) => c.id === id)?.label || 'Facebook';
+}
+
+export function migrateLeadId(ticket) {
+  const channel = normalizeSocialChannel(ticket?.channel);
+  const short = channelShort(channel);
+  const id = String(ticket?.id || '');
+  const match = id.match(/^(CC|WA|FB|IG|TT)-(\d{8})-(\d+)$/i);
+  if (!match) return id;
+  return `${short}-${match[2]}-${pad3(Number.parseInt(match[3], 10))}`;
+}
+
+export function nextLeadId(tickets = [], date = new Date(), channel = 'facebook') {
+  const prefix = `${channelShort(channel)}-${dateStamp(date)}-`;
   let max = 0;
   tickets.forEach((t) => {
     const id = String(t?.id || '');
@@ -211,8 +237,8 @@ export function nextLeadId(tickets = [], date = new Date()) {
 
 const SEED_LEADS = [
   {
-    id: 'CC-31082026-001',
-    channel: 'whatsapp',
+    id: 'FB-31082026-001',
+    channel: 'facebook',
     customerName: 'Fatima Kaya',
     handle: '+49 176 8821 4410',
     rufnummer: '+49 176 8821 4410',
@@ -239,7 +265,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'CC-31082026-002',
+    id: 'IG-31082026-002',
     channel: 'instagram',
     customerName: 'Mehmet Özdemir',
     handle: '@mehmet.oz',
@@ -267,8 +293,8 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'CC-31082026-003',
-    channel: 'whatsapp',
+    id: 'FB-31082026-003',
+    channel: 'facebook',
     customerName: 'Lisa Weber',
     handle: '+49 163 5512 9088',
     rufnummer: '+49 163 5512 9088',
@@ -302,7 +328,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'CC-31082026-004',
+    id: 'TT-31082026-004',
     channel: 'tiktok',
     customerName: 'Nisa Yildiz',
     handle: '@nisa.shop',
@@ -330,8 +356,8 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'CC-31082026-005',
-    channel: 'whatsapp',
+    id: 'FB-31082026-005',
+    channel: 'facebook',
     customerName: 'Kai Hartmann',
     handle: '+49 157 3340 2291',
     rufnummer: '',
@@ -358,7 +384,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'CC-31082026-006',
+    id: 'IG-31082026-006',
     channel: 'instagram',
     customerName: 'Sara Müller',
     handle: '@sara.mueller.bln',
@@ -392,10 +418,11 @@ function cloneSeed() {
 }
 
 export function leadToNeuEntry(lead) {
+  const channel = normalizeSocialChannel(lead.channel);
   return {
-    id: lead.id,
+    id: migrateLeadId({ ...lead, channel }),
     source: 'lead',
-    channel: lead.channel,
+    channel,
     customerName: lead.customerName,
     handle: lead.handle,
     rufnummer: lead.rufnummer,
@@ -417,31 +444,35 @@ export function leadToNeuEntry(lead) {
   };
 }
 
+function hydrateLeadTicket(t) {
+  const channel = normalizeSocialChannel(t?.channel);
+  const withChannel = { ...t, channel };
+  return {
+    ...emptyLeadForm(),
+    ...withChannel,
+    id: migrateLeadId(withChannel),
+    channel,
+    messages: Array.isArray(t?.messages) ? t.messages : [],
+    ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
+    nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
+    shop: t?.shop || '',
+    mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName)
+  };
+}
+
 export function loadLeadTickets() {
   try {
     const raw = localStorage.getItem(LEAD_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((t) => ({
-          ...emptyLeadForm(),
-          ...t,
-          messages: Array.isArray(t.messages) ? t.messages : [],
-          ticketStatus: migrateLeadTicketStatus(t.ticketStatus),
-          nachrichtArt: normalizeNachrichtArt(t.nachrichtArt),
-          shop: t.shop || '',
-          mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName)
-        }));
+        return parsed.map(hydrateLeadTicket);
       }
     }
   } catch {
     /* Store ungültig – Seed verwenden */
   }
-  return cloneSeed().map((t) => ({
-    ...t,
-    ticketStatus: migrateLeadTicketStatus(t.ticketStatus),
-    mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName)
-  }));
+  return cloneSeed().map(hydrateLeadTicket);
 }
 
 export function saveLeadTickets(tickets) {

@@ -38,6 +38,44 @@
   }
 }
 
+.lead-fragen-panel {
+  margin-bottom: $spacing-md;
+  padding: $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  background: $bg-color;
+}
+
+.lead-fragen-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.lead-fragen-panel__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.lead-fragen-panel__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: $text-light;
+}
+
+.lead-fragen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: $spacing-sm $spacing-md;
+}
+
+.lead-fragen-grid .form-group {
+  margin-bottom: 0;
+}
+
 .system-toolbar {
   display: flex;
   flex-wrap: wrap;

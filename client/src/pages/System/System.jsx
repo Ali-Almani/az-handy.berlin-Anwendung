@@ -19,6 +19,7 @@ import MnpForm, {
   buildMnpPayload
 } from './MnpForm';
 import VorvertragEntryCard from './VorvertragEntryCard';
+import LeadFragenForm from './LeadFragenForm';
 import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import { emptyMnpDetails } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
@@ -35,7 +36,9 @@ import {
   loadLeadTickets,
   migrateLeadTicketStatus,
   saveLeadTickets,
-  sanitizeMitarbeiterName
+  sanitizeMitarbeiterName,
+  formFromLead,
+  channelLabel
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -63,6 +66,7 @@ const System = () => {
   const [statusSavingId, setStatusSavingId] = useState('');
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
+  const [leadEditId, setLeadEditId] = useState('');
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -120,6 +124,11 @@ const System = () => {
   const archivedEntries = useMemo(
     () => entries.filter((entry) => isVorvertragArchived(entry)),
     [entries]
+  );
+
+  const editingLead = useMemo(
+    () => leadTickets.find((t) => t.id === leadEditId) || null,
+    [leadTickets, leadEditId]
   );
 
   const activeEditLog = useMemo(() => {
@@ -245,8 +254,10 @@ const System = () => {
 
   const startEdit = (entry) => {
     if (isLeadEntry(entry)) {
-      setOpenLeadId(entry.id);
-      setListTab('nachrichten');
+      setLeadEditId(entry.id);
+      setHighlightedId(entry.id);
+      setShowForm(false);
+      requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       return;
     }
     const mnpOnly = isMnpOnlyEntry(entry);
@@ -266,10 +277,18 @@ const System = () => {
   const cancelForm = () => {
     setShowForm(false);
     setActiveId(null);
+    setLeadEditId('');
     setForm(emptyVorvertragForm());
     setGeraetSeed('');
     setMode('new');
     setFormKind('vorvertrag');
+  };
+
+  const patchLeadAnswer = (field, value) => {
+    if (!leadEditId) return;
+    setLeadTickets((prev) =>
+      prev.map((t) => (t.id === leadEditId ? { ...t, [field]: value } : t))
+    );
   };
 
   const handleFormChange = (field, value) => {
@@ -523,6 +542,19 @@ const System = () => {
         </div>
       ) : null}
 
+      {listTab === 'offen' && editingLead ? (
+        <div ref={formRef}>
+          <LeadFragenForm
+            answers={formFromLead(editingLead)}
+            onChange={patchLeadAnswer}
+            idPrefix="offen-q"
+            title="Vorlage – Fragen"
+            subtitle={`${editingLead.id} · ${channelLabel(editingLead.channel)} · ${editingLead.customerName || editingLead.rufnummer || 'Nachricht'}`}
+            onClose={() => setLeadEditId('')}
+          />
+        </div>
+      ) : null}
+
       {listTab === 'offen' || listTab === 'archiv' ? (
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'archiv' ? (
@@ -572,7 +604,7 @@ const System = () => {
                     onEdit={startEdit}
                     onStatusChange={handleStatusChange}
                     statusSaving={statusSavingId === entry.id}
-                    highlighted={highlightedId === entry.id}
+                    highlighted={highlightedId === entry.id || leadEditId === entry.id}
                     fallbackMitarbeiter={defaultMitarbeiter}
                   />
                 ))}
