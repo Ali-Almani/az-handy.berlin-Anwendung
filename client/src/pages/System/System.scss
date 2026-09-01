@@ -80,69 +80,6 @@
   margin-bottom: $spacing-md;
 }
 
-.lead-msg-thread {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  max-height: 28rem;
-  overflow-y: auto;
-  padding: $spacing-sm;
-  margin-bottom: $spacing-md;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-card;
-  background: $bg-light;
-}
-
-.lead-msg-thread__empty {
-  margin: 0;
-  padding: $spacing-sm;
-  font-size: 0.9rem;
-  color: $text-light;
-}
-
-.lead-msg {
-  max-width: min(36rem, 88%);
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid $border-color;
-  background: $bg-color;
-
-  &--customer {
-    align-self: flex-start;
-    border-top-left-radius: 3px;
-  }
-
-  &--agent {
-    align-self: flex-end;
-    background: mix(#fff, $primary-color, 90%);
-    border-color: mix(#fff, $primary-color, 70%);
-    border-top-right-radius: 3px;
-  }
-}
-
-.lead-msg__author {
-  margin: 0 0 0.2rem;
-  font-size: 0.72rem;
-  font-weight: $font-weight-bold;
-  color: $text-light;
-}
-
-.lead-msg__text {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.lead-msg__time {
-  display: block;
-  margin-top: 0.3rem;
-  font-size: 0.7rem;
-  color: $text-light;
-  text-align: right;
-}
-
 .system-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -736,6 +673,12 @@
   border: 1px solid $border-color;
   border-radius: $border-radius-sm;
   background: #fff;
+}
+
+.vorvertrag-edit-log__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: $text-light;
 }
 
 .vorvertrag-edit-log__list {
