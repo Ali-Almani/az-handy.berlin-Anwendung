@@ -28,13 +28,13 @@ import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
 import CallcenterNachrichten from './CallcenterNachrichten';
 import {
   countUnreadLeadTickets,
+  isLeadArchived,
   isLeadEntry,
   isLeadInNeu,
   leadToNeuEntry,
   loadLeadTickets,
-  normalizeLeadStatus,
-  saveLeadTickets,
-  shopFitsOrten
+  migrateLeadTicketStatus,
+  saveLeadTickets
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -78,8 +78,12 @@ const System = () => {
     [leadTickets]
   );
 
-  const leadNeuEntries = useMemo(
+  const leadOffenEntries = useMemo(
     () => leadTickets.filter(isLeadInNeu).map(leadToNeuEntry),
+    [leadTickets]
+  );
+  const leadArchivEntries = useMemo(
+    () => leadTickets.filter(isLeadArchived).map(leadToNeuEntry),
     [leadTickets]
   );
 
@@ -93,17 +97,23 @@ const System = () => {
       }
       return true;
     });
-    if (listTab === 'offen') return [...leadNeuEntries, ...vv];
+    if (listTab === 'offen') return [...leadOffenEntries, ...vv];
+    if (listTab === 'archiv') {
+      const leads = archivSearch.trim()
+        ? leadArchivEntries.filter((entry) => entryMatchesCustomerNameSearch(entry, archivSearch))
+        : leadArchivEntries;
+      return [...leads, ...vv];
+    }
     return vv;
-  }, [entries, listTab, archivSearch, leadNeuEntries]);
+  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries]);
 
   const offenCount = useMemo(
-    () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadNeuEntries.length,
-    [entries, leadNeuEntries]
+    () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadOffenEntries.length,
+    [entries, leadOffenEntries]
   );
   const archivCount = useMemo(
-    () => entries.filter((entry) => isVorvertragArchived(entry)).length,
-    [entries]
+    () => entries.filter((entry) => isVorvertragArchived(entry)).length + leadArchivEntries.length,
+    [entries, leadArchivEntries]
   );
 
   const archivedEntries = useMemo(
@@ -319,22 +329,24 @@ const System = () => {
     if (!id) return;
 
     if (isLeadEntry(entry)) {
-      if (ticketStatus === 'Callcenter') {
-        if (normalizeLeadStatus(entry?.ticketStatus) === 'Callcenter') return;
-        setLeadTickets((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, ticketStatus: 'Callcenter' } : t))
-        );
-      } else if (shopFitsOrten(ticketStatus)) {
-        if (normalizeLeadStatus(entry?.ticketStatus) === 'Orten' && entry?.shop === ticketStatus) return;
-        setLeadTickets((prev) =>
-          prev.map((t) =>
-            t.id === id ? { ...t, ticketStatus: 'Orten', shop: ticketStatus } : t
-          )
-        );
+      const nextLead = migrateLeadTicketStatus(ticketStatus);
+      if (migrateLeadTicketStatus(entry?.ticketStatus) === nextLead) return;
+      setLeadTickets((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                ticketStatus: nextLead,
+                mitarbeiterName: defaultMitarbeiter || t.mitarbeiterName
+              }
+            : t
+        )
+      );
+      if (nextLead === 'Erledigt') {
+        setListTab('archiv');
       } else {
-        return;
+        setListTab('offen');
       }
-      setListTab('offen');
       setHighlightedId(id);
       return;
     }

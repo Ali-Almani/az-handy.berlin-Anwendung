@@ -1,13 +1,7 @@
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
-import {
-  isLeadEntry,
-  normalizeLeadStatus,
-  shopFitsOrten,
-  shopOptionLabel,
-  shopOptionsForOrten
-} from './callcenterLeadData';
+import { isLeadEntry, migrateLeadTicketStatus } from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_OPTIONS,
@@ -23,15 +17,17 @@ function MetaChip({ children, accent }) {
 }
 
 function mitarbeiterName(entry) {
-  const candidate =
-    entry?.mitarbeiterName ||
-    entry?.createdBy?.name ||
-    entry?.createdBy?.userName ||
-    entry?.lastEditedBy?.name ||
-    entry?.lastEditedBy?.userName ||
-    '';
-  const value = String(candidate).trim();
-  if (!value) return '';
+  const e = entry?.eingabeDetails || {};
+  const mnp = mnpDetailsFromEingabe(e);
+  const candidates = [
+    entry?.mitarbeiterName,
+    mnp.mitarbeiter,
+    e.mitarbeiter,
+    entry?.lastEditedBy?.name,
+    entry?.lastEditedBy?.userName,
+    entry?.createdBy?.name,
+    entry?.createdBy?.userName
+  ];
   const roleLike = [
     'admin',
     'Administrator',
@@ -46,8 +42,13 @@ function mitarbeiterName(entry) {
     'Mitarbeiter shop',
     'Mitarbeiter'
   ];
-  if (roleLike.includes(value) || /^mitarbeiter(\s|$)/i.test(value)) return '';
-  return value;
+  for (const candidate of candidates) {
+    const value = String(candidate ?? '').trim();
+    if (!value) continue;
+    if (roleLike.includes(value) || /^mitarbeiter(\s|$)/i.test(value)) continue;
+    return value;
+  }
+  return '';
 }
 
 function formatDatum(value) {
@@ -76,11 +77,8 @@ export default function VorvertragEntryCard({
     : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
   const mitarbeiter = mitarbeiterName(entry);
   const ticketStatus = lead
-    ? (normalizeLeadStatus(entry?.ticketStatus) || 'Callcenter')
+    ? migrateLeadTicketStatus(entry?.ticketStatus)
     : normalizeVorvertragTicketStatus(entry?.ticketStatus);
-  const ortenShops = shopOptionsForOrten();
-  const leadSelectValue =
-    ticketStatus === 'Orten' && shopFitsOrten(entry?.shop) ? entry.shop : 'Callcenter';
   const badgeMod = vorvertragTicketStatusBadge(ticketStatus);
   const filiale = formatEinsatzOrt(entry?.filiale);
 
@@ -105,39 +103,24 @@ export default function VorvertragEntryCard({
         )}
       </td>
       <td className="vorvertrag-ticket-row__status">
-        {lead ? (
+        <div className="vorvertrag-ticket-row__status-inner">
+          <span
+            className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${badgeMod}`}
+          >
+            {ticketStatus}
+          </span>
           <select
             className="form-input vorvertrag-ticket-row__status-select"
-            value={leadSelectValue}
+            value={ticketStatus}
             disabled={statusSaving}
             onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
-            aria-label={`Callcenter oder Shop für ${name}`}
+            aria-label={`Status für ${name}`}
           >
-            <option value="Callcenter">Callcenter</option>
-            {ortenShops.map((opt) => (
-              <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
+            {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
-        ) : (
-          <div className="vorvertrag-ticket-row__status-inner">
-            <span
-              className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${badgeMod}`}
-            >
-              {ticketStatus}
-            </span>
-            <select
-              className="form-input vorvertrag-ticket-row__status-select"
-              value={ticketStatus}
-              disabled={statusSaving}
-              onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
-              aria-label={`Status für ${name}`}
-            >
-              {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        </div>
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">{mitarbeiter || '—'}</td>
       <td className="vorvertrag-ticket-row__actions">

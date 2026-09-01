@@ -1,3 +1,5 @@
+import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
+
 export const LEAD_STATUS_OPTIONS = ['Orten', 'Callcenter'];
 export const LEAD_STATUS_DEFAULT = 'Callcenter';
 
@@ -85,8 +87,17 @@ export function isLeadEntry(entry) {
   return entry?.source === 'lead';
 }
 
+export function migrateLeadTicketStatus(value) {
+  if (normalizeLeadStatus(value)) return VORVERTRAG_TICKET_STATUS_DEFAULT;
+  return normalizeVorvertragTicketStatus(value);
+}
+
+export function isLeadArchived(entry) {
+  return migrateLeadTicketStatus(entry?.ticketStatus) === 'Erledigt';
+}
+
 export function isLeadInNeu(entry) {
-  return LEAD_STATUS_OPTIONS.includes(normalizeLeadStatus(entry?.ticketStatus));
+  return !isLeadArchived(entry);
 }
 
 export function leadStatusBadge(status) {
@@ -104,7 +115,7 @@ export function emptyLeadForm() {
     terminDatum: '',
     terminZeit: '',
     shop: '',
-    ticketStatus: LEAD_STATUS_DEFAULT,
+    ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     nachrichtArt: ''
   };
 }
@@ -120,7 +131,7 @@ export function formFromLead(entry) {
     terminDatum: entry?.terminDatum || '',
     terminZeit: entry?.terminZeit || '',
     shop: entry?.shop || '',
-    ticketStatus: normalizeLeadStatus(entry?.ticketStatus) || LEAD_STATUS_DEFAULT,
+    ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
     nachrichtArt: normalizeNachrichtArt(entry?.nachrichtArt)
   };
 }
@@ -373,7 +384,7 @@ export function leadToNeuEntry(lead) {
     kundeVorname: lead.customerName || lead.rufnummer || lead.angebot || 'Nachricht',
     kundeNachname: '',
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
-    ticketStatus: normalizeLeadStatus(lead.ticketStatus) || LEAD_STATUS_DEFAULT,
+    ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
     mitarbeiterName: lead.mitarbeiterName || ''
   };
@@ -389,19 +400,19 @@ export function loadLeadTickets() {
           ...emptyLeadForm(),
           ...t,
           messages: Array.isArray(t.messages) ? t.messages : [],
-          ticketStatus: normalizeLeadStatus(t.ticketStatus) || LEAD_STATUS_DEFAULT,
+          ticketStatus: migrateLeadTicketStatus(t.ticketStatus),
           nachrichtArt: normalizeNachrichtArt(t.nachrichtArt),
-          shop:
-            normalizeLeadStatus(t.ticketStatus) === 'Orten' && t.shop && !shopFitsOrten(t.shop)
-              ? ''
-              : t.shop || ''
+          shop: t.shop || ''
         }));
       }
     }
   } catch {
     /* Store ungültig – Seed verwenden */
   }
-  return cloneSeed();
+  return cloneSeed().map((t) => ({
+    ...t,
+    ticketStatus: migrateLeadTicketStatus(t.ticketStatus)
+  }));
 }
 
 export function saveLeadTickets(tickets) {

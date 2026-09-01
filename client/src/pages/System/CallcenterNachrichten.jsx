@@ -8,7 +8,7 @@ import {
   formFromLead,
   lastMessageAt,
   loadInboxNotiz,
-  normalizeLeadStatus,
+  migrateLeadTicketStatus,
   saveInboxNotiz,
   shopFitsOrten,
   shopOptionLabel,
@@ -77,9 +77,8 @@ function ChannelIcon({ channel }) {
   );
 }
 
-function StatusShopSelect({ status, shop, shops, onChange, ariaLabel }) {
-  const isOrten = normalizeLeadStatus(status) === 'Orten';
-  const value = isOrten && shopFitsOrten(shop) ? shop : 'Callcenter';
+function StatusShopSelect({ shop, shops, onChange, ariaLabel }) {
+  const value = shopFitsOrten(shop) ? shop : 'Callcenter';
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select"
@@ -183,7 +182,11 @@ const CallcenterNachrichten = ({
     setActiveId(id);
     setDraft('');
     setMobileShowChat(true);
-    patchTicket(id, (t) => ({ ...t, unread: false }));
+    patchTicket(id, (t) => ({
+      ...t,
+      unread: false,
+      mitarbeiterName: t.mitarbeiterName || agentName || ''
+    }));
   };
 
   useEffect(() => {
@@ -194,14 +197,19 @@ const CallcenterNachrichten = ({
   }, [openTicketId]);
 
   const handleStatusOrShop = (id, value) => {
-    if (value === 'Callcenter') {
-      patchTicket(id, (t) => ({ ...t, ticketStatus: 'Callcenter' }));
-    } else if (shopFitsOrten(value)) {
-      patchTicket(id, (t) => ({ ...t, ticketStatus: 'Orten', shop: value }));
-    } else {
-      return;
+    const assignShop = (ticket) => {
+      const current = migrateLeadTicketStatus(ticket.ticketStatus);
+      return {
+        ...ticket,
+        shop: value === 'Callcenter' ? '' : value,
+        ticketStatus: current === 'Erledigt' ? 'Offen' : current,
+        mitarbeiterName: agentName || ticket.mitarbeiterName
+      };
+    };
+    if (value === 'Callcenter' || shopFitsOrten(value)) {
+      patchTicket(id, assignShop);
+      onStatusApplied?.(id);
     }
-    onStatusApplied?.(id);
   };
 
   const patchAnswer = (field, value) => {
@@ -414,7 +422,6 @@ const CallcenterNachrichten = ({
                 </div>
                 <div className="sz-chat-status">
                   <StatusShopSelect
-                    status={active.ticketStatus}
                     shop={active.shop}
                     shops={ortenShops}
                     onChange={(value) => handleStatusOrShop(active.id, value)}
