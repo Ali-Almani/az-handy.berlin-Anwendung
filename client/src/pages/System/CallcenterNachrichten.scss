@@ -35,6 +35,53 @@
   background: $bg-color;
 }
 
+.sz-read-tabs {
+  display: flex;
+  gap: 0.15rem;
+  margin: -0.25rem -0.25rem $spacing-sm;
+  padding: 0 0.25rem;
+  border-bottom: 1px solid $border-color;
+}
+
+.sz-read-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.45rem 0.4rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: $text-light;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-color;
+  }
+
+  &--active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+  }
+}
+
+.sz-read-tab-count {
+  min-width: 1.15rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: mix(#fff, $text-light, 82%);
+  color: $text-color;
+  font-size: 0.7rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.3;
+  text-align: center;
+}
+
 .sz-channel-row {
   display: flex;
   flex-wrap: wrap;

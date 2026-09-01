@@ -104,6 +104,7 @@ const CallcenterNachrichten = ({
 }) => {
   const ortenShops = useMemo(() => shopOptionsForOrten(), []);
   const [channel, setChannel] = useState('all');
+  const [readTab, setReadTab] = useState('ungelesen');
   const [search, setSearch] = useState('');
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
@@ -117,6 +118,10 @@ const CallcenterNachrichten = ({
     const q = search.trim().toLowerCase();
     return list
       .filter((t) => (channel === 'all' ? true : t.channel === channel))
+      .filter((t) => {
+        if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
+        return !t.unread;
+      })
       .filter((t) => {
         if (!q) return true;
         const hay = [
@@ -133,7 +138,7 @@ const CallcenterNachrichten = ({
         return hay.includes(q);
       })
       .sort((a, b) => String(lastMessageAt(b)).localeCompare(String(lastMessageAt(a))));
-  }, [list, channel, search]);
+  }, [list, channel, readTab, search, activeId]);
 
   const active = list.find((t) => t.id === activeId) || null;
   const answers = active ? formFromLead(active) : null;
@@ -152,6 +157,14 @@ const CallcenterNachrichten = ({
     });
     return counts;
   }, [list]);
+
+  const readTabCounts = useMemo(() => {
+    const inChannel = list.filter((t) => (channel === 'all' ? true : t.channel === channel));
+    return {
+      ungelesen: inChannel.filter((t) => t.unread).length,
+      gelesen: inChannel.filter((t) => !t.unread).length
+    };
+  }, [list, channel]);
 
   const patchTicket = (id, updater) => {
     onTicketsChange?.((prev) => prev.map((t) => (t.id === id ? updater(t) : t)));
@@ -229,6 +242,32 @@ const CallcenterNachrichten = ({
       <div className={`sz-layout${active ? ' sz-layout--with-questions' : ''}`}>
         <aside className="sz-list-pane">
           <div className="sz-filters">
+            <div className="sz-read-tabs" role="tablist" aria-label="Gelesen oder ungelesen">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={readTab === 'ungelesen'}
+                className={`sz-read-tab${readTab === 'ungelesen' ? ' sz-read-tab--active' : ''}`}
+                onClick={() => setReadTab('ungelesen')}
+              >
+                Ungelesen
+                {readTabCounts.ungelesen > 0 ? (
+                  <span className="sz-chip-count">{readTabCounts.ungelesen}</span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={readTab === 'gelesen'}
+                className={`sz-read-tab${readTab === 'gelesen' ? ' sz-read-tab--active' : ''}`}
+                onClick={() => setReadTab('gelesen')}
+              >
+                Gelesen
+                {readTabCounts.gelesen > 0 ? (
+                  <span className="sz-read-tab-count">{readTabCounts.gelesen}</span>
+                ) : null}
+              </button>
+            </div>
             <div className="sz-channel-row" role="tablist" aria-label="Kanäle">
               <button
                 type="button"
@@ -270,7 +309,11 @@ const CallcenterNachrichten = ({
           </div>
           <ul className="sz-ticket-list">
             {filtered.length === 0 ? (
-              <li className="sz-empty">Kein Posteingang für diesen Filter.</li>
+              <li className="sz-empty">
+                {readTab === 'ungelesen'
+                  ? 'Keine ungelesenen Nachrichten.'
+                  : 'Keine gelesenen Nachrichten.'}
+              </li>
             ) : (
               filtered.map((t) => {
                 const last = t.messages?.[t.messages.length - 1];
