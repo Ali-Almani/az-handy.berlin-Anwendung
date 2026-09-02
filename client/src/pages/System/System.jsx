@@ -609,7 +609,7 @@ const System = () => {
                   <th>Datum</th>
                   <th>Filiale</th>
                   <th>Typ</th>
-                  <th>Priorität</th>
+                  {listTab !== 'archiv' ? <th>Priorität</th> : null}
                   <th>Status</th>
                   <th>Mitarbeiter</th>
                   <th>Aktion</th>
@@ -625,6 +625,7 @@ const System = () => {
                     statusSaving={statusSavingId === entry.id}
                     highlighted={highlightedId === entry.id || leadEditId === entry.id}
                     fallbackMitarbeiter={defaultMitarbeiter}
+                    showPriority={listTab !== 'archiv'}
                   />
                 ))}
               </tbody>

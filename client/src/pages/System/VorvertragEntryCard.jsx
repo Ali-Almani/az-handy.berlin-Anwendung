@@ -51,7 +51,8 @@ export default function VorvertragEntryCard({
   onStatusChange,
   statusSaving = false,
   highlighted = false,
-  fallbackMitarbeiter = ''
+  fallbackMitarbeiter = '',
+  showPriority = true
 }) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
@@ -91,11 +92,13 @@ export default function VorvertragEntryCard({
           'Vorvertrag'
         )}
       </td>
-      <td className="vorvertrag-ticket-row__priority">
-        <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--prio-${priorityMod}`}>
-          {priority}
-        </span>
-      </td>
+      {showPriority ? (
+        <td className="vorvertrag-ticket-row__priority">
+          <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--prio-${priorityMod}`}>
+            {priority}
+          </span>
+        </td>
+      ) : null}
       <td className="vorvertrag-ticket-row__status">
         <div className="vorvertrag-ticket-row__status-inner">
           <span
