@@ -287,6 +287,26 @@
   gap: 0.4rem;
 }
 
+.vorvertrag-table .vorvertrag-ticket-row__status {
+  width: 1%;
+  max-width: 9.75rem;
+  white-space: nowrap;
+}
+
+.vorvertrag-table .vorvertrag-ticket-row__status-inner {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.vorvertrag-table .vorvertrag-ticket-row__status-select {
+  min-width: 0;
+  width: 100%;
+  max-width: 9.5rem;
+  font-size: 0.78rem;
+}
+
 .vorvertrag-ticket-row__status-select {
   min-width: 12.5rem;
   min-height: 2rem;
