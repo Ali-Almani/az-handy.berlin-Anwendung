@@ -47,7 +47,14 @@ function formatDatum(value) {
   return raw;
 }
 
-const STATUS_SELECT_CHROME_PX = 42;
+const STATUS_SELECT_CHROME_PX = 56;
+
+function longestStatusLabel() {
+  return VORVERTRAG_TICKET_STATUS_OPTIONS.reduce(
+    (longest, opt) => (opt.length > longest.length ? opt : longest),
+    ''
+  );
+}
 
 function StatusSelect({ value, name, disabled, onChange }) {
   const sizerRef = useRef(null);
@@ -62,7 +69,7 @@ function StatusSelect({ value, name, disabled, onChange }) {
   return (
     <>
       <span ref={sizerRef} className="vorvertrag-ticket-row__status-sizer" aria-hidden>
-        {value}
+        {longestStatusLabel()}
       </span>
       <select
         className="form-input vorvertrag-ticket-row__status-select"
