@@ -293,21 +293,29 @@
 }
 
 .vorvertrag-table .vorvertrag-ticket-row__status-inner {
+  position: relative;
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: flex-start;
   gap: 0.2rem;
 }
 
+.vorvertrag-ticket-row__status-sizer {
+  position: absolute;
+  visibility: hidden;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 400;
+  pointer-events: none;
+}
+
 .vorvertrag-table select.form-input.vorvertrag-ticket-row__status-select {
   box-sizing: border-box;
-  width: auto;
-  min-width: 0;
+  min-width: unset;
   max-width: none;
-  field-sizing: content;
   font-size: 0.82rem;
-  padding-left: 0.45rem;
-  padding-right: 1.55rem;
+  padding-left: 0.5rem;
+  padding-right: 1.75rem;
 }
 
 .vorvertrag-ticket-row__status-select {

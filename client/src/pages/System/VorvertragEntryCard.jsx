@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
@@ -44,6 +45,39 @@ function formatDatum(value) {
   const parts = raw.split('-');
   if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
   return raw;
+}
+
+const STATUS_SELECT_CHROME_PX = 42;
+
+function StatusSelect({ value, name, disabled, onChange }) {
+  const sizerRef = useRef(null);
+  const [widthPx, setWidthPx] = useState(null);
+
+  useLayoutEffect(() => {
+    const el = sizerRef.current;
+    if (!el) return;
+    setWidthPx(Math.ceil(el.getBoundingClientRect().width) + STATUS_SELECT_CHROME_PX);
+  }, [value]);
+
+  return (
+    <>
+      <span ref={sizerRef} className="vorvertrag-ticket-row__status-sizer" aria-hidden>
+        {value}
+      </span>
+      <select
+        className="form-input vorvertrag-ticket-row__status-select"
+        value={value}
+        disabled={disabled}
+        onChange={onChange}
+        aria-label={`Status für ${name}`}
+        style={widthPx ? { width: `${widthPx}px` } : undefined}
+      >
+        {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </>
+  );
 }
 
 export default function VorvertragEntryCard({
@@ -114,18 +148,12 @@ export default function VorvertragEntryCard({
           >
             {ticketStatus}
           </span>
-          <select
-            className="form-input vorvertrag-ticket-row__status-select"
+          <StatusSelect
             value={ticketStatus}
+            name={name}
             disabled={statusSaving}
             onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
-            aria-label={`Status für ${name}`}
-            style={{ width: `calc(${String(ticketStatus).length}ch + 2.15rem)` }}
-          >
-            {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          />
         </div>
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">{mitarbeiter || '—'}</td>
