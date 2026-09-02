@@ -8,6 +8,7 @@ import {
   vorvertragTicketStatusBadge
 } from './vorvertragTicketStatus';
 import { normalizeTicketPriority, ticketPriorityBadge } from './ticketPriority';
+import { normalizeTicketLanguage } from './ticketLanguage';
 
 function MetaChip({ children, accent }) {
   return (
@@ -52,7 +53,8 @@ export default function VorvertragEntryCard({
   statusSaving = false,
   highlighted = false,
   fallbackMitarbeiter = '',
-  showPriority = true
+  showPriority = true,
+  showSprache = true
 }) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
@@ -70,6 +72,7 @@ export default function VorvertragEntryCard({
   const badgeMod = vorvertragTicketStatusBadge(ticketStatus);
   const priority = normalizeTicketPriority(entry?.priority);
   const priorityMod = ticketPriorityBadge(priority);
+  const sprache = normalizeTicketLanguage(entry?.sprache);
   const filiale = formatEinsatzOrt(entry?.filiale);
 
   return (
@@ -97,6 +100,11 @@ export default function VorvertragEntryCard({
           <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--prio-${priorityMod}`}>
             {priority}
           </span>
+        </td>
+      ) : null}
+      {showSprache ? (
+        <td className="vorvertrag-ticket-row__sprache">
+          <MetaChip>{sprache}</MetaChip>
         </td>
       ) : null}
       <td className="vorvertrag-ticket-row__status">

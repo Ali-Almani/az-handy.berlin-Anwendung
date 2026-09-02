@@ -610,6 +610,7 @@ const System = () => {
                   <th>Filiale</th>
                   <th>Typ</th>
                   {listTab !== 'archiv' ? <th>Priorität</th> : null}
+                  {listTab !== 'archiv' ? <th>Sprache</th> : null}
                   <th>Status</th>
                   <th>Mitarbeiter</th>
                   <th>Aktion</th>
@@ -626,6 +627,7 @@ const System = () => {
                     highlighted={highlightedId === entry.id || leadEditId === entry.id}
                     fallbackMitarbeiter={defaultMitarbeiter}
                     showPriority={listTab !== 'archiv'}
+                    showSprache={listTab !== 'archiv'}
                   />
                 ))}
               </tbody>
