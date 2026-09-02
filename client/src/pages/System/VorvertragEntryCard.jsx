@@ -7,6 +7,7 @@ import {
   VORVERTRAG_TICKET_STATUS_OPTIONS,
   vorvertragTicketStatusBadge
 } from './vorvertragTicketStatus';
+import { normalizeTicketPriority, ticketPriorityBadge } from './ticketPriority';
 
 function MetaChip({ children, accent }) {
   return (
@@ -66,6 +67,8 @@ export default function VorvertragEntryCard({
     ? migrateLeadTicketStatus(entry?.ticketStatus)
     : normalizeVorvertragTicketStatus(entry?.ticketStatus);
   const badgeMod = vorvertragTicketStatusBadge(ticketStatus);
+  const priority = normalizeTicketPriority(entry?.priority);
+  const priorityMod = ticketPriorityBadge(priority);
   const filiale = formatEinsatzOrt(entry?.filiale);
 
   return (
@@ -87,6 +90,11 @@ export default function VorvertragEntryCard({
         ) : (
           'Vorvertrag'
         )}
+      </td>
+      <td className="vorvertrag-ticket-row__priority">
+        <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--prio-${priorityMod}`}>
+          {priority}
+        </span>
       </td>
       <td className="vorvertrag-ticket-row__status">
         <div className="vorvertrag-ticket-row__status-inner">

@@ -6,6 +6,7 @@ import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_DEFAULT
 } from '../constants/vorvertragTicketStatus.js';
+import { normalizeTicketPriority, TICKET_PRIORITY_DEFAULT } from '../constants/ticketPriority.js';
 import { writeAuditLog } from '../utils/auditLog.js';
 import {
   backfillTicketIds,
@@ -291,7 +292,8 @@ function normalizeEntryBody(body = {}) {
       wert: zuzahlungJa === 'ja' ? String(body.zuzahlungWert ?? body.zuzahlung?.wert ?? '').trim() : ''
     },
     eingabeDetails: normalizeEingabeDetails(body.eingabeDetails ?? body),
-    ticketStatus: normalizeVorvertragTicketStatus(body.ticketStatus ?? VORVERTRAG_TICKET_STATUS_DEFAULT)
+    ticketStatus: normalizeVorvertragTicketStatus(body.ticketStatus ?? VORVERTRAG_TICKET_STATUS_DEFAULT),
+    priority: normalizeTicketPriority(body.priority ?? TICKET_PRIORITY_DEFAULT)
   };
 }
 
@@ -457,6 +459,10 @@ export async function updateVorvertrag(req, res) {
         req.body?.ticketStatus != null
           ? normalizeVorvertragTicketStatus(req.body.ticketStatus)
           : normalizeVorvertragTicketStatus(prev.ticketStatus),
+      priority:
+        req.body?.priority != null
+          ? normalizeTicketPriority(req.body.priority)
+          : normalizeTicketPriority(prev.priority),
       updatedAt: now,
       lastEditedBy: editor,
       editHistory: history.slice(0, 200)

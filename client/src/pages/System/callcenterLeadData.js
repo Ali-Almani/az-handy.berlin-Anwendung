@@ -1,4 +1,5 @@
 import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
+import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
 
 export const LEAD_STATUS_OPTIONS = ['Orten', 'Callcenter'];
 export const LEAD_STATUS_DEFAULT = 'Callcenter';
@@ -116,6 +117,7 @@ export function emptyLeadForm() {
     terminZeit: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
+    priority: TICKET_PRIORITY_DEFAULT,
     nachrichtArt: '',
     editLog: []
   };
@@ -133,6 +135,7 @@ export function formFromLead(entry) {
     terminZeit: entry?.terminZeit || '',
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
+    priority: normalizeTicketPriority(entry?.priority),
     nachrichtArt: normalizeNachrichtArt(entry?.nachrichtArt)
   };
 }
@@ -148,6 +151,7 @@ const LEAD_FIELD_LABELS = {
   terminZeit: 'Termin Zeit',
   shop: 'Shop',
   ticketStatus: 'Status',
+  priority: 'Priorität',
   mitarbeiterName: 'Mitarbeiter'
 };
 
@@ -518,6 +522,7 @@ export function leadToNeuEntry(lead) {
     kundeNachname: '',
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
     ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
+    priority: normalizeTicketPriority(lead.priority),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
     mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
@@ -534,6 +539,7 @@ function hydrateLeadTicket(t) {
     channel,
     messages: Array.isArray(t?.messages) ? t.messages : [],
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
+    priority: normalizeTicketPriority(t?.priority),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),

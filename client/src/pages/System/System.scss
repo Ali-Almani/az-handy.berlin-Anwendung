@@ -361,6 +361,26 @@
     color: darken($info-color, 18%);
     background: mix(#fff, $info-color, 82%);
   }
+
+  &--prio-low {
+    color: $text-light;
+    background: mix(#fff, $border-color, 35%);
+  }
+
+  &--prio-normal {
+    color: $text-color;
+    background: mix(#fff, $border-color, 40%);
+  }
+
+  &--prio-high {
+    color: darken($warning-color, 28%);
+    background: mix(#fff, $warning-color, 78%);
+  }
+
+  &--prio-urgent {
+    color: darken($danger-color, 8%);
+    background: mix(#fff, $danger-color, 82%);
+  }
 }
 
 .vorvertrag-panel {

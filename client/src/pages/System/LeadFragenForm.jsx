@@ -4,6 +4,7 @@ import {
   LEAD_O2_OPTIONS,
   LEAD_STADT_OPTIONS
 } from './callcenterLeadData';
+import TicketPriorityField from './TicketPriorityField';
 
 export default function LeadFragenForm({
   answers,
@@ -20,6 +21,12 @@ export default function LeadFragenForm({
 
   const fields = (
     <div className={embedded ? 'sz-questions-form' : 'lead-fragen-grid'}>
+      <TicketPriorityField
+        id={`${idPrefix}-priority`}
+        value={answers?.priority}
+        onChange={(value) => patch('priority', value)}
+        questionStyle
+      />
       <div className="form-group">
         <label className="form-label" htmlFor={`${idPrefix}-rufnummer`}>Rufnummer?</label>
         <input

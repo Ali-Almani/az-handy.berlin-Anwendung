@@ -6,6 +6,8 @@ import MnpFieldsSection from './MnpFieldsSection';
 import VorvertragEditLog from './VorvertragEditLog';
 import { emptyMnpDetails, mnpDetailsFromEingabe } from './mnpConstants';
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
+import TicketPriorityField from './TicketPriorityField';
+import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
@@ -32,7 +34,8 @@ export const emptyVorvertragForm = () => ({
   vvl: 'Ohne',
   eposKundenummer: '',
   mnpDetails: emptyMnpDetails(),
-  notiz: ''
+  notiz: '',
+  priority: TICKET_PRIORITY_DEFAULT
 });
 
 export function formFromEntry(entry) {
@@ -61,7 +64,8 @@ export function formFromEntry(entry) {
     vvl: normalizeMitOhne(e.vvl),
     eposKundenummer: e.eposKundenummer || '',
     mnpDetails: mnpDetailsFromEingabe(e),
-    notiz: e.notiz || ''
+    notiz: e.notiz || '',
+    priority: normalizeTicketPriority(entry?.priority)
   };
 }
 
@@ -94,7 +98,8 @@ export function buildVorvertragPayload(form) {
       eposKundenummer: form.eposKundenummer,
       mnpDetails: form.mnpDetails,
       notiz: form.notiz
-    }
+    },
+    priority: normalizeTicketPriority(form.priority)
   };
 }
 
@@ -212,6 +217,11 @@ export default function VorvertragForm({
               onChange={(ev) => handleChange('kundeNachname', ev.target.value)}
             />
           </div>
+          <TicketPriorityField
+            id="vv-priority"
+            value={form.priority}
+            onChange={(value) => handleChange('priority', value)}
+          />
         </div>
       </div>
 

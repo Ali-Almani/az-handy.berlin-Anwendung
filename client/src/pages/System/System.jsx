@@ -609,6 +609,7 @@ const System = () => {
                   <th>Datum</th>
                   <th>Filiale</th>
                   <th>Typ</th>
+                  <th>Priorität</th>
                   <th>Status</th>
                   <th>Mitarbeiter</th>
                   <th>Aktion</th>

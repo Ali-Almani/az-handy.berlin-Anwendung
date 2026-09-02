@@ -8,11 +8,14 @@ import {
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import { VORVERTRAG_ENTRY_TYPE_MNP } from './vorvertragEntryType';
 import VorvertragEditLog from './VorvertragEditLog';
+import TicketPriorityField from './TicketPriorityField';
+import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
 
 export const emptyMnpForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
   filiale: '',
-  mnpDetails: emptyMnpDetails()
+  mnpDetails: emptyMnpDetails(),
+  priority: TICKET_PRIORITY_DEFAULT
 });
 
 export function formFromMnpEntry(entry) {
@@ -20,7 +23,8 @@ export function formFromMnpEntry(entry) {
   return {
     datum: entry?.datum || '',
     filiale: normalizeEinsatzOrt(entry?.filiale) || entry?.filiale || '',
-    mnpDetails: mnpDetailsFromEingabe(e)
+    mnpDetails: mnpDetailsFromEingabe(e),
+    priority: normalizeTicketPriority(entry?.priority)
   };
 }
 
@@ -43,7 +47,8 @@ export function buildMnpPayload(form) {
     zuzahlungWert: '',
     eingabeDetails: {
       mnpDetails: mnp
-    }
+    },
+    priority: normalizeTicketPriority(form.priority)
   };
 }
 
@@ -138,6 +143,11 @@ export default function MnpForm({
                 <p className="vorvertrag-step-hint">{navbarFiliale}</p>
               </div>
             ) : null}
+            <TicketPriorityField
+              id="mnp-priority"
+              value={form.priority}
+              onChange={(value) => onPatch?.({ priority: value })}
+            />
           </>
         )}
       />

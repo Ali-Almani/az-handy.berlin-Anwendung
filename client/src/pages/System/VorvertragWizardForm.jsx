@@ -10,6 +10,7 @@ import {
   wizardPatchFromArchiveEntry
 } from './vorvertragCustomerUtils';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
+import TicketPriorityField from './TicketPriorityField';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
@@ -397,6 +398,11 @@ export default function VorvertragWizardForm({
             required
           />
         </div>
+        <TicketPriorityField
+          id="vv-priority"
+          value={form.priority}
+          onChange={(value) => handleChange('priority', value)}
+        />
         <div className="form-group vorvertrag-form-grid--full">
           {renderKundenArtChoice()}
         </div>
