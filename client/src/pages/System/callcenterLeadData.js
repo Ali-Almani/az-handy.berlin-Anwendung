@@ -1,5 +1,6 @@
 import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
+import { TICKET_LANGUAGE_DEFAULT, normalizeTicketLanguage } from './ticketLanguage';
 
 export { LEAD_STADT_OPTIONS } from './deutscheStaedte';
 
@@ -112,6 +113,7 @@ export function emptyLeadForm() {
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
+    sprache: TICKET_LANGUAGE_DEFAULT,
     nachrichtArt: '',
     editLog: []
   };
@@ -130,6 +132,7 @@ export function formFromLead(entry) {
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
     priority: normalizeTicketPriority(entry?.priority),
+    sprache: normalizeTicketLanguage(entry?.sprache),
     nachrichtArt: normalizeNachrichtArt(entry?.nachrichtArt)
   };
 }
@@ -146,6 +149,7 @@ const LEAD_FIELD_LABELS = {
   shop: 'Shop',
   ticketStatus: 'Status',
   priority: 'Priorität',
+  sprache: 'Sprache',
   mitarbeiterName: 'Mitarbeiter'
 };
 
@@ -517,6 +521,7 @@ export function leadToNeuEntry(lead) {
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
     ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
     priority: normalizeTicketPriority(lead.priority),
+    sprache: normalizeTicketLanguage(lead.sprache),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
     mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
@@ -534,6 +539,7 @@ function hydrateLeadTicket(t) {
     messages: Array.isArray(t?.messages) ? t.messages : [],
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
     priority: normalizeTicketPriority(t?.priority),
+    sprache: normalizeTicketLanguage(t?.sprache),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),

@@ -7,7 +7,9 @@ import VorvertragEditLog from './VorvertragEditLog';
 import { emptyMnpDetails, mnpDetailsFromEingabe } from './mnpConstants';
 import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzorte';
 import TicketPriorityField from './TicketPriorityField';
+import TicketLanguageField from './TicketLanguageField';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
+import { TICKET_LANGUAGE_DEFAULT, normalizeTicketLanguage } from './ticketLanguage';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
@@ -35,7 +37,8 @@ export const emptyVorvertragForm = () => ({
   eposKundenummer: '',
   mnpDetails: emptyMnpDetails(),
   notiz: '',
-  priority: TICKET_PRIORITY_DEFAULT
+  priority: TICKET_PRIORITY_DEFAULT,
+  sprache: TICKET_LANGUAGE_DEFAULT
 });
 
 export function formFromEntry(entry) {
@@ -65,7 +68,8 @@ export function formFromEntry(entry) {
     eposKundenummer: e.eposKundenummer || '',
     mnpDetails: mnpDetailsFromEingabe(e),
     notiz: e.notiz || '',
-    priority: normalizeTicketPriority(entry?.priority)
+    priority: normalizeTicketPriority(entry?.priority),
+    sprache: normalizeTicketLanguage(entry?.sprache)
   };
 }
 
@@ -99,7 +103,8 @@ export function buildVorvertragPayload(form) {
       mnpDetails: form.mnpDetails,
       notiz: form.notiz
     },
-    priority: normalizeTicketPriority(form.priority)
+    priority: normalizeTicketPriority(form.priority),
+    sprache: normalizeTicketLanguage(form.sprache)
   };
 }
 
@@ -221,6 +226,11 @@ export default function VorvertragForm({
             id="vv-priority"
             value={form.priority}
             onChange={(value) => handleChange('priority', value)}
+          />
+          <TicketLanguageField
+            id="vv-sprache"
+            value={form.sprache}
+            onChange={(value) => handleChange('sprache', value)}
           />
         </div>
       </div>

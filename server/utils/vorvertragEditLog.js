@@ -12,6 +12,7 @@ const FIELD_LABELS = {
   kundeNachname: 'Nachname',
   ticketStatus: 'Status',
   priority: 'Priorität',
+  sprache: 'Sprache',
   'ausgabeDetails.geraet': 'Gerät',
   'ausgabeDetails.farbe': 'Farbe',
   'ausgabeDetails.verfuegbarkeit': 'Verfügbarkeit',

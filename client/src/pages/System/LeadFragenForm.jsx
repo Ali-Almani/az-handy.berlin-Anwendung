@@ -4,6 +4,7 @@ import {
   LEAD_O2_OPTIONS
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
+import TicketLanguageField from './TicketLanguageField';
 import StadtPicker from './StadtPicker';
 
 export default function LeadFragenForm({
@@ -25,6 +26,12 @@ export default function LeadFragenForm({
         id={`${idPrefix}-priority`}
         value={answers?.priority}
         onChange={(value) => patch('priority', value)}
+        questionStyle
+      />
+      <TicketLanguageField
+        id={`${idPrefix}-sprache`}
+        value={answers?.sprache}
+        onChange={(value) => patch('sprache', value)}
         questionStyle
       />
       <div className="form-group">

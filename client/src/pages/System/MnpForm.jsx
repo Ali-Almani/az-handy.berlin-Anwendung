@@ -9,13 +9,16 @@ import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzort
 import { VORVERTRAG_ENTRY_TYPE_MNP } from './vorvertragEntryType';
 import VorvertragEditLog from './VorvertragEditLog';
 import TicketPriorityField from './TicketPriorityField';
+import TicketLanguageField from './TicketLanguageField';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
+import { TICKET_LANGUAGE_DEFAULT, normalizeTicketLanguage } from './ticketLanguage';
 
 export const emptyMnpForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
   filiale: '',
   mnpDetails: emptyMnpDetails(),
-  priority: TICKET_PRIORITY_DEFAULT
+  priority: TICKET_PRIORITY_DEFAULT,
+  sprache: TICKET_LANGUAGE_DEFAULT
 });
 
 export function formFromMnpEntry(entry) {
@@ -24,7 +27,8 @@ export function formFromMnpEntry(entry) {
     datum: entry?.datum || '',
     filiale: normalizeEinsatzOrt(entry?.filiale) || entry?.filiale || '',
     mnpDetails: mnpDetailsFromEingabe(e),
-    priority: normalizeTicketPriority(entry?.priority)
+    priority: normalizeTicketPriority(entry?.priority),
+    sprache: normalizeTicketLanguage(entry?.sprache)
   };
 }
 
@@ -48,7 +52,8 @@ export function buildMnpPayload(form) {
     eingabeDetails: {
       mnpDetails: mnp
     },
-    priority: normalizeTicketPriority(form.priority)
+    priority: normalizeTicketPriority(form.priority),
+    sprache: normalizeTicketLanguage(form.sprache)
   };
 }
 
@@ -147,6 +152,11 @@ export default function MnpForm({
               id="mnp-priority"
               value={form.priority}
               onChange={(value) => onPatch?.({ priority: value })}
+            />
+            <TicketLanguageField
+              id="mnp-sprache"
+              value={form.sprache}
+              onChange={(value) => onPatch?.({ sprache: value })}
             />
           </>
         )}
