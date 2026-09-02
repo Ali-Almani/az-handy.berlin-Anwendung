@@ -1,10 +1,10 @@
 import VorvertragEditLog from './VorvertragEditLog';
 import {
   LEAD_ANGEBOT_OPTIONS,
-  LEAD_O2_OPTIONS,
-  LEAD_STADT_OPTIONS
+  LEAD_O2_OPTIONS
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
+import StadtPicker from './StadtPicker';
 
 export default function LeadFragenForm({
   answers,
@@ -74,20 +74,11 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('produktNotiz', ev.target.value)}
         />
       </div>
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-stadt`}>Stadt?</label>
-        <select
-          id={`${idPrefix}-stadt`}
-          className="form-input"
-          value={answers?.stadt || ''}
-          onChange={(ev) => patch('stadt', ev.target.value)}
-        >
-          <option value="">—</option>
-          {LEAD_STADT_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      </div>
+      <StadtPicker
+        id={`${idPrefix}-stadt`}
+        value={answers?.stadt || ''}
+        onChange={(value) => patch('stadt', value)}
+      />
       <div className="form-group">
         <label className="form-label" htmlFor={`${idPrefix}-marketing`}>Marketing Notiz?</label>
         <input

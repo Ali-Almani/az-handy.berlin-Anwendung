@@ -1,6 +1,8 @@
 import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
 
+export { LEAD_STADT_OPTIONS } from './deutscheStaedte';
+
 export const LEAD_STATUS_OPTIONS = ['Orten', 'Callcenter'];
 export const LEAD_STATUS_DEFAULT = 'Callcenter';
 
@@ -13,14 +15,6 @@ export const LEAD_ANGEBOT_OPTIONS = [
   'IP 17 Pro Max',
   'DSL',
   'SIM Only'
-];
-
-export const LEAD_STADT_OPTIONS = [
-  'Berlin',
-  'Brandenburg',
-  'außerhalb Berlin',
-  'Bayern',
-  'Baden-Württemberg'
 ];
 
 export const ORTEN_SHOP_OPTIONS = [
