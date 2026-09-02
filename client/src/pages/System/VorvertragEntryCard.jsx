@@ -120,6 +120,7 @@ export default function VorvertragEntryCard({
             disabled={statusSaving}
             onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
             aria-label={`Status für ${name}`}
+            style={{ width: `calc(${String(ticketStatus).length}ch + 2.15rem)` }}
           >
             {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
