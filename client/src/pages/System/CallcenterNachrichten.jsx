@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SOCIAL_CHANNELS,
-  TEMPLATE_QUESTIONS,
+  QUESTION_CHAT_LOCALES,
   formFromLead,
   appendLeadEditLog,
   leadFieldChange,
   lastMessageAt,
   loadInboxNotiz,
-  migrateLeadTicketStatus,
+  localizedTemplateQuestions,
   normalizeSocialChannel,
+  questionChatLocale,
   saveInboxNotiz,
   shopFitsOrten,
   shopOptionLabel,
   shopOptionsForOrten,
   sanitizeMitarbeiterName,
+  spracheFromQuestionLocale,
+  templateFieldMatchingDraft,
   channelLabel
 } from './callcenterLeadData';
 import LeadFragenForm from './LeadFragenForm';
@@ -80,16 +83,16 @@ function ChannelIcon({ channel }) {
 }
 
 function StatusShopSelect({ shop, shops, onChange, ariaLabel }) {
-  const value = shopFitsOrten(shop) ? shop : 'Callcenter';
+  const value = shopFitsOrten(shop) ? shop : '';
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select"
       value={value}
       onChange={(ev) => onChange?.(ev.target.value)}
       onClick={(ev) => ev.stopPropagation()}
-      aria-label={ariaLabel || 'Orten oder Callcenter'}
+      aria-label={ariaLabel || 'Filiale wählen'}
     >
-      <option value="Callcenter">Callcenter</option>
+      <option value="">— Filiale wählen —</option>
       {shops.map((opt) => (
         <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
       ))}
@@ -148,6 +151,11 @@ const CallcenterNachrichten = ({
   const active = list.find((t) => t.id === activeId) || null;
   const answers = active ? formFromLead(active) : null;
   const showNotiz = readTab === 'notiz';
+  const chatLocale = questionChatLocale(active?.sprache);
+  const templateQuestions = useMemo(
+    () => localizedTemplateQuestions(chatLocale),
+    [chatLocale]
+  );
 
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
@@ -200,20 +208,18 @@ const CallcenterNachrichten = ({
   }, [openTicketId]);
 
   const handleStatusOrShop = (id, value) => {
+    if (!shopFitsOrten(value)) return;
     const assignShop = (ticket) => {
-      const current = migrateLeadTicketStatus(ticket.ticketStatus);
-      const nextShop = value === 'Callcenter' ? '' : value;
-      const nextStatus = current === 'Erledigt' ? 'Offen' : current;
       const editor = sanitizeMitarbeiterName(agentName);
       const next = {
         ...ticket,
-        shop: nextShop,
-        ticketStatus: nextStatus,
+        shop: value,
+        ticketStatus: 'Offen',
         mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || editor
       };
       const changes = [
-        leadFieldChange(ticket, 'shop', nextShop),
-        leadFieldChange(ticket, 'ticketStatus', nextStatus)
+        leadFieldChange(ticket, 'shop', value),
+        leadFieldChange(ticket, 'ticketStatus', 'Offen')
       ].filter(Boolean);
       if (!changes.length) return next;
       return appendLeadEditLog(next, {
@@ -222,10 +228,8 @@ const CallcenterNachrichten = ({
         changes
       });
     };
-    if (value === 'Callcenter' || shopFitsOrten(value)) {
-      patchTicket(id, assignShop);
-      onStatusApplied?.(id);
-    }
+    patchTicket(id, assignShop);
+    onStatusApplied?.(id);
   };
 
   const patchAnswer = (field, value) => {
@@ -239,6 +243,15 @@ const CallcenterNachrichten = ({
         changes: [change]
       });
     });
+  };
+
+  const handleQuestionLocale = (locale) => {
+    if (!active) return;
+    patchAnswer('sprache', spracheFromQuestionLocale(locale));
+    const field = templateFieldMatchingDraft(draft);
+    if (!field) return;
+    const next = localizedTemplateQuestions(locale).find((q) => q.field === field);
+    if (next?.text) setDraft(next.text);
   };
 
   const sendText = (text) => {
@@ -449,10 +462,15 @@ const CallcenterNachrichten = ({
                     shop={active.shop}
                     shops={ortenShops}
                     onChange={(value) => handleStatusOrShop(active.id, value)}
-                    ariaLabel={`Callcenter oder Shop für ${active.customerName || active.id}`}
+                    ariaLabel={`Filiale für ${active.customerName || active.id}`}
                   />
                 </div>
               </header>
+              {!shopFitsOrten(active.shop) ? (
+                <p className="sz-filiale-hint">
+                  Noch kein Ticket. Erst nach Wahl einer Filiale erscheint die Unterhaltung in Offen.
+                </p>
+              ) : null}
 
               <div className="sz-thread" ref={threadRef}>
                 {(active.messages || []).map((m) => (
@@ -467,8 +485,24 @@ const CallcenterNachrichten = ({
               </div>
 
               <div className="sz-composer">
-                <div className="sz-quick">
-                  {TEMPLATE_QUESTIONS.map((q) => (
+                <div className="sz-quick-head">
+                  <span className="sz-quick-head-label">Fragen</span>
+                  <div className="sz-composer-langs" role="group" aria-label="Fragensprache">
+                    {QUESTION_CHAT_LOCALES.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
+                        aria-pressed={chatLocale === item.id}
+                        onClick={() => handleQuestionLocale(item.id)}
+                      >
+                        {item.short}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={`sz-quick${chatLocale === 'ar' ? ' sz-quick--rtl' : ''}`}>
+                  {templateQuestions.map((q) => (
                     <button
                       key={q.field}
                       type="button"
@@ -484,13 +518,15 @@ const CallcenterNachrichten = ({
                   <textarea
                     id="sz-reply"
                     ref={composerRef}
-                    className="form-input sz-composer-input"
+                    className={`form-input sz-composer-input${chatLocale === 'ar' ? ' sz-composer-input--rtl' : ''}`}
                     rows={2}
                     value={draft}
                     onChange={(ev) => setDraft(ev.target.value)}
                     onKeyDown={handleComposerKey}
                     placeholder={`Antwort an ${active.customerName || 'den Kunden'}…`}
                     disabled={sending}
+                    dir={chatLocale === 'ar' ? 'rtl' : 'ltr'}
+                    lang={chatLocale === 'ar' ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
                   <button
                     type="button"
@@ -502,7 +538,7 @@ const CallcenterNachrichten = ({
                   </button>
                 </div>
                 <p className="sz-composer-hint">
-                  Fragen-Chips setzen den Vorlage-Text. Enter sendet, Umschalt+Enter neue Zeile.
+                  Sprache wählen, dann Fragen-Chip. Enter sendet, Umschalt+Enter neue Zeile.
                 </p>
               </div>
             </>

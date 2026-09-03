@@ -40,18 +40,102 @@ export const SOCIAL_CHANNELS = [
   { id: 'tiktok', label: 'TikTok', short: 'TT' }
 ];
 
-export const TEMPLATE_QUESTIONS = [
-  { field: 'rufnummer', label: 'Rufnummer?', text: 'Wie lautet Ihre Rufnummer?' },
-  { field: 'o2Kunde', label: 'O2 Kunde?', text: 'Sind Sie bereits O2-Kunde?' },
-  { field: 'angebot', label: 'Angebot / Produkt?', text: 'Welches Angebot oder Produkt möchten Sie?' },
-  { field: 'produktNotiz', label: 'Produkt Notiz?', text: 'Gibt es eine Produkt-Notiz (z. B. Tarif, Modell)?' },
-  { field: 'stadt', label: 'Stadt?', text: 'In welcher Stadt sind Sie?' },
-  { field: 'marketingNotiz', label: 'Marketing Notiz?', text: 'Gibt es eine Marketing-Notiz oder Empfehlung?' },
-  { field: 'terminDatum', label: 'Termin Datum?', text: 'An welchem Datum passt Ihnen ein Termin?' },
-  { field: 'terminZeit', label: 'Termin Zeit?', text: 'Zu welcher Uhrzeit passt Ihnen der Termin?' }
+export const QUESTION_CHAT_LOCALES = [
+  { id: 'de', short: 'DE', sprache: 'Deutsch' },
+  { id: 'ar', short: 'AR', sprache: 'Arabisch' },
+  { id: 'en', short: 'ENG', sprache: 'Englisch' }
 ];
 
-export const LEAD_STORAGE_KEY = 'az-callcenter-inbox-v2';
+export const TEMPLATE_QUESTIONS = [
+  {
+    field: 'rufnummer',
+    label: 'Rufnummer?',
+    de: { label: 'Rufnummer?', text: 'Wie lautet Ihre Rufnummer?' },
+    ar: { label: 'رقم الهاتف؟', text: 'ما هو رقم هاتفك؟' },
+    en: { label: 'Phone number?', text: 'What is your phone number?' }
+  },
+  {
+    field: 'o2Kunde',
+    label: 'O2 Kunde?',
+    de: { label: 'O2 Kunde?', text: 'Sind Sie bereits O2-Kunde?' },
+    ar: { label: 'عميل O2؟', text: 'هل أنت عميل O2 حالياً؟' },
+    en: { label: 'O2 customer?', text: 'Are you already an O2 customer?' }
+  },
+  {
+    field: 'angebot',
+    label: 'Angebot / Produkt?',
+    de: { label: 'Angebot / Produkt?', text: 'Welches Angebot oder Produkt möchten Sie?' },
+    ar: { label: 'العرض / المنتج؟', text: 'أي عرض أو منتج ترغب به؟' },
+    en: { label: 'Offer / Product?', text: 'Which offer or product would you like?' }
+  },
+  {
+    field: 'produktNotiz',
+    label: 'Produkt Notiz?',
+    de: { label: 'Produkt Notiz?', text: 'Gibt es eine Produkt-Notiz (z. B. Tarif, Modell)?' },
+    ar: { label: 'ملاحظة المنتج؟', text: 'هل هناك ملاحظة للمنتج (مثل التعريفة أو الموديل)؟' },
+    en: { label: 'Product note?', text: 'Is there a product note (e.g. plan or model)?' }
+  },
+  {
+    field: 'stadt',
+    label: 'Stadt?',
+    de: { label: 'Stadt?', text: 'In welcher Stadt sind Sie?' },
+    ar: { label: 'المدينة؟', text: 'في أي مدينة أنت؟' },
+    en: { label: 'City?', text: 'Which city are you in?' }
+  },
+  {
+    field: 'marketingNotiz',
+    label: 'Marketing Notiz?',
+    de: { label: 'Marketing Notiz?', text: 'Gibt es eine Marketing-Notiz oder Empfehlung?' },
+    ar: { label: 'ملاحظة التسويق؟', text: 'هل هناك ملاحظة تسويقية أو توصية؟' },
+    en: { label: 'Marketing note?', text: 'Is there a marketing note or referral?' }
+  },
+  {
+    field: 'terminDatum',
+    label: 'Termin Datum?',
+    de: { label: 'Termin Datum?', text: 'An welchem Datum passt Ihnen ein Termin?' },
+    ar: { label: 'تاريخ الموعد؟', text: 'في أي تاريخ يناسبك الموعد؟' },
+    en: { label: 'Appointment date?', text: 'Which date works for an appointment?' }
+  },
+  {
+    field: 'terminZeit',
+    label: 'Termin Zeit?',
+    de: { label: 'Termin Zeit?', text: 'Zu welcher Uhrzeit passt Ihnen der Termin?' },
+    ar: { label: 'وقت الموعد؟', text: 'في أي وقت يناسبك الموعد؟' },
+    en: { label: 'Appointment time?', text: 'What time works for the appointment?' }
+  }
+];
+
+export function questionChatLocale(sprache) {
+  const n = normalizeTicketLanguage(sprache);
+  if (n === 'Arabisch') return 'ar';
+  if (n === 'Englisch') return 'en';
+  return 'de';
+}
+
+export function spracheFromQuestionLocale(locale) {
+  const found = QUESTION_CHAT_LOCALES.find((item) => item.id === locale);
+  return found?.sprache || TICKET_LANGUAGE_DEFAULT;
+}
+
+export function localizedTemplateQuestions(locale) {
+  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  return TEMPLATE_QUESTIONS.map((q) => ({
+    field: q.field,
+    label: q[loc]?.label || q.de.label,
+    text: q[loc]?.text || q.de.text
+  }));
+}
+
+export function templateFieldMatchingDraft(draft) {
+  const text = String(draft || '').trim();
+  if (!text) return '';
+  for (const q of TEMPLATE_QUESTIONS) {
+    if ([q.de?.text, q.ar?.text, q.en?.text].includes(text)) return q.field;
+  }
+  return '';
+}
+
+export const LEAD_STORAGE_KEY = 'az-callcenter-inbox-v3';
 export const INBOX_NOTE_STORAGE_KEY = 'az-callcenter-inbox-notiz';
 
 const STATUS_ALIASES = {
@@ -93,7 +177,8 @@ export function isLeadArchived(entry) {
 }
 
 export function isLeadInNeu(entry) {
-  return !isLeadArchived(entry);
+  if (isLeadArchived(entry)) return false;
+  return shopFitsOrten(entry?.shop);
 }
 
 export function leadStatusBadge(status) {
@@ -330,7 +415,7 @@ const SEED_LEADS = [
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
-    shop: 'Karl-Marx-Straße 50',
+    shop: '',
     ticketStatus: 'Callcenter',
     nachrichtArt: 'angebot',
     unread: true,
@@ -358,7 +443,7 @@ const SEED_LEADS = [
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
-    shop: 'Sonnenallee 16',
+    shop: '',
     ticketStatus: 'Orten',
     nachrichtArt: 'angebot',
     unread: true,
@@ -386,7 +471,7 @@ const SEED_LEADS = [
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
-    shop: 'Karl-Marx-Straße 169',
+    shop: '',
     ticketStatus: 'Callcenter',
     nachrichtArt: 'allgemeineInfo',
     unread: false,
@@ -421,7 +506,7 @@ const SEED_LEADS = [
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
-    shop: 'Sonnenallee 16',
+    shop: '',
     ticketStatus: 'Orten',
     nachrichtArt: 'angebot',
     unread: true,
@@ -449,7 +534,7 @@ const SEED_LEADS = [
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
-    shop: 'Karl-Marx-Straße 127',
+    shop: '',
     ticketStatus: 'Callcenter',
     nachrichtArt: 'beschwerde',
     unread: true,
@@ -477,7 +562,7 @@ const SEED_LEADS = [
     marketingNotiz: 'weil er seine bekannte zu uns',
     terminDatum: '',
     terminZeit: '',
-    shop: 'Hauptstraße 156',
+    shop: '',
     ticketStatus: 'Orten',
     nachrichtArt: 'allgemeineInfo',
     unread: false,
