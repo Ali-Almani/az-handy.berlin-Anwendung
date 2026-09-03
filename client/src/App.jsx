@@ -151,6 +151,7 @@ function App() {
           />
           <Route path="/system" element={<Navigate to={TICKETING_SYSTEM_PATH} replace />} />
           <Route path="/system/vorvertrag" element={<Navigate to={TICKETING_SYSTEM_PATH} replace />} />
+          <Route path="/Ticketing System" element={<Navigate to={TICKETING_SYSTEM_PATH} replace />} />
           <Route
             path="/logs"
             element={
