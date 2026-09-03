@@ -24,7 +24,10 @@ const directoryIsPartner = (uu) => {
   return r.toLowerCase() === 'partner';
 };
 
-const isExcludedFromDirectory = (name) => String(name || '').trim().toLowerCase() === 'ali test';
+const DIRECTORY_EXCLUDED_NAMES = new Set(['ali test', 'test mitarbeiter']);
+
+const isExcludedFromDirectory = (name) =>
+  DIRECTORY_EXCLUDED_NAMES.has(String(name || '').trim().toLowerCase());
 
 const toDirectoryUser = (user) => {
   const uu = user.toJSON ? user.toJSON() : user;
@@ -169,7 +172,7 @@ export const getMitarbeiterShopTshirtGroessenForMarketing = async (req, res, nex
   }
 };
 
-/** Öffentliches Verzeichnis: nur Mitarbeiter mit Einsatzort (keine Partner, kein „Ali Test“). */
+/** Öffentliches Verzeichnis: nur Mitarbeiter mit Einsatzort (keine Partner, keine Test-Konten). */
 export const getDirectoryUsers = async (req, res, next) => {
   try {
     const uid = resolveAuthUserId(req.user);
@@ -201,6 +204,10 @@ export const getDirectoryUserById = async (req, res, next) => {
     const { id } = req.params;
     const user = await User.findByPk(id);
     if (!user) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+    const raw = user.toJSON ? user.toJSON() : user;
+    if (isExcludedFromDirectory(raw.name) || directoryIsPartner(raw)) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
     res.json({ success: true, user: toDirectoryUser(user) });

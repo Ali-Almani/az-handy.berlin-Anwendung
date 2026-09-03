@@ -209,7 +209,7 @@ export const mockGetUserDirectory = async (mockUsers, token) => {
   if (!userId) throw authError();
   const users = mockUsers
     .filter((u) => {
-      if (String(u.name || '').trim().toLowerCase() === 'ali test') return false;
+      if (['ali test', 'test mitarbeiter'].includes(String(u.name || '').trim().toLowerCase())) return false;
       const r = String(u.role || '').trim();
       if (r === 'Partner' || r.toLowerCase() === 'partner') return false;
       if (!String(u.einsatz_ort || '').trim()) return false;
@@ -251,6 +251,9 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
   if (!userId) throw authError();
   const u = mockUsers.find((x) => String(x.id) === String(id));
   if (!u) throw notFoundError();
+  const excluded = ['ali test', 'test mitarbeiter'].includes(String(u.name || '').trim().toLowerCase());
+  const partner = String(u.role || '').trim().toLowerCase() === 'partner';
+  if (excluded || partner) throw notFoundError();
   return {
     data: {
       success: true,
