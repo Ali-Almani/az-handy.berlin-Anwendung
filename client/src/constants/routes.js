@@ -1,1 +1,1 @@
-export const TICKETING_SYSTEM_PATH = '/TicketingSystem';
+export const TICKETING_SYSTEM_PATH = '/ticketingSystem';
