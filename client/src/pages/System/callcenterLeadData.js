@@ -178,7 +178,7 @@ export function isLeadArchived(entry) {
 
 export function isLeadInNeu(entry) {
   if (isLeadArchived(entry)) return false;
-  return shopFitsOrten(entry?.shop);
+  return shopAssignsTicket(entry?.shop);
 }
 
 export function leadStatusBadge(status) {
@@ -302,16 +302,40 @@ export function appendLeadEditLog(ticket, { editorName, action = 'updated', chan
   };
 }
 
+export const CALLCENTER_SHOP = 'Call Center';
+
 export function shopOptionsForOrten() {
   return [...ORTEN_SHOP_OPTIONS];
+}
+
+export function shopOptionsForNachrichten() {
+  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS];
 }
 
 export function shopFitsOrten(shop) {
   return ORTEN_SHOP_OPTIONS.includes(String(shop ?? '').trim());
 }
 
+export function isCallcenterShop(shop) {
+  const s = String(shop ?? '').trim().toLowerCase().replace(/\s+/g, '');
+  return s === 'callcenter';
+}
+
+export function normalizeNachrichtShop(shop) {
+  const s = String(shop ?? '').trim();
+  if (!s) return '';
+  if (isCallcenterShop(s)) return CALLCENTER_SHOP;
+  if (ORTEN_SHOP_OPTIONS.includes(s)) return s;
+  return '';
+}
+
+export function shopAssignsTicket(shop) {
+  return Boolean(normalizeNachrichtShop(shop));
+}
+
 export function shopOptionLabel(shop) {
   const s = String(shop ?? '').trim();
+  if (isCallcenterShop(s)) return CALLCENTER_SHOP;
   if (s === 'Sonnenallee 16') return 'Sonnenallee';
   return s;
 }
@@ -322,6 +346,7 @@ const INVALID_MITARBEITER_NAMES = new Set([
   'Büro Mitarbeiter',
   'Marketing',
   'Callcenter',
+  'Call Center',
   'Shops',
   'Buchhaltung',
   'Einkauf',
@@ -340,6 +365,7 @@ export function sanitizeMitarbeiterName(value) {
   if (/^mitarbeiter(\s|$)/i.test(v)) return '';
   if (/^büro(\s|$)/i.test(v)) return '';
   if (ORTEN_SHOP_OPTIONS.includes(v)) return '';
+  if (isCallcenterShop(v)) return '';
   return v;
 }
 
@@ -626,7 +652,7 @@ function hydrateLeadTicket(t) {
     priority: normalizeTicketPriority(t?.priority),
     sprache: normalizeTicketLanguage(t?.sprache),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
-    shop: t?.shop || '',
+    shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
     editLog: Array.isArray(t?.editLog) ? t.editLog : []
   };

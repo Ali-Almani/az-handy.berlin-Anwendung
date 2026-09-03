@@ -13,6 +13,7 @@ import {
 } from '../../utils/roles';
 import logo from '../../photo/AZ-Logo.svg';
 import NavbarEinsatzortSelect from './NavbarEinsatzortSelect';
+import { TICKETING_SYSTEM_PATH } from '../../constants/routes';
 import './Navbar.scss';
 
 const navLinkClassName = ({ isActive }) =>
@@ -439,7 +440,7 @@ const Navbar = ({
   const renderSystemNavItem = () =>
     user && isAdmin(user) ? (
       <li>
-        <NavLink to="/system" className={navLinkClassName} onClick={closeMobileMenu}>
+        <NavLink to={TICKETING_SYSTEM_PATH} className={navLinkClassName} onClick={closeMobileMenu}>
           <span className="navbar-link-inner">
             <span className="navbar-link-icon" aria-hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

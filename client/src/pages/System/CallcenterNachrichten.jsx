@@ -11,9 +11,10 @@ import {
   normalizeSocialChannel,
   questionChatLocale,
   saveInboxNotiz,
-  shopFitsOrten,
+  shopAssignsTicket,
   shopOptionLabel,
-  shopOptionsForOrten,
+  shopOptionsForNachrichten,
+  normalizeNachrichtShop,
   sanitizeMitarbeiterName,
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
@@ -83,7 +84,7 @@ function ChannelIcon({ channel }) {
 }
 
 function StatusShopSelect({ shop, shops, onChange, ariaLabel }) {
-  const value = shopFitsOrten(shop) ? shop : '';
+  const value = normalizeNachrichtShop(shop);
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select"
@@ -108,7 +109,7 @@ const CallcenterNachrichten = ({
   onStatusApplied,
   onOpened
 }) => {
-  const ortenShops = useMemo(() => shopOptionsForOrten(), []);
+  const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
   const [readTab, setReadTab] = useState('ungelesen');
   const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
@@ -208,17 +209,18 @@ const CallcenterNachrichten = ({
   }, [openTicketId]);
 
   const handleStatusOrShop = (id, value) => {
-    if (!shopFitsOrten(value)) return;
+    const shop = normalizeNachrichtShop(value);
+    if (!shop) return;
     const assignShop = (ticket) => {
       const editor = sanitizeMitarbeiterName(agentName);
       const next = {
         ...ticket,
-        shop: value,
+        shop,
         ticketStatus: 'Offen',
         mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || editor
       };
       const changes = [
-        leadFieldChange(ticket, 'shop', value),
+        leadFieldChange(ticket, 'shop', shop),
         leadFieldChange(ticket, 'ticketStatus', 'Offen')
       ].filter(Boolean);
       if (!changes.length) return next;
@@ -460,15 +462,15 @@ const CallcenterNachrichten = ({
                 <div className="sz-chat-status">
                   <StatusShopSelect
                     shop={active.shop}
-                    shops={ortenShops}
+                    shops={nachrichtShops}
                     onChange={(value) => handleStatusOrShop(active.id, value)}
                     ariaLabel={`Filiale für ${active.customerName || active.id}`}
                   />
                 </div>
               </header>
-              {!shopFitsOrten(active.shop) ? (
+              {!shopAssignsTicket(active.shop) ? (
                 <p className="sz-filiale-hint">
-                  Noch kein Ticket. Erst nach Wahl einer Filiale erscheint die Unterhaltung in Offen.
+                  Noch kein Ticket. Erst nach Wahl einer Filiale oder Call Center erscheint die Unterhaltung in Offen.
                 </p>
               ) : null}
 

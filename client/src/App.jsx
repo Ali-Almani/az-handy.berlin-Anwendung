@@ -5,6 +5,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import PartnerRestrictedRoute from './components/PartnerRestrictedRoute/PartnerRestrictedRoute';
+import { TICKETING_SYSTEM_PATH } from './constants/routes';
 
 const Home = React.lazy(() => import('./pages/Home/Home'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard/Dashboard'));
@@ -19,7 +20,6 @@ const MitarbeiterOverview = React.lazy(() => import('./pages/Mitarbeiter/Mitarbe
 const MitarbeiterProfile = React.lazy(() => import('./pages/Mitarbeiter/MitarbeiterProfile'));
 const MarketingShopTshirtGroessen = React.lazy(() => import('./pages/MarketingShopTshirtGroessen/MarketingShopTshirtGroessen'));
 const System = React.lazy(() => import('./pages/System/System'));
-const Vorvertrag = React.lazy(() => import('./pages/System/Vorvertrag'));
 const Logs = React.lazy(() => import('./pages/Logs/Logs'));
 
 const PageLoader = () => (
@@ -140,7 +140,7 @@ function App() {
           <Route path="/dokumentation" element={<Navigate to="/benutzerhandbuch" replace />} />
           <Route path="/formular-center" element={<FormularCenter />} />
           <Route
-            path="/system"
+            path={TICKETING_SYSTEM_PATH}
             element={
               <ProtectedRoute>
                 <PartnerRestrictedRoute>
@@ -149,16 +149,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/system/vorvertrag"
-            element={
-              <ProtectedRoute>
-                <PartnerRestrictedRoute>
-                  <Vorvertrag />
-                </PartnerRestrictedRoute>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/system" element={<Navigate to={TICKETING_SYSTEM_PATH} replace />} />
+          <Route path="/system/vorvertrag" element={<Navigate to={TICKETING_SYSTEM_PATH} replace />} />
           <Route
             path="/logs"
             element={
