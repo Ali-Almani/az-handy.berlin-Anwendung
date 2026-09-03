@@ -24,10 +24,14 @@ const directoryIsPartner = (uu) => {
   return r.toLowerCase() === 'partner';
 };
 
-const DIRECTORY_EXCLUDED_NAMES = new Set(['ali test', 'test mitarbeiter']);
+const DIRECTORY_EXCLUDED_NAMES = new Set(['test', 'ali test', 'test mitarbeiter']);
 
-const isExcludedFromDirectory = (name) =>
-  DIRECTORY_EXCLUDED_NAMES.has(String(name || '').trim().toLowerCase());
+const isExcludedFromDirectory = (name) => {
+  const n = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!n) return false;
+  if (DIRECTORY_EXCLUDED_NAMES.has(n)) return true;
+  return n === 'test' || n.startsWith('test ');
+};
 
 const toDirectoryUser = (user) => {
   const uu = user.toJSON ? user.toJSON() : user;

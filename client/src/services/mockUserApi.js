@@ -209,7 +209,8 @@ export const mockGetUserDirectory = async (mockUsers, token) => {
   if (!userId) throw authError();
   const users = mockUsers
     .filter((u) => {
-      if (['ali test', 'test mitarbeiter'].includes(String(u.name || '').trim().toLowerCase())) return false;
+      const n = String(u.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (n === 'test' || n.startsWith('test ') || n === 'ali test') return false;
       const r = String(u.role || '').trim();
       if (r === 'Partner' || r.toLowerCase() === 'partner') return false;
       if (!String(u.einsatz_ort || '').trim()) return false;
@@ -251,7 +252,8 @@ export const mockGetDirectoryUser = async (mockUsers, token, id) => {
   if (!userId) throw authError();
   const u = mockUsers.find((x) => String(x.id) === String(id));
   if (!u) throw notFoundError();
-  const excluded = ['ali test', 'test mitarbeiter'].includes(String(u.name || '').trim().toLowerCase());
+  const n = String(u.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const excluded = n === 'test' || n.startsWith('test ') || n === 'ali test';
   const partner = String(u.role || '').trim().toLowerCase() === 'partner';
   if (excluded || partner) throw notFoundError();
   return {
