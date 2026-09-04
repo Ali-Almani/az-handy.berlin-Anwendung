@@ -67,7 +67,6 @@ const System = () => {
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
   const [leadEditId, setLeadEditId] = useState('');
-  const [editReturnTab, setEditReturnTab] = useState('offen');
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -227,8 +226,6 @@ const System = () => {
     });
     setGeraetSeed('');
     setMode('new');
-    setEditReturnTab('erstellen');
-    setListTab('erstellen');
     setShowForm(true);
     setError('');
     setSuccessToast(null);
@@ -249,8 +246,6 @@ const System = () => {
     });
     setGeraetSeed('');
     setMode('new');
-    setEditReturnTab('erstellen');
-    setListTab('erstellen');
     setShowForm(true);
     setError('');
     setSuccessToast(null);
@@ -272,8 +267,8 @@ const System = () => {
     setForm(nextForm);
     setGeraetSeed(mnpOnly ? '' : nextForm.ausgabeGeraet);
     setMode('edit');
-    setEditReturnTab(listTab === 'archiv' ? 'archiv' : listTab === 'offen' ? 'offen' : 'erstellen');
     setShowForm(true);
+    setListTab('erstellen');
     setError('');
     setSuccessToast(null);
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -334,8 +329,6 @@ const System = () => {
         ? buildMnpPayload({ ...form, filiale: filialeForSave })
         : buildVorvertragPayload({ ...form, filiale: filialeForSave });
       let savedId = activeId;
-      const wasEdit = mode === 'edit';
-      const returnTab = editReturnTab;
 
       if (mode === 'edit' && activeId) {
         const res = await updateVorvertragApi(activeId, payload);
@@ -359,7 +352,7 @@ const System = () => {
 
       await loadList({ silent: true });
       cancelForm();
-      setListTab(wasEdit && returnTab === 'archiv' ? 'archiv' : 'offen');
+      setListTab('offen');
 
       if (savedId) {
         setHighlightedId(savedId);
@@ -482,12 +475,12 @@ const System = () => {
         </button>
       </div>
 
-      {listTab === 'erstellen' || ((listTab === 'archiv' || listTab === 'offen') && showForm) ? (
+      {listTab === 'erstellen' ? (
         <div className="system-toolbar">
-          <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm && mode === 'new' && formKind === 'vorvertrag'}>
+          <button type="button" className="btn btn--primary" onClick={startNew} disabled={showForm}>
             Neuer Vorvertrag
           </button>
-          <button type="button" className="btn btn--secondary" onClick={startNewMnp} disabled={showForm && mode === 'new' && formKind === 'mnp'}>
+          <button type="button" className="btn btn--secondary" onClick={startNewMnp} disabled={showForm}>
             Neues MNP
           </button>
         </div>
@@ -531,7 +524,7 @@ const System = () => {
         />
       ) : null}
 
-      {showForm && listTab !== 'nachrichten' ? (
+      {listTab === 'erstellen' && showForm ? (
         <div ref={formRef}>
           {formKind === 'mnp' ? (
             <MnpForm
