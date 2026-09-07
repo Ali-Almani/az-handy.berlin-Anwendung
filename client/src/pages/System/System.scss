@@ -461,6 +461,18 @@
   }
 }
 
+.vorvertrag-form-panel--mnp {
+  .vorvertrag-form-grid {
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    gap: 0.4rem 0.5rem;
+  }
+
+  .vorvertrag-mnp-notiz textarea.form-input {
+    min-height: 9.5rem;
+    resize: vertical;
+  }
+}
+
 .vorvertrag-section {
   margin-bottom: $spacing-sm;
   padding-bottom: $spacing-sm;

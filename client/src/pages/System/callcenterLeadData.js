@@ -135,7 +135,7 @@ export function templateFieldMatchingDraft(draft) {
   return '';
 }
 
-export const LEAD_STORAGE_KEY = 'az-callcenter-inbox-v3';
+export const LEAD_STORAGE_KEY = 'az-callcenter-inbox-v4';
 export const INBOX_NOTE_STORAGE_KEY = 'az-callcenter-inbox-notiz';
 
 const STATUS_ALIASES = {
@@ -382,11 +382,42 @@ function pad3(n) {
   return String(n).padStart(3, '0');
 }
 
-function dateStamp(date = new Date()) {
+function shortDateStamp(date = new Date()) {
   const d = String(date.getDate()).padStart(2, '0');
   const m = String(date.getMonth() + 1).padStart(2, '0');
-  const y = String(date.getFullYear());
+  const y = String(date.getFullYear()).slice(-2);
   return `${d}${m}${y}`;
+}
+
+function compressLeadDateKey(dateKey) {
+  const key = String(dateKey ?? '');
+  if (key.length === 8) return `${key.slice(0, 4)}${key.slice(6, 8)}`;
+  return key;
+}
+
+function parseLeadId(id) {
+  const s = String(id ?? '').trim();
+  let m = s.match(/^(FB|IG|TT|CC|WA)(\d{6})(\d{3,})$/i);
+  if (m) {
+    return {
+      prefix: m[1].toUpperCase(),
+      dateKey: m[2],
+      seq: Number.parseInt(m[3], 10)
+    };
+  }
+  m = s.match(/^(CC|WA|FB|IG|TT)-(\d{8})-(\d+)$/i);
+  if (m) {
+    return {
+      prefix: m[1].toUpperCase(),
+      dateKey: compressLeadDateKey(m[2]),
+      seq: Number.parseInt(m[3], 10)
+    };
+  }
+  return null;
+}
+
+function formatLeadId(prefix, dateKey, seq) {
+  return `${String(prefix).toUpperCase()}${compressLeadDateKey(dateKey)}${pad3(seq)}`;
 }
 
 export function normalizeSocialChannel(value) {
@@ -409,27 +440,26 @@ export function channelLabel(channel) {
 export function migrateLeadId(ticket) {
   const channel = normalizeSocialChannel(ticket?.channel);
   const short = channelShort(channel);
-  const id = String(ticket?.id || '');
-  const match = id.match(/^(CC|WA|FB|IG|TT)-(\d{8})-(\d+)$/i);
-  if (!match) return id;
-  return `${short}-${match[2]}-${pad3(Number.parseInt(match[3], 10))}`;
+  const parsed = parseLeadId(ticket?.id);
+  if (!parsed) return String(ticket?.id || '');
+  return formatLeadId(short, parsed.dateKey, parsed.seq);
 }
 
 export function nextLeadId(tickets = [], date = new Date(), channel = 'facebook') {
-  const prefix = `${channelShort(channel)}-${dateStamp(date)}-`;
+  const short = channelShort(channel);
+  const dateKey = shortDateStamp(date);
   let max = 0;
   tickets.forEach((t) => {
-    const id = String(t?.id || '');
-    if (!id.startsWith(prefix)) return;
-    const n = Number.parseInt(id.slice(prefix.length), 10);
-    if (Number.isFinite(n) && n > max) max = n;
+    const parsed = parseLeadId(t?.id);
+    if (!parsed || parsed.prefix !== short.toUpperCase() || parsed.dateKey !== dateKey) return;
+    if (Number.isFinite(parsed.seq) && parsed.seq > max) max = parsed.seq;
   });
-  return `${prefix}${pad3(max + 1)}`;
+  return formatLeadId(short, dateKey, max + 1);
 }
 
 const SEED_LEADS = [
   {
-    id: 'FB-31082026-001',
+    id: 'FB310826001',
     channel: 'facebook',
     customerName: 'Fatima Kaya',
     handle: '+49 176 8821 4410',
@@ -457,7 +487,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'IG-31082026-002',
+    id: 'IG310826002',
     channel: 'instagram',
     customerName: 'Mehmet Özdemir',
     handle: '@mehmet.oz',
@@ -485,7 +515,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'FB-31082026-003',
+    id: 'FB310826003',
     channel: 'facebook',
     customerName: 'Lisa Weber',
     handle: '+49 163 5512 9088',
@@ -520,7 +550,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'TT-31082026-004',
+    id: 'TT310826004',
     channel: 'tiktok',
     customerName: 'Nisa Yildiz',
     handle: '@nisa.shop',
@@ -548,7 +578,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'FB-31082026-005',
+    id: 'FB310826005',
     channel: 'facebook',
     customerName: 'Kai Hartmann',
     handle: '+49 157 3340 2291',
@@ -576,7 +606,7 @@ const SEED_LEADS = [
     ]
   },
   {
-    id: 'IG-31082026-006',
+    id: 'IG310826006',
     channel: 'instagram',
     customerName: 'Sara Müller',
     handle: '@sara.mueller.bln',

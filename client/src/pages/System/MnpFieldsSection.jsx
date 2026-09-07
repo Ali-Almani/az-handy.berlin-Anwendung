@@ -220,12 +220,12 @@ export default function MnpFieldsSection({
           value={d.mnpBestaetigungsdatum || ''}
           onChange={(v) => handleChange('mnpBestaetigungsdatum', v)}
         />
-        <div className="form-group vorvertrag-form-grid--full">
+        <div className="form-group vorvertrag-form-grid--full vorvertrag-mnp-notiz">
           <label htmlFor={`${idPrefix}-notiz`} className="form-label">MNP Notiz</label>
           <textarea
             id={`${idPrefix}-notiz`}
             className="form-input"
-            rows={2}
+            rows={6}
             value={d.notiz || ''}
             onChange={(ev) => handleChange('notiz', ev.target.value)}
           />

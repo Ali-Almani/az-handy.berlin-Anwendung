@@ -90,7 +90,7 @@ export default function MnpForm({
   };
 
   return (
-    <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={handleSubmit}>
+    <form className="vorvertrag-panel vorvertrag-form-panel vorvertrag-form-panel--mnp" onSubmit={handleSubmit}>
       <div className="vorvertrag-form-panel__head">
         <div className="vorvertrag-form-panel__title">
           <h2>{mode === 'edit' ? 'MNP bearbeiten' : 'Neues MNP'}</h2>
