@@ -473,6 +473,37 @@
   }
 }
 
+.vorvertrag-form-panel--edit {
+  .vorvertrag-form-grid {
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    gap: 0.4rem 0.5rem;
+  }
+
+  .vorvertrag-section {
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .vorvertrag-section-title {
+    margin-bottom: 0.3rem;
+  }
+
+  .vorvertrag-ja-nein-row .form-group {
+    min-width: 9rem;
+  }
+
+  .vorvertrag-ja-nein-row .form-group--grow {
+    flex: 1 1 9rem;
+    min-width: 9rem;
+    max-width: 14rem;
+  }
+
+  .vorvertrag-form-grid--full textarea.form-input {
+    min-height: 3.2rem;
+    max-height: 5.5rem;
+  }
+}
+
 .vorvertrag-section {
   margin-bottom: $spacing-sm;
   padding-bottom: $spacing-sm;

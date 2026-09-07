@@ -158,7 +158,7 @@ export default function VorvertragForm({
   }
 
   return (
-    <form className="vorvertrag-panel vorvertrag-form-panel" onSubmit={onSubmit}>
+    <form className="vorvertrag-panel vorvertrag-form-panel vorvertrag-form-panel--edit" onSubmit={onSubmit}>
       <div className="vorvertrag-form-panel__head">
         <div className="vorvertrag-form-panel__title">
           <h2>Vorvertrag bearbeiten</h2>
