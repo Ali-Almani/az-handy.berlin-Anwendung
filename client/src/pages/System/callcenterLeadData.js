@@ -303,13 +303,14 @@ export function appendLeadEditLog(ticket, { editorName, action = 'updated', chan
 }
 
 export const CALLCENTER_SHOP = 'Call Center';
+export const NACHRICHTEN_ERLEDIGT = 'Erledigt';
 
 export function shopOptionsForOrten() {
   return [...ORTEN_SHOP_OPTIONS];
 }
 
 export function shopOptionsForNachrichten() {
-  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS];
+  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS, NACHRICHTEN_ERLEDIGT];
 }
 
 export function shopFitsOrten(shop) {

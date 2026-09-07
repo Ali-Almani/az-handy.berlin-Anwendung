@@ -515,9 +515,9 @@ const System = () => {
           onTicketsChange={setLeadTickets}
           openTicketId={openLeadId}
           filialeOptions={filialeOptions}
-          onStatusApplied={(id) => {
+          onStatusApplied={(id, targetTab = 'offen') => {
             setOpenLeadId('');
-            setListTab('offen');
+            setListTab(targetTab === 'archiv' ? 'archiv' : 'offen');
             if (id) setHighlightedId(id);
           }}
           onOpened={() => setOpenLeadId('')}

@@ -8,7 +8,9 @@ import {
   lastMessageAt,
   loadInboxNotiz,
   localizedTemplateQuestions,
+  migrateLeadTicketStatus,
   normalizeSocialChannel,
+  NACHRICHTEN_ERLEDIGT,
   questionChatLocale,
   saveInboxNotiz,
   shopAssignsTicket,
@@ -18,6 +20,7 @@ import {
   sanitizeMitarbeiterName,
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
+  isLeadArchived,
   channelLabel
 } from './callcenterLeadData';
 import LeadFragenForm from './LeadFragenForm';
@@ -83,8 +86,10 @@ function ChannelIcon({ channel }) {
   );
 }
 
-function StatusShopSelect({ shop, shops, onChange, ariaLabel }) {
-  const value = normalizeNachrichtShop(shop);
+function StatusShopSelect({ shop, ticketStatus, shops, onChange, ariaLabel }) {
+  const value = migrateLeadTicketStatus(ticketStatus) === 'Erledigt'
+    ? NACHRICHTEN_ERLEDIGT
+    : normalizeNachrichtShop(shop);
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select"
@@ -95,7 +100,9 @@ function StatusShopSelect({ shop, shops, onChange, ariaLabel }) {
     >
       <option value="">— Filiale wählen —</option>
       {shops.map((opt) => (
-        <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
+        <option key={opt} value={opt}>
+          {opt === NACHRICHTEN_ERLEDIGT ? opt : shopOptionLabel(opt)}
+        </option>
       ))}
     </select>
   );
@@ -209,6 +216,27 @@ const CallcenterNachrichten = ({
   }, [openTicketId]);
 
   const handleStatusOrShop = (id, value) => {
+    if (value === NACHRICHTEN_ERLEDIGT) {
+      const markErledigt = (ticket) => {
+        const editor = sanitizeMitarbeiterName(agentName);
+        const next = {
+          ...ticket,
+          ticketStatus: 'Erledigt',
+          mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || editor
+        };
+        const change = leadFieldChange(ticket, 'ticketStatus', 'Erledigt');
+        if (!change) return next;
+        return appendLeadEditLog(next, {
+          editorName: editor,
+          action: 'status_changed',
+          changes: [change]
+        });
+      };
+      patchTicket(id, markErledigt);
+      onStatusApplied?.(id, 'archiv');
+      return;
+    }
+
     const shop = normalizeNachrichtShop(value);
     if (!shop) return;
     const assignShop = (ticket) => {
@@ -231,7 +259,7 @@ const CallcenterNachrichten = ({
       });
     };
     patchTicket(id, assignShop);
-    onStatusApplied?.(id);
+    onStatusApplied?.(id, 'offen');
   };
 
   const patchAnswer = (field, value) => {
@@ -462,15 +490,16 @@ const CallcenterNachrichten = ({
                 <div className="sz-chat-status">
                   <StatusShopSelect
                     shop={active.shop}
+                    ticketStatus={active.ticketStatus}
                     shops={nachrichtShops}
                     onChange={(value) => handleStatusOrShop(active.id, value)}
                     ariaLabel={`Filiale für ${active.customerName || active.id}`}
                   />
                 </div>
               </header>
-              {!shopAssignsTicket(active.shop) ? (
+              {!shopAssignsTicket(active.shop) && !isLeadArchived(active) ? (
                 <p className="sz-filiale-hint">
-                  Noch kein Ticket. Erst nach Wahl einer Filiale oder Call Center erscheint die Unterhaltung in Offen.
+                  Noch kein Ticket. Wählen Sie Filiale, Call Center oder Erledigt — Erledigt landet direkt im Archiv.
                 </p>
               ) : null}
 
