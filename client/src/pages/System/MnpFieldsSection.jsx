@@ -7,9 +7,9 @@ import {
 } from './mnpConstants';
 import OriginalAnbieterPicker from './OriginalAnbieterPicker';
 
-function SelectField({ id, label, value, options, onChange, required = false }) {
+function SelectField({ id, label, value, options, onChange, required = false, groupClassName = '' }) {
   return (
-    <div className="form-group">
+    <div className={`form-group${groupClassName ? ` ${groupClassName}` : ''}`}>
       <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       <select
         id={id}
@@ -198,19 +198,20 @@ export default function MnpFieldsSection({
           onChange={(v) => handleChange('mnpAltKundenGeburtsdatum', v)}
         />
         <SelectField
-          id={`${idPrefix}-freigegeben`}
-          label="freigegeben? / nach Vertragsende?"
-          value={d.freigegebenNachVertragsende || ''}
-          options={MNP_FREIGEGEBEN_OPTIONS}
-          onChange={(v) => handleChange('freigegebenNachVertragsende', v)}
-          required
-        />
-        <SelectField
           id={`${idPrefix}-typ`}
           label="MNP Typ"
           value={d.mnpTyp || ''}
           options={MNP_TYP_OPTIONS}
           onChange={(v) => handleChange('mnpTyp', v)}
+          required
+          groupClassName="vorvertrag-form-grid--row-start"
+        />
+        <SelectField
+          id={`${idPrefix}-freigegeben`}
+          label="freigegeben? / nach Vertragsende?"
+          value={d.freigegebenNachVertragsende || ''}
+          options={MNP_FREIGEGEBEN_OPTIONS}
+          onChange={(v) => handleChange('freigegebenNachVertragsende', v)}
           required
         />
         <TextField
