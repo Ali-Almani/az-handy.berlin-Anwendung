@@ -121,6 +121,12 @@
     background: mix(#fff, #1877f2, 90%);
   }
 
+  &--whatsapp.sz-chip--active {
+    color: #128c47;
+    border-color: #25d366;
+    background: mix(#fff, #25d366, 88%);
+  }
+
   &--instagram.sz-chip--active {
     color: #c13584;
     border-color: #e4405f;
@@ -229,6 +235,10 @@
     background: #1877f2;
   }
 
+  &--whatsapp {
+    background: #25d366;
+  }
+
   &--instagram {
     background: linear-gradient(135deg, #f58529, #dd2a7b 55%, #8134af);
   }
@@ -309,6 +319,59 @@
 
 .sz-chat-status {
   margin-left: auto;
+}
+
+.sz-contact-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+
+  &--inline {
+    width: 100%;
+    margin-top: 0.35rem;
+  }
+}
+
+.sz-rufnummer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sz-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid $border-color;
+  background: $bg-color;
+  color: $text-color;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  &--call {
+    color: $primary-color;
+    border-color: mix($border-color, $primary-color, 45%);
+    background: mix(#fff, $primary-color, 92%);
+  }
+
+  &--whatsapp {
+    color: #128c47;
+    border-color: #25d366;
+    background: mix(#fff, #25d366, 88%);
+  }
 }
 
 .sz-chat-status .vorvertrag-ticket-row__status-select {

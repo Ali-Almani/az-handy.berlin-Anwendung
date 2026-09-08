@@ -21,7 +21,11 @@ import {
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
   isLeadArchived,
-  channelLabel
+  channelLabel,
+  leadPhoneNumber,
+  looksLikePhoneNumber,
+  telHrefFromPhone,
+  whatsappHrefFromPhone
 } from './callcenterLeadData';
 import LeadFragenForm from './LeadFragenForm';
 import './System.scss';
@@ -56,6 +60,16 @@ function formatChatTime(iso) {
 
 function ChannelIcon({ channel }) {
   const id = normalizeSocialChannel(channel);
+  if (id === 'whatsapp') {
+    return (
+      <svg className="sz-channel-icon" viewBox="0 0 24 24" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M19.05 4.91A9.82 9.82 0 0012.04 2C6.55 2 2.08 6.46 2.08 11.94c0 1.76.46 3.48 1.34 5L2 22l5.2-1.36a9.9 9.9 0 004.84 1.23h.01c5.49 0 9.96-4.46 9.96-9.94a9.86 9.86 0 00-2.96-7.02zm-7 15.24h-.01a8.23 8.23 0 01-4.19-1.15l-.3-.18-3.08.81.82-3-.2-.31a8.2 8.2 0 01-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.42 5.83c0 4.55-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.4-.12-.56.12-.17.25-.64.8-.79.97-.14.17-.3.19-.55.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.3.37-.44.12-.15.17-.25.25-.41.08-.17.04-.31-.02-.44-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.09 0 1.24.9 2.43 1.03 2.6.12.17 1.78 2.72 4.3 3.81.6.26 1.07.41 1.44.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.23-.17-.48-.29z"
+        />
+      </svg>
+    );
+  }
   if (id === 'facebook') {
     return (
       <svg className="sz-channel-icon" viewBox="0 0 24 24" aria-hidden>
@@ -83,6 +97,31 @@ function ChannelIcon({ channel }) {
         d="M14.5 3.5v11.1a3.4 3.4 0 11-2.9-3.35V8.2c1.9.4 3.5 1.5 4.5 3.1V6.4c1 .5 1.9 1.2 2.6 2.1V3.5h-4.2zM9.2 14.6a3.4 3.4 0 11-3.4-3.4 3.4 3.4 0 013.4 3.4z"
       />
     </svg>
+  );
+}
+
+function ContactActionButtons({ phone, className = '' }) {
+  const tel = telHrefFromPhone(phone);
+  const wa = whatsappHrefFromPhone(phone);
+  if (!tel && !wa) return null;
+  return (
+    <div className={`sz-contact-actions${className ? ` ${className}` : ''}`}>
+      {tel ? (
+        <a href={tel} className="sz-contact-btn sz-contact-btn--call">
+          Anruf
+        </a>
+      ) : null}
+      {wa ? (
+        <a
+          href={wa}
+          className="sz-contact-btn sz-contact-btn--whatsapp"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          WhatsApp
+        </a>
+      ) : null}
+    </div>
   );
 }
 
@@ -164,6 +203,12 @@ const CallcenterNachrichten = ({
     () => localizedTemplateQuestions(chatLocale),
     [chatLocale]
   );
+  const contactPhone = useMemo(() => {
+    if (!active) return '';
+    const fromForm = String(answers?.rufnummer || '').trim();
+    if (looksLikePhoneNumber(fromForm)) return fromForm;
+    return leadPhoneNumber(active);
+  }, [active, answers?.rufnummer]);
 
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
@@ -175,7 +220,7 @@ const CallcenterNachrichten = ({
   }, [active?.id, active?.messages?.length]);
 
   const unreadByChannel = useMemo(() => {
-    const counts = { all: 0, facebook: 0, instagram: 0, tiktok: 0 };
+    const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
     list.forEach((t) => {
       if (!t.unread) return;
       counts.all += 1;
@@ -487,6 +532,7 @@ const CallcenterNachrichten = ({
                     {active.handle ? ` · ${active.handle}` : ''}
                   </p>
                 </div>
+                <ContactActionButtons phone={contactPhone} />
                 <div className="sz-chat-status">
                   <StatusShopSelect
                     shop={active.shop}

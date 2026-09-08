@@ -1,7 +1,10 @@
 import VorvertragEditLog from './VorvertragEditLog';
 import {
   LEAD_ANGEBOT_OPTIONS,
-  LEAD_O2_OPTIONS
+  LEAD_O2_OPTIONS,
+  looksLikePhoneNumber,
+  telHrefFromPhone,
+  whatsappHrefFromPhone
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
@@ -19,6 +22,9 @@ export default function LeadFragenForm({
   editLog = []
 }) {
   const patch = (field, value) => onChange?.(field, value);
+  const contactTel = embedded ? telHrefFromPhone(answers?.rufnummer) : null;
+  const contactWa = embedded ? whatsappHrefFromPhone(answers?.rufnummer) : null;
+  const showContactActions = embedded && looksLikePhoneNumber(answers?.rufnummer) && (contactTel || contactWa);
 
   const fields = (
     <div className={embedded ? 'sz-questions-form' : 'lead-fragen-grid'}>
@@ -36,13 +42,34 @@ export default function LeadFragenForm({
       />
       <div className="form-group">
         <label className="form-label" htmlFor={`${idPrefix}-rufnummer`}>Rufnummer?</label>
-        <input
-          id={`${idPrefix}-rufnummer`}
-          className="form-input"
-          type="tel"
-          value={answers?.rufnummer || ''}
-          onChange={(ev) => patch('rufnummer', ev.target.value)}
-        />
+        <div className={embedded ? 'sz-rufnummer-row' : undefined}>
+          <input
+            id={`${idPrefix}-rufnummer`}
+            className="form-input"
+            type="tel"
+            value={answers?.rufnummer || ''}
+            onChange={(ev) => patch('rufnummer', ev.target.value)}
+          />
+          {showContactActions ? (
+            <div className="sz-contact-actions sz-contact-actions--inline">
+              {contactTel ? (
+                <a href={contactTel} className="sz-contact-btn sz-contact-btn--call">
+                  Anruf
+                </a>
+              ) : null}
+              {contactWa ? (
+                <a
+                  href={contactWa}
+                  className="sz-contact-btn sz-contact-btn--whatsapp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className="form-group">
         <label className="form-label" htmlFor={`${idPrefix}-o2`}>O2 Kunde?</label>

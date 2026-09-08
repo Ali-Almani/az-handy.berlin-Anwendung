@@ -36,6 +36,7 @@ export const NACHRICHT_ART_OPTIONS = [
 
 export const SOCIAL_CHANNELS = [
   { id: 'facebook', label: 'Facebook', short: 'FB' },
+  { id: 'whatsapp', label: 'WhatsApp', short: 'WA' },
   { id: 'instagram', label: 'Instagram', short: 'IG' },
   { id: 'tiktok', label: 'TikTok', short: 'TT' }
 ];
@@ -423,9 +424,46 @@ function formatLeadId(prefix, dateKey, seq) {
 
 export function normalizeSocialChannel(value) {
   const v = String(value ?? '').trim().toLowerCase();
+  if (v === 'whatsapp' || v === 'wa') return 'whatsapp';
   if (v === 'instagram' || v === 'ig') return 'instagram';
   if (v === 'tiktok' || v === 'tt') return 'tiktok';
+  if (v === 'facebook' || v === 'fb') return 'facebook';
   return 'facebook';
+}
+
+export function looksLikePhoneNumber(value) {
+  const s = String(value ?? '').trim();
+  if (!s || s.startsWith('@')) return false;
+  return s.replace(/\D/g, '').length >= 8;
+}
+
+export function phoneDigits(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s) return '';
+  let digits = s.replace(/[^\d+]/g, '');
+  if (digits.startsWith('+')) digits = digits.slice(1);
+  digits = digits.replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = `49${digits.slice(1)}`;
+  return digits;
+}
+
+export function leadPhoneNumber(ticket) {
+  const ruf = String(ticket?.rufnummer || '').trim();
+  if (looksLikePhoneNumber(ruf)) return ruf;
+  const handle = String(ticket?.handle || '').trim();
+  if (looksLikePhoneNumber(handle)) return handle;
+  return '';
+}
+
+export function telHrefFromPhone(raw) {
+  const digits = phoneDigits(raw);
+  return digits ? `tel:+${digits}` : null;
+}
+
+export function whatsappHrefFromPhone(raw) {
+  const digits = phoneDigits(raw);
+  return digits ? `https://wa.me/${digits}` : null;
 }
 
 export function channelShort(channel) {
@@ -607,6 +645,34 @@ const SEED_LEADS = [
     ]
   },
   {
+    id: 'WA310826007',
+    channel: 'whatsapp',
+    customerName: 'Aylin Demir',
+    handle: '+49 151 8823 4401',
+    rufnummer: '+49 151 8823 4401',
+    o2Kunde: 'Nein',
+    angebot: 'Gold',
+    produktNotiz: '10 in 1',
+    stadt: 'Berlin',
+    marketingNotiz: '',
+    terminDatum: '',
+    terminZeit: '',
+    shop: '',
+    ticketStatus: 'Callcenter',
+    nachrichtArt: 'angebot',
+    unread: true,
+    mitarbeiterName: '',
+    createdAt: '2026-08-31T09:35:00.000Z',
+    messages: [
+      {
+        id: 'cc-007-1',
+        from: 'customer',
+        text: 'Hallo, ich habe eure WhatsApp-Nummer. Ist das Gold-Angebot noch verfügbar?',
+        at: '2026-08-31T09:35:00.000Z'
+      }
+    ]
+  },
+  {
     id: 'IG310826006',
     channel: 'instagram',
     customerName: 'Sara Müller',
@@ -689,13 +755,19 @@ function hydrateLeadTicket(t) {
   };
 }
 
+function ensureWhatsAppSeed(tickets) {
+  if (tickets.some((t) => normalizeSocialChannel(t.channel) === 'whatsapp')) return tickets;
+  const waSeed = SEED_LEADS.find((t) => normalizeSocialChannel(t.channel) === 'whatsapp');
+  return waSeed ? [...tickets, hydrateLeadTicket(waSeed)] : tickets;
+}
+
 export function loadLeadTickets() {
   try {
     const raw = localStorage.getItem(LEAD_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map(hydrateLeadTicket);
+        return ensureWhatsAppSeed(parsed.map(hydrateLeadTicket));
       }
     }
   } catch {
