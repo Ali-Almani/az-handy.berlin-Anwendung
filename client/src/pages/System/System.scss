@@ -437,23 +437,23 @@
   }
 
   .form-label {
-    margin-bottom: 0.15rem;
-    font-size: 0.75rem;
-    line-height: 1.2;
+    margin-bottom: 0.1rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
   }
 
   .form-input,
   select.form-input,
   textarea.form-input {
     width: 100%;
-    min-height: 2rem;
-    padding: 0.28rem 0.5rem;
-    font-size: 0.82rem;
-    line-height: 1.25;
+    min-height: 1.75rem;
+    padding: 0.22rem 0.42rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
 
   textarea.form-input {
-    min-height: 3.2rem;
+    min-height: 2.8rem;
   }
 
   .vorvertrag-filiale-select {
@@ -461,12 +461,44 @@
   }
 }
 
-.vorvertrag-form-panel--mnp {
+.vorvertrag-form-panel--mnp,
+.vorvertrag-form-panel--edit,
+.vorvertrag-form-panel--wizard {
   .vorvertrag-form-grid {
-    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-    gap: 0.4rem 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.35rem 0.45rem;
   }
 
+  .vorvertrag-section {
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
+
+  .vorvertrag-section-title {
+    margin-bottom: 0.25rem;
+    font-size: 0.72rem;
+  }
+
+  .vorvertrag-form-grid__heading {
+    font-size: 0.66rem;
+  }
+
+  .vorvertrag-ja-nein-row .form-group {
+    min-width: 8rem;
+  }
+
+  .vorvertrag-ja-nein-row .form-group--grow {
+    flex: 1 1 8rem;
+    min-width: 8rem;
+    max-width: 12rem;
+  }
+
+  .vorvertrag-checkbox-field__value {
+    font-size: 0.75rem;
+  }
+}
+
+.vorvertrag-form-panel--mnp {
   .vorvertrag-mnp-notiz textarea.form-input {
     min-height: 9.5rem;
     resize: vertical;
@@ -474,33 +506,9 @@
 }
 
 .vorvertrag-form-panel--edit {
-  .vorvertrag-form-grid {
-    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-    gap: 0.4rem 0.5rem;
-  }
-
-  .vorvertrag-section {
-    margin-bottom: 0.35rem;
-    padding-bottom: 0.35rem;
-  }
-
-  .vorvertrag-section-title {
-    margin-bottom: 0.3rem;
-  }
-
-  .vorvertrag-ja-nein-row .form-group {
-    min-width: 9rem;
-  }
-
-  .vorvertrag-ja-nein-row .form-group--grow {
-    flex: 1 1 9rem;
-    min-width: 9rem;
-    max-width: 14rem;
-  }
-
   .vorvertrag-form-grid--full textarea.form-input {
-    min-height: 3.2rem;
-    max-height: 5.5rem;
+    min-height: 2.8rem;
+    max-height: 5rem;
   }
 }
 
@@ -517,8 +525,8 @@
 }
 
 .vorvertrag-section-title {
-  margin: 0 0 0.4rem;
-  font-size: 0.82rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: $text-color;
 }
@@ -548,9 +556,9 @@
 
 .vorvertrag-form-grid__heading {
   grid-column: 1 / -1;
-  margin: 0.35rem 0 0;
-  padding-top: 0.2rem;
-  font-size: 0.72rem;
+  margin: 0.25rem 0 0;
+  padding-top: 0.15rem;
+  font-size: 0.66rem;
   font-weight: $font-weight-bold;
   letter-spacing: 0.04em;
   text-transform: uppercase;
