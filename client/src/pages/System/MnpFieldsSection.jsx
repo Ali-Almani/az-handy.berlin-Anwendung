@@ -89,12 +89,6 @@ export default function MnpFieldsSection({
 
         <GridHeading>Vertrag &amp; Kontakt</GridHeading>
         <TextField
-          id={`${idPrefix}-neue-o2`}
-          label="Neue O2 Rufnummer"
-          value={d.neueO2Rufnummer || ''}
-          onChange={(v) => handleChange('neueO2Rufnummer', v)}
-        />
-        <TextField
           id={`${idPrefix}-epos-kn`}
           label="ePOS KN"
           value={d.eposKn || ''}
@@ -138,6 +132,12 @@ export default function MnpFieldsSection({
           label="Kunden Aktuell Kontakt nummer"
           value={d.kundenAktuellKontaktNummer || ''}
           onChange={(v) => handleChange('kundenAktuellKontaktNummer', v)}
+        />
+        <TextField
+          id={`${idPrefix}-neue-o2`}
+          label="Neue O2 Rufnummer"
+          value={d.neueO2Rufnummer || ''}
+          onChange={(v) => handleChange('neueO2Rufnummer', v)}
         />
         <div className="form-group vorvertrag-form-grid--full">
           <label htmlFor={`${idPrefix}-k-adresse`} className="form-label">Kunden Vollständige Adresse (ePOS)</label>
