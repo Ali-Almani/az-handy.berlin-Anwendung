@@ -503,14 +503,14 @@
     }
 
     .original-anbieter-picker__dropdown {
-      min-width: 13.5rem;
-      width: max(100%, 13.5rem);
+      min-width: 18.5rem;
+      width: max(100%, 18.5rem);
     }
 
     .original-anbieter-picker__header,
     .original-anbieter-picker__option {
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 0.35rem;
+      grid-template-columns: minmax(0, 1fr) minmax(5.75rem, max-content);
+      gap: 0.5rem;
     }
 
     .original-anbieter-picker__header {
@@ -528,6 +528,9 @@
 
     .original-anbieter-picker__netz {
       font-size: 0.55rem;
+      max-width: none;
+      overflow: visible;
+      text-overflow: clip;
     }
 
     .original-anbieter-picker__empty,
@@ -670,7 +673,7 @@
 .original-anbieter-picker__header,
 .original-anbieter-picker__option {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(5.75rem, max-content);
   gap: 0.75rem;
   align-items: center;
   text-align: left;
@@ -718,9 +721,6 @@
 
 .original-anbieter-picker__netz {
   flex-shrink: 0;
-  max-width: 45%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
   font-size: 0.8rem;
