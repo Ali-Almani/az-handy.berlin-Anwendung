@@ -11,14 +11,14 @@ import VorvertragEditLog from './VorvertragEditLog';
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
-import { TICKET_LANGUAGE_DEFAULT, normalizeTicketLanguage } from './ticketLanguage';
+import { TICKET_LANGUAGE_DEFAULT_NEU, normalizeTicketLanguage } from './ticketLanguage';
 
 export const emptyMnpForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
   filiale: '',
   mnpDetails: emptyMnpDetails(),
   priority: TICKET_PRIORITY_DEFAULT,
-  sprache: TICKET_LANGUAGE_DEFAULT
+  sprache: TICKET_LANGUAGE_DEFAULT_NEU
 });
 
 export function formFromMnpEntry(entry) {

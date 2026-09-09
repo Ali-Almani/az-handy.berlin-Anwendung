@@ -1,6 +1,6 @@
 import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
-import { TICKET_LANGUAGE_DEFAULT, normalizeTicketLanguage } from './ticketLanguage';
+import { TICKET_LANGUAGE_DEFAULT_NEU, normalizeTicketLanguage } from './ticketLanguage';
 
 export { LEAD_STADT_OPTIONS } from './deutscheStaedte';
 
@@ -115,7 +115,13 @@ export function questionChatLocale(sprache) {
 
 export function spracheFromQuestionLocale(locale) {
   const found = QUESTION_CHAT_LOCALES.find((item) => item.id === locale);
-  return found?.sprache || TICKET_LANGUAGE_DEFAULT;
+  return found?.sprache || TICKET_LANGUAGE_DEFAULT_NEU;
+}
+
+function leadSprache(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return TICKET_LANGUAGE_DEFAULT_NEU;
+  return normalizeTicketLanguage(raw);
 }
 
 export function localizedTemplateQuestions(locale) {
@@ -199,7 +205,7 @@ export function emptyLeadForm() {
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
-    sprache: TICKET_LANGUAGE_DEFAULT,
+    sprache: TICKET_LANGUAGE_DEFAULT_NEU,
     nachrichtArt: '',
     editLog: []
   };
@@ -218,7 +224,7 @@ export function formFromLead(entry) {
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
     priority: normalizeTicketPriority(entry?.priority),
-    sprache: normalizeTicketLanguage(entry?.sprache),
+    sprache: leadSprache(entry?.sprache),
     nachrichtArt: normalizeNachrichtArt(entry?.nachrichtArt)
   };
 }
@@ -729,7 +735,7 @@ export function leadToNeuEntry(lead) {
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
     ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
     priority: normalizeTicketPriority(lead.priority),
-    sprache: normalizeTicketLanguage(lead.sprache),
+    sprache: leadSprache(lead.sprache),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
     mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
@@ -747,7 +753,7 @@ function hydrateLeadTicket(t) {
     messages: Array.isArray(t?.messages) ? t.messages : [],
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
     priority: normalizeTicketPriority(t?.priority),
-    sprache: normalizeTicketLanguage(t?.sprache),
+    sprache: leadSprache(t?.sprache),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),

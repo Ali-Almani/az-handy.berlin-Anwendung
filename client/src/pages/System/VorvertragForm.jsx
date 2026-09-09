@@ -9,7 +9,7 @@ import { FILIALE_OPTIONS, normalizeEinsatzOrt } from '../../constants/einsatzort
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
 import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
-import { TICKET_LANGUAGE_DEFAULT, normalizeTicketLanguage } from './ticketLanguage';
+import { TICKET_LANGUAGE_DEFAULT_NEU, normalizeTicketLanguage } from './ticketLanguage';
 
 const MONATE_OPTIONS = ['24 Monate', '36 Monate'];
 
@@ -38,7 +38,7 @@ export const emptyVorvertragForm = () => ({
   mnpDetails: emptyMnpDetails(),
   notiz: '',
   priority: TICKET_PRIORITY_DEFAULT,
-  sprache: TICKET_LANGUAGE_DEFAULT
+  sprache: TICKET_LANGUAGE_DEFAULT_NEU
 });
 
 export function formFromEntry(entry) {

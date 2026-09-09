@@ -7,6 +7,7 @@ export const TICKET_LANGUAGE_OPTIONS = [
 ];
 
 export const TICKET_LANGUAGE_DEFAULT = 'Deutsch';
+export const TICKET_LANGUAGE_DEFAULT_NEU = 'Arabisch';
 
 const LANGUAGE_ALIASES = {
   arabisch: 'Arabisch',
