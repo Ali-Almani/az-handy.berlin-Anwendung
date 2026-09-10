@@ -379,6 +379,55 @@ const getMergedCopyHistory = async () => {
   return merged;
 };
 
+function parseRowActionsJson(row) {
+  const rowActionsJson = (row?.get && row.get('row_actions_json')) ?? row?.row_actions_json;
+  try {
+    const parsed = rowActionsJson ? JSON.parse(rowActionsJson) : {};
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+/** Mitarbeiter shop: eigener Verlauf inkl. Row-Actions auf der gemeinsamen Owner-Zeile. */
+async function resolveCopyHistoryForMitarbeiterShop(userId, currentUser, ownDataRow) {
+  const userName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim();
+  const myNorm = normHistUserName(userName);
+  if (!myNorm) return [];
+  let rawHistory = safeJsonParse((ownDataRow?.get && ownDataRow.get('copy_history_json')) ?? ownDataRow?.copy_history_json, []);
+  if (!Array.isArray(rawHistory)) rawHistory = [];
+  let copyHistory = rawHistory.filter((e) => e && normHistUserName(e.userName) === myNorm);
+
+  const productLookup = await loadSharedImeiProductLookup();
+  const additions = [];
+  const rowUserId = (ownDataRow?.get && ownDataRow.get('user_id')) ?? ownDataRow?.user_id ?? userId;
+  additions.push(
+    ...copyHistoryFromRowActions(parseRowActionsJson(ownDataRow), userName, rowUserId, productLookup).filter(
+      (e) => normHistUserName(e.userName) === myNorm
+    )
+  );
+
+  try {
+    const ownerId = await getSharedImeiOwnerId();
+    if (ownerId != null && String(ownerId) !== String(userId)) {
+      const ownerRow = await ImeisUserData.findOne({ where: { user_id: ownerId } });
+      if (ownerRow) {
+        additions.push(
+          ...copyHistoryFromRowActions(
+            parseRowActionsJson(ownerRow),
+            userName,
+            ownerId,
+            productLookup
+          ).filter((e) => normHistUserName(e.userName) === myNorm)
+        );
+      }
+    }
+  } catch (_) {}
+
+  if (additions.length === 0) return copyHistory;
+  return mergeCopyHistoryEntries(copyHistory, additions);
+}
+
 /** Merge copy_history nur von Benutzern mit gleichem einsatz_ort (Teamleiter shop sieht Verlauf seiner Kategorie) */
 const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   if (!einsatzOrt || typeof einsatzOrt !== 'string') return [];
@@ -649,8 +698,7 @@ export const getImeisData = async (req, res, next) => {
         let rawHistory = safeJsonParse(ownData.copy_history_json, []);
         if (!Array.isArray(rawHistory)) rawHistory = [];
         if (isMitarbeiterShop(role)) {
-          const userName = currentUser?.name ?? currentUser?.get?.('name') ?? '';
-          copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
+          copyHistory = await resolveCopyHistoryForMitarbeiterShop(userId, currentUser, ownData);
         } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
           try {
             copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
@@ -754,8 +802,7 @@ export const getImeisData = async (req, res, next) => {
       let rawHistory = safeJsonParse(ownData.copy_history_json, []);
       if (!Array.isArray(rawHistory)) rawHistory = [];
       if (isMitarbeiterShop(role)) {
-        const userName = currentUser?.name ?? currentUser?.get?.('name') ?? '';
-        copyHistory = rawHistory.filter((e) => e && String(e.userName || '').trim() === String(userName).trim());
+        copyHistory = await resolveCopyHistoryForMitarbeiterShop(userId, currentUser, ownData);
       } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
         try {
           copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
