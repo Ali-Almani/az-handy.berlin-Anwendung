@@ -48,6 +48,7 @@ import {
   trimCopyHistoryByRetention,
   parseCopyHistoryTimestamp
 } from '../utils/copyHistoryRetention.js';
+import { sendJsonResponse } from '../utils/httpJson.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
 const MERGED_COPY_HISTORY_TTL = 30;
@@ -57,15 +58,6 @@ const USER_DATA_CACHE_TTL = 20;
 const userDataCacheKey = (userId, lite = false) =>
   `${USER_DATA_CACHE_PREFIX}${userId}${lite ? ':lite' : ''}`;
 
-/** Korrektes Content-Length (UTF-8) – vermeidet ERR_CONTENT_LENGTH_MISMATCH hinter Proxys */
-function sendJsonUtf8(res, payload) {
-  const body = JSON.stringify(payload);
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Content-Length', Buffer.byteLength(body, 'utf8'));
-  res.status(res.statusCode || 200);
-  res.end(body);
-}
-
 async function invalidateImeisCaches(userId, { sharedListChanged = false } = {}) {
   await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
   if (sharedListChanged) {
@@ -73,7 +65,8 @@ async function invalidateImeisCaches(userId, { sharedListChanged = false } = {})
     return;
   }
   if (userId != null) {
-    await redisCache.del(userDataCacheKey(userId));
+    await redisCache.del(userDataCacheKey(userId, false));
+    await redisCache.del(userDataCacheKey(userId, true));
   }
 }
 
@@ -589,7 +582,7 @@ export const getImeisData = async (req, res, next) => {
     if (!debugEnabled) {
       const cachedResponse = await redisCache.get(userDataCacheKey(userId, lite));
       if (cachedResponse != null) {
-        return sendJsonUtf8(res, cachedResponse);
+        return sendJsonResponse(res, cachedResponse);
       }
     }
 
@@ -639,7 +632,7 @@ export const getImeisData = async (req, res, next) => {
         if (!debugEnabled) {
           await redisCache.set(userDataCacheKey(userId, true), response, USER_DATA_CACHE_TTL);
         }
-        return sendJsonUtf8(res, response);
+        return sendJsonResponse(res, response);
       }
       let copyHistory = [];
       let copyTimestamps = [];
@@ -705,7 +698,7 @@ export const getImeisData = async (req, res, next) => {
       if (!debugEnabled) {
         await redisCache.set(userDataCacheKey(userId, false), response, USER_DATA_CACHE_TTL);
       }
-      return sendJsonUtf8(res, response);
+      return sendJsonResponse(res, response);
     }
 
     const [data, created] = await ImeisUserData.findOrCreate({
@@ -738,7 +731,7 @@ export const getImeisData = async (req, res, next) => {
       if (!debugEnabled) {
         await redisCache.set(userDataCacheKey(userId, true), response, USER_DATA_CACHE_TTL);
       }
-      return sendJsonUtf8(res, response);
+      return sendJsonResponse(res, response);
     }
     let copyHistory = [];
     let copyTimestamps = [];
@@ -809,7 +802,7 @@ export const getImeisData = async (req, res, next) => {
     if (!debugEnabled) {
       await redisCache.set(userDataCacheKey(userId, false), response, USER_DATA_CACHE_TTL);
     }
-    sendJsonUtf8(res, response);
+    sendJsonResponse(res, response);
   } catch (error) {
     console.error('getImeisData:', error);
     next(error);
@@ -1879,7 +1872,7 @@ export const getAcceptedImeisArchive = async (req, res, next) => {
     if (!(await assertOfficeOrAdmin(req, res))) return;
     const { from, to } = req.query;
     const entries = listAcceptedImeisForDisplay({ from, to });
-    sendJsonUtf8(res, { success: true, entries });
+    sendJsonResponse(res, { success: true, entries });
   } catch (error) {
     next(error);
   }

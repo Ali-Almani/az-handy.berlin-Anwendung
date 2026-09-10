@@ -5,9 +5,9 @@ import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUt
 import { isOfficeImeiRole, dedupeCopyHistoryByImeiUser } from '../utils/copyHistoryRetention';
 import { getProductFull } from '../utils/imeisProductUtils';
 
-const POLL_INTERVAL_MS = 8000;
-const POLL_INTERVAL_FAIL_MS = 20000;
-const VERLAUF_REFRESH_MS = 3000;
+const POLL_INTERVAL_MS = 12000;
+const POLL_INTERVAL_FAIL_MS = 45000;
+const VERLAUF_REFRESH_MS = 15000;
 
 function processCopyHistory(savedCopyHistory) {
   /** Eine Zeile pro IMEI und Mitarbeiter – Duplikate aus Sync/Reservieren zusammenfassen. */
@@ -282,7 +282,24 @@ export function useImeisData(
     };
 
     refreshVerlauf();
-    const id = setInterval(refreshVerlauf, VERLAUF_REFRESH_MS);
-    return () => clearInterval(id);
+    const socket = getSocket();
+    let timerId = null;
+    const schedule = () => {
+      if (socket?.connected) return;
+      timerId = setTimeout(refreshVerlauf, VERLAUF_REFRESH_MS);
+    };
+    schedule();
+    const onConnect = () => {
+      if (timerId) clearTimeout(timerId);
+      timerId = null;
+      refreshVerlauf();
+    };
+    socket?.on?.('connect', onConnect);
+    socket?.on?.('imeis:updated', refreshVerlauf);
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      socket?.off?.('connect', onConnect);
+      socket?.off?.('imeis:updated', refreshVerlauf);
+    };
   }, [showHistoryModal, user?.id, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setSonderImeis]);
 }

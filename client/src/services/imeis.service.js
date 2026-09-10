@@ -1,5 +1,6 @@
 import api from './api';
 import { loadImeis, saveImeis } from '../utils/storage';
+import { resolveApiBasePath } from '../utils/runtimeApiBase';
 
 // In Produktion: Immer echte API (wie in api.js)
 const USE_MOCK_API = import.meta.env.PROD ? false : (
@@ -11,27 +12,47 @@ const USE_MOCK_API = import.meta.env.PROD ? false : (
 const imeisDataInflight = { full: null, lite: null };
 let lastImeisFetchErrorLog = 0;
 
+async function fetchImeisJsonGet(path, params = {}) {
+  const base = resolveApiBasePath();
+  const qs = new URLSearchParams({ ...params, _t: String(Date.now()) });
+  const url = `${base}${path}?${qs.toString()}`;
+  const token = localStorage.getItem('token');
+  const res = await fetch(url, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'Accept-Encoding': 'identity',
+      'Cache-Control': 'no-cache',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  });
+  if (!res.ok) {
+    const err = new Error(`IMEIS API HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  const text = await res.text();
+  return JSON.parse(text);
+}
+
 export const getImeisDataFromApi = async ({ lite = false } = {}) => {
   const slot = lite ? 'lite' : 'full';
   if (imeisDataInflight[slot]) return imeisDataInflight[slot];
 
   imeisDataInflight[slot] = (async () => {
     try {
-      const res = await api.get('/imeis/data', {
-        params: { _t: Date.now(), ...(lite ? { lite: '1' } : {}) },
-        headers: { 'Cache-Control': 'no-cache' },
-        timeout: 120000,
-        decompress: true
-      });
-      if (res.data?.success && res.data) {
-        const imeis = res.data.imeis ?? [];
+      const data = await fetchImeisJsonGet('/imeis/data', lite ? { lite: '1' } : {});
+      if (data?.success && data) {
+        const imeis = data.imeis ?? [];
         return {
           imeis,
-          cellColors: res.data.cellColors ?? {},
-          rowActions: res.data.rowActions ?? {},
-          copyHistory: res.data.copyHistory ?? [],
-          copyTimestamps: res.data.copyTimestamps ?? [],
-          sonderImeis: Array.isArray(res.data.sonderImeis) ? res.data.sonderImeis : []
+          cellColors: data.cellColors ?? {},
+          rowActions: data.rowActions ?? {},
+          copyHistory: data.copyHistory ?? [],
+          copyTimestamps: data.copyTimestamps ?? [],
+          sonderImeis: Array.isArray(data.sonderImeis) ? data.sonderImeis : []
         };
       }
     } catch (err) {
@@ -89,8 +110,12 @@ export const getAcceptedImeisArchiveApi = async ({ from, to } = {}) => {
   const params = {};
   if (from) params.from = from;
   if (to) params.to = to;
-  const res = await api.get('/imeis/accepted-archive', { params });
-  return res.data;
+  try {
+    return await fetchImeisJsonGet('/imeis/accepted-archive', params);
+  } catch (err) {
+    console.error('getAcceptedImeisArchiveApi:', err);
+    throw err;
+  }
 };
 
 export const deleteAcceptedImeiArchiveEntryApi = async (id) => {
