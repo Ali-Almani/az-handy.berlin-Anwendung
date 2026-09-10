@@ -33,6 +33,9 @@ import {
   COPY_HISTORY_RETENTION_MS,
   parseCopyHistoryTimestamp
 } from '../utils/copyHistoryRetention.js';
+import { copyHistoryEntriesFromRowActions } from '../utils/copyHistoryRowActions.js';
+import { loadPm2DbEnv } from './loadPm2DbEnv.js';
+import { getPgDatabaseName, runPsql } from './pgLocal.js';
 import * as redisCache from '../utils/redisCache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -56,61 +59,17 @@ function bootstrapEnv() {
   }
 
   if (process.argv.includes('--env-from-pm2')) {
-    loadEnvFromPm2(process.env.PM2_APP_NAME || 'az-api');
+    loadPm2DbEnv(process.env.PM2_APP_NAME || 'az-api');
   }
 }
 
-function loadEnvFromPm2(appName) {
-  const keys = ['DATABASE_URL', 'PG_USER', 'PG_PASSWORD', 'PG_HOST', 'PG_PORT', 'PG_DATABASE'];
-
-  const applyEnv = (envObj, override) => {
-    if (!envObj) return 0;
-    let n = 0;
-    for (const key of keys) {
-      const val = envObj[key];
-      if (val == null || val === '') continue;
-      if (override || !process.env[key]) {
-        process.env[key] = String(val);
-        n += 1;
-      }
-    }
-    return n;
-  };
-
-  try {
-    const out = execSync('pm2 jlist', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
-    const list = JSON.parse(out);
-    const app = list.find((a) => a.name === appName);
-    if (!app) {
-      console.warn(`⚠️  PM2-App "${appName}" nicht gefunden – .env wird verwendet.`);
-      return false;
-    }
-
-    let loaded = applyEnv(app.pm2_env?.env, true);
-    const pid = app.pid;
-    if (pid && fs.existsSync(`/proc/${pid}/environ`)) {
-      const procEnv = {};
-      const buf = fs.readFileSync(`/proc/${pid}/environ`);
-      for (const part of buf.toString('utf-8').split('\0')) {
-        const i = part.indexOf('=');
-        if (i <= 0) continue;
-        procEnv[part.slice(0, i)] = part.slice(i + 1);
-      }
-      loaded += applyEnv(procEnv, true);
-    }
-
-    if (loaded === 0) {
-      console.warn(`⚠️  Keine DB-Variablen in PM2 (${appName}) – .env wird verwendet.`);
-      return false;
-    }
-
-    const dbUser = process.env.DATABASE_URL?.match(/\/\/([^:@/]+)/)?.[1] ?? process.env.PG_USER ?? '?';
-    console.log(`🔑 DB-Zugang aus PM2 (${appName}, User: ${dbUser}) geladen.`);
-    return true;
-  } catch (err) {
-    console.warn(`⚠️  PM2 env nicht lesbar: ${err.message}`);
-    return false;
-  }
+function combineCopyHistoryAndRowActions(copyHistoryArr, rowActions, userId) {
+  const arr = Array.isArray(copyHistoryArr) ? copyHistoryArr : [];
+  const rowActionsObj =
+    rowActions && typeof rowActions === 'object' && !Array.isArray(rowActions) ? rowActions : {};
+  const fromActions = copyHistoryEntriesFromRowActions(rowActionsObj, { rowUserId: userId });
+  const merged = mergeHistoryRaw(arr, fromActions);
+  return { arr, fromActions, merged };
 }
 
 function dbHint(sourcePath, retentionDays, allDays, preferJson = false) {
@@ -142,6 +101,9 @@ function resolveRestoreTarget(backupUsers) {
   const targetArg = process.argv.find((a) => a.startsWith('--target='));
   const explicit = targetArg?.slice('--target='.length);
   if (explicit === 'json' || explicit === 'postgres') return explicit;
+  if (process.argv.includes('--use-postgres') && backupUsers.some((u) => isUuidUserId(u.userId))) {
+    return 'postgres';
+  }
 
   const uuidUsers = backupUsers.filter((u) => isUuidUserId(u.userId)).length;
   const numericUsers = backupUsers.filter((u) => isNumericUserId(u.userId)).length;
@@ -156,9 +118,15 @@ function resolveRestoreTarget(backupUsers) {
 }
 
 function restoreHintArgs(sourcePath, backupUsers) {
-  const target = resolveRestoreTarget(backupUsers);
-  const daysArg = allDays ? ' --all-days' : ` --days ${retentionDays}`;
-  const targetArg = target === 'json' ? ' --target=json' : ' --use-postgres';
+  const daysArg = allDays
+    ? ' --all-days'
+    : fromMs != null
+      ? ` --from=${new Date(fromMs).toISOString().slice(0, 10)}`
+      : ` --days ${retentionDays ?? 30}`;
+  const hasUuid = backupUsers.some((u) => isUuidUserId(u.userId));
+  const targetArg = hasUuid
+    ? ' --target=postgres --use-postgres --env-from-pm2'
+    : ' --use-postgres --env-from-pm2';
   return `${sourcePath}${daysArg}${targetArg}`;
 }
 
@@ -343,6 +311,154 @@ async function prepareUsersForJsonRestore(backupUsers, filePath) {
   return mapped;
 }
 
+function loadUuidToEmailFromUsersJson() {
+  const map = new Map();
+  const users = readJsonStore('users.json', []);
+  for (const u of users) {
+    const uuid = String(u._id ?? u.id ?? '').trim();
+    const email = String(u.email ?? '').toLowerCase().trim();
+    if (uuid && email) map.set(uuid, email);
+  }
+  return map;
+}
+
+function loadPostgresEmailToUserIdMap() {
+  const dbName = getPgDatabaseName();
+  const out = runPsql(dbName, ['-t', '-A', '-c', 'SELECT id, LOWER(TRIM(email)) FROM users']);
+  const map = new Map();
+  for (const line of out.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const sep = trimmed.indexOf('|');
+    if (sep <= 0) continue;
+    const id = parseInt(trimmed.slice(0, sep), 10);
+    const email = trimmed.slice(sep + 1).trim();
+    if (Number.isFinite(id) && email) map.set(email, id);
+  }
+  return map;
+}
+
+function normHistUserNameForMap(s) {
+  return String(s ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function loadPostgresNameToUserIdMap() {
+  const dbName = getPgDatabaseName();
+  const out = runPsql(dbName, ['-t', '-A', '-c', 'SELECT id, name FROM users']);
+  const map = new Map();
+  for (const line of out.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const sep = trimmed.indexOf('|');
+    if (sep <= 0) continue;
+    const id = parseInt(trimmed.slice(0, sep), 10);
+    const name = normHistUserNameForMap(trimmed.slice(sep + 1));
+    if (Number.isFinite(id) && name) map.set(name, id);
+  }
+  return map;
+}
+
+function loadPostgresValidUserIdSet() {
+  const dbName = getPgDatabaseName();
+  const out = runPsql(dbName, ['-t', '-A', '-c', 'SELECT id FROM users']);
+  const set = new Set();
+  for (const line of out.split('\n')) {
+    const id = parseInt(line.trim(), 10);
+    if (Number.isFinite(id)) set.add(id);
+  }
+  return set;
+}
+
+function dominantUserNameFromHistory(bu) {
+  const counts = new Map();
+  for (const e of bu.copyHistory ?? []) {
+    const n = normHistUserNameForMap(e?.userName);
+    if (!n) continue;
+    counts.set(n, (counts.get(n) ?? 0) + 1);
+  }
+  let best = null;
+  let max = 0;
+  for (const [n, c] of counts) {
+    if (c > max) {
+      max = c;
+      best = n;
+    }
+  }
+  return best;
+}
+
+function mergeBackupUserIntoPgMap(byPgId, pgId, bu) {
+  const key = String(pgId);
+  const existing = byPgId.get(key);
+  if (existing) {
+    existing.copyHistory = mergeHistoryRaw(existing.copyHistory, bu.copyHistory ?? []);
+  } else {
+    byPgId.set(key, {
+      ...bu,
+      userId: pgId,
+      copyHistory: [...(bu.copyHistory ?? [])]
+    });
+  }
+}
+
+/** server-data.tar.gz / imeis.json (UUID) → PostgreSQL integer user_id */
+function prepareUsersForPostgresRestore(backupUsers) {
+  if (!backupUsers.some((u) => isUuidUserId(u.userId))) return backupUsers;
+  console.log('');
+  console.log('🔗 imeis.json (UUID) → PostgreSQL user_id (users.json / Name / E-Mail)…');
+  const uuidToEmail = loadUuidToEmailFromUsersJson();
+  const emailToPgId = loadPostgresEmailToUserIdMap();
+  const nameToPgId = loadPostgresNameToUserIdMap();
+  const validUserIds = loadPostgresValidUserIdSet();
+  let matchedEmail = 0;
+  let matchedName = 0;
+  let skipped = 0;
+  const byPgId = new Map();
+
+  for (const bu of backupUsers) {
+    if (isNumericUserId(bu.userId)) {
+      const id = parseInt(String(bu.userId), 10);
+      if (!validUserIds.has(id)) {
+        skipped += 1;
+        continue;
+      }
+      mergeBackupUserIntoPgMap(byPgId, id, bu);
+      continue;
+    }
+    if (!isUuidUserId(bu.userId)) {
+      skipped += 1;
+      continue;
+    }
+    let pgId = null;
+    const email = uuidToEmail.get(String(bu.userId));
+    if (email) pgId = emailToPgId.get(email) ?? null;
+    if (pgId == null) {
+      const byName = dominantUserNameFromHistory(bu);
+      if (byName) pgId = nameToPgId.get(byName) ?? null;
+      if (pgId != null) matchedName += 1;
+    } else {
+      matchedEmail += 1;
+    }
+    if (pgId == null || !validUserIds.has(pgId)) {
+      skipped += 1;
+      continue;
+    }
+    mergeBackupUserIntoPgMap(byPgId, pgId, bu);
+  }
+
+  const matched = byPgId.size;
+  console.log(
+    `   UUID→PostgreSQL: ${matched} Benutzer (${matchedEmail} per E-Mail, ${matchedName} per Name), ${skipped} übersprungen.`
+  );
+  if (matched === 0) {
+    console.warn('⚠️  Kein UUID konnte einer gültigen PostgreSQL-user_id zugeordnet werden.');
+  }
+  return Array.from(byPgId.values());
+}
+
 function countLiveJsonOfficeStats() {
   const state = readJsonStore('imeis.json', {});
   const users = [];
@@ -440,6 +556,8 @@ function loadFromExportJson(filePath) {
           userId: u.userId,
           copyHistory: filterHistory(full),
           copyHistoryRawCount: full.length,
+          copyHistorySqlOnlyCount: full.length,
+          copyHistoryFromActionsCount: 0,
           copyTimestamps: Array.isArray(u.copyTimestamps) ? u.copyTimestamps : []
         };
       }),
@@ -457,16 +575,24 @@ function loadFromImeisJson(filePath) {
       if (!val || typeof val !== 'object') continue;
       const userId = val.user_id ?? key;
       const full = safeParseJson(val.copy_history_json, []);
-      const arr = Array.isArray(full) ? full : [];
+      const rowActions = safeParseJson(val.row_actions_json, {});
+      const { arr, fromActions, merged } = combineCopyHistoryAndRowActions(full, rowActions, userId);
       users.push({
         userId,
-        copyHistory: filterHistory(arr),
-        copyHistoryRawCount: arr.length,
+        copyHistory: filterHistory(merged),
+        copyHistoryMergedUnfiltered: merged,
+        copyHistorySqlOnlyUnfiltered: arr,
+        copyHistoryRawCount: merged.length,
+        copyHistorySqlOnlyCount: arr.length,
+        copyHistoryFromActionsCount: fromActions.length,
         copyTimestamps: safeParseJson(val.copy_timestamps_json, [])
       });
     }
   }
-  return { users, acceptedImeis: null };
+  const rawHistoryTotal = users.reduce((n, u) => n + (u.copyHistoryRawCount ?? 0), 0);
+  const rawCopyHistoryOnlyTotal = users.reduce((n, u) => n + (u.copyHistorySqlOnlyCount ?? 0), 0);
+  const rawFromRowActionsTotal = users.reduce((n, u) => n + (u.copyHistoryFromActionsCount ?? 0), 0);
+  return { users, acceptedImeis: null, rawHistoryTotal, rawCopyHistoryOnlyTotal, rawFromRowActionsTotal };
 }
 
 function listTarMembers(tarPath) {
@@ -555,14 +681,21 @@ function parseImeisUserDataCopyLine(line) {
   // id, user_id, imeis_json, cell_colors, row_actions, copy_history, copy_timestamps, created_at, updated_at
   const copyHistoryRaw = unescapeCopyField(parts[parts.length - 4]);
   const copyTimestampsRaw = unescapeCopyField(parts[parts.length - 3]);
+  const rowActionsRaw = unescapeCopyField(parts[parts.length - 5]);
 
   const copyHistory = safeParseJson(copyHistoryRaw, []);
-  const arr = Array.isArray(copyHistory) ? copyHistory : [];
+  const uid = /^\d+$/.test(String(userId)) ? parseInt(userId, 10) : userId;
+  const rowActions = safeParseJson(rowActionsRaw, {});
+  const { arr, fromActions, merged } = combineCopyHistoryAndRowActions(copyHistory, rowActions, uid);
 
   return {
-    userId: /^\d+$/.test(String(userId)) ? parseInt(userId, 10) : userId,
-    copyHistory: filterHistory(arr),
-    copyHistoryRawCount: arr.length,
+    userId: uid,
+    copyHistory: filterHistory(merged),
+    copyHistoryMergedUnfiltered: merged,
+    copyHistorySqlOnlyUnfiltered: arr,
+    copyHistoryRawCount: merged.length,
+    copyHistorySqlOnlyCount: arr.length,
+    copyHistoryFromActionsCount: fromActions.length,
     copyTimestamps: safeParseJson(copyTimestampsRaw, [])
   };
 }
@@ -570,6 +703,8 @@ function parseImeisUserDataCopyLine(line) {
 async function loadFromSqlDump(filePath) {
   const users = [];
   let rawHistoryTotal = 0;
+  let rawCopyHistoryOnlyTotal = 0;
+  let rawFromRowActionsTotal = 0;
   const isGz = filePath.endsWith('.gz');
   const stream = isGz
     ? fs.createReadStream(filePath).pipe(createGunzip())
@@ -588,12 +723,20 @@ async function loadFromSqlDump(filePath) {
     const parsed = parseImeisUserDataCopyLine(line);
     if (!parsed) continue;
     rawHistoryTotal += parsed.copyHistoryRawCount ?? 0;
+    rawCopyHistoryOnlyTotal += parsed.copyHistorySqlOnlyCount ?? 0;
+    rawFromRowActionsTotal += parsed.copyHistoryFromActionsCount ?? 0;
     users.push(parsed);
   }
   if (users.length === 0) {
     throw new Error('Keine imeis_user_data-Zeilen im SQL-Dump gefunden');
   }
-  return { users, acceptedImeis: null, rawHistoryTotal };
+  return {
+    users,
+    acceptedImeis: null,
+    rawHistoryTotal,
+    rawCopyHistoryOnlyTotal,
+    rawFromRowActionsTotal
+  };
 }
 
 async function loadSource(filePath) {
@@ -638,38 +781,14 @@ async function restoreAcceptedArchive(acceptedImeis) {
   return added;
 }
 
-function getPgDatabaseName() {
-  if (process.env.PG_DATABASE) return process.env.PG_DATABASE;
-  const url = process.env.DATABASE_URL;
-  if (url) {
-    try {
-      const parsed = new URL(url.replace(/^postgresql:/, 'postgres:'));
-      const name = parsed.pathname.replace(/^\//, '').split('?')[0];
-      if (name) return name;
-    } catch (_) {}
-  }
-  return 'az_handy_berlin';
-}
-
 function sqlLiteral(str) {
   return `'${String(str).replace(/'/g, "''")}'`;
 }
 
-function runPsql(dbName, psqlArgs, stdinSql) {
-  const cmd = ['-u', 'postgres', 'psql', '-d', dbName, '-v', 'ON_ERROR_STOP=1', ...psqlArgs];
-  const result = spawnSync('sudo', cmd, {
-    encoding: 'utf-8',
-    input: stdinSql ?? undefined,
-    stdio: stdinSql != null ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe']
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error((result.stderr || result.stdout || 'psql fehlgeschlagen').trim());
-  }
-  return (result.stdout ?? '').trim();
-}
-
 async function restoreUsersViaPostgres(backupUsers) {
+  if (backupUsers.some((u) => isUuidUserId(u.userId))) {
+    backupUsers = prepareUsersForPostgresRestore(backupUsers);
+  }
   const dbName = getPgDatabaseName();
   console.log(`🔐 Wiederherstellung via sudo -u postgres psql (${dbName})…`);
   runPsql(dbName, ['-t', '-A', '-c', 'SELECT 1']);
@@ -677,11 +796,20 @@ async function restoreUsersViaPostgres(backupUsers) {
   let updatedUsers = 0;
   let addedEntries = 0;
 
+  const validUserIds = loadPostgresValidUserIdSet();
+
   for (const bu of backupUsers) {
     const uid = bu.userId;
     if (uid == null || !(bu.copyHistory?.length > 0)) continue;
-    const uidNum = parseInt(uid, 10);
-    if (!Number.isFinite(uidNum)) continue;
+    if (!isNumericUserId(uid)) {
+      console.warn(`  ⚠️  Übersprungen (keine numerische user_id): ${String(uid).slice(0, 36)}…`);
+      continue;
+    }
+    const uidNum = parseInt(String(uid), 10);
+    if (!Number.isFinite(uidNum) || !validUserIds.has(uidNum)) {
+      console.warn(`  ⚠️  Übersprungen (user_id ${uidNum} existiert nicht in users): ${uidNum}`);
+      continue;
+    }
 
     const existing = runPsql(
       dbName,
@@ -837,10 +965,19 @@ async function main() {
   const acceptedImeis = loaded.acceptedImeis;
   const rawHistoryTotal = loaded.rawHistoryTotal ??
     backupUsers.reduce((n, u) => n + (u.copyHistoryRawCount ?? u.copyHistory?.length ?? 0), 0);
+  const rawCopyHistoryOnlyTotal =
+    loaded.rawCopyHistoryOnlyTotal ??
+    backupUsers.reduce((n, u) => n + (u.copyHistorySqlOnlyCount ?? u.copyHistoryRawCount ?? 0), 0);
+  const rawFromRowActionsTotal =
+    loaded.rawFromRowActionsTotal ??
+    backupUsers.reduce((n, u) => n + (u.copyHistoryFromActionsCount ?? 0), 0);
   const backupHistoryTotal = backupUsers.reduce((n, u) => n + (u.copyHistory?.length ?? 0), 0);
 
   console.log(`📊 Backup: ${backupUsers.length} Benutzer`);
   console.log(`   Verlauf-Einträge gesamt im Backup: ${rawHistoryTotal}`);
+  if (rawFromRowActionsTotal > 0 || rawCopyHistoryOnlyTotal !== rawHistoryTotal) {
+    console.log(`     davon copy_history_json: ${rawCopyHistoryOnlyTotal} | aus row_actions_json: ${rawFromRowActionsTotal}`);
+  }
   console.log(`   Nach Datumsfilter (${daysLabel}): ${backupHistoryTotal}`);
 
   const topUsers = [...backupUsers]
@@ -871,7 +1008,25 @@ async function main() {
   } else if (backupHistoryTotal === 0 && rawHistoryTotal > 0) {
     console.warn('');
     console.warn(`⚠️  ${rawHistoryTotal} Einträge im Backup, aber keiner im Filter "${daysLabel}".`);
-    console.warn('   → Erneut mit --all-days versuchen.');
+    const unfilteredUsers = backupUsers.map((u) => ({
+      userId: u.userId,
+      copyHistory: u.copyHistoryMergedUnfiltered ?? u.copyHistory ?? []
+    }));
+    const sqlOnlyUsers = backupUsers.map((u) => ({
+      userId: u.userId,
+      copyHistory: u.copyHistorySqlOnlyUnfiltered ?? []
+    }));
+    console.warn('');
+    printOfficeWindowStats('Backup copy_history_json (ungefiltert)', sqlOnlyUsers);
+    if (rawFromRowActionsTotal > 0) {
+      printOfficeWindowStats('Backup inkl. row_actions (ungefiltert)', unfilteredUsers);
+    }
+    console.warn('');
+    console.warn('   → Kein Eintrag ab --from: Verlauf ab 08.09. ist in diesem Dump nicht vorhanden (gelöscht oder nie in PG).');
+    console.warn('   → Alternative: server-data.tar.gz vom gleichen Tag analysieren:');
+    console.warn(`      npm run restore-imei-verlauf -- ${sourcePath.replace(/az_handy_berlin\.sql\.gz$/i, 'server-data.tar.gz')} --from=2026-09-08 --analyze-only`);
+    console.warn('   → Live-Stand sichern (PM2-Passwort): npm run backup-imei-verlauf -- --env-from-pm2');
+    console.warn('   → App zeigt max. 4 Tage Verlauf – ältere Einträge (--all-days) erscheinen im Büro trotzdem nicht.');
   }
 
   if (analyzeOnly || dryRun) {
@@ -908,7 +1063,13 @@ async function main() {
     ({ updatedUsers, addedEntries } = await restoreUsersViaJsonStore(usersForRestore));
     await invalidateImeisCachesAfterRestore();
   } else if (usePostgres) {
-    ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(backupUsers));
+    const usersForPg = prepareUsersForPostgresRestore(backupUsers);
+    if (usersForPg.length === 0) {
+      console.error('❌ Keine Benutzer für PostgreSQL-Restore nach UUID-Mapping.');
+      process.exit(1);
+    }
+    ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(usersForPg));
+    await invalidateImeisCachesAfterRestore();
   } else {
     console.log('🔄 Verbinde mit Datenbank…');
     try {
@@ -919,7 +1080,9 @@ async function main() {
       console.log('');
       console.log('↪️  Fallback: postgres-Superuser (sudo -u postgres psql)…');
       try {
-        ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(backupUsers));
+        const usersForPg = prepareUsersForPostgresRestore(backupUsers);
+        ({ updatedUsers, addedEntries } = await restoreUsersViaPostgres(usersForPg));
+        await invalidateImeisCachesAfterRestore();
       } catch (pgErr) {
         console.error('');
         console.error('❌ postgres-Fallback fehlgeschlagen:', pgErr.message);
