@@ -52,15 +52,17 @@ import {
 import { sendJsonResponse } from '../utils/httpJson.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
+const VERLAUF_HIDDEN_KEYS_CACHE_KEY = 'imeis:verlaufHiddenKeys';
 const MERGED_COPY_HISTORY_TTL = 30;
 const USER_DATA_CACHE_PREFIX = 'imeis:userData:';
-const USER_DATA_CACHE_TTL = 20;
+const USER_DATA_CACHE_TTL = 45;
 
 const userDataCacheKey = (userId, lite = false) =>
   `${USER_DATA_CACHE_PREFIX}${userId}${lite ? ':lite' : ''}`;
 
 async function invalidateImeisCaches(userId, { sharedListChanged = false } = {}) {
   await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
+  await redisCache.del(VERLAUF_HIDDEN_KEYS_CACHE_KEY);
   if (sharedListChanged) {
     await redisCache.delPattern(`${USER_DATA_CACHE_PREFIX}*`);
     return;
@@ -325,15 +327,32 @@ async function collectMergedCopyHistoryFromRows(rows) {
   const productLookup = await loadSharedImeiProductLookup();
   const merged = [];
   const seenKeys = new Set();
+  const userIds = [
+    ...new Set(
+      (Array.isArray(rows) ? rows : [])
+        .map((row) => coerceUserId((row.get && row.get('user_id')) ?? row.user_id))
+        .filter((id) => id != null)
+        .map((id) => String(id))
+    )
+  ];
+  const userNameById = new Map();
+  if (userIds.length > 0) {
+    try {
+      const users = await User.findAll({
+        where: { id: { [Op.in]: userIds } },
+        attributes: ['id', 'name']
+      });
+      for (const u of users || []) {
+        const uid = coerceUserId(u?.id ?? u?.get?.('id'));
+        if (uid == null) continue;
+        userNameById.set(String(uid), String(u?.name ?? u?.get?.('name') ?? '').trim());
+      }
+    } catch (_) {}
+  }
   for (const row of rows) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    let rowUserName = '';
-    if (rowUserId != null) {
-      try {
-        const u = await User.findByPk(rowUserId);
-        rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
-      } catch (_) {}
-    }
+    const rowUserName =
+      rowUserId != null ? userNameById.get(String(coerceUserId(rowUserId) ?? rowUserId)) ?? '' : '';
     const pushEntry = (e, fallbackUserName) => {
       if (!e || (!e.imei && !e.timestamp)) return;
       const userName = e.userName || fallbackUserName;
@@ -583,7 +602,7 @@ export const getImeisData = async (req, res, next) => {
     if (!debugEnabled) {
       const cachedResponse = await redisCache.get(userDataCacheKey(userId, lite));
       if (cachedResponse != null) {
-        return sendJsonResponse(res, await stripHiddenImeisFromUserDataResponse(cachedResponse));
+        return sendJsonResponse(res, cachedResponse);
       }
     }
 
@@ -615,7 +634,7 @@ export const getImeisData = async (req, res, next) => {
       });
       let imeis = safeJsonParse(data.imeis_json, []);
       if (!Array.isArray(imeis)) imeis = [];
-      imeis = await sanitizeStoredImeisForVisibility(dataUserId, imeis);
+      imeis = await filterImeisForApiResponse(imeis);
       let cellColors = safeJsonParse(data.cell_colors_json, {});
       if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
       let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -715,7 +734,7 @@ export const getImeisData = async (req, res, next) => {
 
     let imeis = safeJsonParse(data.imeis_json, []);
     if (!Array.isArray(imeis)) imeis = [];
-    imeis = await sanitizeStoredImeisForVisibility(dataUserId, imeis);
+    imeis = await filterImeisForApiResponse(imeis);
     let cellColors = safeJsonParse(data.cell_colors_json, {});
     if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
     let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -968,9 +987,8 @@ function filterImeisExcludingKeySet(imeis, keySet) {
   return { filtered, excludedCount };
 }
 
-async function getVerlaufHiddenImeiKeySet() {
-  const merged = await computeMergedCopyHistory();
-  const deduped = dedupeCopyHistoryByImeiUser(merged);
+function buildVerlaufHiddenKeySetFromMergedHistory(merged) {
+  const deduped = dedupeCopyHistoryByImeiUser(Array.isArray(merged) ? merged : []);
   const set = new Set();
   for (const entry of deduped) {
     if (!historyEntryHidesImeiFromList(entry)) continue;
@@ -980,38 +998,39 @@ async function getVerlaufHiddenImeiKeySet() {
   return set;
 }
 
-/** Archiv + offener Verlauf: IMEIs aus der Bestandsliste filtern. */
-export async function applyImeiListVisibilityFilters(imeis) {
+async function getVerlaufHiddenImeiKeySet() {
+  const cached = await redisCache.get(VERLAUF_HIDDEN_KEYS_CACHE_KEY);
+  if (Array.isArray(cached)) {
+    return new Set(cached);
+  }
+  const merged = await getMergedCopyHistory();
+  const set = buildVerlaufHiddenKeySetFromMergedHistory(merged);
+  await redisCache.set(VERLAUF_HIDDEN_KEYS_CACHE_KEY, [...set], MERGED_COPY_HISTORY_TTL);
+  return set;
+}
+
+function applyImeiListVisibilityFiltersWithKeySets(imeis, { acceptedKeys, verlaufKeys }) {
   let list = Array.isArray(imeis) ? imeis : [];
   let excludedCount = 0;
-  const archive = filterImeisExcludingAcceptedArchive(list);
+  const archive = filterImeisExcludingKeySet(list, acceptedKeys);
   list = archive.filtered;
   excludedCount += archive.excludedCount;
-  const verlaufKeys = await getVerlaufHiddenImeiKeySet();
   const verlauf = filterImeisExcludingKeySet(list, verlaufKeys);
   list = verlauf.filtered;
   excludedCount += verlauf.excludedCount;
   return { filtered: list, excludedCount };
 }
 
-/** Bestand bereinigen: Archiv- und Verlauf-IMEIs aus gespeicherter Liste entfernen. */
-async function sanitizeStoredImeisForVisibility(dataUserId, imeis) {
-  const { filtered, excludedCount } = await applyImeiListVisibilityFilters(imeis);
-  if (excludedCount > 0 && dataUserId != null) {
-    await ImeisUserData.upsert({
-      user_id: dataUserId,
-      imeis_json: JSON.stringify(filtered)
-    });
-    await invalidateImeisCaches(null, { sharedListChanged: true });
-  }
-  return filtered;
+/** Archiv + offener Verlauf: IMEIs aus der Bestandsliste filtern (Antwort, kein DB-Schreiben). */
+export async function applyImeiListVisibilityFilters(imeis) {
+  const acceptedKeys = getAcceptedImeiKeySet();
+  const verlaufKeys = await getVerlaufHiddenImeiKeySet();
+  return applyImeiListVisibilityFiltersWithKeySets(imeis, { acceptedKeys, verlaufKeys });
 }
 
-async function stripHiddenImeisFromUserDataResponse(payload) {
-  if (!payload || !Array.isArray(payload.imeis)) return payload;
-  const { filtered } = await applyImeiListVisibilityFilters(payload.imeis);
-  if (filtered.length === payload.imeis.length) return payload;
-  return { ...payload, imeis: filtered };
+/** Nur für API-Antworten – keine DB-Bereinigung pro GET. */
+async function filterImeisForApiResponse(imeis) {
+  return (await applyImeiListVisibilityFilters(imeis)).filtered;
 }
 
 async function reconcileSharedImeiListAfterVerlaufChange(app) {

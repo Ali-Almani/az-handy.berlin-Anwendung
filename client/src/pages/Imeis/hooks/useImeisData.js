@@ -5,9 +5,10 @@ import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUt
 import { isOfficeImeiRole, dedupeCopyHistoryByImeiUser } from '../utils/copyHistoryRetention';
 import { getProductFull } from '../utils/imeisProductUtils';
 
-const POLL_INTERVAL_MS = 12000;
-const POLL_INTERVAL_FAIL_MS = 45000;
-const VERLAUF_REFRESH_MS = 15000;
+const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_FAIL_MS = 60000;
+const VERLAUF_REFRESH_MS = 45000;
+const IMEIS_FETCH_MIN_GAP_MS = 4000;
 
 function processCopyHistory(savedCopyHistory) {
   /** Eine Zeile pro IMEI und Mitarbeiter – Duplikate aus Sync/Reservieren zusammenfassen. */
@@ -170,6 +171,7 @@ export function useImeisData(
 
     const socket = getSocket();
     let pollTimerId = null;
+    const lastImeisFetchAtRef = { current: 0 };
 
     const schedulePoll = (delayMs) => {
       if (socket?.connected) return;
@@ -205,6 +207,9 @@ export function useImeisData(
 
     const onImeisUpdated = () => {
       if (shouldSkipSync()) return;
+      const now = Date.now();
+      if (now - lastImeisFetchAtRef.current < IMEIS_FETCH_MIN_GAP_MS) return;
+      lastImeisFetchAtRef.current = now;
       getImeisDataFromApi().then((data) => {
         if (data) applyImeisData(data, setters, getManufacturer, false);
       });
@@ -259,6 +264,9 @@ export function useImeisData(
 
   useEffect(() => {
     if (!showHistoryModal || !user?.id) return;
+    const socket = getSocket();
+    if (socket?.connected) return;
+
     const setters = {
       setImeis,
       setCellTextColors,
@@ -282,24 +290,13 @@ export function useImeisData(
     };
 
     refreshVerlauf();
-    const socket = getSocket();
-    let timerId = null;
-    const schedule = () => {
-      if (socket?.connected) return;
-      timerId = setTimeout(refreshVerlauf, VERLAUF_REFRESH_MS);
-    };
-    schedule();
-    const onConnect = () => {
-      if (timerId) clearTimeout(timerId);
-      timerId = null;
+    let timerId = setTimeout(function pollVerlauf() {
       refreshVerlauf();
-    };
-    socket?.on?.('connect', onConnect);
-    socket?.on?.('imeis:updated', refreshVerlauf);
+      timerId = setTimeout(pollVerlauf, VERLAUF_REFRESH_MS);
+    }, VERLAUF_REFRESH_MS);
+
     return () => {
       if (timerId) clearTimeout(timerId);
-      socket?.off?.('connect', onConnect);
-      socket?.off?.('imeis:updated', refreshVerlauf);
     };
   }, [showHistoryModal, user?.id, setImeis, setCellTextColors, setRowActions, setCopyHistory, setCopyTimestamps, setAvailableSheets, setActiveSheet, setAvailableManufacturers, setActiveManufacturer, setHistory, setSonderImeis]);
 }
