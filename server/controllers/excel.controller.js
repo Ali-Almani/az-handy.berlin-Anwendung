@@ -1,5 +1,9 @@
 import ExcelJS from 'exceljs';
-import { saveImeisDataToStorage, appendImeisFromExcelUpload } from './imeis.controller.js';
+import {
+  saveImeisDataToStorage,
+  appendImeisFromExcelUpload,
+  filterImeisExcludingAcceptedArchive
+} from './imeis.controller.js';
 import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRoles.js';
 import { canonicalImeiString } from '../utils/imeiKey.js';
 import User from '../models/User.js';
@@ -416,7 +420,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
   const append = await userCanAppendImeiExcel(uploaderId);
   if (append) {
     const parsePreview = imeis.slice(0, 5).map((r) => maskImeiPreview(r?.imei));
-    const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows, total, acceptedArchiveMatches } =
+    const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows, total, excludedFromAcceptedArchive } =
       await appendImeisFromExcelUpload(uploaderId, imeis, req.app);
     let message;
     if (added === 0 && (updatedFromUpload ?? 0) > 0) {
@@ -428,8 +432,8 @@ async function saveImeisAfterExcelParse(req, imeis) {
     } else {
       message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }
-    if ((acceptedArchiveMatches ?? 0) > 0) {
-      message = `${message} ${acceptedArchiveMatches} IMEI(s) mit Eintrag im Angenommen-Archiv wieder in die Liste aufgenommen (nur Reservierungen aufgehoben, Archiv und Verlauf bleiben erhalten).`;
+    if ((excludedFromAcceptedArchive ?? 0) > 0) {
+      message = `${message} ${excludedFromAcceptedArchive} IMEI(s) aus der Liste entfernt (stehen im Angenommen-Archiv).`;
     }
     writeAuditLog(req, {
       category: 'excel',
@@ -446,23 +450,30 @@ async function saveImeisAfterExcelParse(req, imeis) {
       skippedDuplicate,
       updatedFromUpload: updatedFromUpload ?? 0,
       previousCount,
-      acceptedArchiveMatches: acceptedArchiveMatches ?? 0,
+      excludedFromAcceptedArchive: excludedFromAcceptedArchive ?? 0,
       saved: true,
       parsedFromFile: imeis.length,
       parsePreview
     };
   }
-  await saveImeisDataToStorage(uploaderId, { imeis }, req.app);
+  const { filtered: imeisToSave, excludedCount: excludedFromAcceptedArchive } =
+    filterImeisExcludingAcceptedArchive(imeis);
+  await saveImeisDataToStorage(uploaderId, { imeis: imeisToSave }, req.app);
   writeAuditLog(req, {
     category: 'excel',
     action: 'excel.upload',
-    summary: `Excel-Upload: ${imeis.length} IMEI(s) gespeichert`,
-    meta: { count: imeis.length }
+    summary: `Excel-Upload: ${imeisToSave.length} IMEI(s) gespeichert`,
+    meta: { count: imeisToSave.length, excludedFromAcceptedArchive }
   });
+  let message = `${imeisToSave.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`;
+  if (excludedFromAcceptedArchive > 0) {
+    message = `${message} ${excludedFromAcceptedArchive} IMEI(s) nicht übernommen (Angenommen-Archiv).`;
+  }
   return {
     success: true,
-    message: `${imeis.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`,
-    data: imeis,
+    message,
+    data: imeisToSave,
+    excludedFromAcceptedArchive,
     saved: true
   };
 }

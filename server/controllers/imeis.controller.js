@@ -911,86 +911,29 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
   };
 }
 
-function restoreAcceptedArchiveFromExcelUpload(merged, incomingImeis, acceptedKeys) {
-  const incomingByKey = new Map();
-  for (const item of incomingImeis) {
-    if (!item || typeof item !== 'object') continue;
-    for (const k of collectImeiKeysFromUploadRow(item)) {
-      if (acceptedKeys.has(k)) incomingByKey.set(k, item);
+function uploadRowInAcceptedArchive(item, acceptedKeys) {
+  if (!acceptedKeys?.size || !item || typeof item !== 'object') return false;
+  for (const k of collectImeiKeysFromUploadRow(item)) {
+    if (acceptedKeys.has(k)) return true;
+  }
+  return false;
+}
+
+/** IMEIs aus Bestand entfernen, die im Angenommen-Archiv stehen (Archiv selbst unverändert). */
+export function filterImeisExcludingAcceptedArchive(imeis, acceptedKeys = getAcceptedImeiKeySet()) {
+  const list = Array.isArray(imeis) ? imeis : [];
+  const keys = acceptedKeys instanceof Set ? acceptedKeys : getAcceptedImeiKeySet();
+  if (!keys.size) return { filtered: list, excludedCount: 0 };
+  const filtered = [];
+  let excludedCount = 0;
+  for (const row of list) {
+    if (uploadRowInAcceptedArchive(row, keys)) {
+      excludedCount += 1;
+      continue;
     }
+    filtered.push(row);
   }
-
-  const keysToRestore = [...incomingByKey.keys()];
-  if (keysToRestore.length === 0) {
-    return {
-      merged: merged.map((row) => {
-        const next = { ...row };
-        delete next._acceptedArchiveMatch;
-        return next;
-      }),
-      restoredFromArchive: 0,
-      reAddedFromArchive: 0
-    };
-  }
-
-  // Archiv + Verlauf bleiben erhalten – IMEIs nur wieder in die Hauptliste aufnehmen.
-  const nowIso = new Date().toISOString();
-  const result = [...merged];
-  const keyToIndex = new Map();
-  for (let i = 0; i < result.length; i++) {
-    const k = normalizeImeiDedupKey(result[i]?.imei);
-    if (k && !keyToIndex.has(k)) keyToIndex.set(k, i);
-  }
-
-  let reAddedFromArchive = 0;
-  for (const k of keysToRestore) {
-    const incoming = incomingByKey.get(k);
-    const idx = keyToIndex.get(k);
-    if (idx !== undefined) {
-      const prev = result[idx];
-      result[idx] = {
-        ...prev,
-        ...incoming,
-        rowData: incoming?.rowData ? { ...incoming.rowData } : prev?.rowData,
-        columnOrder: Array.isArray(incoming?.columnOrder) ? [...incoming.columnOrder] : prev?.columnOrder,
-        rowDataFormats: incoming?.rowDataFormats ? { ...incoming.rowDataFormats } : prev?.rowDataFormats,
-        sheet: incoming?.sheet ?? prev?.sheet,
-        row: incoming?.row ?? prev?.row,
-        imei: canonicalImeiString(incoming?.imei ?? k),
-        _addedAt: prev?._addedAt || nowIso,
-        _excelUpdatedAt: nowIso,
-        _restoredFromAcceptedArchiveAt: nowIso
-      };
-      delete result[idx]._acceptedArchiveMatch;
-    } else {
-      result.push({
-        ...incoming,
-        imei: canonicalImeiString(incoming?.imei ?? k),
-        sheet: incoming?.sheet ?? 'Excel',
-        row: incoming?.row ?? result.length + 1,
-        _addedAt: nowIso,
-        _restoredFromAcceptedArchiveAt: nowIso
-      });
-      keyToIndex.set(k, result.length - 1);
-      reAddedFromArchive += 1;
-    }
-  }
-
-  const restoredKeys = new Set(keysToRestore);
-  const cleaned = result.map((row) => {
-    const next = { ...row };
-    const k = normalizeImeiDedupKey(next?.imei);
-    if (!k || !restoredKeys.has(k)) {
-      delete next._acceptedArchiveMatch;
-    }
-    return next;
-  });
-
-  return {
-    merged: cleaned,
-    restoredFromArchive: keysToRestore.length,
-    reAddedFromArchive
-  };
+  return { filtered, excludedCount };
 }
 
 function rowActionMatchesImeiKeys(rowId, keySet) {
@@ -1061,49 +1004,30 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
       } catch (_) {}
     }
   }
+  const acceptedKeys = getAcceptedImeiKeySet();
+  const incomingForMerge = incoming.filter((item) => !uploadRowInAcceptedArchive(item, acceptedKeys));
   const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows } = mergeImeiRowsAppend(
     existing,
-    incoming
+    incomingForMerge
   );
-  const acceptedKeys = getAcceptedImeiKeySet();
-  const restoreKeysSet = new Set();
-  for (const item of incoming) {
-    for (const k of collectImeiKeysFromUploadRow(item)) {
-      if (acceptedKeys.has(k)) restoreKeysSet.add(k);
-    }
-  }
-  const restoreKeys = [...restoreKeysSet];
-  const { merged: restoredMerged, restoredFromArchive, reAddedFromArchive } = restoreAcceptedArchiveFromExcelUpload(
+  const { filtered: finalImeis, excludedCount: excludedFromAcceptedArchive } = filterImeisExcludingAcceptedArchive(
     merged,
-    incoming,
     acceptedKeys
   );
-  if (restoreKeys.length > 0) {
-    const restoreKeySet = new Set(restoreKeys);
-    const explicitRowIds = restoredMerged
-      .filter((item) => {
-        const k = normalizeImeiKey(item?.imei);
-        return k && restoreKeySet.has(k);
-      })
-      .map((item) => buildImeiRowId(item));
-    await clearReservierenRowActionsForImeiKeys(restoreKeys, explicitRowIds);
-  }
-  const totalAdded = added + reAddedFromArchive;
-  await saveImeisDataToStorage(baseUserId, { imeis: restoredMerged }, app);
+  const addedRowsVisible = addedRows.filter((item) => !uploadRowInAcceptedArchive(item, acceptedKeys));
+  await saveImeisDataToStorage(baseUserId, { imeis: finalImeis }, app);
   const io = app?.get?.('io');
   if (io) io.emit('imeis:updated');
   await invalidateImeisCaches(baseUserId, { sharedListChanged: true });
   return {
-    merged: restoredMerged,
-    addedRows,
-    added: totalAdded,
+    merged: finalImeis,
+    addedRows: addedRowsVisible,
+    added: addedRowsVisible.length,
     skippedDuplicate,
     updatedFromUpload,
     previousCount,
-    total: restoredMerged.length,
-    restoredFromArchive,
-    reAddedFromArchive,
-    acceptedArchiveMatches: restoredFromArchive
+    total: finalImeis.length,
+    excludedFromAcceptedArchive
   };
 }
 
