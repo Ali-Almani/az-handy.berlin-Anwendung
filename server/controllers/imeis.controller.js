@@ -582,7 +582,7 @@ export const getImeisData = async (req, res, next) => {
     if (!debugEnabled) {
       const cachedResponse = await redisCache.get(userDataCacheKey(userId, lite));
       if (cachedResponse != null) {
-        return sendJsonResponse(res, cachedResponse);
+        return sendJsonResponse(res, stripAcceptedArchiveFromImeisResponse(cachedResponse));
       }
     }
 
@@ -614,6 +614,7 @@ export const getImeisData = async (req, res, next) => {
       });
       let imeis = safeJsonParse(data.imeis_json, []);
       if (!Array.isArray(imeis)) imeis = [];
+      imeis = await sanitizeStoredImeisAgainstArchive(dataUserId, imeis);
       let cellColors = safeJsonParse(data.cell_colors_json, {});
       if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
       let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -713,6 +714,7 @@ export const getImeisData = async (req, res, next) => {
 
     let imeis = safeJsonParse(data.imeis_json, []);
     if (!Array.isArray(imeis)) imeis = [];
+    imeis = await sanitizeStoredImeisAgainstArchive(dataUserId, imeis);
     let cellColors = safeJsonParse(data.cell_colors_json, {});
     if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
     let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -911,12 +913,60 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
   };
 }
 
+function considerImeiValueForArchiveMatch(val, fullKeys, partialSuffixes) {
+  const nk = normalizeSonderImeiKey(val);
+  if (nk && nk.length >= 14 && nk.length <= 17) {
+    fullKeys.push(nk);
+    return;
+  }
+  const digits = String(val ?? '').replace(/\D/g, '');
+  if (digits.length >= 14 && digits.length <= 17) {
+    fullKeys.push(normalizeSonderImeiKey(digits));
+  } else if (digits.length >= 4 && digits.length < 14) {
+    partialSuffixes.push(digits);
+  }
+}
+
 function uploadRowInAcceptedArchive(item, acceptedKeys) {
   if (!acceptedKeys?.size || !item || typeof item !== 'object') return false;
+  const fullKeys = [];
+  const partialSuffixes = [];
+  considerImeiValueForArchiveMatch(item?.imei, fullKeys, partialSuffixes);
   for (const k of collectImeiKeysFromUploadRow(item)) {
-    if (acceptedKeys.has(k)) return true;
+    considerImeiValueForArchiveMatch(k, fullKeys, partialSuffixes);
+  }
+  for (const fk of fullKeys) {
+    if (acceptedKeys.has(fk)) return true;
+  }
+  for (const suffix of partialSuffixes) {
+    let hits = 0;
+    for (const ak of acceptedKeys) {
+      if (String(ak).endsWith(suffix)) hits += 1;
+    }
+    if (hits === 1) return true;
   }
   return false;
+}
+
+/** Bestand bereinigen: Archiv-IMEIs aus gespeicherter Liste entfernen (einmalig/heilend). */
+async function sanitizeStoredImeisAgainstArchive(dataUserId, imeis) {
+  const list = Array.isArray(imeis) ? imeis : [];
+  const { filtered, excludedCount } = filterImeisExcludingAcceptedArchive(list);
+  if (excludedCount > 0 && dataUserId != null) {
+    await ImeisUserData.upsert({
+      user_id: dataUserId,
+      imeis_json: JSON.stringify(filtered)
+    });
+    await invalidateImeisCaches(null, { sharedListChanged: true });
+  }
+  return filtered;
+}
+
+function stripAcceptedArchiveFromImeisResponse(payload) {
+  if (!payload || !Array.isArray(payload.imeis)) return payload;
+  const { filtered } = filterImeisExcludingAcceptedArchive(payload.imeis);
+  if (filtered.length === payload.imeis.length) return payload;
+  return { ...payload, imeis: filtered };
 }
 
 /** IMEIs aus Bestand entfernen, die im Angenommen-Archiv stehen (Archiv selbst unverändert). */
@@ -1040,7 +1090,10 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   userId = uid;
   const currentUser = await User.findByPk(userId);
   const role = getUserRole(currentUser);
-  const { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
+  let { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
+  if (imeis !== undefined && Array.isArray(imeis)) {
+    imeis = filterImeisExcludingAcceptedArchive(imeis).filtered;
+  }
 
   // Server-Schutz: "reservieren/dereserviert" muss im Verlauf erscheinen (Teamleiter-Verlauf basiert auf copy_history_json).
   // Wir synthesizen fehlende Einträge aus rowActions (nur für eigene Aktionen dieses Users),

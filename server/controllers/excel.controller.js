@@ -429,6 +429,8 @@ async function saveImeisAfterExcelParse(req, imeis) {
       message = `${added} neue IMEI(s) hinzugefügt, ${updatedFromUpload} bestehende aktualisiert (${total} gesamt, vorher ${previousCount}).`;
     } else if (added > 0) {
       message = `${added} IMEI(s) zur IMEI-Liste hinzugefügt (${total} gesamt, vorher ${previousCount}).`;
+    } else if ((excludedFromAcceptedArchive ?? 0) > 0 && total !== previousCount) {
+      message = `${excludedFromAcceptedArchive} IMEI(s) aus der Bestandsliste entfernt (${total} gesamt, vorher ${previousCount}).`;
     } else {
       message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }

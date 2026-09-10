@@ -66,13 +66,16 @@ const ExcelUpload = ({ embedded = false }) => {
           return;
         }
         const addedRows = Array.isArray(response.data) ? response.data : [];
-        if (
-          !response.saved ||
-          (addedRows.length === 0 &&
-            (response.added ?? 0) === 0 &&
-            (response.updatedFromUpload ?? 0) === 0 &&
-            (response.skippedDuplicate ?? 0) === 0)
-        ) {
+        const excludedFromArchive = response.excludedFromAcceptedArchive ?? 0;
+        const hadListChange =
+          addedRows.length > 0 ||
+          (response.added ?? 0) > 0 ||
+          (response.updatedFromUpload ?? 0) > 0 ||
+          (response.skippedDuplicate ?? 0) > 0 ||
+          excludedFromArchive > 0 ||
+          (response.mergedCount != null && response.previousCount != null &&
+            response.mergedCount !== response.previousCount);
+        if (!response.saved || !hadListChange) {
           setUploadStatus({ type: 'error', message: response.message || 'Keine IMEI-Daten in der Datei gefunden' });
           setIsProcessing(false);
           return;
