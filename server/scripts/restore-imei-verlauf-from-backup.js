@@ -8,6 +8,8 @@
  *   --dry-run       Nur anzeigen, nichts speichern (keine DB nötig)
  *   --analyze-only  Nur Backup analysieren, keine DB
  *   --days 30       Nur Einträge der letzten N Tage (Standard: 30)
+ *   --from=2026-09-08  Einträge ab diesem Datum (UTC Mitternacht)
+ *   --to=2026-09-10    Einträge bis einschließlich (Standard: jetzt)
  *   --all-days      Alle Einträge aus Backup (kein Datumsfilter)
  *   --env-from-pm2  DB-Zugangsdaten aus laufendem PM2-Prozess (az-api)
  *   --database-url=postgresql://…  DB-URL überschreiben
@@ -229,6 +231,7 @@ function printOfficeWindowStats(label, backupUsers) {
 
 async function invalidateImeisCachesAfterRestore() {
   await redisCache.del('imeis:mergedCopyHistory');
+  await redisCache.del('imeis:verlaufHiddenKeys');
   await redisCache.delPattern('imeis:userData:*');
   console.log('♻️  Redis-Cache für IMEI-Verlauf geleert.');
 }
@@ -367,6 +370,27 @@ const retentionDays = allDays
 const retentionMs = retentionDays != null ? retentionDays * 24 * 60 * 60 * 1000 : null;
 const sourcePath = args[0] || process.env.IMEI_VERLAUF_BACKUP_PATH;
 
+function parseDateArg(flag) {
+  const arg = process.argv.find((a) => a.startsWith(`${flag}=`));
+  if (!arg) return null;
+  const raw = arg.slice(flag.length + 1).trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw.includes('T') ? raw : `${raw}T00:00:00`);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+const fromMs = parseDateArg('--from');
+const toArg = process.argv.find((a) => a.startsWith('--to='));
+const toMs = toArg
+  ? (() => {
+      const raw = toArg.slice('--to='.length).trim();
+      const ms = Date.parse(raw.includes('T') ? raw : `${raw}T23:59:59.999`);
+      return Number.isNaN(ms) ? Date.now() : ms;
+    })()
+  : fromMs != null
+    ? Date.now()
+    : null;
+
 function safeParseJson(raw, fallback) {
   if (raw == null || raw === '') return fallback;
   try {
@@ -378,8 +402,14 @@ function safeParseJson(raw, fallback) {
 }
 
 function entryInWindow(entry) {
-  if (retentionMs == null) return true;
   const ts = parseCopyHistoryTimestamp(entry);
+  if (fromMs != null || toMs != null) {
+    if (Number.isNaN(ts)) return false;
+    if (fromMs != null && ts < fromMs) return false;
+    if (toMs != null && ts > toMs) return false;
+    return true;
+  }
+  if (retentionMs == null) return true;
   if (Number.isNaN(ts)) return true;
   return ts >= Date.now() - retentionMs;
 }
@@ -793,7 +823,11 @@ async function main() {
     process.exit(1);
   }
 
-  const daysLabel = allDays ? 'alle Tage' : `letzte ${retentionDays} Tage`;
+  const daysLabel = fromMs != null
+    ? `ab ${new Date(fromMs).toISOString().slice(0, 10)} bis ${new Date(toMs ?? Date.now()).toISOString().slice(0, 10)}`
+    : allDays
+      ? 'alle Tage'
+      : `letzte ${retentionDays} Tage`;
   console.log(`📂 Quelle: ${path.resolve(sourcePath)}`);
   console.log(`📅 Filter: ${daysLabel}${dryRun ? ' (Dry-Run)' : ''}${analyzeOnly ? ' (nur Analyse)' : ''}`);
   console.log('');
