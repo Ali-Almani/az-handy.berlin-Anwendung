@@ -114,6 +114,7 @@ export function useImeisCopyHandlers({
           timestamp: new Date().toISOString(),
           userName: user?.name || 'Unbekannt'
         });
+        persistImeis?.({ removedImei: imeiToCopy });
         setCopySuccess?.(true);
         setTimeout(() => setCopySuccess?.(false), 2000);
         setSelectedRowForDropdown(null);
@@ -122,7 +123,7 @@ export function useImeisCopyHandlers({
       console.error('Error copying IMEI to clipboard:', error);
       alert('Fehler beim Kopieren in die Zwischenablage: ' + error.message);
     }
-  }, [getProductFull, getManufacturer, user, checkCopyRateLimit, registerCopyAction, setSelectedRowForDropdown, showRateLimitError, addHistoryEntry, setCopySuccess]);
+  }, [getProductFull, getManufacturer, user, checkCopyRateLimit, registerCopyAction, setSelectedRowForDropdown, showRateLimitError, addHistoryEntry, persistImeis, setCopySuccess]);
 
   const handleDropdownSelect = useCallback(async (item, action) => {
     const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
@@ -153,6 +154,7 @@ export function useImeisCopyHandlers({
         timestamp: ts,
         userName: user?.name || 'Unbekannt'
       });
+      persistImeis?.({ removedImei: String(item?.imei || '').trim() });
       return;
     }
 

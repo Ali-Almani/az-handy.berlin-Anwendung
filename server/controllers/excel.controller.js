@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 import {
   saveImeisDataToStorage,
   appendImeisFromExcelUpload,
-  filterImeisExcludingAcceptedArchive
+  applyImeiListVisibilityFilters
 } from './imeis.controller.js';
 import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRoles.js';
 import { canonicalImeiString } from '../utils/imeiKey.js';
@@ -459,7 +459,7 @@ async function saveImeisAfterExcelParse(req, imeis) {
     };
   }
   const { filtered: imeisToSave, excludedCount: excludedFromAcceptedArchive } =
-    filterImeisExcludingAcceptedArchive(imeis);
+    await applyImeiListVisibilityFilters(imeis);
   await saveImeisDataToStorage(uploaderId, { imeis: imeisToSave }, req.app);
   writeAuditLog(req, {
     category: 'excel',

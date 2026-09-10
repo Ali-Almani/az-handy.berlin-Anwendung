@@ -99,6 +99,13 @@ export function trimCopyHistoryByRetention(entries, sinceMs = Date.now() - COPY_
 }
 
 /** Bestehende Server-Einträge behalten – Client sendet oft nur die letzten 100. */
+/** IMEI aus Bestand ausblenden, solange der neueste Verlaufseintrag „offen“ ist. */
+export function historyEntryHidesImeiFromList(entry) {
+  const action = String(entry?.action ?? '').trim().toLowerCase();
+  if (action === 'dereserviert' || action === 'abgelehnt' || action === 'angenommen') return false;
+  return Boolean(String(entry?.imei ?? '').trim());
+}
+
 export function mergeCopyHistoryEntries(existing, incoming) {
   const byKey = new Map();
   for (const e of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {

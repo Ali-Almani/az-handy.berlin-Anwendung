@@ -177,6 +177,7 @@ export function useImeis() {
     activeGB,
     searchTerm,
     rowActions,
+    copyHistory,
     sonderOnly,
     sonderImeiKeySet,
     acceptedReuploadOnly,

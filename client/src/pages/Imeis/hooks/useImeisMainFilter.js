@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
+import { dedupeCopyHistoryByImeiUser, historyEntryHidesImeiFromList } from '../utils/copyHistoryRetention';
 import { isAppleManufacturerName, isAppleWatchProductFull, productVersionMatches } from '../utils/imeisProductUtils';
 
 export function useImeisMainFilter({
@@ -13,6 +14,7 @@ export function useImeisMainFilter({
   activeGB,
   searchTerm,
   rowActions,
+  copyHistory,
   sonderOnly,
   sonderImeiKeySet,
   acceptedReuploadOnly,
@@ -48,6 +50,20 @@ export function useImeisMainFilter({
     }
     if (acceptedReuploadOnly) {
       filtered = filtered.filter((item) => item?._acceptedArchiveMatch === true);
+    }
+    if (Array.isArray(copyHistory) && copyHistory.length > 0) {
+      const verlaufHidden = new Set();
+      for (const entry of dedupeCopyHistoryByImeiUser(copyHistory)) {
+        if (!historyEntryHidesImeiFromList(entry)) continue;
+        const k = normalizeImeiSortKey(entry?.imei);
+        if (k) verlaufHidden.add(k);
+      }
+      if (verlaufHidden.size > 0) {
+        filtered = filtered.filter((item) => {
+          const k = normalizeImeiSortKey(item?.imei);
+          return !k || !verlaufHidden.has(k);
+        });
+      }
     }
     if (activeSheet) filtered = filtered.filter(item => item.sheet === activeSheet);
 
@@ -155,5 +171,5 @@ export function useImeisMainFilter({
       setSelectedCells(new Set());
     }
     prevFilterRef.current = filterKey;
-  }, [activeSheet, activeManufacturer, activeAppleHardwareTab, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet, acceptedReuploadOnly]);
+  }, [activeSheet, activeManufacturer, activeAppleHardwareTab, activeProduct, activeVersion, activeVariant, activeGB, searchTerm, imeis, copyHistory, getManufacturer, getProduct, hasO2Aktion, rowActions, getProductFull, extractProductVersion, extractProductVariant, extractGB, setFilteredImeis, setAllColumns, setCurrentPage, setSelectedCells, sonderOnly, sonderImeiKeySet, acceptedReuploadOnly]);
 }

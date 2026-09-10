@@ -56,6 +56,12 @@ export function copyHistorySlotKey(entry) {
   return `${imei}|${normCopyHistoryUserName(entry?.userName)}`;
 }
 
+export function historyEntryHidesImeiFromList(entry) {
+  const action = String(entry?.action ?? '').trim().toLowerCase();
+  if (action === 'dereserviert' || action === 'abgelehnt' || action === 'angenommen') return false;
+  return Boolean(String(entry?.imei ?? '').trim());
+}
+
 export function dedupeCopyHistoryByImeiUser(entries) {
   const bySlot = new Map();
   for (const e of Array.isArray(entries) ? entries : []) {

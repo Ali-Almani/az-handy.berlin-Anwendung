@@ -46,7 +46,8 @@ import {
   mergeCopyHistoryEntries,
   dedupeCopyHistoryByImeiUser,
   trimCopyHistoryByRetention,
-  parseCopyHistoryTimestamp
+  parseCopyHistoryTimestamp,
+  historyEntryHidesImeiFromList
 } from '../utils/copyHistoryRetention.js';
 import { sendJsonResponse } from '../utils/httpJson.js';
 
@@ -582,7 +583,7 @@ export const getImeisData = async (req, res, next) => {
     if (!debugEnabled) {
       const cachedResponse = await redisCache.get(userDataCacheKey(userId, lite));
       if (cachedResponse != null) {
-        return sendJsonResponse(res, stripAcceptedArchiveFromImeisResponse(cachedResponse));
+        return sendJsonResponse(res, await stripHiddenImeisFromUserDataResponse(cachedResponse));
       }
     }
 
@@ -614,7 +615,7 @@ export const getImeisData = async (req, res, next) => {
       });
       let imeis = safeJsonParse(data.imeis_json, []);
       if (!Array.isArray(imeis)) imeis = [];
-      imeis = await sanitizeStoredImeisAgainstArchive(dataUserId, imeis);
+      imeis = await sanitizeStoredImeisForVisibility(dataUserId, imeis);
       let cellColors = safeJsonParse(data.cell_colors_json, {});
       if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
       let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -714,7 +715,7 @@ export const getImeisData = async (req, res, next) => {
 
     let imeis = safeJsonParse(data.imeis_json, []);
     if (!Array.isArray(imeis)) imeis = [];
-    imeis = await sanitizeStoredImeisAgainstArchive(dataUserId, imeis);
+    imeis = await sanitizeStoredImeisForVisibility(dataUserId, imeis);
     let cellColors = safeJsonParse(data.cell_colors_json, {});
     if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
     let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -927,8 +928,8 @@ function considerImeiValueForArchiveMatch(val, fullKeys, partialSuffixes) {
   }
 }
 
-function uploadRowInAcceptedArchive(item, acceptedKeys) {
-  if (!acceptedKeys?.size || !item || typeof item !== 'object') return false;
+function rowMatchesImeiKeySet(item, keySet) {
+  if (!keySet?.size || !item || typeof item !== 'object') return false;
   const fullKeys = [];
   const partialSuffixes = [];
   considerImeiValueForArchiveMatch(item?.imei, fullKeys, partialSuffixes);
@@ -936,11 +937,11 @@ function uploadRowInAcceptedArchive(item, acceptedKeys) {
     considerImeiValueForArchiveMatch(k, fullKeys, partialSuffixes);
   }
   for (const fk of fullKeys) {
-    if (acceptedKeys.has(fk)) return true;
+    if (keySet.has(fk)) return true;
   }
   for (const suffix of partialSuffixes) {
     let hits = 0;
-    for (const ak of acceptedKeys) {
+    for (const ak of keySet) {
       if (String(ak).endsWith(suffix)) hits += 1;
     }
     if (hits === 1) return true;
@@ -948,10 +949,54 @@ function uploadRowInAcceptedArchive(item, acceptedKeys) {
   return false;
 }
 
-/** Bestand bereinigen: Archiv-IMEIs aus gespeicherter Liste entfernen (einmalig/heilend). */
-async function sanitizeStoredImeisAgainstArchive(dataUserId, imeis) {
+function uploadRowInAcceptedArchive(item, acceptedKeys) {
+  return rowMatchesImeiKeySet(item, acceptedKeys);
+}
+
+function filterImeisExcludingKeySet(imeis, keySet) {
   const list = Array.isArray(imeis) ? imeis : [];
-  const { filtered, excludedCount } = filterImeisExcludingAcceptedArchive(list);
+  if (!keySet?.size) return { filtered: list, excludedCount: 0 };
+  const filtered = [];
+  let excludedCount = 0;
+  for (const row of list) {
+    if (rowMatchesImeiKeySet(row, keySet)) {
+      excludedCount += 1;
+      continue;
+    }
+    filtered.push(row);
+  }
+  return { filtered, excludedCount };
+}
+
+async function getVerlaufHiddenImeiKeySet() {
+  const merged = await computeMergedCopyHistory();
+  const deduped = dedupeCopyHistoryByImeiUser(merged);
+  const set = new Set();
+  for (const entry of deduped) {
+    if (!historyEntryHidesImeiFromList(entry)) continue;
+    const k = normalizeSonderImeiKey(entry?.imei);
+    if (k) set.add(k);
+  }
+  return set;
+}
+
+/** Archiv + offener Verlauf: IMEIs aus der Bestandsliste filtern. */
+export async function applyImeiListVisibilityFilters(imeis) {
+  let list = Array.isArray(imeis) ? imeis : [];
+  let excludedCount = 0;
+  const archive = filterImeisExcludingAcceptedArchive(list);
+  list = archive.filtered;
+  excludedCount += archive.excludedCount;
+  const verlaufKeys = await getVerlaufHiddenImeiKeySet();
+  const verlauf = filterImeisExcludingKeySet(list, verlaufKeys);
+  list = verlauf.filtered;
+  excludedCount += verlauf.excludedCount;
+  return { filtered: list, excludedCount };
+}
+
+/** Bestand bereinigen: Archiv- und Verlauf-IMEIs aus gespeicherter Liste entfernen. */
+async function sanitizeStoredImeisForVisibility(dataUserId, imeis) {
+  const { filtered, excludedCount } = await applyImeiListVisibilityFilters(imeis);
   if (excludedCount > 0 && dataUserId != null) {
     await ImeisUserData.upsert({
       user_id: dataUserId,
@@ -962,28 +1007,42 @@ async function sanitizeStoredImeisAgainstArchive(dataUserId, imeis) {
   return filtered;
 }
 
-function stripAcceptedArchiveFromImeisResponse(payload) {
+async function stripHiddenImeisFromUserDataResponse(payload) {
   if (!payload || !Array.isArray(payload.imeis)) return payload;
-  const { filtered } = filterImeisExcludingAcceptedArchive(payload.imeis);
+  const { filtered } = await applyImeiListVisibilityFilters(payload.imeis);
   if (filtered.length === payload.imeis.length) return payload;
   return { ...payload, imeis: filtered };
+}
+
+async function reconcileSharedImeiListAfterVerlaufChange(app) {
+  const ownerId = await getSharedImeiOwnerId();
+  if (ownerId == null) return;
+  const row = await ImeisUserData.findOne({ where: { user_id: ownerId } });
+  if (!row) return;
+  let stored = [];
+  try {
+    const raw = (row.get && row.get('imeis_json')) ?? row.imeis_json;
+    stored = raw ? JSON.parse(raw) : [];
+  } catch (_) {
+    stored = [];
+  }
+  if (!Array.isArray(stored)) stored = [];
+  const { filtered, excludedCount } = await applyImeiListVisibilityFilters(stored);
+  if (excludedCount <= 0) return;
+  await ImeisUserData.upsert({
+    user_id: ownerId,
+    imeis_json: JSON.stringify(filtered)
+  });
+  await invalidateImeisCaches(null, { sharedListChanged: true });
+  const io = app?.get?.('io');
+  if (io) io.emit('imeis:updated');
 }
 
 /** IMEIs aus Bestand entfernen, die im Angenommen-Archiv stehen (Archiv selbst unverändert). */
 export function filterImeisExcludingAcceptedArchive(imeis, acceptedKeys = getAcceptedImeiKeySet()) {
   const list = Array.isArray(imeis) ? imeis : [];
   const keys = acceptedKeys instanceof Set ? acceptedKeys : getAcceptedImeiKeySet();
-  if (!keys.size) return { filtered: list, excludedCount: 0 };
-  const filtered = [];
-  let excludedCount = 0;
-  for (const row of list) {
-    if (uploadRowInAcceptedArchive(row, keys)) {
-      excludedCount += 1;
-      continue;
-    }
-    filtered.push(row);
-  }
-  return { filtered, excludedCount };
+  return filterImeisExcludingKeySet(list, keys);
 }
 
 function rowActionMatchesImeiKeys(rowId, keySet) {
@@ -1060,11 +1119,17 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     existing,
     incomingForMerge
   );
-  const { filtered: finalImeis, excludedCount: excludedFromAcceptedArchive } = filterImeisExcludingAcceptedArchive(
+  let { filtered: finalImeis, excludedCount: excludedFromAcceptedArchive } = filterImeisExcludingAcceptedArchive(
     merged,
     acceptedKeys
   );
-  const addedRowsVisible = addedRows.filter((item) => !uploadRowInAcceptedArchive(item, acceptedKeys));
+  const verlaufKeys = await getVerlaufHiddenImeiKeySet();
+  const verlaufFiltered = filterImeisExcludingKeySet(finalImeis, verlaufKeys);
+  finalImeis = verlaufFiltered.filtered;
+  const excludedFromVerlauf = verlaufFiltered.excludedCount;
+  const addedRowsVisible = addedRows.filter(
+    (item) => !uploadRowInAcceptedArchive(item, acceptedKeys) && !rowMatchesImeiKeySet(item, verlaufKeys)
+  );
   await saveImeisDataToStorage(baseUserId, { imeis: finalImeis }, app);
   const io = app?.get?.('io');
   if (io) io.emit('imeis:updated');
@@ -1077,7 +1142,8 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     updatedFromUpload,
     previousCount,
     total: finalImeis.length,
-    excludedFromAcceptedArchive
+    excludedFromAcceptedArchive,
+    excludedFromVerlauf
   };
 }
 
@@ -1092,7 +1158,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const role = getUserRole(currentUser);
   let { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
   if (imeis !== undefined && Array.isArray(imeis)) {
-    imeis = filterImeisExcludingAcceptedArchive(imeis).filtered;
+    imeis = (await applyImeiListVisibilityFilters(imeis)).filtered;
   }
 
   // Server-Schutz: "reservieren/dereserviert" muss im Verlauf erscheinen (Teamleiter-Verlauf basiert auf copy_history_json).
@@ -1255,10 +1321,25 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     }
     await ImeisUserData.upsert(payload);
     if (usesSharedData && rowActions !== undefined) await mergeRowActionsIntoOwner();
+    const verlaufMaybeChangedMem =
+      copyHistory !== undefined ||
+      augmentedCopyHistory !== undefined ||
+      rowActions !== undefined ||
+      removedImei !== undefined;
+    if (verlaufMaybeChangedMem) {
+      await reconcileSharedImeiListAfterVerlaufChange(app);
+    }
     const io = app?.get?.('io');
-    const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList;
+    const dataChanged =
+      imeis !== undefined ||
+      rowActions !== undefined ||
+      removedImei ||
+      clearingMasterList ||
+      verlaufMaybeChangedMem;
     if (io && dataChanged) io.emit('imeis:updated');
-    const sharedListChanged = Boolean(imeis !== undefined && canEditSharedImeiList && ownerId != null);
+    const sharedListChanged = Boolean(
+      (imeis !== undefined && canEditSharedImeiList && ownerId != null) || verlaufMaybeChangedMem
+    );
     await invalidateImeisCaches(userId, { sharedListChanged });
     return;
   }
@@ -1323,10 +1404,22 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   if (copyTimestamps !== undefined && !clearingMasterList) data.copy_timestamps_json = JSON.stringify(copyTimestamps);
   await data.save();
 
+  const verlaufMaybeChanged =
+    copyHistory !== undefined ||
+    augmentedCopyHistory !== undefined ||
+    rowActions !== undefined ||
+    removedImei !== undefined;
+  if (verlaufMaybeChanged) {
+    await reconcileSharedImeiListAfterVerlaufChange(app);
+  }
+
   const io = app?.get?.('io');
-  const dataChanged = imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList;
+  const dataChanged =
+    imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList || verlaufMaybeChanged;
   if (io && dataChanged) io.emit('imeis:updated');
-  const sharedListChanged = Boolean(imeis !== undefined && canEditSharedImeiList && ownerId != null);
+  const sharedListChanged = Boolean(
+    (imeis !== undefined && canEditSharedImeiList && ownerId != null) || verlaufMaybeChanged
+  );
   await invalidateImeisCaches(userId, { sharedListChanged });
 };
 
