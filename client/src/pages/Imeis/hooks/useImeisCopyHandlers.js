@@ -59,8 +59,8 @@ export function useImeisCopyHandlers({
       ...(copyHistory || []).filter((e) => String(e?.imei || '').trim() !== imeiToStore)
     ]);
     setCopyHistory(updatedHistory);
-    persistImeis?.({ copyHistory: updatedHistory });
-  }, [copyHistory, persistImeis, setCopyHistory, user?.name]);
+    return updatedHistory;
+  }, [copyHistory, setCopyHistory, user?.name]);
 
   const checkCopyRateLimit = useCallback(() => {
     if (!user) return { allowed: true, remaining: MAX_COPIES, count: 0 };
@@ -107,14 +107,14 @@ export function useImeisCopyHandlers({
           if (productLower.startsWith(manufacturer.toLowerCase())) productForHistory = productForHistory.substring(manufacturer.length).trim();
           productForHistory = productForHistory.replace(new RegExp(`\\b${manufacturer}\\b`, 'gi'), '').trim().replace(/\s+/g, ' ').trim();
         }
-        addHistoryEntry({
+        const updatedHistory = addHistoryEntry({
           imei: imeiToCopy,
           product: productForHistory || '-',
           action: 'checkout',
           timestamp: new Date().toISOString(),
           userName: user?.name || 'Unbekannt'
         });
-        persistImeis?.({ removedImei: imeiToCopy });
+        persistImeis?.({ copyHistory: updatedHistory, removedImei: imeiToCopy });
         setCopySuccess?.(true);
         setTimeout(() => setCopySuccess?.(false), 2000);
         setSelectedRowForDropdown(null);
@@ -147,14 +147,18 @@ export function useImeisCopyHandlers({
           setSelectedRowForDropdown?.(null);
         } catch (_) {}
       }
-      addHistoryEntry({
+      const updatedHistory = addHistoryEntry({
         imei: String(item?.imei || '').trim(),
         product: productFull,
         action: 'reservieren',
         timestamp: ts,
         userName: user?.name || 'Unbekannt'
       });
-      persistImeis?.({ removedImei: String(item?.imei || '').trim() });
+      persistImeis?.({
+        copyHistory: updatedHistory,
+        rowActions: updatedActions,
+        removedImei: String(item?.imei || '').trim()
+      });
       return;
     }
 

@@ -481,7 +481,7 @@ const removeImeiFromAllCopyHistories = async (imeiToRemove) => {
 };
 
 /** Entfernt ein IMEI aus allen Benutzer-IMEI-Listen (sichtbar für alle Rollen) */
-const removeImeiFromAllLists = async (imeiToRemove) => {
+const removeImeiFromAllLists = async (imeiToRemove, { removeFromCopyHistory = true } = {}) => {
   const removeKey = normalizeImeiKey(imeiToRemove);
   if (!removeKey) return;
   const all = await ImeisUserData.findAll();
@@ -516,7 +516,9 @@ const removeImeiFromAllLists = async (imeiToRemove) => {
       await ImeisUserData.upsert(upsertPayload);
     }
   }
-  await removeImeiFromAllCopyHistories(imeiToRemove);
+  if (removeFromCopyHistory) {
+    await removeImeiFromAllCopyHistories(imeiToRemove);
+  }
 };
 
 /** Findet die User-ID, von der IMEI-Daten für Mitarbeiter geladen werden. Bevorzugt Büro/Admin bei gleicher Anzahl. */
@@ -1281,7 +1283,8 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   } catch (_) {}
 
   if (removedImei) {
-    await removeImeiFromAllLists(removedImei);
+    // Kopieren/Reservieren: nur aus Bestand entfernen – Verlaufseintrag bleibt bis angenommen/abgelehnt.
+    await removeImeiFromAllLists(removedImei, { removeFromCopyHistory: false });
   }
 
   const isMitarbeiter = isMitarbeiterShop(role);
