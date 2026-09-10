@@ -5,8 +5,9 @@ import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUt
 import { isOfficeImeiRole, dedupeCopyHistoryByImeiUser } from '../utils/copyHistoryRetention';
 import { getProductFull } from '../utils/imeisProductUtils';
 
-const POLL_INTERVAL_MS = 1500;
-const VERLAUF_REFRESH_MS = 1000;
+const POLL_INTERVAL_MS = 8000;
+const POLL_INTERVAL_FAIL_MS = 20000;
+const VERLAUF_REFRESH_MS = 3000;
 
 function processCopyHistory(savedCopyHistory) {
   /** Eine Zeile pro IMEI und Mitarbeiter – Duplikate aus Sync/Reservieren zusammenfassen. */
@@ -167,27 +168,40 @@ export function useImeisData(
       setSonderImeis
     };
 
-    const syncFromServer = async () => {
-      if (shouldSkipSync()) return;
+    const socket = getSocket();
+    let pollTimerId = null;
+
+    const schedulePoll = (delayMs) => {
+      if (socket?.connected) return;
+      if (pollTimerId) clearTimeout(pollTimerId);
+      pollTimerId = setTimeout(runPoll, delayMs);
+    };
+
+    const runPoll = async () => {
+      if (socket?.connected) return;
+      if (shouldSkipSync()) {
+        schedulePoll(POLL_INTERVAL_MS);
+        return;
+      }
       try {
         const data = await getImeisDataFromApi();
         if (data) {
           applyImeisData(data, setters, getManufacturer, false);
+          schedulePoll(POLL_INTERVAL_MS);
+        } else {
+          schedulePoll(POLL_INTERVAL_FAIL_MS);
         }
-      } catch (err) {
-        // Silent - avoid console spam
+      } catch (_) {
+        schedulePoll(POLL_INTERVAL_FAIL_MS);
       }
     };
 
     // Echtzeit: Sofort aktualisieren wenn Büro Excel hochlädt, alle löscht etc.
-    const socket = getSocket();
-    const hasSocket = Boolean(socket);
-    const socketIsRealtime =
-      hasSocket && (socket.connected || socket.io?.engine?.transport?.name === 'websocket');
 
-    // Fallback-Polling: nur wenn kein Socket verfügbar ist (oder noch nicht verbunden)
-    syncFromServer();
-    const intervalId = socketIsRealtime ? null : setInterval(syncFromServer, POLL_INTERVAL_MS);
+    // Fallback-Polling nur ohne Socket-Verbindung (Polling-Transport zählt als verbunden)
+    if (!socket?.connected) {
+      runPoll();
+    }
 
     const onImeisUpdated = () => {
       if (shouldSkipSync()) return;
@@ -199,29 +213,45 @@ export function useImeisData(
       const targetId = payload?.targetUserId ? String(payload.targetUserId) : null;
       const myId = user?.id != null ? String(user.id) : null;
       if (targetId && myId && targetId === myId) {
-        syncFromServer();
+        onImeisUpdated();
       }
     };
+    const onSocketConnect = () => {
+      if (pollTimerId) {
+        clearTimeout(pollTimerId);
+        pollTimerId = null;
+      }
+      onImeisUpdated();
+    };
+    const onSocketDisconnect = () => {
+      if (!pollTimerId) schedulePoll(POLL_INTERVAL_MS);
+    };
+
     if (socket) {
       socket.on('imeis:updated', onImeisUpdated);
       socket.on('extraCopy:decision', onExtraCopyDecision);
-      // Wenn Socket sich (re)verbindet, sofort einmal refreshen (verhindert 1–2s Poll-Lag)
-      socket.on('connect', onImeisUpdated);
-      if (!socket.connected) socket.connect();
+      socket.on('connect', onSocketConnect);
+      socket.on('disconnect', onSocketDisconnect);
+      if (socket.connected) {
+        onImeisUpdated();
+      } else {
+        socket.connect();
+      }
     }
 
     // Fallback: Bei Tab-Wechsel neu laden (falls Socket-Event verpasst)
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') syncFromServer();
+      if (document.visibilityState === 'visible') onImeisUpdated();
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (pollTimerId) clearTimeout(pollTimerId);
       if (socket) {
         socket.off('imeis:updated', onImeisUpdated);
         socket.off('extraCopy:decision', onExtraCopyDecision);
-        socket.off('connect', onImeisUpdated);
+        socket.off('connect', onSocketConnect);
+        socket.off('disconnect', onSocketDisconnect);
       }
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };

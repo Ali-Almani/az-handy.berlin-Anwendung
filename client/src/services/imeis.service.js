@@ -8,29 +8,47 @@ const USE_MOCK_API = import.meta.env.PROD ? false : (
   !import.meta.env.VITE_API_URL
 );
 
-export const getImeisDataFromApi = async () => {
-  try {
-    const res = await api.get('/imeis/data', {
-      params: { _t: Date.now() },
-      headers: { 'Cache-Control': 'no-cache' }
-    });
-    if (res.data?.success && res.data) {
-      const imeis = res.data.imeis ?? [];
-      // Immer Server-Daten nutzen – kein Fallback auf lokale Daten, damit alle Benutzer
-      // (auch im normalen Browser) die gleiche Liste sehen nach Büro Löschen/Upload
-      return {
-        imeis,
-        cellColors: res.data.cellColors ?? {},
-        rowActions: res.data.rowActions ?? {},
-        copyHistory: res.data.copyHistory ?? [],
-        copyTimestamps: res.data.copyTimestamps ?? [],
-        sonderImeis: Array.isArray(res.data.sonderImeis) ? res.data.sonderImeis : []
-      };
+const imeisDataInflight = { full: null, lite: null };
+let lastImeisFetchErrorLog = 0;
+
+export const getImeisDataFromApi = async ({ lite = false } = {}) => {
+  const slot = lite ? 'lite' : 'full';
+  if (imeisDataInflight[slot]) return imeisDataInflight[slot];
+
+  imeisDataInflight[slot] = (async () => {
+    try {
+      const res = await api.get('/imeis/data', {
+        params: { _t: Date.now(), ...(lite ? { lite: '1' } : {}) },
+        headers: { 'Cache-Control': 'no-cache' },
+        timeout: 120000,
+        decompress: true
+      });
+      if (res.data?.success && res.data) {
+        const imeis = res.data.imeis ?? [];
+        return {
+          imeis,
+          cellColors: res.data.cellColors ?? {},
+          rowActions: res.data.rowActions ?? {},
+          copyHistory: res.data.copyHistory ?? [],
+          copyTimestamps: res.data.copyTimestamps ?? [],
+          sonderImeis: Array.isArray(res.data.sonderImeis) ? res.data.sonderImeis : []
+        };
+      }
+    } catch (err) {
+      const now = Date.now();
+      if (now - lastImeisFetchErrorLog > 15000) {
+        lastImeisFetchErrorLog = now;
+        console.error('Error fetching IMEIS data from API:', err);
+      }
     }
-  } catch (err) {
-    console.error('Error fetching IMEIS data from API:', err);
+    return null;
+  })();
+
+  try {
+    return await imeisDataInflight[slot];
+  } finally {
+    imeisDataInflight[slot] = null;
   }
-  return null;
 };
 
 export const saveImeisDataToApi = async (payload) => {

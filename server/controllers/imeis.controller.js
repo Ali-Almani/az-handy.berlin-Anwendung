@@ -54,7 +54,17 @@ const MERGED_COPY_HISTORY_TTL = 30;
 const USER_DATA_CACHE_PREFIX = 'imeis:userData:';
 const USER_DATA_CACHE_TTL = 20;
 
-const userDataCacheKey = (userId) => `${USER_DATA_CACHE_PREFIX}${userId}`;
+const userDataCacheKey = (userId, lite = false) =>
+  `${USER_DATA_CACHE_PREFIX}${userId}${lite ? ':lite' : ''}`;
+
+/** Korrektes Content-Length (UTF-8) – vermeidet ERR_CONTENT_LENGTH_MISMATCH hinter Proxys */
+function sendJsonUtf8(res, payload) {
+  const body = JSON.stringify(payload);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Length', Buffer.byteLength(body, 'utf8'));
+  res.status(res.statusCode || 200);
+  res.end(body);
+}
 
 async function invalidateImeisCaches(userId, { sharedListChanged = false } = {}) {
   await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
@@ -567,6 +577,7 @@ export const getImeisData = async (req, res, next) => {
     if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
+    const lite = String(req.query?.lite || '') === '1';
     const role = getUserRole(currentUser);
     const debugEnabled = String(req.query?.debug || '') === '1';
     const debug = debugEnabled ? {
@@ -576,9 +587,9 @@ export const getImeisData = async (req, res, next) => {
     } : null;
 
     if (!debugEnabled) {
-      const cachedResponse = await redisCache.get(userDataCacheKey(userId));
+      const cachedResponse = await redisCache.get(userDataCacheKey(userId, lite));
       if (cachedResponse != null) {
-        return res.json(cachedResponse);
+        return sendJsonUtf8(res, cachedResponse);
       }
     }
 
@@ -614,6 +625,22 @@ export const getImeisData = async (req, res, next) => {
       if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
       let rowActions = safeJsonParse(data.row_actions_json, {});
       if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) rowActions = {};
+      if (lite) {
+        const response = {
+          success: true,
+          imeis,
+          cellColors,
+          rowActions,
+          copyHistory: [],
+          copyTimestamps: [],
+          sonderImeis: getSonderPublishedEntries(),
+          ...(debug ? { debug } : {})
+        };
+        if (!debugEnabled) {
+          await redisCache.set(userDataCacheKey(userId, true), response, USER_DATA_CACHE_TTL);
+        }
+        return sendJsonUtf8(res, response);
+      }
       let copyHistory = [];
       let copyTimestamps = [];
 
@@ -676,9 +703,9 @@ export const getImeisData = async (req, res, next) => {
         ...(debug ? { debug } : {})
       };
       if (!debugEnabled) {
-        await redisCache.set(userDataCacheKey(userId), response, USER_DATA_CACHE_TTL);
+        await redisCache.set(userDataCacheKey(userId, false), response, USER_DATA_CACHE_TTL);
       }
-      return res.json(response);
+      return sendJsonUtf8(res, response);
     }
 
     const [data, created] = await ImeisUserData.findOrCreate({
@@ -697,6 +724,22 @@ export const getImeisData = async (req, res, next) => {
     if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
     let rowActions = safeJsonParse(data.row_actions_json, {});
     if (typeof rowActions !== 'object' || rowActions === null || Array.isArray(rowActions)) rowActions = {};
+    if (lite) {
+      const response = {
+        success: true,
+        imeis,
+        cellColors,
+        rowActions,
+        copyHistory: [],
+        copyTimestamps: [],
+        sonderImeis: getSonderPublishedEntries(),
+        ...(debug ? { debug } : {})
+      };
+      if (!debugEnabled) {
+        await redisCache.set(userDataCacheKey(userId, true), response, USER_DATA_CACHE_TTL);
+      }
+      return sendJsonUtf8(res, response);
+    }
     let copyHistory = [];
     let copyTimestamps = [];
 
@@ -764,9 +807,9 @@ export const getImeisData = async (req, res, next) => {
       ...(debug ? { debug } : {})
     };
     if (!debugEnabled) {
-      await redisCache.set(userDataCacheKey(userId), response, USER_DATA_CACHE_TTL);
+      await redisCache.set(userDataCacheKey(userId, false), response, USER_DATA_CACHE_TTL);
     }
-    res.json(response);
+    sendJsonUtf8(res, response);
   } catch (error) {
     console.error('getImeisData:', error);
     next(error);
@@ -1836,7 +1879,7 @@ export const getAcceptedImeisArchive = async (req, res, next) => {
     if (!(await assertOfficeOrAdmin(req, res))) return;
     const { from, to } = req.query;
     const entries = listAcceptedImeisForDisplay({ from, to });
-    res.json({ success: true, entries });
+    sendJsonUtf8(res, { success: true, entries });
   } catch (error) {
     next(error);
   }

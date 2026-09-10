@@ -12,7 +12,7 @@ export function useVorvertragImeiCatalog(enabled = true) {
     setLoading(true);
     setError('');
     try {
-      const data = await getImeisDataFromApi();
+      const data = await getImeisDataFromApi({ lite: true });
       setImeis(Array.isArray(data?.imeis) ? data.imeis : []);
     } catch (err) {
       setImeis([]);
