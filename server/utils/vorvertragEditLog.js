@@ -53,6 +53,8 @@ const FIELD_LABELS = {
   'eingabeDetails.mnpDetails.freigegebenNachVertragsende': 'Freigegeben/Vertragsende',
   'eingabeDetails.mnpDetails.mnpTyp': 'MNP Typ',
   'eingabeDetails.mnpDetails.mnpBestaetigungsdatum': 'MNP-Bestätigungsdatum',
+  'eingabeDetails.mnpDetails.partosTicketNummer': 'PartOS Ticket Nummer',
+  'eingabeDetails.mnpDetails.firmenname': 'Firmenname',
   'eingabeDetails.mnpDetails.notiz': 'MNP Notiz'
 };
 

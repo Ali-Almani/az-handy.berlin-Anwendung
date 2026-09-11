@@ -237,6 +237,19 @@ export default function MnpFieldsSection({
           onChange={(v) => handleChange('mnpBestaetigungsdatum', v)}
           required
         />
+        <TextField
+          id={`${idPrefix}-partos-ticket`}
+          label="PartOS Ticket Nummer"
+          value={d.partosTicketNummer || ''}
+          onChange={(v) => handleChange('partosTicketNummer', v)}
+          required
+        />
+        <TextField
+          id={`${idPrefix}-firmenname`}
+          label="Firmenname"
+          value={d.firmenname || ''}
+          onChange={(v) => handleChange('firmenname', v)}
+        />
         <div className="form-group vorvertrag-form-grid--full vorvertrag-mnp-notiz">
           <label htmlFor={`${idPrefix}-notiz`} className="form-label">MNP Notiz</label>
           <textarea

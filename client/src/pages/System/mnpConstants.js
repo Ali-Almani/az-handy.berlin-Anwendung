@@ -90,6 +90,8 @@ export const emptyMnpDetails = () => ({
   mnpTyp: '',
   status: 'Offen',
   mnpBestaetigungsdatum: '',
+  partosTicketNummer: '',
+  firmenname: '',
   notiz: ''
 });
 
@@ -126,6 +128,7 @@ const MNP_REQUIRED_FIELD_KEYS = [
   'mnpAltKundenNachname',
   'mnpAltKundenGeburtsdatum',
   'mnpBestaetigungsdatum',
+  'partosTicketNummer',
   'postpaidPrepaid',
   'mnpDetails',
   'freigegebenNachVertragsende',
@@ -170,5 +173,7 @@ export const MNP_FIELD_LABELS = {
   mnpTyp: 'MNP Typ',
   status: 'Status',
   mnpBestaetigungsdatum: 'MNP-Bestätigungsdatum',
+  partosTicketNummer: 'PartOS Ticket Nummer',
+  firmenname: 'Firmenname',
   notiz: 'Notiz'
 };
