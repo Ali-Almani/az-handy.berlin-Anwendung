@@ -108,32 +108,32 @@ export default function MnpFieldsSection({
         />
 
         <GridHeading>Kunde (MNP)</GridHeading>
-        <TextField
-          id={`${idPrefix}-k-vorname`}
-          label="Kunden Vorname"
-          value={d.kundenVorname || ''}
-          onChange={(v) => handleChange('kundenVorname', v)}
-        />
-        <TextField
-          id={`${idPrefix}-k-nachname`}
-          label="Kunden Nachname"
-          value={d.kundenNachname || ''}
-          onChange={(v) => handleChange('kundenNachname', v)}
-        />
-        <TextField
-          id={`${idPrefix}-k-geb`}
-          label="Kunden Geburtsdatum"
-          type="date"
-          value={d.kundenGeburtsdatum || ''}
-          onChange={(v) => handleChange('kundenGeburtsdatum', v)}
-        />
-        <TextField
-          id={`${idPrefix}-k-kontakt`}
-          label="Kunden Aktuell Kontakt nummer"
-          value={d.kundenAktuellKontaktNummer || ''}
-          onChange={(v) => handleChange('kundenAktuellKontaktNummer', v)}
-        />
-        <div className="vorvertrag-mnp-o2-adresse-row">
+        <div className="vorvertrag-mnp-kunde-row">
+          <TextField
+            id={`${idPrefix}-k-vorname`}
+            label="Kunden Vorname"
+            value={d.kundenVorname || ''}
+            onChange={(v) => handleChange('kundenVorname', v)}
+          />
+          <TextField
+            id={`${idPrefix}-k-nachname`}
+            label="Kunden Nachname"
+            value={d.kundenNachname || ''}
+            onChange={(v) => handleChange('kundenNachname', v)}
+          />
+          <TextField
+            id={`${idPrefix}-k-geb`}
+            label="Kunden Geburtsdatum"
+            type="date"
+            value={d.kundenGeburtsdatum || ''}
+            onChange={(v) => handleChange('kundenGeburtsdatum', v)}
+          />
+          <TextField
+            id={`${idPrefix}-k-kontakt`}
+            label="Kunden Aktuell Kontakt nummer"
+            value={d.kundenAktuellKontaktNummer || ''}
+            onChange={(v) => handleChange('kundenAktuellKontaktNummer', v)}
+          />
           <TextField
             id={`${idPrefix}-neue-o2`}
             label="Neue O2 Rufnummer"
@@ -147,7 +147,7 @@ export default function MnpFieldsSection({
             <textarea
               id={`${idPrefix}-k-adresse`}
               className="form-input"
-              rows={2}
+              rows={1}
               value={d.kundenVollstaendigeAdresse || ''}
               onChange={(ev) => handleChange('kundenVollstaendigeAdresse', ev.target.value)}
             />
