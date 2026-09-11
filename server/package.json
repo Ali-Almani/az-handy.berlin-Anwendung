@@ -17,7 +17,8 @@
     "backup-imei-verlauf": "node scripts/backup-imei-verlauf.js",
     "restore-imei-verlauf": "node scripts/restore-imei-verlauf-from-backup.js",
     "clear-imei-cache": "node scripts/clear-imei-cache.js",
-    "check-imei-verlauf-pg": "node scripts/check-imei-verlauf-pg.js"
+    "check-imei-verlauf-pg": "node scripts/check-imei-verlauf-pg.js",
+    "restore-rejected-imeis": "node scripts/restore-rejected-imeis-to-list.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
