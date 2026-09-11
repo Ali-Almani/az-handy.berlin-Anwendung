@@ -548,6 +548,28 @@
   }
 }
 
+.vorvertrag-mnp-o2-adresse-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 10.5rem) minmax(10rem, 22rem);
+  gap: 0.35rem 0.45rem;
+  align-items: start;
+
+  @media (max-width: 519px) {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group {
+    margin: 0;
+  }
+}
+
+.vorvertrag-mnp-adresse-compact textarea.form-input {
+  min-height: 2.1rem;
+  max-height: 4rem;
+  resize: vertical;
+}
+
 .vorvertrag-form-panel--mnp {
   .vorvertrag-mnp-notiz textarea.form-input {
     min-height: 9.5rem;

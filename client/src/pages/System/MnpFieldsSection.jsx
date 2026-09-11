@@ -133,21 +133,25 @@ export default function MnpFieldsSection({
           value={d.kundenAktuellKontaktNummer || ''}
           onChange={(v) => handleChange('kundenAktuellKontaktNummer', v)}
         />
-        <TextField
-          id={`${idPrefix}-neue-o2`}
-          label="Neue O2 Rufnummer"
-          value={d.neueO2Rufnummer || ''}
-          onChange={(v) => handleChange('neueO2Rufnummer', v)}
-        />
-        <div className="form-group vorvertrag-form-grid--full">
-          <label htmlFor={`${idPrefix}-k-adresse`} className="form-label">Kunden Vollständige Adresse (ePOS)</label>
-          <textarea
-            id={`${idPrefix}-k-adresse`}
-            className="form-input"
-            rows={2}
-            value={d.kundenVollstaendigeAdresse || ''}
-            onChange={(ev) => handleChange('kundenVollstaendigeAdresse', ev.target.value)}
+        <div className="vorvertrag-mnp-o2-adresse-row">
+          <TextField
+            id={`${idPrefix}-neue-o2`}
+            label="Neue O2 Rufnummer"
+            value={d.neueO2Rufnummer || ''}
+            onChange={(v) => handleChange('neueO2Rufnummer', v)}
           />
+          <div className="form-group vorvertrag-mnp-adresse-compact">
+            <label htmlFor={`${idPrefix}-k-adresse`} className="form-label">
+              Kunden Vollständige Adresse (ePOS)
+            </label>
+            <textarea
+              id={`${idPrefix}-k-adresse`}
+              className="form-input"
+              rows={2}
+              value={d.kundenVollstaendigeAdresse || ''}
+              onChange={(ev) => handleChange('kundenVollstaendigeAdresse', ev.target.value)}
+            />
+          </div>
         </div>
 
         <GridHeading>MNP-Details</GridHeading>
