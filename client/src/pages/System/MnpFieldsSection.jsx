@@ -33,7 +33,7 @@ function SelectField({ id, label, value, options, onChange, required = false, gr
 function TextField({ id, label, value, onChange, type = 'text', required = false }) {
   return (
     <div className="form-group">
-      <label htmlFor={id} className="form-label">{label}</label>
+      <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       <input
         id={id}
         type={type}
@@ -93,12 +93,14 @@ export default function MnpFieldsSection({
           label="ePOS KN"
           value={d.eposKn || ''}
           onChange={(v) => handleChange('eposKn', v)}
+          required
         />
         <TextField
           id={`${idPrefix}-iban`}
           label="IBAN"
           value={d.iban || ''}
           onChange={(v) => handleChange('iban', v)}
+          required
         />
         <TextField
           id={`${idPrefix}-sim7`}
@@ -114,12 +116,14 @@ export default function MnpFieldsSection({
             label="Kunden Vorname"
             value={d.kundenVorname || ''}
             onChange={(v) => handleChange('kundenVorname', v)}
+            required
           />
           <TextField
             id={`${idPrefix}-k-nachname`}
             label="Kunden Nachname"
             value={d.kundenNachname || ''}
             onChange={(v) => handleChange('kundenNachname', v)}
+            required
           />
           <TextField
             id={`${idPrefix}-k-geb`}
@@ -127,12 +131,14 @@ export default function MnpFieldsSection({
             type="date"
             value={d.kundenGeburtsdatum || ''}
             onChange={(v) => handleChange('kundenGeburtsdatum', v)}
+            required
           />
           <TextField
             id={`${idPrefix}-k-kontakt`}
             label="Kunden Aktuell Kontakt nummer"
             value={d.kundenAktuellKontaktNummer || ''}
             onChange={(v) => handleChange('kundenAktuellKontaktNummer', v)}
+            required
           />
           <TextField
             id={`${idPrefix}-neue-o2`}
@@ -160,11 +166,13 @@ export default function MnpFieldsSection({
           label="MNP Rufnummer"
           value={d.mnpRufnummer || ''}
           onChange={(v) => handleChange('mnpRufnummer', v)}
+          required
         />
         <OriginalAnbieterPicker
           id={`${idPrefix}-original`}
           value={d.originalAnbieter || ''}
           onChange={(v) => handleChange('originalAnbieter', v)}
+          required
         />
         <SelectField
           id={`${idPrefix}-postpaid`}
@@ -187,12 +195,14 @@ export default function MnpFieldsSection({
           label="MNP- Alt Kunden Vorname"
           value={d.mnpAltKundenVorname || ''}
           onChange={(v) => handleChange('mnpAltKundenVorname', v)}
+          required
         />
         <TextField
           id={`${idPrefix}-alt-nachname`}
           label="MNP- Alt Kunden Nachname"
           value={d.mnpAltKundenNachname || ''}
           onChange={(v) => handleChange('mnpAltKundenNachname', v)}
+          required
         />
         <TextField
           id={`${idPrefix}-alt-geb`}
@@ -200,6 +210,7 @@ export default function MnpFieldsSection({
           type="date"
           value={d.mnpAltKundenGeburtsdatum || ''}
           onChange={(v) => handleChange('mnpAltKundenGeburtsdatum', v)}
+          required
         />
         <SelectField
           id={`${idPrefix}-typ`}
@@ -224,6 +235,7 @@ export default function MnpFieldsSection({
           type="date"
           value={d.mnpBestaetigungsdatum || ''}
           onChange={(v) => handleChange('mnpBestaetigungsdatum', v)}
+          required
         />
         <div className="form-group vorvertrag-form-grid--full vorvertrag-mnp-notiz">
           <label htmlFor={`${idPrefix}-notiz`} className="form-label">MNP Notiz</label>

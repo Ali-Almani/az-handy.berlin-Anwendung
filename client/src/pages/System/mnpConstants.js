@@ -113,20 +113,36 @@ export function hasMnpDetailsContent(details = {}) {
   });
 }
 
-/** Pflicht-Auswahlfelder für MNP (Schritt 5) vor dem Speichern */
+const MNP_REQUIRED_FIELD_KEYS = [
+  'eposKn',
+  'iban',
+  'kundenVorname',
+  'kundenNachname',
+  'kundenGeburtsdatum',
+  'kundenAktuellKontaktNummer',
+  'mnpRufnummer',
+  'originalAnbieter',
+  'mnpAltKundenVorname',
+  'mnpAltKundenNachname',
+  'mnpAltKundenGeburtsdatum',
+  'mnpBestaetigungsdatum',
+  'postpaidPrepaid',
+  'mnpDetails',
+  'freigegebenNachVertragsende',
+  'mnpTyp'
+];
+
+/** Pflichtfelder für MNP vor dem Speichern */
 export function validateMnpDetailsForSubmit(details = {}) {
   const mnp = details || {};
-  if (!String(mnp.postpaidPrepaid ?? '').trim()) {
-    return 'Bitte Postpaid/Prepaid wählen.';
-  }
-  if (!String(mnp.mnpDetails ?? '').trim()) {
-    return 'Bitte MNP-Details wählen.';
-  }
-  if (!String(mnp.freigegebenNachVertragsende ?? '').trim()) {
-    return 'Bitte freigegeben/nach Vertragsende wählen.';
-  }
-  if (!String(mnp.mnpTyp ?? '').trim()) {
-    return 'Bitte MNP Typ wählen.';
+  for (const key of MNP_REQUIRED_FIELD_KEYS) {
+    if (!String(mnp[key] ?? '').trim()) {
+      const label = MNP_FIELD_LABELS[key] || key;
+      if (['postpaidPrepaid', 'mnpDetails', 'freigegebenNachVertragsende', 'mnpTyp'].includes(key)) {
+        return `Bitte ${label} wählen.`;
+      }
+      return `Bitte ${label} ausfüllen.`;
+    }
   }
   return '';
 }

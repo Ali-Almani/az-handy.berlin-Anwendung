@@ -84,6 +84,7 @@ export default function OriginalAnbieterPicker({
             setQuery(value || '');
           }
         }}
+        required={required}
       />
       {open ? (
         <div id={listId} className="original-anbieter-picker__dropdown" role="listbox">
