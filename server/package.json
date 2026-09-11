@@ -15,7 +15,9 @@
     "backup-users": "node scripts/backup-users.js",
     "restore-users": "node scripts/restore-users-from-backup.js",
     "backup-imei-verlauf": "node scripts/backup-imei-verlauf.js",
-    "restore-imei-verlauf": "node scripts/restore-imei-verlauf-from-backup.js"
+    "restore-imei-verlauf": "node scripts/restore-imei-verlauf-from-backup.js",
+    "clear-imei-cache": "node scripts/clear-imei-cache.js",
+    "check-imei-verlauf-pg": "node scripts/check-imei-verlauf-pg.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

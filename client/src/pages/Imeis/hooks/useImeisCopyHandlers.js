@@ -5,7 +5,7 @@ import {
   historyEntryKey,
   notifyReminderResponseApi
 } from '../../../services/imeis.service';
-import { trimCopyHistoryByRetention } from '../utils/copyHistoryRetention';
+import { trimCopyHistoryByRetention, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -54,10 +54,9 @@ export function useImeisCopyHandlers({
       timestamp: entry.timestamp ?? new Date().toISOString(),
       userName: entry.userName ?? user?.name ?? 'Unbekannt'
     };
-    const updatedHistory = trimCopyHistoryByRetention([
-      nextEntry,
-      ...(copyHistory || []).filter((e) => String(e?.imei || '').trim() !== imeiToStore)
-    ]);
+    const updatedHistory = trimCopyHistoryByRetention(
+      dedupeCopyHistoryByEntryKey([nextEntry, ...(copyHistory || [])])
+    );
     setCopyHistory(updatedHistory);
     return updatedHistory;
   }, [copyHistory, setCopyHistory, user?.name]);

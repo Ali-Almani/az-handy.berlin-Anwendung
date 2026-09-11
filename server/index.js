@@ -60,7 +60,8 @@ app.get('/api/health', (req, res) => {
     nodeEnv: process.env.NODE_ENV || 'development',
     useMemoryDb: process.env.USE_MEMORY_DB === 'true',
     jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
-    apiPatchLevel: 5,
+    apiPatchLevel: 6,
+    copyHistoryRetentionDays: parseInt(process.env.COPY_HISTORY_RETENTION_DAYS || '4', 10) || 4,
     cluster: {
       pid: process.pid,
       pm2Instance: process.env.NODE_APP_INSTANCE ?? null,
@@ -167,10 +168,14 @@ if (USE_MEMORY_DB) {
   ]);
 
   initWithTimeout
-    .then(() => {
+    .then(async () => {
       console.log('✅ Connected to PostgreSQL');
       console.log('📊 User-Daten: PostgreSQL (persistent)');
       process.env.USE_MEMORY_DB = 'false'; // Sicherstellen, dass Routes PostgreSQL nutzen
+      try {
+        const { invalidateImeiRedisCaches } = await import('./utils/invalidateImeiRedisCaches.js');
+        await invalidateImeiRedisCaches();
+      } catch (_) {}
       startServer();
     })
     .catch((error) => {

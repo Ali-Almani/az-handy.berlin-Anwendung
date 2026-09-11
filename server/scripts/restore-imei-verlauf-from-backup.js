@@ -36,7 +36,7 @@ import {
 import { copyHistoryEntriesFromRowActions } from '../utils/copyHistoryRowActions.js';
 import { loadPm2DbEnv } from './loadPm2DbEnv.js';
 import { getPgDatabaseName, runPsql } from './pgLocal.js';
-import * as redisCache from '../utils/redisCache.js';
+import { invalidateImeiRedisCaches } from '../utils/invalidateImeiRedisCaches.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -198,9 +198,7 @@ function printOfficeWindowStats(label, backupUsers) {
 }
 
 async function invalidateImeisCachesAfterRestore() {
-  await redisCache.del('imeis:mergedCopyHistory');
-  await redisCache.del('imeis:verlaufHiddenKeys');
-  await redisCache.delPattern('imeis:userData:*');
+  await invalidateImeiRedisCaches();
   console.log('♻️  Redis-Cache für IMEI-Verlauf geleert.');
 }
 
