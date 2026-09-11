@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync, filterPendingHistoryRemovals, reconcilePendingHistoryRemovals } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUtils';
-import { isOfficeImeiRole, dedupeCopyHistoryByImeiUser } from '../utils/copyHistoryRetention';
+import { isOfficeImeiRole, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
 import { getProductFull } from '../utils/imeisProductUtils';
 
 const POLL_INTERVAL_MS = 12000;
@@ -10,8 +10,8 @@ const POLL_INTERVAL_FAIL_MS = 45000;
 const VERLAUF_REFRESH_MS = 15000;
 
 function processCopyHistory(savedCopyHistory) {
-  /** Eine Zeile pro IMEI und Mitarbeiter – Duplikate aus Sync/Reservieren zusammenfassen. */
-  return dedupeCopyHistoryByImeiUser(savedCopyHistory ?? [])
+  /** Exakte Duplikate entfernen – alle Kopien im Verlauf behalten (nicht nur die neueste pro IMEI). */
+  return dedupeCopyHistoryByEntryKey(savedCopyHistory ?? [])
     .map((entry) => {
       const a = entry.action;
       // Wichtig: Aktionen wie "reservieren"/"dereserviert" im Verlauf NICHT auf "checkout" normalisieren

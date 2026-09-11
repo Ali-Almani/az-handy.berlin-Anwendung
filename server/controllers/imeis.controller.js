@@ -45,6 +45,7 @@ import {
   copyHistorySlotKey,
   mergeCopyHistoryEntries,
   dedupeCopyHistoryByImeiUser,
+  dedupeCopyHistoryByEntryKey,
   trimCopyHistoryByRetention,
   parseCopyHistoryTimestamp,
   historyEntryHidesImeiFromList
@@ -220,15 +221,16 @@ function copyHistoryEntryInOfficeWindow(entry, sinceMs = Date.now() - COPY_HISTO
 }
 
 function finalizeOfficeCopyHistory(merged) {
+  const unique = dedupeCopyHistoryByEntryKey(merged);
   if (
     process.env.COPY_HISTORY_OFFICE_SHOW_ALL === 'true' ||
     process.env.COPY_HISTORY_OFFICE_SHOW_ALL === '1'
   ) {
-    return dedupeCopyHistoryByImeiUser([...merged]).sort(
+    return unique.sort(
       (a, b) => (parseCopyHistoryTimestamp(b) || 0) - (parseCopyHistoryTimestamp(a) || 0)
     );
   }
-  return trimCopyHistoryByRetention(dedupeCopyHistoryByImeiUser(merged));
+  return trimCopyHistoryByRetention(unique);
 }
 
 function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLookup) {

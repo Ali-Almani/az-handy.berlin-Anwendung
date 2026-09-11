@@ -62,6 +62,18 @@ export function copyHistorySlotKey(entry) {
   return `${imei}|${normCopyHistoryUserName(entry?.userName)}`;
 }
 
+/** Exakte Duplikate (gleiche IMEI, User, Zeit, Aktion) – für Verlauf-Anzeige und DB-Merge. */
+export function dedupeCopyHistoryByEntryKey(entries) {
+  const byKey = new Map();
+  for (const e of Array.isArray(entries) ? entries : []) {
+    if (!e || typeof e !== 'object') continue;
+    if (!e.imei && !e.timestamp) continue;
+    byKey.set(copyHistoryEntryKey(e), e);
+  }
+  return Array.from(byKey.values());
+}
+
+/** Nur für Bestandsliste: pro IMEI+Mitarbeiter die neueste Zeile behalten. */
 export function dedupeCopyHistoryByImeiUser(entries) {
   const bySlot = new Map();
   for (const e of Array.isArray(entries) ? entries : []) {
@@ -113,5 +125,5 @@ export function mergeCopyHistoryEntries(existing, incoming) {
     if (!e.imei && !e.timestamp) continue;
     byKey.set(copyHistoryEntryKey(e), e);
   }
-  return trimCopyHistoryByRetention(dedupeCopyHistoryByImeiUser(Array.from(byKey.values())));
+  return trimCopyHistoryByRetention(dedupeCopyHistoryByEntryKey(Array.from(byKey.values())));
 }

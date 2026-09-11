@@ -62,6 +62,16 @@ export function historyEntryHidesImeiFromList(entry) {
   return Boolean(String(entry?.imei ?? '').trim());
 }
 
+export function dedupeCopyHistoryByEntryKey(entries) {
+  const byKey = new Map();
+  for (const e of Array.isArray(entries) ? entries : []) {
+    if (!e || typeof e !== 'object') continue;
+    if (!e.imei && !e.timestamp) continue;
+    byKey.set(copyHistoryEntryKey(e), e);
+  }
+  return Array.from(byKey.values());
+}
+
 export function dedupeCopyHistoryByImeiUser(entries) {
   const bySlot = new Map();
   for (const e of Array.isArray(entries) ? entries : []) {
