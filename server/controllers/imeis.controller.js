@@ -482,6 +482,143 @@ const removeImeiFromAllCopyHistories = async (imeiToRemove) => {
   }
 };
 
+function parseImeisJsonArray(imeisJson) {
+  try {
+    if (Array.isArray(imeisJson)) return imeisJson;
+    return imeisJson ? JSON.parse(String(imeisJson)) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function applyProductHintToImeiRow(item, productHint) {
+  const product = String(productHint ?? '').trim();
+  if (!product || product === '-') return item;
+  const next = { ...item, product };
+  const baseRowData =
+    next.rowData && typeof next.rowData === 'object' && !Array.isArray(next.rowData) ? { ...next.rowData } : {};
+  const order =
+    Array.isArray(next.columnOrder) && next.columnOrder.length > 0
+      ? next.columnOrder
+      : Object.keys(baseRowData);
+  let applied = false;
+  for (const key of order) {
+    if (!key) continue;
+    const lk = String(key).toLowerCase().trim();
+    if (lk === 'produkt' || lk === 'product' || lk.includes('produkt') || lk.includes('product')) {
+      baseRowData[key] = product;
+      applied = true;
+      break;
+    }
+  }
+  if (!applied) {
+    baseRowData.Produkt = product;
+    const columnOrder = Array.isArray(next.columnOrder) ? [...next.columnOrder] : [];
+    if (!columnOrder.includes('Produkt')) columnOrder.push('Produkt');
+    next.columnOrder = columnOrder;
+  }
+  next.rowData = baseRowData;
+  return next;
+}
+
+/** Letzte gespeicherte Zeile zu einer IMEI (z. B. noch in Kopie eines anderen Nutzers). */
+async function findImeiRowSnapshotAcrossUsers(imeiRaw) {
+  const imeiKey = normalizeImeiKey(imeiRaw);
+  if (!imeiKey) return null;
+  let best = null;
+  let bestScore = -1;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const imeisJson = (row.get && row.get('imeis_json')) ?? row.imeis_json;
+    const arr = parseImeisJsonArray(imeisJson);
+    if (!Array.isArray(arr)) continue;
+    for (const item of arr) {
+      if (normalizeImeiKey(item?.imei) !== imeiKey) continue;
+      const score = item?.rowData && typeof item.rowData === 'object' ? Object.keys(item.rowData).length : 0;
+      if (score > bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+  }
+  return best ? JSON.parse(JSON.stringify(best)) : null;
+}
+
+/** Row-Actions zur IMEI bei allen Benutzern entfernen (Verlauf-Synthese / Hide). */
+async function clearRowActionsForImeiAllUsers(imeiToRemove) {
+  const removeKey = normalizeImeiKey(imeiToRemove);
+  if (!removeKey) return false;
+  let changed = false;
+  const all = await ImeisUserData.findAll();
+  for (const row of all) {
+    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    let rowActions = {};
+    try {
+      rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
+    } catch (_) {}
+    let hadRowAction = false;
+    Object.keys(rowActions).forEach((rowId) => {
+      const rk = normalizeImeiKey(imeiKeyFromRowId(rowId));
+      if (rk === removeKey) {
+        delete rowActions[rowId];
+        hadRowAction = true;
+      }
+    });
+    if (hadRowAction) {
+      changed = true;
+      await ImeisUserData.upsert({ user_id: rowUserId, row_actions_json: JSON.stringify(rowActions) });
+    }
+  }
+  return changed;
+}
+
+/** Nach „abgelehnt“: IMEI wieder in die gemeinsame Master-Liste (wurde beim Kopieren entfernt). */
+async function restoreImeiToSharedOwnerList(imeiRaw, { productHint } = {}) {
+  const imeiKey = normalizeImeiKey(imeiRaw);
+  if (!imeiKey) return false;
+  const ownerId = await getSharedImeiOwnerId();
+  if (ownerId == null) return false;
+  const [ownerRow] = await ImeisUserData.findOrCreate({
+    where: { user_id: ownerId },
+    defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+  });
+  const imeisJson = (ownerRow.get && ownerRow.get('imeis_json')) ?? ownerRow.imeis_json;
+  let arr = parseImeisJsonArray(imeisJson);
+  if (!Array.isArray(arr)) arr = [];
+  if (arr.some((item) => normalizeImeiKey(item?.imei) === imeiKey)) return true;
+
+  let template = await findImeiRowSnapshotAcrossUsers(imeiRaw);
+  const nowIso = new Date().toISOString();
+  let maxRow = 0;
+  for (const item of arr) {
+    const r = Number(item?.row);
+    if (Number.isFinite(r) && r > maxRow) maxRow = r;
+  }
+  const sheetDefault = arr.find((i) => i?.sheet)?.sheet || 'default';
+  if (!template) {
+    template = {
+      sheet: sheetDefault,
+      imei: canonicalImeiString(imeiRaw),
+      row: maxRow + 1,
+      rowData: {},
+      columnOrder: Array.isArray(arr[0]?.columnOrder) ? [...arr[0].columnOrder] : []
+    };
+  } else {
+    template = {
+      ...template,
+      imei: canonicalImeiString(template.imei != null ? template.imei : imeiRaw),
+      sheet: template.sheet || sheetDefault,
+      row: template.row != null ? template.row : maxRow + 1
+    };
+  }
+  template = applyProductHintToImeiRow(template, productHint);
+  template._restoredAt = nowIso;
+  arr.push(template);
+  await ImeisUserData.upsert({ user_id: ownerId, imeis_json: JSON.stringify(arr) });
+  return true;
+}
+
 /** Entfernt ein IMEI aus allen Benutzer-IMEI-Listen (sichtbar für alle Rollen) */
 const removeImeiFromAllLists = async (imeiToRemove, { removeFromCopyHistory = true } = {}) => {
   const removeKey = normalizeImeiKey(imeiToRemove);
@@ -1604,27 +1741,21 @@ export const updateHistoryAction = async (req, res, next) => {
       await removeImeiFromAllCopyHistories(imeiNorm);
       did.removedFromHistories = true;
     }
-    /** abgelehnt: Zeile wieder sichtbar (Row-Actions zur IMEI löschen) */
+    /** abgelehnt: Zeile wieder in IMEI-Liste + Row-Actions bei allen Nutzern löschen */
     if (actionNorm === 'abgelehnt') {
-      const dataOwnerId = await getSharedImeiOwnerId();
-      if (dataOwnerId) {
-        const [ownerData] = await ImeisUserData.findOrCreate({
-          where: { user_id: dataOwnerId },
-          defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+      did.clearedRowActions = await clearRowActionsForImeiAllUsers(imeiNorm);
+      try {
+        did.restoredToList = await restoreImeiToSharedOwnerList(imeiNorm, {
+          productHint: String(product ?? '').trim()
         });
-        const actionsJson = (ownerData.get && ownerData.get('row_actions_json')) ?? ownerData.row_actions_json;
-        let rowActions = {};
-        try {
-          rowActions = actionsJson ? JSON.parse(actionsJson) : {};
-        } catch (_) {}
-        Object.keys(rowActions).forEach((rowId) => {
-          if (rowId.includes(`-${String(imei).trim()}-`)) delete rowActions[rowId];
-        });
-        await ImeisUserData.upsert({ user_id: dataOwnerId, row_actions_json: JSON.stringify(rowActions) });
+      } catch (restoreErr) {
+        console.error('restoreImeiToSharedOwnerList:', restoreErr);
+        did.restoredToList = false;
       }
+      await invalidateImeisCaches(null, { sharedListChanged: true });
     }
 
-    // Echtzeit: Alle Benutzer benachrichtigen (IMEI-Liste hat sich geändert: angenommen = entfernt, abgelehnt = rowActions geändert)
+    // Echtzeit: Alle Benutzer benachrichtigen (IMEI-Liste hat sich geändert: angenommen = entfernt, abgelehnt = wieder in Liste)
     const io = req.app?.get?.('io');
     if (io) io.emit('imeis:updated');
 
