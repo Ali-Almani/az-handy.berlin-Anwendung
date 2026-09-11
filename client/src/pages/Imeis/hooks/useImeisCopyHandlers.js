@@ -217,6 +217,10 @@ export function useImeisCopyHandlers({
           entry.timestamp,
           entry.product
         );
+        clearHistoryEntryPendingRemoval(entry);
+        if (typeof refreshImeisFromApi === 'function') {
+          await refreshImeisFromApi();
+        }
         if (isSelfHistoryEntry) {
           notifyReminderResponseApi(imeiStr, newAction);
         }
@@ -278,7 +282,8 @@ export function useImeisCopyHandlers({
     setImeis,
     removeEntryFromHistory,
     normHistName,
-    persistImeis
+    persistImeis,
+    refreshImeisFromApi
   ]);
 
   const handleHistoryModalUndo = useCallback(() => {
