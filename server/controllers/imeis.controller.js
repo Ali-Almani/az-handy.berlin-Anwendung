@@ -53,7 +53,7 @@ import {
 import { sendJsonResponse } from '../utils/httpJson.js';
 import {
   getSharedImeiOwnerId,
-  clearRowActionsForImeiAllUsers,
+  purgeImeiAcrossAllUsers,
   restoreImeiToSharedOwnerList
 } from '../utils/imeiSharedListRestore.js';
 
@@ -123,59 +123,6 @@ async function resolveTargetUserByName(rawName) {
 }
 
 /** Abgelehnt (Büro): Eintrag in jedem copy_history_json mit gleicher IMEI + gleichem Anzeigenamen entfernen */
-const removeCopyHistoryEntriesForImeiAndDisplayName = async (imeiRaw, displayNameRaw) => {
-  const imeiStr = String(imeiRaw || '').trim();
-  const want = normHistUserName(displayNameRaw);
-  if (!imeiStr || !want) return;
-  const all = await ImeisUserData.findAll();
-  for (const row of all) {
-    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
-    let arr = [];
-    try {
-      arr = historyJson ? JSON.parse(historyJson) : [];
-    } catch (_) {}
-    if (!Array.isArray(arr)) continue;
-    const next = arr.filter((e) => {
-      if (!e) return true;
-      if (String(e.imei || '').trim() !== imeiStr) return true;
-      return normHistUserName(e.userName) !== want;
-    });
-    if (next.length === arr.length) continue;
-    await ImeisUserData.upsert({
-      user_id: rowUserId,
-      copy_history_json: JSON.stringify(next)
-    });
-  }
-};
-
-/** Abgelehnt (robust): Eintrag in jedem copy_history_json mit gleicher IMEI + gleichem Timestamp entfernen */
-const removeCopyHistoryEntriesForImeiAndTimestamp = async (imeiRaw, tsRaw) => {
-  const imeiStr = String(imeiRaw || '').trim();
-  const ts = String(tsRaw || '').trim();
-  if (!imeiStr || !ts) return;
-  const all = await ImeisUserData.findAll();
-  for (const row of all) {
-    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
-    let arr = [];
-    try {
-      arr = historyJson ? JSON.parse(historyJson) : [];
-    } catch (_) {}
-    if (!Array.isArray(arr)) continue;
-    const next = arr.filter((e) => {
-      if (!e) return true;
-      if (String(e.imei || '').trim() !== imeiStr) return true;
-      return String(e.timestamp || '').trim() !== ts;
-    });
-    if (next.length === arr.length) continue;
-    await ImeisUserData.upsert({
-      user_id: rowUserId,
-      copy_history_json: JSON.stringify(next)
-    });
-  }
-};
-
 /** Prüft, ob der Nutzer diesen Verlaufseintrag wirklich besitzt (IMEI+Timestamp) */
 const userOwnsCopyHistoryEntry = async (userIdRaw, imeiRaw, tsRaw) => {
   const uid = coerceUserId(userIdRaw);
@@ -465,67 +412,13 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
   return collectMergedCopyHistoryFromRows(all);
 };
 
-/** Verlauf (copy_history) zu dieser IMEI bei allen Benutzern löschen – nötig für gemergten Büro-Verlauf */
-const removeImeiFromAllCopyHistories = async (imeiToRemove) => {
-  const imeiStr = String(imeiToRemove || '').trim();
-  if (!imeiStr) return;
-  const all = await ImeisUserData.findAll();
-  for (const row of all) {
-    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
-    let arr = [];
-    try {
-      arr = historyJson ? JSON.parse(historyJson) : [];
-    } catch (_) {}
-    if (!Array.isArray(arr)) continue;
-    const next = arr.filter((e) => !e || String(e.imei || '').trim() !== imeiStr);
-    if (next.length === arr.length) continue;
-    await ImeisUserData.upsert({
-      user_id: rowUserId,
-      copy_history_json: JSON.stringify(next)
-    });
-  }
-};
-
 /** Entfernt ein IMEI aus allen Benutzer-IMEI-Listen (sichtbar für alle Rollen) */
 const removeImeiFromAllLists = async (imeiToRemove, { removeFromCopyHistory = true } = {}) => {
-  const removeKey = normalizeImeiKey(imeiToRemove);
-  if (!removeKey) return;
-  const all = await ImeisUserData.findAll();
-  for (const row of all) {
-    const imeisJson = (row.get && row.get('imeis_json')) ?? row.imeis_json;
-    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
-    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    let arr = [];
-    try {
-      arr = imeisJson ? JSON.parse(imeisJson) : [];
-    } catch (_) {}
-    let rowActions = {};
-    try {
-      rowActions = rowActionsJson ? JSON.parse(rowActionsJson) : {};
-    } catch (_) {}
-    const filtered = Array.isArray(arr)
-      ? arr.filter((item) => normalizeImeiKey(item?.imei) !== removeKey)
-      : [];
-    let hadRowAction = false;
-    Object.keys(rowActions).forEach((rowId) => {
-      const rk = normalizeImeiKey(imeiKeyFromRowId(rowId));
-      if (rk === removeKey) {
-        delete rowActions[rowId];
-        hadRowAction = true;
-      }
-    });
-    const imeisChanged = Array.isArray(arr) && filtered.length !== arr.length;
-    if (imeisChanged || hadRowAction) {
-      const upsertPayload = { user_id: rowUserId };
-      if (imeisChanged) upsertPayload.imeis_json = JSON.stringify(filtered);
-      if (hadRowAction) upsertPayload.row_actions_json = JSON.stringify(rowActions);
-      await ImeisUserData.upsert(upsertPayload);
-    }
-  }
-  if (removeFromCopyHistory) {
-    await removeImeiFromAllCopyHistories(imeiToRemove);
-  }
+  await purgeImeiAcrossAllUsers(imeiToRemove, {
+    removeFromImeisJson: true,
+    removeCopyHistory: removeFromCopyHistory,
+    clearRowActions: true
+  });
 };
 
 async function loadSharedImeiProductLookup() {
@@ -1531,24 +1424,29 @@ export const updateHistoryAction = async (req, res, next) => {
       } catch (archiveErr) {
         console.error('addAcceptedImeiEntry:', archiveErr);
       }
-      await removeImeiFromAllLists(imeiNorm);
+      const purgeAccepted = await purgeImeiAcrossAllUsers(imeiNorm, {
+        removeFromImeisJson: true,
+        removeCopyHistory: true,
+        clearRowActions: true
+      });
       did.removedFromLists = true;
-      did.removedFromHistories = true; // removeImeiFromAllLists() entfernt auch copy_history
-    }
-    if (actionNorm === 'abgelehnt') {
-      // Erst exakt per Timestamp (UI-Eintrag), dann Fallback per Anzeigename (alte Clients)
-      await removeCopyHistoryEntriesForImeiAndTimestamp(imeiNorm, historyTimestamp);
-      await removeCopyHistoryEntriesForImeiAndDisplayName(imeiNorm, targetDisplayName);
-      // Erwartung: IMEI soll aus dem Verlauf komplett verschwinden (für alle Rollen / gemergter Verlauf)
-      await removeImeiFromAllCopyHistories(imeiNorm);
       did.removedFromHistories = true;
+      did.purgeRowsUpdated = purgeAccepted.rowsUpdated;
+      await invalidateImeisCaches(null, { sharedListChanged: true });
     }
-    /** abgelehnt: Zeile wieder in IMEI-Liste + Row-Actions bei allen Nutzern löschen */
     if (actionNorm === 'abgelehnt') {
-      did.clearedRowActions = await clearRowActionsForImeiAllUsers(imeiNorm);
+      const purgeRejected = await purgeImeiAcrossAllUsers(imeiNorm, {
+        removeCopyHistory: true,
+        clearRowActions: true
+      });
+      did.removedFromHistories = true;
+      did.clearedRowActions = purgeRejected.rowActionsCleared;
+      did.purgeRowsUpdated = purgeRejected.rowsUpdated;
+      const productHint = String(product ?? '').trim();
       try {
         const restoreResult = await restoreImeiToSharedOwnerList(imeiNorm, {
-          productHint: String(product ?? '').trim()
+          productHint,
+          skipSnapshotScan: Boolean(productHint)
         });
         did.restoredToList = Boolean(restoreResult?.ok);
         did.restoreReason = restoreResult?.reason;

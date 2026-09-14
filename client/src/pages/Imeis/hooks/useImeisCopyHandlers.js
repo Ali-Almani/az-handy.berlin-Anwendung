@@ -11,6 +11,25 @@ const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
 const MAX_COPIES = 10;
 
+function minimalImeiRowFromHistoryEntry(entry) {
+  const imei = String(entry?.imei || '').trim();
+  if (!imei) return null;
+  const product = String(entry?.product || '').trim();
+  const row = {
+    sheet: 'default',
+    imei,
+    row: Date.now() % 10000000,
+    rowData: {},
+    columnOrder: []
+  };
+  if (product && product !== '-') {
+    row.product = product;
+    row.rowData = { Produkt: product };
+    row.columnOrder = ['Produkt'];
+  }
+  return row;
+}
+
 export function useImeisCopyHandlers({
   user,
   copyHistory,
@@ -206,6 +225,15 @@ export function useImeisCopyHandlers({
       if (newAction === 'angenommen' && setImeis) {
         setImeis((prev) => prev.filter((it) => String(it?.imei || '').trim() !== imeiStr));
       }
+      if (newAction === 'abgelehnt' && setImeis) {
+        const restoredRow = minimalImeiRowFromHistoryEntry(entry);
+        if (restoredRow) {
+          setImeis((prev) => {
+            if (prev.some((it) => String(it?.imei || '').trim() === imeiStr)) return prev;
+            return [...prev, restoredRow];
+          });
+        }
+      }
 
       try {
         const targetUserId = canUpdateOthersHistory ? undefined : user?.id;
@@ -219,7 +247,7 @@ export function useImeisCopyHandlers({
         );
         clearHistoryEntryPendingRemoval(entry);
         if (typeof refreshImeisFromApi === 'function') {
-          await refreshImeisFromApi();
+          refreshImeisFromApi().catch(() => {});
         }
         if (isSelfHistoryEntry) {
           notifyReminderResponseApi(imeiStr, newAction);
