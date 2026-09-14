@@ -108,7 +108,7 @@ export function useImeisCopyHandlers({
     setShowRateLimitModal(true);
   }, [copyTimestamps, setRateLimitMessage, setShowRateLimitModal]);
 
-  const handleCopyRow = useCallback(async (item) => {
+  const handleCopyRow = useCallback(async (item, { historyTimestamp, rowActionsSnapshot } = {}) => {
     try {
       const rateLimit = checkCopyRateLimit();
       if (!rateLimit.allowed) {
@@ -127,14 +127,19 @@ export function useImeisCopyHandlers({
           if (productLower.startsWith(manufacturer.toLowerCase())) productForHistory = productForHistory.substring(manufacturer.length).trim();
           productForHistory = productForHistory.replace(new RegExp(`\\b${manufacturer}\\b`, 'gi'), '').trim().replace(/\s+/g, ' ').trim();
         }
+        const ts = historyTimestamp || new Date().toISOString();
         const updatedHistory = addHistoryEntry({
           imei: imeiToCopy,
           product: productForHistory || '-',
           action: 'checkout',
-          timestamp: new Date().toISOString(),
+          timestamp: ts,
           userName: user?.name || 'Unbekannt'
         });
-        persistImeis?.({ copyHistory: updatedHistory, removedImei: imeiToCopy });
+        const persistPayload = { copyHistory: updatedHistory, removedImei: imeiToCopy };
+        if (rowActionsSnapshot && typeof rowActionsSnapshot === 'object') {
+          persistPayload.rowActions = rowActionsSnapshot;
+        }
+        persistImeis?.(persistPayload);
         setCopySuccess?.(true);
         setTimeout(() => setCopySuccess?.(false), 2000);
         setSelectedRowForDropdown(null);
@@ -154,7 +159,6 @@ export function useImeisCopyHandlers({
     const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: ts, product: productFull };
     const updatedActions = { ...rowActions, [rowId]: actionData };
     setRowActions(updatedActions);
-    persistImeis?.({ rowActions: updatedActions });
 
     // „Reservieren“: soll in Verlauf erscheinen, IMEI kopieren, aber NICHT als Copy/Checkout zählen.
     if (action === 'reservieren') {
@@ -188,7 +192,7 @@ export function useImeisCopyHandlers({
       showRateLimitError();
       return;
     }
-    await handleCopyRow(item);
+    await handleCopyRow(item, { historyTimestamp: ts, rowActionsSnapshot: updatedActions });
   }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError, persistImeis, setRowActions, getProductFull, addHistoryEntry]);
 
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {

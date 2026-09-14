@@ -277,9 +277,9 @@ const safeJsonParse = (raw, fallback) => {
 /** Merge copy_history (+ rowActions-Fallback) aus User-Zeilen für Verlauf */
 async function collectMergedCopyHistoryFromRows(rows) {
   const productLookup = await loadSharedImeiProductLookup();
-  const merged = [];
-  const seenKeys = new Set();
-  for (const row of rows) {
+    const merged = [];
+    const seenKeys = new Set();
+    for (const row of rows) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
     let rowUserName = '';
     if (rowUserId != null) {
@@ -288,6 +288,7 @@ async function collectMergedCopyHistoryFromRows(rows) {
         rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
       } catch (_) {}
     }
+    const historyImeiUser = new Set();
     const pushEntry = (e, fallbackUserName) => {
       if (!e || (!e.imei && !e.timestamp)) return;
       const userName = e.userName || fallbackUserName;
@@ -296,6 +297,9 @@ async function collectMergedCopyHistoryFromRows(rows) {
       if (seenKeys.has(key)) return;
       seenKeys.add(key);
       merged.push(entry);
+      const ik = normalizeImeiKey(entry.imei);
+      const un = normHistUserName(userName);
+      if (ik && un) historyImeiUser.add(`${ik}|${un}`);
     };
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
     if (historyJson) {
@@ -311,6 +315,9 @@ async function collectMergedCopyHistoryFromRows(rows) {
       try {
         const rowActions = JSON.parse(rowActionsJson);
         for (const e of copyHistoryFromRowActions(rowActions, rowUserName, rowUserId, productLookup)) {
+          const ik = normalizeImeiKey(e?.imei);
+          const un = normHistUserName(e?.userName || rowUserName);
+          if (ik && un && historyImeiUser.has(`${ik}|${un}`)) continue;
           pushEntry(e, rowUserName);
         }
       } catch (_) {}
