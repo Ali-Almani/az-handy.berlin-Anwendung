@@ -90,7 +90,7 @@ const ImeisTable = ({
                           e.stopPropagation();
                           const isChecked = e.target.checked;
                           if (isChecked) {
-                            await onDropdownSelect(item, 'reservieren');
+                            void onDropdownSelect(item, 'reservieren');
                           } else {
                             onRowActionRemove(rowId);
                           }

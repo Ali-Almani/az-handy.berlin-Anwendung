@@ -3,6 +3,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { forbidPartnerRole } from '../middleware/forbidPartnerRole.js';
 import {
   getImeisData,
+  getImeisVerlaufSnapshot,
   saveImeisData,
   updateHistoryAction,
   sendImeiReminder,
@@ -29,6 +30,7 @@ router.use(authenticateToken);
 router.use(forbidPartnerRole);
 
 router.get('/data', getImeisData);
+router.get('/verlauf', getImeisVerlaufSnapshot);
 router.put('/data', saveImeisData);
 router.patch('/data/history-action', updateHistoryAction);
 router.post('/reminder', sendImeiReminder);

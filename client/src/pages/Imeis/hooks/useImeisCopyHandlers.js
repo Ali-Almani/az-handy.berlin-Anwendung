@@ -163,26 +163,28 @@ export function useImeisCopyHandlers({
     // „Reservieren“: soll in Verlauf erscheinen, IMEI kopieren, aber NICHT als Copy/Checkout zählen.
     if (action === 'reservieren') {
       const imeiToCopy = String(item?.imei || '').trim();
-      if (imeiToCopy) {
-        try {
-          await navigator.clipboard.writeText(imeiToCopy);
-          setCopySuccess?.(true);
-          setTimeout(() => setCopySuccess?.(false), 2000);
-          setSelectedRowForDropdown?.(null);
-        } catch (_) {}
-      }
       const updatedHistory = addHistoryEntry({
-        imei: String(item?.imei || '').trim(),
+        imei: imeiToCopy,
         product: productFull,
         action: 'reservieren',
         timestamp: ts,
         userName: user?.name || 'Unbekannt'
       });
+      if (setImeis && imeiToCopy) {
+        setImeis((prev) => prev.filter((it) => String(it?.imei || '').trim() !== imeiToCopy));
+      }
       persistImeis?.({
         copyHistory: updatedHistory,
         rowActions: updatedActions,
-        removedImei: String(item?.imei || '').trim()
+        removedImei: imeiToCopy
       });
+      if (imeiToCopy) {
+        void navigator.clipboard.writeText(imeiToCopy).then(() => {
+          setCopySuccess?.(true);
+          setTimeout(() => setCopySuccess?.(false), 2000);
+          setSelectedRowForDropdown?.(null);
+        }).catch(() => {});
+      }
       return;
     }
 

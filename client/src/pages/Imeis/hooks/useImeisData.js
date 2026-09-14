@@ -1,5 +1,13 @@
-import { useEffect } from 'react';
-import { loadImeisWithApi, getImeisDataFromApi, persistImeisState, shouldSkipSync, filterPendingHistoryRemovals, reconcilePendingHistoryRemovals } from '../../../services/imeis.service';
+import { useEffect, useRef } from 'react';
+import {
+  loadImeisWithApi,
+  getImeisDataFromApi,
+  getImeisVerlaufFromApi,
+  persistImeisState,
+  shouldSkipSync,
+  filterPendingHistoryRemovals,
+  reconcilePendingHistoryRemovals
+} from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUtils';
 import { isOfficeImeiRole, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
@@ -116,8 +124,12 @@ export function useImeisData(
   setLoading,
   user,
   showHistoryModal = false,
-  setSonderImeis
+  setSonderImeis,
+  imeis = []
 ) {
+  const imeisRef = useRef(imeis);
+  imeisRef.current = imeis;
+
   useEffect(() => {
     const setters = {
       setImeis,
@@ -177,6 +189,32 @@ export function useImeisData(
       pollTimerId = setTimeout(runPoll, delayMs);
     };
 
+    const applyVerlaufOnly = (rawHistory) => {
+      const processedHistory = enrichCopyHistoryProductsFromImeis(
+        processCopyHistory(filterPendingHistoryRemovals(rawHistory ?? [])),
+        imeisRef.current
+      );
+      reconcilePendingHistoryRemovals(rawHistory ?? []);
+      setCopyHistory(processedHistory);
+    };
+    const refreshFromServer = async () => {
+      if (shouldSkipSync()) return false;
+      if (isOfficeImeiRole(user?.role)) {
+        const verlauf = await getImeisVerlaufFromApi();
+        if (verlauf) {
+          applyVerlaufOnly(verlauf);
+          return true;
+        }
+        return false;
+      }
+      const data = await getImeisDataFromApi();
+      if (data) {
+        applyImeisData(data, setters, getManufacturer, false);
+        return true;
+      }
+      return false;
+    };
+
     const runPoll = async () => {
       if (socket?.connected) return;
       if (shouldSkipSync()) {
@@ -184,13 +222,8 @@ export function useImeisData(
         return;
       }
       try {
-        const data = await getImeisDataFromApi();
-        if (data) {
-          applyImeisData(data, setters, getManufacturer, false);
-          schedulePoll(POLL_INTERVAL_MS);
-        } else {
-          schedulePoll(POLL_INTERVAL_FAIL_MS);
-        }
+        const ok = await refreshFromServer();
+        schedulePoll(ok ? POLL_INTERVAL_MS : POLL_INTERVAL_FAIL_MS);
       } catch (_) {
         schedulePoll(POLL_INTERVAL_FAIL_MS);
       }
@@ -205,9 +238,7 @@ export function useImeisData(
 
     const onImeisUpdated = () => {
       if (shouldSkipSync()) return;
-      getImeisDataFromApi().then((data) => {
-        if (data) applyImeisData(data, setters, getManufacturer, false);
-      });
+      void refreshFromServer();
     };
     const onExtraCopyDecision = (payload) => {
       const targetId = payload?.targetUserId ? String(payload.targetUserId) : null;
@@ -276,8 +307,20 @@ export function useImeisData(
     const refreshVerlauf = async () => {
       if (shouldSkipSync()) return;
       try {
-        const data = await getImeisDataFromApi();
-        if (data) applyImeisData(data, setters, getManufacturer, false);
+        if (isOfficeImeiRole(user?.role)) {
+          const verlauf = await getImeisVerlaufFromApi();
+          if (verlauf) {
+            const processedHistory = enrichCopyHistoryProductsFromImeis(
+              processCopyHistory(filterPendingHistoryRemovals(verlauf)),
+              []
+            );
+            reconcilePendingHistoryRemovals(verlauf);
+            setCopyHistory(processedHistory);
+          }
+        } else {
+          const data = await getImeisDataFromApi();
+          if (data) applyImeisData(data, setters, getManufacturer, false);
+        }
       } catch (_) {}
     };
 

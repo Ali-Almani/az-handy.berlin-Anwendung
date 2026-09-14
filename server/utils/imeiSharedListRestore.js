@@ -263,3 +263,18 @@ export async function restoreImeiToSharedOwnerList(
   await ImeisUserData.upsert({ user_id: ownerId, imeis_json: JSON.stringify(arr) });
   return { ok: true, reason: 'restored', ownerId };
 }
+
+/** Kopieren/Reservieren: IMEI nur aus der gemeinsamen Owner-Liste entfernen (1 DB-Update). */
+export async function removeImeiFromSharedOwnerImeisJson(imeiRaw) {
+  const removeKey = normalizeImeiKey(imeiRaw);
+  if (!removeKey) return { removed: false, ownerId: null };
+  const ownerId = await getSharedImeiOwnerId();
+  if (ownerId == null) return { removed: false, ownerId: null };
+  const row = await ImeisUserData.findOne({ where: { user_id: ownerId } });
+  if (!row) return { removed: false, ownerId };
+  const arr = parseImeisJsonArray((row.get && row.get('imeis_json')) ?? row.imeis_json);
+  const filtered = arr.filter((item) => normalizeImeiKey(item?.imei) !== removeKey);
+  if (filtered.length === arr.length) return { removed: false, ownerId };
+  await ImeisUserData.upsert({ user_id: ownerId, imeis_json: JSON.stringify(filtered) });
+  return { removed: true, ownerId };
+}

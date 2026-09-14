@@ -37,6 +37,16 @@ async function fetchImeisJsonGet(path, params = {}) {
   return JSON.parse(text);
 }
 
+export const getImeisVerlaufFromApi = async () => {
+  try {
+    const data = await fetchImeisJsonGet('/imeis/verlauf');
+    if (data?.success && Array.isArray(data.copyHistory)) return data.copyHistory;
+  } catch (err) {
+    console.error('getImeisVerlaufFromApi:', err);
+  }
+  return null;
+};
+
 export const getImeisDataFromApi = async ({ lite = false } = {}) => {
   const slot = lite ? 'lite' : 'full';
   if (imeisDataInflight[slot]) return imeisDataInflight[slot];
@@ -275,7 +285,9 @@ export const persistImeisState = async (user, partial = {}) => {
     if (copyTimestamps !== undefined) payload.copyTimestamps = copyTimestamps;
     if (removedImei !== undefined) payload.removedImei = removedImei;
     if (Object.keys(payload).length > 0) {
-      await saveImeisDataToApi(payload);
+      void saveImeisDataToApi(payload).catch((err) => {
+        console.error('Error saving IMEIS data to API:', err);
+      });
     }
   }
 };

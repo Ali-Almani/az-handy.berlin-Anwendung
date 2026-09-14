@@ -114,7 +114,8 @@ export function useImeis() {
     setLoading,
     user,
     showHistoryModal,
-    setSonderImeis
+    setSonderImeis,
+    imeis
   );
 
   useEffect(() => {

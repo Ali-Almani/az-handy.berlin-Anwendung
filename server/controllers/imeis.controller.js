@@ -54,7 +54,8 @@ import { sendJsonResponse } from '../utils/httpJson.js';
 import {
   getSharedImeiOwnerId,
   purgeImeiAcrossAllUsers,
-  restoreImeiToSharedOwnerList
+  restoreImeiToSharedOwnerList,
+  removeImeiFromSharedOwnerImeisJson
 } from '../utils/imeiSharedListRestore.js';
 
 const MERGED_COPY_HISTORY_CACHE_KEY = 'imeis:mergedCopyHistory';
@@ -420,11 +421,14 @@ const getCopyHistoryForEinsatzOrt = async (einsatzOrt) => {
 };
 
 /** Entfernt ein IMEI aus allen Benutzer-IMEI-Listen (sichtbar für alle Rollen) */
-const removeImeiFromAllLists = async (imeiToRemove, { removeFromCopyHistory = true } = {}) => {
+const removeImeiFromAllLists = async (
+  imeiToRemove,
+  { removeFromCopyHistory = true, clearRowActions = true } = {}
+) => {
   await purgeImeiAcrossAllUsers(imeiToRemove, {
     removeFromImeisJson: true,
     removeCopyHistory: removeFromCopyHistory,
-    clearRowActions: true
+    clearRowActions
   });
 };
 
@@ -1047,6 +1051,9 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const currentUser = await User.findByPk(userId);
   const role = getUserRole(currentUser);
   let { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
+  if (copyHistory !== undefined || rowActions !== undefined || removedImei !== undefined) {
+    void redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY).catch(() => {});
+  }
   if (imeis !== undefined && Array.isArray(imeis)) {
     imeis = (await applyImeiListVisibilityFilters(imeis)).filtered;
   }
@@ -1124,8 +1131,16 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   } catch (_) {}
 
   if (removedImei) {
-    // Kopieren/Reservieren: nur aus Bestand entfernen – Verlaufseintrag bleibt bis angenommen/abgelehnt.
-    await removeImeiFromAllLists(removedImei, { removeFromCopyHistory: false });
+    // Kopieren/Reservieren: aus Master-Liste (Owner) – Verlauf bleibt bis angenommen/abgelehnt.
+    const fast = await removeImeiFromSharedOwnerImeisJson(removedImei);
+    if (!fast.removed) {
+      await removeImeiFromAllLists(removedImei, {
+        removeFromCopyHistory: false,
+        clearRowActions: rowActions === undefined
+      });
+    } else if (rowActions === undefined) {
+      await purgeImeiAcrossAllUsers(removedImei, { clearRowActions: true });
+    }
   }
 
   const isMitarbeiter = isMitarbeiterShop(role);
@@ -1217,21 +1232,27 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
       augmentedCopyHistory !== undefined ||
       rowActions !== undefined ||
       removedImei !== undefined;
-    if (verlaufMaybeChangedMem) {
-      await reconcileSharedImeiListAfterVerlaufChange(app);
-    }
-    const io = app?.get?.('io');
-    const dataChanged =
+    const ioMem = app?.get?.('io');
+    const dataChangedMem =
       imeis !== undefined ||
       rowActions !== undefined ||
       removedImei ||
       clearingMasterList ||
       verlaufMaybeChangedMem;
-    if (io && dataChanged) io.emit('imeis:updated');
-    const sharedListChanged = Boolean(
+    if (ioMem && dataChangedMem) ioMem.emit('imeis:updated');
+    const sharedListChangedMem = Boolean(
       (imeis !== undefined && canEditSharedImeiList && ownerId != null) || verlaufMaybeChangedMem
     );
-    await invalidateImeisCaches(userId, { sharedListChanged });
+    void invalidateImeisCaches(userId, { sharedListChanged: sharedListChangedMem }).catch((err) => {
+      console.error('invalidateImeisCaches:', err?.message || err);
+    });
+    if (verlaufMaybeChangedMem && !removedImei) {
+      setImmediate(() => {
+        reconcileSharedImeiListAfterVerlaufChange(app).catch((err) => {
+          console.error('reconcileSharedImeiListAfterVerlaufChange:', err?.message || err);
+        });
+      });
+    }
     return;
   }
 
@@ -1300,18 +1321,59 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     augmentedCopyHistory !== undefined ||
     rowActions !== undefined ||
     removedImei !== undefined;
-  if (verlaufMaybeChanged) {
-    await reconcileSharedImeiListAfterVerlaufChange(app);
-  }
-
   const io = app?.get?.('io');
   const dataChanged =
     imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList || verlaufMaybeChanged;
   if (io && dataChanged) io.emit('imeis:updated');
+
   const sharedListChanged = Boolean(
     (imeis !== undefined && canEditSharedImeiList && ownerId != null) || verlaufMaybeChanged
   );
-  await invalidateImeisCaches(userId, { sharedListChanged });
+  void invalidateImeisCaches(userId, { sharedListChanged }).catch((err) => {
+    console.error('invalidateImeisCaches:', err?.message || err);
+  });
+
+  if (verlaufMaybeChanged && !removedImei) {
+    setImmediate(() => {
+      reconcileSharedImeiListAfterVerlaufChange(app).catch((err) => {
+        console.error('reconcileSharedImeiListAfterVerlaufChange:', err?.message || err);
+      });
+    });
+  }
+};
+
+/** Nur Verlauf (leichtgewichtig für Socket/Polling – ohne IMEI-Liste neu laden). */
+export const getImeisVerlaufSnapshot = async (req, res, next) => {
+  try {
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
+    }
+    const role = getUserRole(currentUser);
+    let copyHistory = [];
+    if (shouldUseMergedOfficeCopyHistory(role)) {
+      copyHistory = await getMergedCopyHistory();
+    } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
+      copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
+    } else if (isMitarbeiterShop(role)) {
+      const [ownData] = await ImeisUserData.findOrCreate({
+        where: { user_id: userId },
+        defaults: { cell_colors_json: '{}', row_actions_json: '{}', copy_history_json: '[]', copy_timestamps_json: '[]' }
+      });
+      copyHistory = await resolveCopyHistoryForMitarbeiterShop(userId, currentUser, ownData);
+    } else {
+      const row = await ImeisUserData.findOne({ where: { user_id: userId } });
+      copyHistory = safeJsonParse((row?.get && row.get('copy_history_json')) ?? row?.copy_history_json, []);
+      if (!Array.isArray(copyHistory)) copyHistory = [];
+    }
+    return sendJsonResponse(res, { success: true, copyHistory });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const saveImeisData = async (req, res, next) => {
