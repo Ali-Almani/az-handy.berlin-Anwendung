@@ -298,6 +298,7 @@ export const setHistoryActionCooldown = () => {
 };
 
 const pendingHistoryRemovalKeys = new Set();
+const pendingHistoryPurgeImeiKeys = new Set();
 
 export function historyEntryKey(entry) {
   const imei = String(entry?.imei ?? '').trim();
@@ -306,7 +307,21 @@ export function historyEntryKey(entry) {
     .trim()
     .replace(/\s+/g, ' ')
     .toLowerCase();
-  return `${imei}|${ts}|${userName}`;
+  const action = String(entry?.action ?? '').trim().toLowerCase();
+  const ms = Date.parse(ts);
+  const tsKey = Number.isFinite(ms) ? String(Math.floor(ms / 1000)) : ts;
+  return `${imei}|${tsKey}|${userName}|${action}`;
+}
+
+function normalizeImeiKeyForFilter(imei) {
+  return String(imei ?? '').trim().replace(/\D/g, '') || String(imei ?? '').trim();
+}
+
+export function markImeiPendingHistoryPurge(imeiRaw) {
+  const k = normalizeImeiKeyForFilter(imeiRaw);
+  if (!k) return;
+  pendingHistoryPurgeImeiKeys.add(k);
+  setHistoryActionCooldown();
 }
 
 /** Verlauf-Eintrag sofort ausblenden, bis Server ihn nicht mehr liefert */
@@ -321,15 +336,39 @@ export function clearHistoryEntryPendingRemoval(entry) {
   pendingHistoryRemovalKeys.delete(historyEntryKey(entry));
 }
 
+export function clearImeiPendingHistoryPurge(imeiRaw) {
+  const k = normalizeImeiKeyForFilter(imeiRaw);
+  if (k) pendingHistoryPurgeImeiKeys.delete(k);
+}
+
+export function revertHistoryActionPendingState(entry, imeiRaw) {
+  clearHistoryEntryPendingRemoval(entry);
+  clearImeiPendingHistoryPurge(imeiRaw);
+}
+
 export function filterPendingHistoryRemovals(entries) {
-  if (!pendingHistoryRemovalKeys.size) return entries ?? [];
-  return (entries ?? []).filter((e) => !pendingHistoryRemovalKeys.has(historyEntryKey(e)));
+  let list = entries ?? [];
+  if (pendingHistoryPurgeImeiKeys.size > 0) {
+    list = list.filter((e) => {
+      const k = normalizeImeiKeyForFilter(e?.imei);
+      return !k || !pendingHistoryPurgeImeiKeys.has(k);
+    });
+  }
+  if (!pendingHistoryRemovalKeys.size) return list;
+  return list.filter((e) => !pendingHistoryRemovalKeys.has(historyEntryKey(e)));
 }
 
 /** Entfernt Pending-Keys, sobald der Server den Eintrag nicht mehr sendet */
 export function reconcilePendingHistoryRemovals(serverEntries) {
+  const serverList = serverEntries ?? [];
+  if (pendingHistoryPurgeImeiKeys.size > 0) {
+    for (const imeiKey of [...pendingHistoryPurgeImeiKeys]) {
+      const stillOnServer = serverList.some((e) => normalizeImeiKeyForFilter(e?.imei) === imeiKey);
+      if (!stillOnServer) pendingHistoryPurgeImeiKeys.delete(imeiKey);
+    }
+  }
   if (!pendingHistoryRemovalKeys.size) return;
-  const serverKeys = new Set((serverEntries ?? []).map(historyEntryKey));
+  const serverKeys = new Set(serverList.map(historyEntryKey));
   for (const key of [...pendingHistoryRemovalKeys]) {
     if (!serverKeys.has(key)) pendingHistoryRemovalKeys.delete(key);
   }

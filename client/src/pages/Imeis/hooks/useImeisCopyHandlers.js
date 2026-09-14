@@ -1,10 +1,12 @@
 import { useCallback, useRef } from 'react';
 import {
   markHistoryEntryPendingRemoval,
-  clearHistoryEntryPendingRemoval,
+  markImeiPendingHistoryPurge,
   historyEntryKey,
-  notifyReminderResponseApi
+  notifyReminderResponseApi,
+  revertHistoryActionPendingState
 } from '../../../services/imeis.service';
+import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
 import { trimCopyHistoryByRetention, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
@@ -213,8 +215,12 @@ export function useImeisCopyHandlers({
     if (isServerHistoryAction) {
       historyActionPendingRef.current.add(pendingKey);
       const imeiStr = String(entry.imei || '').trim();
+      const imeiKey = normalizeImeiSortKey(imeiStr);
       markHistoryEntryPendingRemoval(entry);
-      const updatedHistory = removeEntryFromHistory(copyHistory, entry);
+      markImeiPendingHistoryPurge(imeiStr);
+      const updatedHistory = (copyHistory ?? []).filter(
+        (e) => normalizeImeiSortKey(e?.imei) !== imeiKey
+      );
       const updatedRowActions = { ...rowActions };
       Object.keys(updatedRowActions).forEach((rowId) => {
         if (rowId.includes(`-${imeiStr}-`)) delete updatedRowActions[rowId];
@@ -245,16 +251,12 @@ export function useImeisCopyHandlers({
           entry.timestamp,
           entry.product
         );
-        clearHistoryEntryPendingRemoval(entry);
-        if (typeof refreshImeisFromApi === 'function') {
-          refreshImeisFromApi().catch(() => {});
-        }
         if (isSelfHistoryEntry) {
           notifyReminderResponseApi(imeiStr, newAction);
         }
         return true;
       } catch (err) {
-        clearHistoryEntryPendingRemoval(entry);
+        revertHistoryActionPendingState(entry, imeiStr);
         setCopyHistory(copyHistory);
         setRowActions(rowActions);
         alert('Fehler beim Aktualisieren der Aktion: ' + (err.response?.data?.message || err.response?.data?.error?.message || err.message));

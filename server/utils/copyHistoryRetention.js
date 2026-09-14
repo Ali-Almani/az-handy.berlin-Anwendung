@@ -48,11 +48,18 @@ function normCopyHistoryUserName(name) {
     .toLowerCase();
 }
 
+function timestampKeyPart(entry) {
+  const raw = String(entry?.timestamp ?? '').trim();
+  const ms = parseCopyHistoryTimestamp(entry);
+  if (Number.isFinite(ms)) return String(Math.floor(ms / 1000));
+  return raw;
+}
+
 export function copyHistoryEntryKey(entry) {
   const imei = String(entry?.imei ?? '').trim();
-  const ts = String(entry?.timestamp ?? '').trim();
+  const ts = timestampKeyPart(entry);
   const userName = normCopyHistoryUserName(entry?.userName);
-  const action = String(entry?.action ?? '').trim();
+  const action = String(entry?.action ?? '').trim().toLowerCase();
   return `${imei}|${userName}|${ts}|${action}`;
 }
 

@@ -27,6 +27,7 @@ import {
 } from '../utils/ImeisUtils';
 import { getZustandData as getZustandDataUtil } from '../utils/imeisZustandUtils';
 import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
+import { dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
 import { pickOldestTenImeisForSonder } from '../utils/imeisSonderUtils';
 import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
 
@@ -122,6 +123,11 @@ export function useImeis() {
     if (showColorPicker) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showColorPicker]);
+
+  const copyHistoryCount = useMemo(
+    () => dedupeCopyHistoryByEntryKey(copyHistory).length,
+    [copyHistory]
+  );
 
   const sonderImeiKeySet = useMemo(() => {
     const s = new Set();
@@ -471,7 +477,7 @@ export function useImeis() {
     user, loading, searchTerm, setSearchTerm, filteredImeis, currentImeis, startIndex, endIndex, totalPages, itemsPerPage, setItemsPerPage,
     currentPage, setCurrentPage, availableManufacturers, activeManufacturer, setActiveManufacturer, availableVersions, activeVersion, setActiveVersion,
     availableVariants, activeVariant, setActiveVariant, availableGBs, activeGB, setActiveGB, availableProducts, activeProduct, setActiveProduct,
-    history, handleUndo, handleExport, handleDeleteAll, handleUpdateHistoryAction, handleHistoryModalUndo, copyHistory, showHistoryModal, setShowHistoryModal,
+    history, handleUndo, handleExport, handleDeleteAll, handleUpdateHistoryAction, handleHistoryModalUndo, copyHistory, copyHistoryCount, showHistoryModal, setShowHistoryModal,
     historyUndoStack, showZustandModal, setShowZustandModal, zustandDataCache, setZustandDataCache, zustandLoading, setZustandLoading, getZustandData,
     showRateLimitModal, setShowRateLimitModal, rateLimitMessage, imeis, allColumns, selectedCells, selectedCell, showColorPicker, rowActions, setRowActions,
     cellTextColors, maskImei, getManufacturer, getProductFull, getCellTextColor, handleCellClick, handleCellContextMenu, handleCellMouseDown, handleCellMouseEnter,

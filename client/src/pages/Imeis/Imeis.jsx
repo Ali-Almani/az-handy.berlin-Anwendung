@@ -55,6 +55,7 @@ const Imeis = () => {
     handleUpdateHistoryAction,
     handleHistoryModalUndo,
     copyHistory,
+    copyHistoryCount,
     showHistoryModal,
     setShowHistoryModal,
     historyUndoStack,
@@ -198,7 +199,7 @@ const Imeis = () => {
             onUndo={handleUndo}
             onExport={handleExport}
             filteredImeisLength={filteredImeis.length}
-            copyHistoryLength={copyHistory.length}
+            copyHistoryLength={copyHistoryCount}
             onShowHistory={() => { setReminderImeiFilter(null); setShowHistoryModal(true); }}
             imeisLength={imeis.length}
             onDeleteAll={handleDeleteAll}
