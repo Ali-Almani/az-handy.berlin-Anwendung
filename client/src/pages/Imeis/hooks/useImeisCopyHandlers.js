@@ -67,6 +67,20 @@ export function useImeisCopyHandlers({
   const historyActionPendingRef = useRef(new Set());
   const normHistName = useCallback((s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase(), []);
 
+  const rowActionsForPersist = useCallback(
+    (actions) => {
+      if (!isMitarbeiterShop(user)) return actions;
+      const myNorm = normHistName(user?.name);
+      if (!myNorm) return actions;
+      const out = {};
+      for (const [k, act] of Object.entries(actions || {})) {
+        if (act && normHistName(act.userName) === myNorm) out[k] = act;
+      }
+      return out;
+    },
+    [user, normHistName]
+  );
+
   const removeEntryFromHistory = useCallback((history, entry) => {
     const key = historyEntryKey(entry);
     return (history ?? []).filter((e) => historyEntryKey(e) !== key);
@@ -151,7 +165,7 @@ export function useImeisCopyHandlers({
         });
         const persistPayload = { copyHistory: updatedHistory, removedImei: imeiToCopy };
         if (rowActionsSnapshot && typeof rowActionsSnapshot === 'object') {
-          persistPayload.rowActions = rowActionsSnapshot;
+          persistPayload.rowActions = rowActionsForPersist(rowActionsSnapshot);
         }
         persistImeis?.(persistPayload);
         setCopySuccess?.(true);
@@ -162,7 +176,7 @@ export function useImeisCopyHandlers({
       console.error('Error copying IMEI to clipboard:', error);
       alert('Fehler beim Kopieren in die Zwischenablage: ' + error.message);
     }
-  }, [getProductFull, getManufacturer, user, checkCopyRateLimit, registerCopyAction, setSelectedRowForDropdown, showRateLimitError, addHistoryEntry, persistImeis, setCopySuccess]);
+  }, [getProductFull, getManufacturer, user, checkCopyRateLimit, registerCopyAction, setSelectedRowForDropdown, showRateLimitError, addHistoryEntry, persistImeis, setCopySuccess, rowActionsForPersist]);
 
   const handleDropdownSelect = useCallback(async (item, action) => {
     const rowId = `${item.sheet || 'default'}-${item.imei}-${item.row}`;
@@ -193,7 +207,7 @@ export function useImeisCopyHandlers({
       }
       persistImeis?.({
         copyHistory: updatedHistory,
-        rowActions: updatedActions,
+        rowActions: rowActionsForPersist(updatedActions),
         removedImei: imeiToCopy
       });
       if (imeiToCopy) {
@@ -230,7 +244,8 @@ export function useImeisCopyHandlers({
     addHistoryEntry,
     setImeis,
     setCopySuccess,
-    setSelectedRowForDropdown
+    setSelectedRowForDropdown,
+    rowActionsForPersist
   ]);
 
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {

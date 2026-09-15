@@ -30,8 +30,10 @@ import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
 import {
   dedupeCopyHistoryByEntryKey,
   dedupeCopyHistoryByImeiUser,
-  historyEntryHidesImeiFromList
+  historyEntryHidesImeiFromList,
+  countOpenVerlaufSlotsForUser
 } from '../utils/copyHistoryRetention';
+import { isMitarbeiterShop } from '../../../utils/roles';
 import { pickOldestTenImeisForSonder } from '../utils/imeisSonderUtils';
 import { isAppleManufacturerName, isAppleWatchProductFull } from '../utils/imeisProductUtils';
 
@@ -130,11 +132,14 @@ export function useImeis() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showColorPicker]);
 
-  /** Badge: offene Reservierungen/Kopien (pro IMEI+Mitarbeiter), nicht jede DB-/Sync-Dublette */
+  /** Badge: offene Slots – Shop nur eigene, Büro/Team gesamt */
   const copyHistoryCount = useMemo(() => {
+    if (isMitarbeiterShop(user)) {
+      return countOpenVerlaufSlotsForUser(copyHistory, user?.name);
+    }
     const open = dedupeCopyHistoryByImeiUser(copyHistory).filter(historyEntryHidesImeiFromList);
     return open.length;
-  }, [copyHistory]);
+  }, [copyHistory, user]);
 
   const sonderImeiKeySet = useMemo(() => {
     const s = new Set();
@@ -235,7 +240,8 @@ export function useImeis() {
             setSonderImeis
           },
           getManufacturer,
-          false
+          false,
+          user
         );
       }
     } catch (_) {}

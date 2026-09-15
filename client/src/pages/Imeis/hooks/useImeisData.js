@@ -11,6 +11,23 @@ import {
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUtils';
 import { isOfficeImeiRole, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
+import { isMitarbeiterShop } from '../../../utils/roles';
+
+function normCopyHistUser(name) {
+  return String(name ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function copyHistoryForUserRole(raw, user) {
+  let list = Array.isArray(raw) ? raw : [];
+  if (isMitarbeiterShop(user)) {
+    const myNorm = normCopyHistUser(user?.name);
+    if (myNorm) list = list.filter((e) => e && normCopyHistUser(e.userName) === myNorm);
+  }
+  return list;
+}
 import { getProductFull } from '../utils/imeisProductUtils';
 
 const POLL_INTERVAL_MS = 12000;
@@ -52,7 +69,7 @@ function enrichCopyHistoryProductsFromImeis(history, imeis) {
   });
 }
 
-function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
+function applyImeisData(data, setters, getManufacturer, isInitialLoad = false, user = null) {
   const {
     setImeis,
     setCellTextColors,
@@ -70,11 +87,12 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
   setImeis(storedImeis);
   setCellTextColors(data.cellColors ?? {});
   setRowActions(data.rowActions ?? {});
+  const rawHistory = copyHistoryForUserRole(data.copyHistory ?? [], user);
   const processedHistory = enrichCopyHistoryProductsFromImeis(
-    processCopyHistory(filterPendingHistoryRemovals(data.copyHistory ?? [])),
+    processCopyHistory(filterPendingHistoryRemovals(rawHistory)),
     storedImeis
   );
-  reconcilePendingHistoryRemovals(data.copyHistory ?? []);
+  reconcilePendingHistoryRemovals(rawHistory);
   setCopyHistory(processedHistory);
   setCopyTimestamps?.(data.copyTimestamps ?? []);
 
@@ -105,8 +123,8 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false) {
 }
 
 /** Einheitlich nach PATCH /history-action oder manuell: Server-Zustand in React übernehmen */
-export function applyImeisServerPayload(data, setters, getManufacturer, isInitialLoad = false) {
-  applyImeisData(data, setters, getManufacturer, isInitialLoad);
+export function applyImeisServerPayload(data, setters, getManufacturer, isInitialLoad = false, user = null) {
+  applyImeisData(data, setters, getManufacturer, isInitialLoad, user);
 }
 
 export function useImeisData(
@@ -148,7 +166,7 @@ export function useImeisData(
     const loadImeisData = async () => {
       try {
         const data = await loadImeisWithApi(user);
-        applyImeisData(data, setters, getManufacturer, true);
+        applyImeisData(data, setters, getManufacturer, true, user);
         if (!isOfficeImeiRole(user?.role)) {
           const processedHistory = processCopyHistory(data.copyHistory ?? []);
           if (processedHistory.length !== (data.copyHistory ?? []).length) {
@@ -209,7 +227,7 @@ export function useImeisData(
       }
       const data = await getImeisDataFromApi();
       if (data) {
-        applyImeisData(data, setters, getManufacturer, false);
+        applyImeisData(data, setters, getManufacturer, false, user);
         return true;
       }
       return false;
@@ -319,7 +337,7 @@ export function useImeisData(
           }
         } else {
           const data = await getImeisDataFromApi();
-          if (data) applyImeisData(data, setters, getManufacturer, false);
+          if (data) applyImeisData(data, setters, getManufacturer, false, user);
         }
       } catch (_) {}
     };

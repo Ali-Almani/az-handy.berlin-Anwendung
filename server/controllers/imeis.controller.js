@@ -198,6 +198,10 @@ function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLooku
     if (action !== 'reservieren' && action !== 'dereserviert' && action !== 'checkout') continue;
     const imei = imeiKeyFromRowId(rowId);
     if (!imei) continue;
+    const actUser = String(act.userName || '').trim();
+    const rowOwnerFallback = String(userName || '').trim();
+    const resolvedUser = actUser || rowOwnerFallback;
+    if (!resolvedUser) continue;
     const ts = String(act.timestamp || '').trim() || new Date().toISOString();
     if (!copyHistoryEntryInOfficeWindow({ timestamp: ts })) continue;
     let product = String(act.product ?? '').trim();
@@ -210,9 +214,23 @@ function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLooku
       product,
       action,
       timestamp: ts,
-      userName: String(act.userName || userName || '').trim() || userName,
+      userName: resolvedUser,
       historyOwnerUserId: rowUserId
     });
+  }
+  return out;
+}
+
+function filterRowActionsForMitarbeiter(rowActions, mitarbeiterName) {
+  const myNorm = normHistUserName(mitarbeiterName);
+  if (!myNorm) return {};
+  const out = {};
+  if (!rowActions || typeof rowActions !== 'object' || Array.isArray(rowActions)) return out;
+  for (const [rowId, act] of Object.entries(rowActions)) {
+    if (!act || typeof act !== 'object') continue;
+    const actUser = String(act.userName || '').trim();
+    if (!actUser || normHistUserName(actUser) !== myNorm) continue;
+    out[rowId] = act;
   }
   return out;
 }
@@ -361,36 +379,50 @@ async function resolveCopyHistoryForMitarbeiterShop(userId, currentUser, ownData
   if (!myNorm) return [];
   let rawHistory = safeJsonParse((ownDataRow?.get && ownDataRow.get('copy_history_json')) ?? ownDataRow?.copy_history_json, []);
   if (!Array.isArray(rawHistory)) rawHistory = [];
-  let copyHistory = rawHistory.filter((e) => e && normHistUserName(e.userName) === myNorm);
+  const copyHistory = rawHistory.filter((e) => e && normHistUserName(e.userName) === myNorm);
 
   const productLookup = await loadSharedImeiProductLookup();
-  const additions = [];
+  const merged = [];
+  const seenKeys = new Set();
+  const historyImeiUser = new Set();
+
+  const pushEntry = (e) => {
+    if (!e || (!e.imei && !e.timestamp)) return;
+    if (normHistUserName(e.userName) !== myNorm) return;
+    const key = copyHistoryEntryKey(e);
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    merged.push(e);
+    const ik = normalizeImeiKey(e.imei);
+    const un = normHistUserName(e.userName);
+    if (ik && un) historyImeiUser.add(`${ik}|${un}`);
+  };
+
+  for (const e of copyHistory) pushEntry(e);
+
+  const addFromRowActions = (row, rowUserId) => {
+    const filteredActions = filterRowActionsForMitarbeiter(parseRowActionsJson(row), userName);
+    for (const e of copyHistoryFromRowActions(filteredActions, userName, rowUserId, productLookup)) {
+      const ik = normalizeImeiKey(e?.imei);
+      const un = normHistUserName(e?.userName);
+      if (ik && un && historyImeiUser.has(`${ik}|${un}`)) continue;
+      pushEntry(e);
+    }
+  };
+
   const rowUserId = (ownDataRow?.get && ownDataRow.get('user_id')) ?? ownDataRow?.user_id ?? userId;
-  additions.push(
-    ...copyHistoryFromRowActions(parseRowActionsJson(ownDataRow), userName, rowUserId, productLookup).filter(
-      (e) => normHistUserName(e.userName) === myNorm
-    )
-  );
+  addFromRowActions(ownDataRow, rowUserId);
 
   try {
     const ownerId = await getSharedImeiOwnerId();
     if (ownerId != null && String(ownerId) !== String(userId)) {
       const ownerRow = await ImeisUserData.findOne({ where: { user_id: ownerId } });
-      if (ownerRow) {
-        additions.push(
-          ...copyHistoryFromRowActions(
-            parseRowActionsJson(ownerRow),
-            userName,
-            ownerId,
-            productLookup
-          ).filter((e) => normHistUserName(e.userName) === myNorm)
-        );
-      }
+      if (ownerRow) addFromRowActions(ownerRow, ownerId);
     }
   } catch (_) {}
 
-  if (additions.length === 0) return copyHistory;
-  return mergeCopyHistoryEntries(copyHistory, additions);
+  const unique = dedupeCopyHistoryByEntryKey(merged);
+  return trimCopyHistoryByRetention(enrichCopyHistoryWithProducts(unique, productLookup));
 }
 
 /** Merge copy_history nur von Benutzern mit gleichem einsatz_ort (Teamleiter shop sieht Verlauf seiner Kategorie) */
