@@ -189,7 +189,8 @@ function finalizeOfficeCopyHistory(merged) {
   return trimCopyHistoryByRetention(unique);
 }
 
-function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLookup) {
+function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLookup, options = {}) {
+  const { requireExplicitUserName = false } = options;
   const out = [];
   if (!rowActions || typeof rowActions !== 'object' || Array.isArray(rowActions)) return out;
   for (const [rowId, act] of Object.entries(rowActions)) {
@@ -199,6 +200,7 @@ function copyHistoryFromRowActions(rowActions, userName, rowUserId, productLooku
     const imei = imeiKeyFromRowId(rowId);
     if (!imei) continue;
     const actUser = String(act.userName || '').trim();
+    if (requireExplicitUserName && !actUser) continue;
     const rowOwnerFallback = String(userName || '').trim();
     const resolvedUser = actUser || rowOwnerFallback;
     if (!resolvedUser) continue;
@@ -296,12 +298,28 @@ const safeJsonParse = (raw, fallback) => {
   }
 };
 
-/** Merge copy_history (+ rowActions-Fallback) aus User-Zeilen für Verlauf */
+/** Merge copy_history (+ rowActions-Fallback) aus User-Zeilen für Verlauf (Büro-Team) */
 async function collectMergedCopyHistoryFromRows(rows) {
   const productLookup = await loadSharedImeiProductLookup();
-    const merged = [];
-    const seenKeys = new Set();
-    for (const row of rows) {
+  const merged = [];
+  const seenKeys = new Set();
+  /** IMEI+Mitarbeiter bereits in copy_history_json (global) – row_actions nicht erneut synthetisieren */
+  const copyHistorySlotGlobal = new Set();
+
+  const pushEntry = (e, fallbackUserName, rowUserId) => {
+    if (!e || (!e.imei && !e.timestamp)) return;
+    const userName = e.userName || fallbackUserName;
+    const entry = { ...e, userName, historyOwnerUserId: rowUserId ?? e.historyOwnerUserId };
+    const key = copyHistoryEntryKey(entry);
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    merged.push(entry);
+    const ik = normalizeImeiKey(entry.imei);
+    const un = normHistUserName(userName);
+    if (ik && un) copyHistorySlotGlobal.add(`${ik}|${un}`);
+  };
+
+  for (const row of rows) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
     let rowUserName = '';
     if (rowUserId != null) {
@@ -310,41 +328,42 @@ async function collectMergedCopyHistoryFromRows(rows) {
         rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
       } catch (_) {}
     }
-    const historyImeiUser = new Set();
-    const pushEntry = (e, fallbackUserName) => {
-      if (!e || (!e.imei && !e.timestamp)) return;
-      const userName = e.userName || fallbackUserName;
-      const entry = { ...e, userName, historyOwnerUserId: rowUserId };
-      const key = copyHistoryEntryKey(entry);
-      if (seenKeys.has(key)) return;
-      seenKeys.add(key);
-      merged.push(entry);
-      const ik = normalizeImeiKey(entry.imei);
-      const un = normHistUserName(userName);
-      if (ik && un) historyImeiUser.add(`${ik}|${un}`);
-    };
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
     if (historyJson) {
       try {
         const arr = JSON.parse(historyJson);
         if (Array.isArray(arr)) {
-          for (const e of arr) pushEntry(e, rowUserName);
-        }
-      } catch (_) {}
-    }
-    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
-    if (rowActionsJson) {
-      try {
-        const rowActions = JSON.parse(rowActionsJson);
-        for (const e of copyHistoryFromRowActions(rowActions, rowUserName, rowUserId, productLookup)) {
-          const ik = normalizeImeiKey(e?.imei);
-          const un = normHistUserName(e?.userName || rowUserName);
-          if (ik && un && historyImeiUser.has(`${ik}|${un}`)) continue;
-          pushEntry(e, rowUserName);
+          for (const e of arr) pushEntry(e, rowUserName, rowUserId);
         }
       } catch (_) {}
     }
   }
+
+  for (const row of rows) {
+    const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
+    let rowUserName = '';
+    if (rowUserId != null) {
+      try {
+        const u = await User.findByPk(rowUserId);
+        rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
+      } catch (_) {}
+    }
+    const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
+    if (!rowActionsJson) continue;
+    try {
+      const rowActions = JSON.parse(rowActionsJson);
+      for (const e of copyHistoryFromRowActions(rowActions, rowUserName, rowUserId, productLookup, {
+        requireExplicitUserName: true
+      })) {
+        const ik = normalizeImeiKey(e?.imei);
+        const un = normHistUserName(e?.userName || rowUserName);
+        const slot = ik && un ? `${ik}|${un}` : '';
+        if (slot && copyHistorySlotGlobal.has(slot)) continue;
+        pushEntry(e, rowUserName, rowUserId);
+      }
+    } catch (_) {}
+  }
+
   return finalizeOfficeCopyHistory(enrichCopyHistoryWithProducts(merged, productLookup));
 }
 
@@ -361,6 +380,33 @@ const getMergedCopyHistory = async () => {
   await redisCache.set(MERGED_COPY_HISTORY_CACHE_KEY, merged, MERGED_COPY_HISTORY_TTL);
   return merged;
 };
+
+/** Nach Verlauf-Änderung: kein stale Redis – für Socket/Büro-Badge */
+const getMergedCopyHistoryFresh = async () => {
+  await redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY);
+  const merged = await computeMergedCopyHistory();
+  await redisCache.set(MERGED_COPY_HISTORY_CACHE_KEY, merged, MERGED_COPY_HISTORY_TTL);
+  return merged;
+};
+
+async function emitImeisUpdatedAfterPersist(app, userId, { dataChanged, verlaufMaybeChanged, sharedListChanged }) {
+  if (sharedListChanged) {
+    try {
+      await invalidateImeisCaches(userId, { sharedListChanged: true });
+      if (verlaufMaybeChanged) {
+        await getMergedCopyHistoryFresh();
+      }
+    } catch (err) {
+      console.error('invalidateImeisCaches:', err?.message || err);
+    }
+  } else {
+    void invalidateImeisCaches(userId, { sharedListChanged: false }).catch((err) => {
+      console.error('invalidateImeisCaches:', err?.message || err);
+    });
+  }
+  const io = app?.get?.('io');
+  if (io && dataChanged) io.emit('imeis:updated');
+}
 
 function parseRowActionsJson(row) {
   const rowActionsJson = (row?.get && row.get('row_actions_json')) ?? row?.row_actions_json;
@@ -1086,9 +1132,6 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
   const currentUser = await User.findByPk(userId);
   const role = getUserRole(currentUser);
   let { imeis, cellColors, rowActions, copyHistory, copyTimestamps, removedImei } = body;
-  if (copyHistory !== undefined || rowActions !== undefined || removedImei !== undefined) {
-    void redisCache.del(MERGED_COPY_HISTORY_CACHE_KEY).catch(() => {});
-  }
   if (imeis !== undefined && Array.isArray(imeis)) {
     imeis = (await applyImeiListVisibilityFilters(imeis)).filtered;
   }
@@ -1289,19 +1332,19 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
       augmentedCopyHistory !== undefined ||
       rowActions !== undefined ||
       removedImei !== undefined;
-    const ioMem = app?.get?.('io');
     const dataChangedMem =
       imeis !== undefined ||
       rowActions !== undefined ||
       removedImei ||
       clearingMasterList ||
       verlaufMaybeChangedMem;
-    if (ioMem && dataChangedMem) ioMem.emit('imeis:updated');
     const sharedListChangedMem = Boolean(
       (imeis !== undefined && canEditSharedImeiList && ownerId != null) || verlaufMaybeChangedMem
     );
-    void invalidateImeisCaches(userId, { sharedListChanged: sharedListChangedMem }).catch((err) => {
-      console.error('invalidateImeisCaches:', err?.message || err);
+    await emitImeisUpdatedAfterPersist(app, userId, {
+      dataChanged: dataChangedMem,
+      verlaufMaybeChanged: verlaufMaybeChangedMem,
+      sharedListChanged: sharedListChangedMem
     });
     if (verlaufMaybeChangedMem && !removedImei) {
       setImmediate(() => {
@@ -1378,16 +1421,16 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     augmentedCopyHistory !== undefined ||
     rowActions !== undefined ||
     removedImei !== undefined;
-  const io = app?.get?.('io');
   const dataChanged =
     imeis !== undefined || rowActions !== undefined || removedImei || clearingMasterList || verlaufMaybeChanged;
-  if (io && dataChanged) io.emit('imeis:updated');
 
   const sharedListChanged = Boolean(
     (imeis !== undefined && canEditSharedImeiList && ownerId != null) || verlaufMaybeChanged
   );
-  void invalidateImeisCaches(userId, { sharedListChanged }).catch((err) => {
-    console.error('invalidateImeisCaches:', err?.message || err);
+  await emitImeisUpdatedAfterPersist(app, userId, {
+    dataChanged,
+    verlaufMaybeChanged,
+    sharedListChanged
   });
 
   if (verlaufMaybeChanged && !removedImei) {
@@ -1413,7 +1456,7 @@ export const getImeisVerlaufSnapshot = async (req, res, next) => {
     const role = getUserRole(currentUser);
     let copyHistory = [];
     if (shouldUseMergedOfficeCopyHistory(role)) {
-      copyHistory = await getMergedCopyHistory();
+      copyHistory = await getMergedCopyHistoryFresh();
     } else if (isTeamleiterShop(role) && currentUser?.einsatz_ort) {
       copyHistory = await getCopyHistoryForEinsatzOrt(currentUser.einsatz_ort);
     } else if (isMitarbeiterShop(role)) {
