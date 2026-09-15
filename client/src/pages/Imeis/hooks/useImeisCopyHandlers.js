@@ -7,7 +7,13 @@ import {
   revertHistoryActionPendingState
 } from '../../../services/imeis.service';
 import { normalizeImeiSortKey } from '../utils/imeisSortUtils';
-import { trimCopyHistoryByRetention, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
+import {
+  trimCopyHistoryByRetention,
+  dedupeCopyHistoryByEntryKey,
+  wouldExceedMitarbeiterShopOpenVerlaufLimit,
+  MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE
+} from '../utils/copyHistoryRetention';
+import { isMitarbeiterShop } from '../../../utils/roles';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -48,6 +54,7 @@ export function useImeisCopyHandlers({
   getProductFull,
   setShowRateLimitModal,
   setRateLimitMessage,
+  setRateLimitModalTitle,
   setSelectedRowForDropdown,
   setCopySuccess,
   expandSelection,
@@ -104,9 +111,16 @@ export function useImeisCopyHandlers({
     const minutesRemaining = recentCopies.length > 0
       ? Math.ceil((THIRTY_MINUTES - (now - Math.min(...recentCopies))) / (60 * 1000))
       : 30;
+    setRateLimitModalTitle?.('Rate-Limit erreicht');
     setRateLimitMessage(`Rate-Limit erreicht! Sie haben bereits 10 IMEIs innerhalb der letzten 30 Minuten kopiert. Bitte warten Sie noch ${minutesRemaining} Minute(n).`);
     setShowRateLimitModal(true);
-  }, [copyTimestamps, setRateLimitMessage, setShowRateLimitModal]);
+  }, [copyTimestamps, setRateLimitMessage, setRateLimitModalTitle, setShowRateLimitModal]);
+
+  const showReserveLimitError = useCallback(() => {
+    setRateLimitModalTitle?.('Reservierungs-Limit erreicht');
+    setRateLimitMessage(MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE);
+    setShowRateLimitModal(true);
+  }, [setRateLimitMessage, setRateLimitModalTitle, setShowRateLimitModal]);
 
   const handleCopyRow = useCallback(async (item, { historyTimestamp, rowActionsSnapshot } = {}) => {
     try {
@@ -157,12 +171,16 @@ export function useImeisCopyHandlers({
     const ts = new Date().toISOString();
     const productFull = getProductFull(item) || '-';
     const actionData = { action, userName: user?.name || 'Unbekannt', timestamp: ts, product: productFull };
-    const updatedActions = { ...rowActions, [rowId]: actionData };
-    setRowActions(updatedActions);
 
     // „Reservieren“: soll in Verlauf erscheinen, IMEI kopieren, aber NICHT als Copy/Checkout zählen.
     if (action === 'reservieren') {
       const imeiToCopy = String(item?.imei || '').trim();
+      if (isMitarbeiterShop(user) && wouldExceedMitarbeiterShopOpenVerlaufLimit(copyHistory, user?.name, imeiToCopy)) {
+        showReserveLimitError();
+        return;
+      }
+      const updatedActions = { ...rowActions, [rowId]: actionData };
+      setRowActions(updatedActions);
       const updatedHistory = addHistoryEntry({
         imei: imeiToCopy,
         product: productFull,
@@ -188,6 +206,9 @@ export function useImeisCopyHandlers({
       return;
     }
 
+    const updatedActions = { ...rowActions, [rowId]: actionData };
+    setRowActions(updatedActions);
+
     // Für alle Copy-Aktionen: Rate-Limit prüfen + kopieren (checkout Verlauf)
     const rateLimit = checkCopyRateLimit();
     if (!rateLimit.allowed) {
@@ -195,7 +216,22 @@ export function useImeisCopyHandlers({
       return;
     }
     await handleCopyRow(item, { historyTimestamp: ts, rowActionsSnapshot: updatedActions });
-  }, [handleCopyRow, user, rowActions, setRowActions, checkCopyRateLimit, showRateLimitError, persistImeis, setRowActions, getProductFull, addHistoryEntry]);
+  }, [
+    handleCopyRow,
+    user,
+    rowActions,
+    setRowActions,
+    copyHistory,
+    checkCopyRateLimit,
+    showRateLimitError,
+    showReserveLimitError,
+    persistImeis,
+    getProductFull,
+    addHistoryEntry,
+    setImeis,
+    setCopySuccess,
+    setSelectedRowForDropdown
+  ]);
 
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {
     if (index < 0 || index >= copyHistory.length) return false;

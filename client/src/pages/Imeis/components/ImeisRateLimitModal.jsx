@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const ImeisRateLimitModal = ({ isOpen, onClose, message, canRequestExtra, onRequestExtra }) => {
+const ImeisRateLimitModal = ({ isOpen, onClose, message, title = 'Rate-Limit erreicht', canRequestExtra, onRequestExtra }) => {
   const [requesting, setRequesting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [requestError, setRequestError] = useState('');
@@ -31,7 +31,7 @@ const ImeisRateLimitModal = ({ isOpen, onClose, message, canRequestExtra, onRequ
     <div className="imeis-history-modal-overlay" onClick={handleClose}>
       <div className="imeis-history-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', width: '90%' }}>
         <div className="imeis-history-modal-header">
-          <h3>Rate-Limit erreicht</h3>
+          <h3>{title}</h3>
           <button
             onClick={handleClose}
             className="imeis-history-modal-close"

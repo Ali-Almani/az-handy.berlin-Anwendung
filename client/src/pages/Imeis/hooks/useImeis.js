@@ -68,6 +68,7 @@ export function useImeis() {
   const [showZustandModal, setShowZustandModal] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState('');
+  const [rateLimitModalTitle, setRateLimitModalTitle] = useState('Rate-Limit erreicht');
   const [zustandDataCache, setZustandDataCache] = useState(null);
   const [zustandLoading, setZustandLoading] = useState(false);
   const [activeVersion, setActiveVersion] = useState(null);
@@ -330,7 +331,7 @@ export function useImeis() {
 
   const { handleCopyRow, handleDropdownSelect, handleUpdateHistoryAction, handleHistoryModalUndo, handleCopySelected } = useImeisCopyHandlers({
     user, copyHistory, setCopyHistory, copyTimestamps, setCopyTimestamps, rowActions, setRowActions, historyUndoStack, setHistoryUndoStack,
-    selectedCells, currentImeis, getManufacturer, getProductFull, setShowRateLimitModal, setRateLimitMessage,
+    selectedCells, currentImeis, getManufacturer, getProductFull, setShowRateLimitModal, setRateLimitMessage, setRateLimitModalTitle,
     setSelectedRowForDropdown, setCopySuccess, expandSelection, persistImeis,
     updateHistoryActionApi,
     canUpdateOthersHistory: canActAsImeiOfficeForHistory(user),
@@ -485,7 +486,7 @@ export function useImeis() {
     availableVariants, activeVariant, setActiveVariant, availableGBs, activeGB, setActiveGB, availableProducts, activeProduct, setActiveProduct,
     history, handleUndo, handleExport, handleDeleteAll, handleUpdateHistoryAction, handleHistoryModalUndo, copyHistory, copyHistoryCount, showHistoryModal, setShowHistoryModal,
     historyUndoStack, showZustandModal, setShowZustandModal, zustandDataCache, setZustandDataCache, zustandLoading, setZustandLoading, getZustandData,
-    showRateLimitModal, setShowRateLimitModal, rateLimitMessage, imeis, allColumns, selectedCells, selectedCell, showColorPicker, rowActions, setRowActions,
+    showRateLimitModal, setShowRateLimitModal, rateLimitMessage, rateLimitModalTitle, setRateLimitModalTitle, imeis, allColumns, selectedCells, selectedCell, showColorPicker, rowActions, setRowActions,
     cellTextColors, maskImei, getManufacturer, getProductFull, getCellTextColor, handleCellClick, handleCellContextMenu, handleCellMouseDown, handleCellMouseEnter,
     handleCellMouseUp, handleColorSelect, handleDropdownSelect, availableSheets, activeSheet, setActiveSheet, onManufacturerChange, onAppleHardwareTabChange, onVersionChange, onVariantChange,
     onGBChange, onShowZustand, onCloseZustandModal, onRowActionRemove,

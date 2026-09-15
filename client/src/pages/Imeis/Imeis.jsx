@@ -66,6 +66,8 @@ const Imeis = () => {
     showRateLimitModal,
     setShowRateLimitModal,
     rateLimitMessage,
+    rateLimitModalTitle,
+    setRateLimitModalTitle,
     imeis,
     allColumns,
     selectedCells,
@@ -392,9 +394,18 @@ const Imeis = () => {
 
       <ImeisRateLimitModal
         isOpen={showRateLimitModal}
-        onClose={() => setShowRateLimitModal(false)}
+        onClose={() => {
+          setShowRateLimitModal(false);
+          setRateLimitModalTitle('Rate-Limit erreicht');
+        }}
+        title={rateLimitModalTitle}
         message={rateLimitMessage}
-        canRequestExtra={user && !isBüroMitarbeiter(user) && !isAdmin(user)}
+        canRequestExtra={
+          rateLimitModalTitle === 'Rate-Limit erreicht' &&
+          user &&
+          !isBüroMitarbeiter(user) &&
+          !isAdmin(user)
+        }
         onRequestExtra={createExtraCopyRequestApi}
       />
 

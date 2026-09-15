@@ -69,6 +69,35 @@ export function historyEntryHidesImeiFromList(entry) {
   return Boolean(String(entry?.imei ?? '').trim());
 }
 
+/** Max. offene Verlauf-Slots (Reservieren/Kopie ohne Abschluss) pro Mitarbeiter shop */
+export const MITARBEITER_SHOP_MAX_OPEN_VERLAUF = 20;
+
+export const MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE =
+  'Du hast dein Limit von 20 offenen IMEI-Reservierungen erreicht. Bitte bearbeite deinen Verlauf (annehmen oder ablehnen), bevor du weitere IMEIs reservierst.';
+
+export function countOpenVerlaufSlotsForUser(entries, userName) {
+  const myNorm = normCopyHistoryUserName(userName);
+  if (!myNorm) return 0;
+  return dedupeCopyHistoryByImeiUser(entries)
+    .filter(historyEntryHidesImeiFromList)
+    .filter((e) => normCopyHistoryUserName(e.userName) === myNorm).length;
+}
+
+/** Neues Reservieren würde das Limit überschreiten (bestehende offene Slot-IMEI zählt nicht doppelt). */
+export function wouldExceedMitarbeiterShopOpenVerlaufLimit(entries, userName, imei, max = MITARBEITER_SHOP_MAX_OPEN_VERLAUF) {
+  const myNorm = normCopyHistoryUserName(userName);
+  if (!myNorm) return false;
+  const open = dedupeCopyHistoryByImeiUser(entries)
+    .filter(historyEntryHidesImeiFromList)
+    .filter((e) => normCopyHistoryUserName(e.userName) === myNorm);
+  const imeiTrim = String(imei ?? '').trim();
+  if (imeiTrim) {
+    const slot = `${imeiTrim}|${myNorm}`;
+    if (open.some((e) => copyHistorySlotKey(e) === slot)) return false;
+  }
+  return open.length >= max;
+}
+
 export function dedupeCopyHistoryByEntryKey(entries) {
   const byKey = new Map();
   for (const e of Array.isArray(entries) ? entries : []) {

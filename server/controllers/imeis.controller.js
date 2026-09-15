@@ -48,7 +48,10 @@ import {
   dedupeCopyHistoryByEntryKey,
   trimCopyHistoryByRetention,
   parseCopyHistoryTimestamp,
-  historyEntryHidesImeiFromList
+  historyEntryHidesImeiFromList,
+  countOpenVerlaufSlotsForUser,
+  MITARBEITER_SHOP_MAX_OPEN_VERLAUF,
+  MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE
 } from '../utils/copyHistoryRetention.js';
 import { sendJsonResponse } from '../utils/httpJson.js';
 import {
@@ -1129,6 +1132,28 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
       }
     }
   } catch (_) {}
+
+  if (isMitarbeiterShop(role)) {
+    const userName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim();
+    const touchesVerlauf =
+      copyHistory !== undefined ||
+      (rowActions && typeof rowActions === 'object' && !Array.isArray(rowActions));
+    if (userName && touchesVerlauf) {
+      const historyForLimit = Array.isArray(augmentedCopyHistory)
+        ? augmentedCopyHistory
+        : copyHistory !== undefined && Array.isArray(copyHistory)
+          ? copyHistory
+          : null;
+      if (historyForLimit) {
+        const openCount = countOpenVerlaufSlotsForUser(historyForLimit, userName);
+        if (openCount > MITARBEITER_SHOP_MAX_OPEN_VERLAUF) {
+          const err = new Error(MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE);
+          err.statusCode = 403;
+          throw err;
+        }
+      }
+    }
+  }
 
   if (removedImei) {
     // Kopieren/Reservieren: aus Master-Liste (Owner) – Verlauf bleibt bis angenommen/abgelehnt.

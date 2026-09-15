@@ -125,6 +125,26 @@ export function historyEntryHidesImeiFromList(entry) {
   return Boolean(String(entry?.imei ?? '').trim());
 }
 
+export const MITARBEITER_SHOP_MAX_OPEN_VERLAUF = 20;
+
+export const MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE =
+  'Du hast dein Limit von 20 offenen IMEI-Reservierungen erreicht. Bitte bearbeite deinen Verlauf (annehmen oder ablehnen), bevor du weitere IMEIs reservierst.';
+
+function normUserNameForOpenCount(name) {
+  return String(name ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+export function countOpenVerlaufSlotsForUser(entries, userName) {
+  const myNorm = normUserNameForOpenCount(userName);
+  if (!myNorm) return 0;
+  return dedupeCopyHistoryByImeiUser(entries)
+    .filter(historyEntryHidesImeiFromList)
+    .filter((e) => normUserNameForOpenCount(e.userName) === myNorm).length;
+}
+
 export function mergeCopyHistoryEntries(existing, incoming) {
   const byKey = new Map();
   for (const e of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {
