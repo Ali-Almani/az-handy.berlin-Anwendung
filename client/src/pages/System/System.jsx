@@ -446,6 +446,15 @@ const System = () => {
         <button
           type="button"
           role="tab"
+          aria-selected={listTab === 'erstellen'}
+          className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
+          onClick={() => setListTab('erstellen')}
+        >
+          Ticketing erstellen
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={listTab === 'offen'}
           className={`system-tab${listTab === 'offen' ? ' system-tab--active' : ''}`}
           onClick={() => {
@@ -454,15 +463,6 @@ const System = () => {
           }}
         >
           Offen ({offenCount})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={listTab === 'erstellen'}
-          className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
-          onClick={() => setListTab('erstellen')}
-        >
-          Ticketing erstellen
         </button>
         <button
           type="button"
