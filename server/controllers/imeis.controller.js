@@ -562,6 +562,7 @@ export const getImeisData = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Benutzer nicht gefunden' });
     }
     const lite = String(req.query?.lite || '') === '1';
+    const skipUserCache = String(req.query?.fresh || '') === '1';
     const role = getUserRole(currentUser);
     const debugEnabled = String(req.query?.debug || '') === '1';
     const debug = debugEnabled ? {
@@ -570,7 +571,7 @@ export const getImeisData = async (req, res, next) => {
       einsatz_ort: currentUser?.einsatz_ort ?? currentUser?.get?.('einsatz_ort') ?? null
     } : null;
 
-    if (!debugEnabled) {
+    if (!debugEnabled && !skipUserCache) {
       const cachedResponse = await redisCache.get(userDataCacheKey(userId, lite));
       if (cachedResponse != null) {
         return sendJsonResponse(res, await stripHiddenImeisFromUserDataResponse(cachedResponse));

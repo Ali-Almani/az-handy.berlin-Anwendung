@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import {
   loadImeisWithApi,
   getImeisDataFromApi,
+  getImeisVerlaufFromApi,
   persistImeisState,
   shouldSkipSync,
   filterPendingHistoryRemovals,
@@ -206,9 +207,24 @@ export function useImeisData(
       pollTimerId = setTimeout(runPoll, delayMs);
     };
 
-    const refreshFromServer = async () => {
+    const applyVerlaufOnly = (rawHistory) => {
+      const processedHistory = enrichCopyHistoryProductsFromImeis(
+        processCopyHistory(filterPendingHistoryRemovals(rawHistory ?? [])),
+        imeisRef.current
+      );
+      reconcilePendingHistoryRemovals(rawHistory ?? []);
+      setCopyHistory(processedHistory);
+    };
+
+    const refreshFromServer = async ({ fresh = false, verlaufFirst = false } = {}) => {
       if (shouldSkipSync()) return false;
-      const data = await getImeisDataFromApi();
+      if (verlaufFirst && isOfficeImeiRole(user?.role)) {
+        try {
+          const verlauf = await getImeisVerlaufFromApi();
+          if (verlauf) applyVerlaufOnly(verlauf);
+        } catch (_) {}
+      }
+      const data = await getImeisDataFromApi({ fresh });
       if (data) {
         applyImeisData(data, setters, getManufacturer, false, user);
         return true;
@@ -239,7 +255,10 @@ export function useImeisData(
 
     const onImeisUpdated = () => {
       if (shouldSkipSync()) return;
-      void refreshFromServer();
+      void refreshFromServer({
+        fresh: true,
+        verlaufFirst: isOfficeImeiRole(user?.role)
+      });
     };
     const onExtraCopyDecision = (payload) => {
       const targetId = payload?.targetUserId ? String(payload.targetUserId) : null;
@@ -306,7 +325,18 @@ export function useImeisData(
     const refreshVerlauf = async () => {
       if (shouldSkipSync()) return;
       try {
-        const data = await getImeisDataFromApi();
+        if (isOfficeImeiRole(user?.role)) {
+          const verlauf = await getImeisVerlaufFromApi();
+          if (verlauf) {
+            const processedHistory = enrichCopyHistoryProductsFromImeis(
+              processCopyHistory(filterPendingHistoryRemovals(verlauf)),
+              imeisRef.current
+            );
+            reconcilePendingHistoryRemovals(verlauf);
+            setCopyHistory(processedHistory);
+          }
+        }
+        const data = await getImeisDataFromApi({ fresh: true });
         if (data) applyImeisData(data, setters, getManufacturer, false, user);
       } catch (_) {}
     };

@@ -47,13 +47,16 @@ export const getImeisVerlaufFromApi = async () => {
   return null;
 };
 
-export const getImeisDataFromApi = async ({ lite = false } = {}) => {
-  const slot = lite ? 'lite' : 'full';
+export const getImeisDataFromApi = async ({ lite = false, fresh = false } = {}) => {
+  const slot = `${lite ? 'lite' : 'full'}${fresh ? ':fresh' : ''}`;
   if (imeisDataInflight[slot]) return imeisDataInflight[slot];
 
   imeisDataInflight[slot] = (async () => {
     try {
-      const data = await fetchImeisJsonGet('/imeis/data', lite ? { lite: '1' } : {});
+      const params = {};
+      if (lite) params.lite = '1';
+      if (fresh) params.fresh = '1';
+      const data = await fetchImeisJsonGet('/imeis/data', params);
       if (data?.success && data) {
         const imeis = data.imeis ?? [];
         return {
