@@ -13,7 +13,9 @@ const ImeisStats = ({
   onItemsPerPageChange,
   onPageReset
 }) => {
-  const total = totalImeisLength ?? filteredImeisLength;
+  const showVisibleOnly =
+    totalImeisLength != null && totalImeisLength !== filteredImeisLength;
+
   const getVersionDisplayName = () => {
     if (!activeManufacturer || !activeVersion) return '';
     const manufacturerLower = activeManufacturer.toLowerCase();
@@ -55,27 +57,19 @@ const ImeisStats = ({
                 )}
               </>
             )}
-            <>
-              {' '}
-              | IMEIs: <strong>{total}</strong>
-              {total !== filteredImeisLength && (
-                <>
-                  {' '}
-                  (sichtbar: <strong>{filteredImeisLength}</strong>)
-                </>
-              )}
-            </>
-          </>
-        ) : (
-          <>
-            IMEIs: <strong>{total}</strong>
-            {total !== filteredImeisLength && (
+            {showVisibleOnly && (
               <>
                 {' '}
-                (sichtbar: <strong>{filteredImeisLength}</strong>)
+                | (sichtbar: <strong>{filteredImeisLength}</strong>)
               </>
             )}
           </>
+        ) : (
+          showVisibleOnly && (
+            <>
+              (sichtbar: <strong>{filteredImeisLength}</strong>)
+            </>
+          )
         )}
         {searchTerm && (
           <> | Gefunden: <strong>{filteredImeisLength}</strong></>
