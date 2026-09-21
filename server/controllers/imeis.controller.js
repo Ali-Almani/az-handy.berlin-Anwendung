@@ -306,6 +306,29 @@ async function collectMergedCopyHistoryFromRows(rows) {
   /** IMEI+Mitarbeiter bereits in copy_history_json (global) – row_actions nicht erneut synthetisieren */
   const copyHistorySlotGlobal = new Set();
 
+  const userIds = [
+    ...new Set(
+      (rows || [])
+        .map((row) => coerceUserId((row.get && row.get('user_id')) ?? row.user_id))
+        .filter((id) => id != null)
+        .map((id) => String(id))
+    )
+  ];
+  const nameByUserId = new Map();
+  if (userIds.length > 0) {
+    try {
+      const users = await User.findAll({
+        where: { id: { [Op.in]: userIds } },
+        attributes: ['id', 'name']
+      });
+      for (const u of users || []) {
+        const uid = coerceUserId(u?.id ?? u?.get?.('id'));
+        if (uid == null) continue;
+        nameByUserId.set(String(uid), String(u?.name ?? u?.get?.('name') ?? '').trim());
+      }
+    } catch (_) {}
+  }
+
   const pushEntry = (e, fallbackUserName, rowUserId) => {
     if (!e || (!e.imei && !e.timestamp)) return;
     const userName = e.userName || fallbackUserName;
@@ -321,13 +344,8 @@ async function collectMergedCopyHistoryFromRows(rows) {
 
   for (const row of rows) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    let rowUserName = '';
-    if (rowUserId != null) {
-      try {
-        const u = await User.findByPk(rowUserId);
-        rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
-      } catch (_) {}
-    }
+    const rowUserName =
+      rowUserId != null ? nameByUserId.get(String(rowUserId)) ?? '' : '';
     const historyJson = (row.get && row.get('copy_history_json')) ?? row.copy_history_json;
     if (historyJson) {
       try {
@@ -341,13 +359,8 @@ async function collectMergedCopyHistoryFromRows(rows) {
 
   for (const row of rows) {
     const rowUserId = (row.get && row.get('user_id')) ?? row.user_id;
-    let rowUserName = '';
-    if (rowUserId != null) {
-      try {
-        const u = await User.findByPk(rowUserId);
-        rowUserName = String(u?.name ?? u?.get?.('name') ?? '').trim();
-      } catch (_) {}
-    }
+    const rowUserName =
+      rowUserId != null ? nameByUserId.get(String(rowUserId)) ?? '' : '';
     const rowActionsJson = (row.get && row.get('row_actions_json')) ?? row.row_actions_json;
     if (!rowActionsJson) continue;
     try {
@@ -944,7 +957,7 @@ function filterImeisExcludingKeySet(imeis, keySet) {
 }
 
 async function getVerlaufHiddenImeiKeySet() {
-  const merged = await computeMergedCopyHistory();
+  const merged = await getMergedCopyHistory();
   const deduped = dedupeCopyHistoryByImeiUser(merged);
   const set = new Set();
   for (const entry of deduped) {
@@ -983,10 +996,8 @@ async function sanitizeStoredImeisForVisibility(dataUserId, imeis) {
 }
 
 async function stripHiddenImeisFromUserDataResponse(payload) {
-  if (!payload || !Array.isArray(payload.imeis)) return payload;
-  const { filtered } = await applyImeiListVisibilityFilters(payload.imeis);
-  if (filtered.length === payload.imeis.length) return payload;
-  return { ...payload, imeis: filtered };
+  /** Cache-Einträge wurden beim Schreiben bereits gefiltert – kein erneuter Team-Verlauf-Merge pro Request. */
+  return payload;
 }
 
 async function reconcileSharedImeiListAfterVerlaufChange(app) {

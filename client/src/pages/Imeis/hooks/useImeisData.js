@@ -232,9 +232,9 @@ export function useImeisData(
 
     // Echtzeit: Sofort aktualisieren wenn Büro Excel hochlädt, alle löscht etc.
 
-    // Fallback-Polling nur ohne Socket-Verbindung (Polling-Transport zählt als verbunden)
+    // Fallback-Polling nur ohne Socket – nicht sofort (vermeidet doppeltes GET neben initialem loadImeisData)
     if (!socket?.connected) {
-      runPoll();
+      schedulePoll(POLL_INTERVAL_MS);
     }
 
     const onImeisUpdated = () => {
@@ -264,9 +264,7 @@ export function useImeisData(
       socket.on('extraCopy:decision', onExtraCopyDecision);
       socket.on('connect', onSocketConnect);
       socket.on('disconnect', onSocketDisconnect);
-      if (socket.connected) {
-        onImeisUpdated();
-      } else {
+      if (!socket.connected) {
         socket.connect();
       }
     }
