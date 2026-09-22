@@ -10,6 +10,7 @@ import {
 } from '../../../services/imeis.service';
 import { getSocket } from '../../../services/socket';
 import { sortImeisOldestFirst, normalizeImeiSortKey } from '../utils/imeisSortUtils';
+import { normalizeImeiListHerstellerAppleAlias } from '../utils/imeisManufacturerUtils';
 import { isOfficeImeiRole, dedupeCopyHistoryByEntryKey } from '../utils/copyHistoryRetention';
 import { isMitarbeiterShop } from '../../../utils/roles';
 
@@ -83,7 +84,7 @@ function applyImeisData(data, setters, getManufacturer, isInitialLoad = false, u
     setHistory,
     setSonderImeis
   } = setters;
-  const storedImeis = sortImeisOldestFirst(data.imeis ?? []);
+  const storedImeis = sortImeisOldestFirst(normalizeImeiListHerstellerAppleAlias(data.imeis ?? []));
   setImeis(storedImeis);
   setCellTextColors(data.cellColors ?? {});
   setRowActions(data.rowActions ?? {});

@@ -18,5 +18,7 @@ export {
 export {
   getManufacturer,
   getManufacturerColumnKey,
+  normalizeImeiListHerstellerAppleAlias,
+  normalizeImeiRowHerstellerAppleAlias,
   expandSelection
 } from './imeisManufacturerUtils';

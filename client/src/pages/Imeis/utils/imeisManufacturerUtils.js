@@ -1,7 +1,10 @@
 /**
  * Hersteller-Extraktion und Zellauswahl
  */
+import { getIphoneVersionForArticleCode, rowContainsAppleArticleAlias } from './imeisProductUtils';
+
 const KNOWN_MANUFACTURERS = ['apple', 'google', 'huawei', 'samsung', 'xiaomi', 'oneplus', 'oppo', 'vivo', 'realme', 'motorola', 'nokia', 'sony', 'lg', 'honor', 'o2', 'nothing'];
+
 const KNOWN_CARRIERS = ['vodafone', 'telekom', 't-mobile', 'e-plus', 'base', 'otelo', 'blau', 'simyo', 'congstar'];
 
 export const getManufacturerColumnKey = (item) => {
@@ -31,6 +34,13 @@ const tryMatchManufacturer = (valueStr, lowerValue) => {
   return null;
 };
 
+const resolveManufacturerFromValue = (valueStr) => {
+  if (getIphoneVersionForArticleCode(valueStr)) return 'Apple';
+  const result = tryMatchManufacturer(valueStr, valueStr.toLowerCase());
+  if (result) return result;
+  return valueStr;
+};
+
 export const getManufacturer = (item) => {
   if (!item.rowData) return '';
   const keysToCheck = item.columnOrder?.length > 0 ? item.columnOrder : Object.keys(item.rowData);
@@ -45,9 +55,7 @@ export const getManufacturer = (item) => {
       const valueStr = String(value).trim();
       const lowerValue = valueStr.toLowerCase();
       if (lowerValue !== 'datum' && !KNOWN_CARRIERS.some(c => lowerValue.includes(c))) {
-        const result = tryMatchManufacturer(valueStr, lowerValue);
-        if (result) return result;
-        return valueStr;
+        return resolveManufacturerFromValue(valueStr);
       }
     }
   }
@@ -58,9 +66,7 @@ export const getManufacturer = (item) => {
       const markeValueStr = String(markeValue).trim();
       const lowerMarkeValue = markeValueStr.toLowerCase();
       if (lowerMarkeValue !== 'datum' && !KNOWN_CARRIERS.some(c => lowerMarkeValue.includes(c))) {
-        const result = tryMatchManufacturer(markeValueStr, lowerMarkeValue);
-        if (result) return result;
-        return markeValueStr;
+        return resolveManufacturerFromValue(markeValueStr);
       }
     }
   }
@@ -75,12 +81,55 @@ export const getManufacturer = (item) => {
     const lowerValue = valueStr.toLowerCase();
     const result = tryMatchManufacturer(valueStr, lowerValue);
     if (result) return result;
+    if (getIphoneVersionForArticleCode(valueStr)) return 'Apple';
     const isCarrier = KNOWN_CARRIERS.some(c => lowerValue.includes(c));
     const isImeiColumn = String(key).toLowerCase().includes('imei');
     if (!isCarrier && !isImeiColumn && valueStr.length >= 2 && valueStr.length <= 50 && !/^\d+$/.test(valueStr)) return valueStr;
   }
+  if (rowContainsAppleArticleAlias(item)) return 'Apple';
   return '';
 };
+
+/** Gespeicherte Hersteller-Zelle: Artikelcode → „Apple“ (Anzeige + Kopieren). */
+export const normalizeImeiRowHerstellerAppleAlias = (item) => {
+  if (!item?.rowData) return item;
+  const rowData = { ...item.rowData };
+  let changed = false;
+  const keysToCheck = item.columnOrder?.length > 0 ? item.columnOrder : Object.keys(rowData);
+
+  const patchKey = (key) => {
+    if (!key || rowData[key] == null || rowData[key] === '') return;
+    if (!getIphoneVersionForArticleCode(rowData[key])) return;
+    if (String(rowData[key]).trim() !== 'Apple') {
+      rowData[key] = 'Apple';
+      changed = true;
+    }
+  };
+
+  keysToCheck
+    .filter((key) => {
+      if (!key) return false;
+      const lowerKey = String(key).toLowerCase().trim();
+      return (
+        (lowerKey.includes('hersteller') ||
+          lowerKey.includes('manufacturer') ||
+          lowerKey.includes('make') ||
+          (lowerKey.includes('brand') && !lowerKey.includes('marke'))) &&
+        !lowerKey.includes('marke') &&
+        !lowerKey.includes('datum')
+      );
+    })
+    .forEach(patchKey);
+
+  const markeKey = keysToCheck.find((key) => key && String(key).toLowerCase().trim() === 'marke');
+  if (markeKey) patchKey(markeKey);
+  patchKey(getManufacturerColumnKey({ ...item, rowData }));
+
+  return changed ? { ...item, rowData } : item;
+};
+
+export const normalizeImeiListHerstellerAppleAlias = (imeis) =>
+  Array.isArray(imeis) ? imeis.map(normalizeImeiRowHerstellerAppleAlias) : [];
 
 export const expandSelection = (currentImeis, startCellId, endCellId) => {
   const selected = new Set();

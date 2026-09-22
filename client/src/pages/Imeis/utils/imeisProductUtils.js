@@ -1,6 +1,33 @@
 /**
  * Produkt-Extraktion (Version, Variante, Farbe, GB) aus Produktnamen
  */
+
+/** Artikel-/SAP-Codes in Excel, die fälschlich als Hersteller stehen → iPhone-Version */
+const APPLE_ARTICLE_IPHONE_VERSION = {
+  R261270662: '18'
+};
+
+export const normalizeArticleCode = (value) =>
+  String(value ?? '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toUpperCase();
+
+export const getIphoneVersionForArticleCode = (value) => {
+  const code = normalizeArticleCode(value);
+  return code ? APPLE_ARTICLE_IPHONE_VERSION[code] || '' : '';
+};
+
+export const rowContainsAppleArticleAlias = (item) => {
+  if (!item?.rowData) return '';
+  for (const value of Object.values(item.rowData)) {
+    if (value == null || value === '') continue;
+    const version = getIphoneVersionForArticleCode(value);
+    if (version) return version;
+  }
+  return '';
+};
+
 export const getProductFull = (item) => {
   if (!item?.rowData) return '';
   const keysToCheck = item.columnOrder?.length > 0 ? item.columnOrder : Object.keys(item.rowData);
@@ -50,9 +77,16 @@ export const extractGB = (productName) => {
   return match ? `${match[1]}${match[2].toUpperCase()}` : '';
 };
 
-export const extractProductVersion = (productName) => {
-  if (!productName) return '';
-  let productStr = String(productName).trim().replace(/\s*\d+\s*(GB|TB|gb|tb)\s*/gi, ' ').trim();
+export const extractProductVersion = (productName, item = null) => {
+  if (!productName && !item) return '';
+  let productStr = String(productName || '').trim().replace(/\s*\d+\s*(GB|TB|gb|tb)\s*/gi, ' ').trim();
+  const articleFromProduct = getIphoneVersionForArticleCode(productStr);
+  if (articleFromProduct) return articleFromProduct;
+  for (const code of Object.keys(APPLE_ARTICLE_IPHONE_VERSION)) {
+    if (new RegExp(`\\b${code}\\b`, 'i').test(productStr)) {
+      return APPLE_ARTICLE_IPHONE_VERSION[code];
+    }
+  }
   const iPhoneSEMatch = productStr.match(/iphone[\s\-_]?se(?:\s+\(.*?\))?(?:\s+(\d+)\s*gen)?/i);
   if (iPhoneSEMatch) return iPhoneSEMatch[1] ? `SE (${iPhoneSEMatch[1]}. Gen)` : 'SE';
 
@@ -101,7 +135,8 @@ export const extractProductVersion = (productName) => {
   const generalMatch = productStr.match(/(?:iphone|pixel|galaxy|xiaomi|oneplus|oppo|vivo|realme|huawei|honor|motorola|nokia)[\s\-_]?(\d+)/i);
   if (generalMatch) return generalMatch[1];
   const fallbackMatch = productStr.match(/(?:iphone|pixel|galaxy|xiaomi|oneplus|oppo|vivo|realme|huawei|honor|motorola|nokia)[^\d]*(?:[^\d\s]*\s+)?(\d+)(?!\s*(?:GB|TB|gb|tb))/i);
-  return fallbackMatch ? fallbackMatch[1] : '';
+  if (fallbackMatch) return fallbackMatch[1];
+  return item ? rowContainsAppleArticleAlias(item) : '';
 };
 
 export const extractProductVariant = (productName) => {

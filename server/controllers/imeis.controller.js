@@ -28,6 +28,11 @@ import { writeAuditLog } from '../utils/auditLog.js';
 import * as redisCache from '../utils/redisCache.js';
 import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 import {
+  normalizeImeiListHerstellerAppleAlias,
+  normalizeImeiRowHerstellerAppleAlias,
+  imeiListHerstellerAppleAliasChanged
+} from '../utils/imeiAppleArticleAlias.js';
+import {
   normalizeImeiKey,
   canonicalImeiString,
   collectImeiKeysFromUploadRow,
@@ -607,6 +612,7 @@ export const getImeisData = async (req, res, next) => {
       let imeis = safeJsonParse(data.imeis_json, []);
       if (!Array.isArray(imeis)) imeis = [];
       imeis = await sanitizeStoredImeisForVisibility(dataUserId, imeis);
+      imeis = await normalizeAndPersistHerstellerAppleAliases(dataUserId, imeis);
       let cellColors = safeJsonParse(data.cell_colors_json, {});
       if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
       let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -706,6 +712,7 @@ export const getImeisData = async (req, res, next) => {
     let imeis = safeJsonParse(data.imeis_json, []);
     if (!Array.isArray(imeis)) imeis = [];
     imeis = await sanitizeStoredImeisForVisibility(dataUserId, imeis);
+    imeis = await normalizeAndPersistHerstellerAppleAliases(dataUserId, imeis);
     let cellColors = safeJsonParse(data.cell_colors_json, {});
     if (typeof cellColors !== 'object' || cellColors === null || Array.isArray(cellColors)) cellColors = {};
     let rowActions = safeJsonParse(data.row_actions_json, {});
@@ -866,7 +873,7 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
     if (idx !== undefined) {
       const prev = merged[idx];
       // rowData/columnOrder aus Excel übernehmen, sheet/row behalten (sichtbar + rowActions-rowId stabil).
-      merged[idx] = {
+      merged[idx] = normalizeImeiRowHerstellerAppleAlias({
         ...prev,
         ...item,
         rowData: item?.rowData ? { ...item.rowData } : prev?.rowData,
@@ -879,16 +886,16 @@ export function mergeImeiRowsAppend(existingImeis, incomingImeis) {
         ),
         _addedAt: prev?._addedAt || item._addedAt || nowIso,
         _excelUpdatedAt: nowIso
-      };
+      });
       updatedFromUpload += 1;
       continue;
     }
     keyToIndex.set(k, merged.length);
-    const row = {
+    const row = normalizeImeiRowHerstellerAppleAlias({
       ...item,
       imei: canonicalImeiString(item.imei),
       _addedAt: item._addedAt || nowIso
-    };
+    });
     merged.push(row);
     addedRows.push(row);
     added += 1;
@@ -994,6 +1001,19 @@ async function sanitizeStoredImeisForVisibility(dataUserId, imeis) {
     await invalidateImeisCaches(null, { sharedListChanged: true });
   }
   return filtered;
+}
+
+async function normalizeAndPersistHerstellerAppleAliases(dataUserId, imeis) {
+  const list = Array.isArray(imeis) ? imeis : [];
+  const normalized = normalizeImeiListHerstellerAppleAlias(list);
+  if (dataUserId != null && imeiListHerstellerAppleAliasChanged(list, normalized)) {
+    await ImeisUserData.upsert({
+      user_id: dataUserId,
+      imeis_json: JSON.stringify(normalized)
+    });
+    await invalidateImeisCaches(null, { sharedListChanged: true });
+  }
+  return normalized;
 }
 
 async function stripHiddenImeisFromUserDataResponse(payload) {

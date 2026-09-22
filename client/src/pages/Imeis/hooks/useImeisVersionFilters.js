@@ -69,7 +69,7 @@ export function useImeisVersionFilters({
     const versions = new Set();
     allManufacturerItems.forEach(item => {
       const productFull = getProductFull(item);
-      const version = extractProductVersion(productFull);
+      const version = extractProductVersion(productFull, item);
       if (version) versions.add(version);
     });
     const versionsArray = Array.from(versions).sort((a, b) => {
@@ -83,7 +83,7 @@ export function useImeisVersionFilters({
     if (activeVersion) {
       const versionFiltered = allManufacturerItems.filter(item => {
         const productFull = getProductFull(item);
-        return productVersionMatches(extractProductVersion(productFull), activeVersion);
+        return productVersionMatches(extractProductVersion(productFull, item), activeVersion);
       });
       const variants = new Set();
       versionFiltered.forEach(item => {
@@ -98,7 +98,7 @@ export function useImeisVersionFilters({
     if (activeVersion && activeVariant !== null) {
       const versionVariantFiltered = allManufacturerItems.filter(item => {
         const productFull = getProductFull(item);
-        const version = extractProductVersion(productFull);
+        const version = extractProductVersion(productFull, item);
         const variant = extractProductVariant(productFull);
         if (version !== activeVersion && !productVersionMatches(version, activeVersion)) return false;
         if (activeVariant === '') return variant === '';
@@ -117,7 +117,7 @@ export function useImeisVersionFilters({
     if (activeVersion && activeVariant !== null && activeGB) {
       const versionVariantGBFiltered = allManufacturerItems.filter(item => {
         const productFull = getProductFull(item);
-        const version = extractProductVersion(productFull);
+        const version = extractProductVersion(productFull, item);
         const variant = extractProductVariant(productFull);
         const gb = extractGB(productFull);
         if (version !== activeVersion && !productVersionMatches(version, activeVersion)) return false;
@@ -148,7 +148,7 @@ export function useImeisVersionFilters({
       const currentVariants = new Set();
       allManufacturerItems.forEach(item => {
         const productFull = getProductFull(item);
-        if (extractProductVersion(productFull) === activeVersion || productVersionMatches(extractProductVersion(productFull), activeVersion)) {
+        if (extractProductVersion(productFull, item) === activeVersion || productVersionMatches(extractProductVersion(productFull, item), activeVersion)) {
           currentVariants.add(extractProductVariant(productFull) || '');
         }
       });
@@ -162,7 +162,7 @@ export function useImeisVersionFilters({
       const currentGBs = new Set();
       allManufacturerItems.forEach(item => {
         const productFull = getProductFull(item);
-        const version = extractProductVersion(productFull);
+        const version = extractProductVersion(productFull, item);
         const variant = extractProductVariant(productFull);
         if ((version === activeVersion || productVersionMatches(version, activeVersion)) && (activeVariant === '' ? variant === '' : variant === activeVariant)) {
           const gb = extractGB(productFull);

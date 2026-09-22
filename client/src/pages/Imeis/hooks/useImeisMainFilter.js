@@ -90,13 +90,13 @@ export function useImeisMainFilter({
       if (activeManufacturer) {
         if (activeVersion) {
           filtered = filtered.filter(item =>
-            productVersionMatches(extractProductVersion(getProductFull(item)), activeVersion)
+            productVersionMatches(extractProductVersion(getProductFull(item), item), activeVersion)
           );
         }
         if (activeVersion && activeVariant !== null) {
           filtered = filtered.filter(item => {
             const productFull = getProductFull(item);
-            const version = extractProductVersion(productFull);
+            const version = extractProductVersion(productFull, item);
             const variant = extractProductVariant(productFull);
             if (!productVersionMatches(version, activeVersion)) return false;
             if (activeVariant === '') return variant === '';

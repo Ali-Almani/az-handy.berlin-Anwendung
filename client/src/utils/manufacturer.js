@@ -2,6 +2,26 @@ const KNOWN_MANUFACTURERS = ['apple', 'google', 'huawei', 'samsung', 'xiaomi', '
 const KNOWN_CARRIERS = ['o2', 'vodafone', 'telekom', 't-mobile', 'e-plus', 'base', 'otelo', 'blau', 'simyo', 'congstar'];
 const SKIP_KEYS = ['marke', 'brand', 'provider', 'netzbetreiber', 'carrier', 'imei', ...KNOWN_CARRIERS];
 
+const APPLE_ARTICLE_IPHONE_VERSION = {
+  R261270662: '18'
+};
+
+const normalizeArticleCode = (value) =>
+  String(value ?? '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toUpperCase();
+
+const getIphoneVersionForArticleCode = (value) => {
+  const code = normalizeArticleCode(value);
+  return code ? APPLE_ARTICLE_IPHONE_VERSION[code] || '' : '';
+};
+
+const resolveManufacturerFromValue = (valueStr) => {
+  if (getIphoneVersionForArticleCode(valueStr)) return 'Apple';
+  return valueStr;
+};
+
 export const getManufacturer = (item) => {
   if (!item?.rowData) return '';
 
@@ -21,7 +41,7 @@ export const getManufacturer = (item) => {
     if (value != null && value !== '') {
       const valueStr = String(value).trim();
       if (!KNOWN_CARRIERS.some(c => valueStr.toLowerCase().includes(c))) {
-        return valueStr;
+        return resolveManufacturerFromValue(valueStr);
       }
     }
   }
@@ -36,6 +56,7 @@ export const getManufacturer = (item) => {
     const lowerValue = valueStr.toLowerCase();
 
     if (KNOWN_MANUFACTURERS.some(m => lowerValue.includes(m))) return valueStr;
+    if (getIphoneVersionForArticleCode(valueStr)) return 'Apple';
     if (!KNOWN_CARRIERS.some(c => lowerValue.includes(c)) && !String(key).toLowerCase().includes('imei')) {
       return valueStr;
     }
