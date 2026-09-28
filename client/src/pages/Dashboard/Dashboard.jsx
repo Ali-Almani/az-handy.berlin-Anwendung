@@ -25,6 +25,7 @@ import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcel
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
 import FormularCenterAdminPanel from '../FormularCenter/FormularCenterAdminPanel';
+import SepaPdfRenamer from '../../components/SepaPdfRenamer/SepaPdfRenamer';
 import './Dashboard.scss';
 
 /** Admin-Sidebar: ein Bereich aktiv */
@@ -36,6 +37,7 @@ const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
 const SEC_FORMULAR = 'formular';
 const SEC_FORMULAR_PROVISION = 'formular-provision';
+const SEC_SEPA_PDF = 'sepa-pdf';
 
 const DashSidebarIcon = ({ children }) => (
   <span className="dashboard-admin-nav__icon" aria-hidden>
@@ -345,6 +347,16 @@ const Dashboard = () => {
     </div>
   );
 
+  const renderSepaPdfPanel = () => (
+    <div className="card dashboard-excel-upload dashboard-admin-panel">
+      <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
+        <h2 className="card-title">SEPA-PDF umbenennen</h2>
+        <span className="dashboard-excel-upload__badge">O2 Lastschriftmandat</span>
+      </div>
+      <SepaPdfRenamer embedded />
+    </div>
+  );
+
   return (
     <div className="dashboard">
       {isAdmin(user) && (
@@ -500,6 +512,22 @@ const Dashboard = () => {
                           </svg>
                         </DashSidebarIcon>
                         <span className="dashboard-admin-nav__label">Voucher Verwaltung</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        className={navBtnClass(SEC_SEPA_PDF)}
+                        onClick={() => setAdminSection(SEC_SEPA_PDF)}
+                        aria-current={adminSection === SEC_SEPA_PDF ? 'page' : undefined}
+                      >
+                        <DashSidebarIcon>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 2h9l5 5v15a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                            <path d="M14 2v6h6M8 13h8M8 17h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </DashSidebarIcon>
+                        <span className="dashboard-admin-nav__label">SEPA-PDF</span>
                       </button>
                     </li>
                   </>
@@ -829,6 +857,7 @@ const Dashboard = () => {
 
             {adminSection === SEC_EXCEL && canShowExcelUpload(user) && renderExcelDashboardPanel()}
             {adminSection === SEC_VOUCHER && canShowExcelUpload(user) && renderVoucherDashboardPanel()}
+            {adminSection === SEC_SEPA_PDF && canShowExcelUpload(user) && renderSepaPdfPanel()}
           </div>
         </div>
       )}
@@ -869,12 +898,29 @@ const Dashboard = () => {
                     <span className="dashboard-admin-nav__label">Voucher Verwaltung</span>
                   </button>
                 </li>
+                <li>
+                  <button
+                    type="button"
+                    className={navBtnBueroClass(SEC_SEPA_PDF)}
+                    onClick={() => setBueroSection(SEC_SEPA_PDF)}
+                    aria-current={bueroSection === SEC_SEPA_PDF ? 'page' : undefined}
+                  >
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 2h9l5 5v15a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+                        <path d="M14 2v6h6M8 13h8M8 17h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">SEPA-PDF</span>
+                  </button>
+                </li>
               </ul>
             </nav>
           </aside>
           <div className="dashboard-admin-main">
             {bueroSection === SEC_EXCEL && renderExcelDashboardPanel()}
             {bueroSection === SEC_VOUCHER && renderVoucherDashboardPanel()}
+            {bueroSection === SEC_SEPA_PDF && renderSepaPdfPanel()}
           </div>
         </div>
       )}
