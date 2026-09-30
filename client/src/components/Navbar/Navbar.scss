@@ -288,8 +288,11 @@
 .navbar-avatar-placeholder {
   width: 40px;
   height: 40px;
+  min-width: 40px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: none;
+  overflow: hidden;
   transition: opacity 0.2s ease;
 }
 
@@ -305,6 +308,8 @@
   color: white;
   font-weight: $font-weight-bold;
   font-size: 0.9rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .navbar-avatar-btn:hover .navbar-avatar-image,

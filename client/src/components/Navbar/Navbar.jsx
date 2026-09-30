@@ -243,12 +243,15 @@ const Navbar = ({
   };
 
   const getInitials = (name) => {
-    if (!name) return 'U';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.charAt(0).toUpperCase();
+    const parts = String(name ?? '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (parts.length === 0) return 'U';
+    const first = parts[0].charAt(0);
+    if (parts.length === 1) return first.toUpperCase();
+    const last = parts[parts.length - 1].charAt(0);
+    return `${first}${last}`.toUpperCase();
   };
 
   const renderArchivItem = (containerRef, triggerId, submenuId, enableHover = false) => {
