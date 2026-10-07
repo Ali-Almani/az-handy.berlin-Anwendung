@@ -631,6 +631,36 @@
   margin-bottom: $spacing-sm;
 }
 
+.sz-chip-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: $spacing-sm;
+}
+
+.sz-chip-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sz-chip-edit__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  .form-input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.sz-quick-remove--alone {
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  height: 2rem;
+}
+
 .sz-composer-langs {
   display: inline-flex;
   flex-shrink: 0;

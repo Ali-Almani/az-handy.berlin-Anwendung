@@ -16,6 +16,7 @@ import {
   normalizeSocialChannel,
   NACHRICHTEN_ERLEDIGT,
   QUESTION_FIELD_TYPES,
+  questionDropdownOptions,
   questionChatLocale,
   saveInboxNotiz,
   shopAssignsTicket,
@@ -397,6 +398,37 @@ const CallcenterNachrichten = ({
         : prev.options,
       order: [...visibleQuestionOrder(prev), id]
     }));
+  };
+
+  const updateQuestion = (field, { label, text, options }) => {
+    setQuestionConfig((prev) => {
+      const labels = {
+        ...prev.labels,
+        [field]: { ...(prev.labels[field] || {}), [chatLocale]: label }
+      };
+      let next = { ...prev, labels };
+      if (text != null) {
+        next = {
+          ...next,
+          texts: {
+            ...prev.texts,
+            [field]: { ...(prev.texts[field] || {}), [chatLocale]: text }
+          }
+        };
+      }
+      if (Array.isArray(options)) {
+        next = { ...next, options: { ...prev.options, [field]: options } };
+      }
+      if (customQuestions(prev).some((item) => item.id === field)) {
+        next = {
+          ...next,
+          custom: customQuestions(prev).map((item) => (
+            item.id === field ? { ...item, label } : item
+          ))
+        };
+      }
+      return next;
+    });
   };
 
   const deleteQuestion = (field, label) => {
@@ -803,32 +835,82 @@ const CallcenterNachrichten = ({
                     ))}
                   </div>
                 </div>
+                {chipEditing ? (
+                  <div className="sz-chip-edit-list">
+                    {templateQuestions.map((q) => {
+                      const options = questionDropdownOptions(q.field, questionConfig);
+                      return (
+                        <div key={q.field} className="sz-chip-edit">
+                          <div className="sz-chip-edit__bar">
+                            <input
+                              className="form-input"
+                              value={q.label}
+                              aria-label="Frage"
+                              onChange={(ev) => updateQuestion(q.field, {
+                                label: ev.target.value,
+                                text: q.text,
+                                options: options || undefined
+                              })}
+                            />
+                            <button
+                              type="button"
+                              className="sz-quick-remove sz-quick-remove--alone"
+                              onClick={() => deleteQuestion(q.field, q.label)}
+                              aria-label={`${q.label} löschen`}
+                              title="Löschen"
+                            >
+                              ×
+                            </button>
+                          </div>
+                          <label className="sz-template-options-label">
+                            Fragentext
+                            <input
+                              className="form-input"
+                              value={q.text}
+                              onChange={(ev) => updateQuestion(q.field, {
+                                label: q.label,
+                                text: ev.target.value,
+                                options: options || undefined
+                              })}
+                            />
+                          </label>
+                          {options ? (
+                            <label className="sz-template-options-label">
+                              Dropdown-Werte
+                              <textarea
+                                className="form-input sz-template-options"
+                                rows={Math.min(5, Math.max(2, options.length))}
+                                defaultValue={options.join('\n')}
+                                key={options.join('\n')}
+                                onBlur={(ev) => {
+                                  const next = ev.target.value.split('\n').map((line) => line.trim()).filter(Boolean);
+                                  updateQuestion(q.field, {
+                                    label: q.label,
+                                    text: q.text,
+                                    options: next.length ? next : options
+                                  });
+                                }}
+                              />
+                            </label>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <div className={`sz-quick${chatLocale === 'ar' ? ' sz-quick--rtl' : ''}`}>
                   {templateQuestions.map((q) => (
-                    <span key={q.field} className={`sz-quick-chip${chipEditing ? ' sz-quick-chip--edit' : ''}`}>
-                      <button
-                        type="button"
-                        className="sz-quick-btn"
-                        onClick={() => {
-                          if (!chipEditing) setDraft(q.text);
-                        }}
-                      >
-                        {q.label}
-                      </button>
-                      {chipEditing ? (
-                        <button
-                          type="button"
-                          className="sz-quick-remove"
-                          onClick={() => deleteQuestion(q.field, q.label)}
-                          aria-label={`${q.label} löschen`}
-                          title="Löschen"
-                        >
-                          ×
-                        </button>
-                      ) : null}
-                    </span>
+                    <button
+                      key={q.field}
+                      type="button"
+                      className="sz-quick-btn"
+                      onClick={() => setDraft(q.text)}
+                    >
+                      {q.label}
+                    </button>
                   ))}
                 </div>
+                )}
                 {chipEditing ? (
                   <div className="sz-template-add sz-quick-add">
                     <label className="sz-template-options-label">
@@ -973,36 +1055,7 @@ const CallcenterNachrichten = ({
                   return { ...prev, order: [...next, ...hidden] };
                 });
               }}
-              onQuestionUpdate={(field, { label, text, options }) => {
-                setQuestionConfig((prev) => {
-                  const labels = {
-                    ...prev.labels,
-                    [field]: { ...(prev.labels[field] || {}), [chatLocale]: label }
-                  };
-                  let next = { ...prev, labels };
-                  if (text != null) {
-                    next = {
-                      ...next,
-                      texts: {
-                        ...prev.texts,
-                        [field]: { ...(prev.texts[field] || {}), [chatLocale]: text }
-                      }
-                    };
-                  }
-                  if (Array.isArray(options)) {
-                    next = { ...next, options: { ...prev.options, [field]: options } };
-                  }
-                  if (customQuestions(prev).some((item) => item.id === field)) {
-                    next = {
-                      ...next,
-                      custom: customQuestions(prev).map((item) => (
-                        item.id === field ? { ...item, label } : item
-                      ))
-                    };
-                  }
-                  return next;
-                });
-              }}
+              onQuestionUpdate={updateQuestion}
             />
           </aside>
         ) : null}
