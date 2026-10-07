@@ -222,7 +222,6 @@ const CallcenterNachrichten = ({
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
-  const customerImageInputRef = useRef(null);
   const list = tickets || [];
 
   const filtered = useMemo(() => {
@@ -387,13 +386,13 @@ const CallcenterNachrichten = ({
     if (next?.text) setDraft(next.text);
   };
 
-  const addImageFiles = async (fileList, target) => {
+  const addImageFiles = async (fileList) => {
     const files = Array.from(fileList || []).filter((file) => String(file.type || '').startsWith('image/'));
     if (!files.length) {
       window.alert('Bitte nur Bilder auswählen.');
       return [];
     }
-    const room = MAX_MESSAGE_IMAGES - (target === 'pending' ? pendingImages.length : 0);
+    const room = MAX_MESSAGE_IMAGES - pendingImages.length;
     if (room <= 0) {
       window.alert(`Höchstens ${MAX_MESSAGE_IMAGES} Bilder pro Nachricht.`);
       return [];
@@ -411,28 +410,10 @@ const CallcenterNachrichten = ({
   };
 
   const handleOwnImages = async (ev) => {
-    const images = await addImageFiles(ev.target.files, 'pending');
+    const images = await addImageFiles(ev.target.files);
     ev.target.value = '';
     if (!images.length) return;
     setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
-  };
-
-  const handleCustomerImages = async (ev) => {
-    const images = await addImageFiles(ev.target.files, 'customer');
-    ev.target.value = '';
-    if (!active || !images.length) return;
-    const message = {
-      id: `local-${Date.now()}`,
-      from: 'customer',
-      text: '',
-      images,
-      at: new Date().toISOString()
-    };
-    patchTicket(active.id, (t) => ({
-      ...t,
-      unread: false,
-      messages: [...(t.messages || []), message]
-    }));
   };
 
   const handleComposerPaste = async (ev) => {
@@ -441,7 +422,7 @@ const CallcenterNachrichten = ({
     );
     if (!files.length) return;
     ev.preventDefault();
-    const images = await addImageFiles(files, 'pending');
+    const images = await addImageFiles(files);
     if (!images.length) return;
     setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
   };
@@ -803,7 +784,7 @@ const CallcenterNachrichten = ({
                     dir={chatLocale === 'ar' ? 'rtl' : 'ltr'}
                     lang={chatLocale === 'ar' ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
-                  <div className="sz-attach">
+                  <div className="sz-composer-actions">
                     <button
                       type="button"
                       className="sz-attach-btn"
@@ -819,21 +800,6 @@ const CallcenterNachrichten = ({
                         />
                       </svg>
                     </button>
-                    <button
-                      type="button"
-                      className="sz-attach-btn"
-                      onClick={() => customerImageInputRef.current?.click()}
-                      disabled={sending}
-                      aria-label="Bild vom Kunden"
-                      title="Bild vom Kunden"
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden>
-                        <path
-                          fill="currentColor"
-                          d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-3.3 0-8 1.7-8 4v2h16v-2c0-2.3-4.7-4-8-4z"
-                        />
-                      </svg>
-                    </button>
                     <input
                       ref={imageInputRef}
                       type="file"
@@ -842,27 +808,19 @@ const CallcenterNachrichten = ({
                       hidden
                       onChange={handleOwnImages}
                     />
-                    <input
-                      ref={customerImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      hidden
-                      onChange={handleCustomerImages}
-                    />
+                    <button
+                      type="button"
+                      className="sz-send"
+                      onClick={sendReply}
+                      disabled={sending || (!draft.trim() && pendingImages.length === 0)}
+                      aria-label="Senden"
+                      title="Senden"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden>
+                        <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                      </svg>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="sz-send"
-                    onClick={sendReply}
-                    disabled={sending || (!draft.trim() && pendingImages.length === 0)}
-                    aria-label="Senden"
-                    title="Senden"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden>
-                      <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  </button>
                 </div>
                 <p className="sz-composer-hint">
                   Sprache wählen, dann Fragen-Chip. Enter sendet, Umschalt+Enter neue Zeile.

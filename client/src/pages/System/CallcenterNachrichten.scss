@@ -670,7 +670,7 @@
 .sz-composer-input {
   width: 100%;
   min-height: 8.5rem;
-  padding-right: 3.6rem;
+  padding-right: 6.4rem;
   padding-bottom: 3.2rem;
   resize: vertical;
   font-size: 0.95rem;
@@ -678,16 +678,28 @@
 
   &--rtl {
     padding-right: $spacing-md;
-    padding-left: 3.6rem;
+    padding-left: 6.4rem;
     text-align: right;
     font-size: 1rem;
   }
 }
 
-.sz-send {
+.sz-composer-actions {
   position: absolute;
   right: 1.35rem;
   bottom: 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sz-composer-field--rtl .sz-composer-actions {
+  right: auto;
+  left: 0.55rem;
+  bottom: 0.55rem;
+}
+
+.sz-send {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -713,25 +725,6 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
-}
-
-.sz-composer-field--rtl .sz-send {
-  right: auto;
-  left: 0.55rem;
-  bottom: 0.55rem;
-}
-
-.sz-attach {
-  position: absolute;
-  left: 0.55rem;
-  bottom: 0.55rem;
-  display: flex;
-  gap: 0.35rem;
-}
-
-.sz-composer-field--rtl .sz-attach {
-  left: auto;
-  right: 1.35rem;
 }
 
 .sz-attach-btn {
