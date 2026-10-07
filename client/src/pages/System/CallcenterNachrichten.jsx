@@ -24,6 +24,8 @@ import {
   shopOptionsForNachrichten,
   normalizeNachrichtShop,
   sanitizeMitarbeiterName,
+  collectMitarbeiterNames,
+  withMitarbeiter,
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
   isLeadArchived,
@@ -184,6 +186,25 @@ function ContactActionButtons({ phone, className = '' }) {
   );
 }
 
+function MitarbeiterNamesSelect({ names, ariaLabel }) {
+  if (!names.length) return null;
+  if (names.length === 1) {
+    return <span className="sz-mitarbeiter">{names[0]}</span>;
+  }
+  return (
+    <select
+      className="form-input vorvertrag-ticket-row__status-select sz-mitarbeiter-select"
+      defaultValue={names[0]}
+      aria-label={ariaLabel || 'Mitarbeiter'}
+      onClick={(ev) => ev.stopPropagation()}
+    >
+      {names.map((name) => (
+        <option key={name} value={name}>{name}</option>
+      ))}
+    </select>
+  );
+}
+
 function StatusShopSelect({ shop, ticketStatus, shops, onChange, ariaLabel }) {
   const value = migrateLeadTicketStatus(ticketStatus) === 'Erledigt'
     ? NACHRICHTEN_ERLEDIGT
@@ -324,11 +345,7 @@ const CallcenterNachrichten = ({
     setDraft('');
     setPendingImages([]);
     setMobileShowChat(true);
-    patchTicket(id, (t) => ({
-      ...t,
-      unread: false,
-      mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName) || sanitizeMitarbeiterName(agentName)
-    }));
+    patchTicket(id, (t) => withMitarbeiter({ ...t, unread: false }, agentName));
   };
 
   useEffect(() => {
@@ -342,11 +359,10 @@ const CallcenterNachrichten = ({
     if (value === NACHRICHTEN_ERLEDIGT) {
       const markErledigt = (ticket) => {
         const editor = sanitizeMitarbeiterName(agentName);
-        const next = {
+        const next = withMitarbeiter({
           ...ticket,
-          ticketStatus: 'Erledigt',
-          mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || editor
-        };
+          ticketStatus: 'Erledigt'
+        }, editor);
         const change = leadFieldChange(ticket, 'ticketStatus', 'Erledigt');
         if (!change) return next;
         return appendLeadEditLog(next, {
@@ -364,12 +380,11 @@ const CallcenterNachrichten = ({
     if (!shop) return;
     const assignShop = (ticket) => {
       const editor = sanitizeMitarbeiterName(agentName);
-      const next = {
+      const next = withMitarbeiter({
         ...ticket,
         shop,
-        ticketStatus: 'Offen',
-        mitarbeiterName: sanitizeMitarbeiterName(ticket.mitarbeiterName) || editor
-      };
+        ticketStatus: 'Offen'
+      }, editor);
       const changes = [
         leadFieldChange(ticket, 'shop', shop),
         leadFieldChange(ticket, 'ticketStatus', 'Offen')
@@ -444,7 +459,7 @@ const CallcenterNachrichten = ({
     if (!active) return;
     patchTicket(active.id, (t) => {
       const change = leadFieldChange(t, field, value);
-      const next = { ...t, [field]: value };
+      const next = withMitarbeiter({ ...t, [field]: value }, agentName);
       if (!change) return next;
       return appendLeadEditLog(next, {
         editorName: sanitizeMitarbeiterName(agentName),
@@ -518,12 +533,11 @@ const CallcenterNachrichten = ({
       at: new Date().toISOString()
     };
     window.setTimeout(() => {
-      patchTicket(active.id, (t) => ({
+      patchTicket(active.id, (t) => withMitarbeiter({
         ...t,
         unread: false,
-        mitarbeiterName: sanitizeMitarbeiterName(t.mitarbeiterName) || sanitizeMitarbeiterName(agentName),
         messages: [...(t.messages || []), message]
-      }));
+      }, agentName));
       setDraft('');
       setPendingImages([]);
       setSending(false);
@@ -730,6 +744,10 @@ const CallcenterNachrichten = ({
                   </p>
                 </div>
                 <ContactActionButtons phone={contactPhone} />
+                <MitarbeiterNamesSelect
+                  names={collectMitarbeiterNames(active)}
+                  ariaLabel={`Mitarbeiter für ${active.customerName || active.id}`}
+                />
                 <button
                   type="button"
                   className="sz-delete-customer"

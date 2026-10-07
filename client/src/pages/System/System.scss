@@ -280,6 +280,12 @@
   white-space: nowrap;
 }
 
+.vorvertrag-ticket-row__mitarbeiter-select {
+  width: auto;
+  min-width: 8.5rem;
+  max-width: 12rem;
+}
+
 .vorvertrag-ticket-row__status-inner {
   display: flex;
   flex-wrap: wrap;

@@ -437,6 +437,24 @@
   min-width: 0;
 }
 
+.sz-mitarbeiter {
+  flex-shrink: 0;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: $font-weight-medium;
+  color: $text-color;
+}
+
+.sz-mitarbeiter-select {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 8.5rem;
+  max-width: 12rem;
+}
+
 .sz-delete-customer {
   display: inline-flex;
   flex-shrink: 0;

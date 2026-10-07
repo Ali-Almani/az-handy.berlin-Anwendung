@@ -2,7 +2,12 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
-import { isLeadEntry, migrateLeadTicketStatus, sanitizeMitarbeiterName } from './callcenterLeadData';
+import {
+  collectMitarbeiterNames,
+  isLeadEntry,
+  migrateLeadTicketStatus,
+  sanitizeMitarbeiterName
+} from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_OPTIONS,
@@ -19,24 +24,33 @@ function MetaChip({ children, accent }) {
   );
 }
 
-function mitarbeiterName(entry, fallbackName = '') {
+function mitarbeiterNames(entry, fallbackName = '') {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
-  const candidates = [
-    entry?.mitarbeiterName,
-    mnp.mitarbeiter,
-    e.mitarbeiter,
-    entry?.lastEditedBy?.name,
-    entry?.lastEditedBy?.userName,
-    entry?.createdBy?.name,
-    entry?.createdBy?.userName,
-    fallbackName
-  ];
-  for (const candidate of candidates) {
-    const value = sanitizeMitarbeiterName(candidate);
-    if (value) return value;
-  }
-  return '';
+  const names = collectMitarbeiterNames({
+    ...entry,
+    mitarbeiterName: entry?.mitarbeiterName || mnp.mitarbeiter || e.mitarbeiter
+  });
+  const fallback = sanitizeMitarbeiterName(fallbackName);
+  if (fallback && !names.includes(fallback) && names.length === 0) names.push(fallback);
+  return names;
+}
+
+function MitarbeiterNamesSelect({ names }) {
+  if (!names.length) return '—';
+  if (names.length === 1) return names[0];
+  return (
+    <select
+      className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
+      defaultValue={names[0]}
+      aria-label="Mitarbeiter"
+      onClick={(ev) => ev.stopPropagation()}
+    >
+      {names.map((name) => (
+        <option key={name} value={name}>{name}</option>
+      ))}
+    </select>
+  );
 }
 
 function formatDatum(value) {
@@ -106,7 +120,7 @@ export default function VorvertragEntryCard({
   const name = lead
     ? (entry?.customerName || entry?.rufnummer || entry?.angebot || 'Ohne Namen')
     : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
-  const mitarbeiter = mitarbeiterName(entry, fallbackMitarbeiter);
+  const mitarbeiter = mitarbeiterNames(entry, fallbackMitarbeiter);
   const ticketStatus = lead
     ? migrateLeadTicketStatus(entry?.ticketStatus)
     : normalizeVorvertragTicketStatus(entry?.ticketStatus);
@@ -163,7 +177,9 @@ export default function VorvertragEntryCard({
           />
         </div>
       </td>
-      <td className="vorvertrag-ticket-row__mitarbeiter">{mitarbeiter || '—'}</td>
+      <td className="vorvertrag-ticket-row__mitarbeiter">
+        <MitarbeiterNamesSelect names={mitarbeiter} />
+      </td>
       <td className="vorvertrag-ticket-row__actions">
         <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>
           Bearbeiten

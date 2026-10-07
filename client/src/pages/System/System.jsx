@@ -37,6 +37,7 @@ import {
   migrateLeadTicketStatus,
   saveLeadTickets,
   sanitizeMitarbeiterName,
+  withMitarbeiter,
   appendLeadEditLog,
   leadFieldChange
 } from './callcenterLeadData';
@@ -154,7 +155,7 @@ const System = () => {
       const next = prev.map((t) => {
         if (sanitizeMitarbeiterName(t.mitarbeiterName)) return t;
         changed = true;
-        return { ...t, mitarbeiterName: name };
+        return withMitarbeiter(t, name);
       });
       return changed ? next : prev;
     });
@@ -290,7 +291,7 @@ const System = () => {
       prev.map((t) => {
         if (t.id !== leadEditId) return t;
         const change = leadFieldChange(t, field, value);
-        const next = { ...t, [field]: value };
+        const next = withMitarbeiter({ ...t, [field]: value }, defaultMitarbeiter);
         if (!change) return next;
         return appendLeadEditLog(next, {
           editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
@@ -378,12 +379,11 @@ const System = () => {
         prev.map((t) =>
           t.id === id
             ? (() => {
-                const nextName = sanitizeMitarbeiterName(defaultMitarbeiter) || sanitizeMitarbeiterName(t.mitarbeiterName);
-                const next = {
+                const nextName = sanitizeMitarbeiterName(defaultMitarbeiter);
+                const next = withMitarbeiter({
                   ...t,
-                  ticketStatus: nextLead,
-                  mitarbeiterName: nextName
-                };
+                  ticketStatus: nextLead
+                }, nextName);
                 const change = leadFieldChange(t, 'ticketStatus', nextLead);
                 return change
                   ? appendLeadEditLog(next, {

@@ -497,6 +497,40 @@ export function sanitizeMitarbeiterName(value) {
   return v;
 }
 
+export function collectMitarbeiterNames(entry) {
+  const names = [];
+  const add = (value) => {
+    const name = sanitizeMitarbeiterName(value);
+    if (name && !names.includes(name)) names.push(name);
+  };
+  add(entry?.mitarbeiterName);
+  (Array.isArray(entry?.mitarbeiterNames) ? entry.mitarbeiterNames : []).forEach(add);
+  (Array.isArray(entry?.messages) ? entry.messages : []).forEach((message) => {
+    if (message?.from === 'agent') add(message.authorName);
+  });
+  (Array.isArray(entry?.editLog) ? entry.editLog : []).forEach((item) => add(item?.editorName));
+  add(entry?.lastEditedBy?.name);
+  add(entry?.lastEditedBy?.userName);
+  add(entry?.createdBy?.name);
+  add(entry?.createdBy?.userName);
+  add(entry?.eingabeDetails?.mitarbeiter);
+  return names;
+}
+
+export function withMitarbeiter(ticket, name) {
+  const nextName = sanitizeMitarbeiterName(name);
+  const names = collectMitarbeiterNames({
+    ...ticket,
+    mitarbeiterName: nextName || ticket?.mitarbeiterName
+  });
+  if (nextName && !names.includes(nextName)) names.push(nextName);
+  return {
+    ...ticket,
+    mitarbeiterName: nextName || names[0] || sanitizeMitarbeiterName(ticket?.mitarbeiterName) || '',
+    mitarbeiterNames: names
+  };
+}
+
 export function lastMessageAt(ticket) {
   const last = ticket?.messages?.[ticket.messages.length - 1];
   return last?.at || ticket?.createdAt || '';
@@ -858,6 +892,7 @@ export function leadToNeuEntry(lead) {
     sprache: leadSprache(lead.sprache),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
     mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
+    mitarbeiterNames: collectMitarbeiterNames(lead),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
   };
 }
@@ -877,6 +912,7 @@ function hydrateLeadTicket(t) {
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
+    mitarbeiterNames: collectMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : []
   };
 }
