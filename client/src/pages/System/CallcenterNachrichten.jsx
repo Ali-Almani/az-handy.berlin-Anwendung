@@ -72,6 +72,48 @@ function messagePreview(message) {
   return '—';
 }
 
+const TYPING_STORAGE_KEY = 'az-callcenter-typing';
+const TYPING_MS = 2600;
+
+function readTypingMap() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TYPING_STORAGE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function setTicketTyping(ticketId, side, active) {
+  if (!ticketId) return;
+  const map = readTypingMap();
+  const cur = { ...(map[ticketId] || {}) };
+  if (active) cur[side] = Date.now() + TYPING_MS;
+  else delete cur[side];
+  if (!cur.agent && !cur.customer) delete map[ticketId];
+  else map[ticketId] = cur;
+  try {
+    localStorage.setItem(TYPING_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    /* Quota / privater Modus */
+  }
+}
+
+function ticketTyping(ticketId, side) {
+  const until = Number(readTypingMap()[ticketId]?.[side] || 0);
+  return until > Date.now();
+}
+
+function TypingDots() {
+  return (
+    <span className="sz-typing-dots" aria-hidden>
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
     if (!file || !String(file.type || '').startsWith('image/')) {
@@ -250,6 +292,9 @@ const CallcenterNachrichten = ({
   const [templateEditing, setTemplateEditing] = useState(false);
   const [chipEditing, setChipEditing] = useState(false);
   const [chipType, setChipType] = useState('text');
+  const [typingTick, setTypingTick] = useState(0);
+  const agentTypingTimer = useRef(null);
+  const customerTypingTimer = useRef(null);
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -283,6 +328,8 @@ const CallcenterNachrichten = ({
   }, [list, channel, readTab, search, activeId]);
 
   const active = list.find((t) => t.id === activeId) || null;
+  const agentTyping = Boolean(activeId && ticketTyping(activeId, 'agent'));
+  const customerTyping = Boolean(activeId && ticketTyping(activeId, 'customer'));
   const answers = useMemo(() => {
     if (!active) return null;
     const base = formFromLead(active);
@@ -309,13 +356,22 @@ const CallcenterNachrichten = ({
   }, [inboxNotiz]);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setTypingTick((n) => n + 1), 400);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(agentTypingTimer.current);
+      window.clearTimeout(customerTypingTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
     saveQuestionConfig(questionConfig);
   }, [questionConfig]);
 
   useEffect(() => {
     if (!threadRef.current) return;
     threadRef.current.scrollTop = threadRef.current.scrollHeight;
-  }, [active?.id, active?.messages?.length]);
+  }, [active?.id, active?.messages?.length, agentTyping, customerTyping]);
 
   const unreadByChannel = useMemo(() => {
     const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
@@ -340,7 +396,21 @@ const CallcenterNachrichten = ({
     onTicketsChange?.((prev) => prev.map((t) => (t.id === id ? updater(t) : t)));
   };
 
+  const noteAgentTyping = () => {
+    if (!activeId) return;
+    setTicketTyping(activeId, 'agent', true);
+    window.clearTimeout(agentTypingTimer.current);
+    agentTypingTimer.current = window.setTimeout(() => {
+      setTicketTyping(activeId, 'agent', false);
+      setTypingTick((n) => n + 1);
+    }, TYPING_MS);
+    setTypingTick((n) => n + 1);
+  };
+
   const openTicket = (id) => {
+    if (activeId) setTicketTyping(activeId, 'agent', false);
+    window.clearTimeout(agentTypingTimer.current);
+    window.clearTimeout(customerTypingTimer.current);
     setActiveId(id);
     setDraft('');
     setPendingImages([]);
@@ -505,6 +575,7 @@ const CallcenterNachrichten = ({
     ev.target.value = '';
     if (!images.length) return;
     setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
+    noteAgentTyping();
   };
 
   const handleComposerPaste = async (ev) => {
@@ -516,6 +587,7 @@ const CallcenterNachrichten = ({
     const images = await addImageFiles(files);
     if (!images.length) return;
     setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
+    noteAgentTyping();
   };
 
   const sendText = (text) => {
@@ -541,6 +613,17 @@ const CallcenterNachrichten = ({
       setDraft('');
       setPendingImages([]);
       setSending(false);
+      setTicketTyping(active.id, 'agent', false);
+      window.clearTimeout(agentTypingTimer.current);
+      window.clearTimeout(customerTypingTimer.current);
+      customerTypingTimer.current = window.setTimeout(() => {
+        setTicketTyping(active.id, 'customer', true);
+        setTypingTick((n) => n + 1);
+        customerTypingTimer.current = window.setTimeout(() => {
+          setTicketTyping(active.id, 'customer', false);
+          setTypingTick((n) => n + 1);
+        }, TYPING_MS);
+      }, 900);
       composerRef.current?.focus();
     }, 220);
   };
@@ -711,7 +794,13 @@ const CallcenterNachrichten = ({
                         <span className="sz-ticket-meta">
                           <span className="sz-ticket-id">{t.id}</span>
                         </span>
-                        <span className="sz-ticket-preview">{messagePreview(last)}</span>
+                        <span className="sz-ticket-preview">
+                          {ticketTyping(t.id, 'customer')
+                            ? 'schreibt…'
+                            : ticketTyping(t.id, 'agent')
+                              ? 'Sie schreiben…'
+                              : messagePreview(last)}
+                        </span>
                       </span>
                       {t.unread ? <span className="sz-unread-dot" aria-label="ungelesen" /> : null}
                     </button>
@@ -814,6 +903,24 @@ const CallcenterNachrichten = ({
                     </div>
                   </div>
                 ))}
+                {customerTyping ? (
+                  <div className="sz-bubble sz-bubble--customer sz-bubble--typing">
+                    <p className="sz-bubble-author">{active.customerName || 'Kunde'}</p>
+                    <p className="sz-typing-line">
+                      <TypingDots />
+                      <span>schreibt gerade…</span>
+                    </p>
+                  </div>
+                ) : null}
+                {agentTyping ? (
+                  <div className="sz-bubble sz-bubble--agent sz-bubble--typing">
+                    <p className="sz-bubble-author">{agentName || 'Zentrale'}</p>
+                    <p className="sz-typing-line">
+                      <TypingDots />
+                      <span>Kunde sieht: schreibt gerade</span>
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               <div className="sz-composer">
@@ -922,7 +1029,10 @@ const CallcenterNachrichten = ({
                       key={q.field}
                       type="button"
                       className="sz-quick-btn"
-                      onClick={() => setDraft(q.text)}
+                      onClick={() => {
+                        setDraft(q.text);
+                        noteAgentTyping();
+                      }}
                     >
                       {q.label}
                     </button>
@@ -974,7 +1084,10 @@ const CallcenterNachrichten = ({
                     className={`form-input sz-composer-input${chatLocale === 'ar' ? ' sz-composer-input--rtl' : ''}`}
                     rows={5}
                     value={draft}
-                    onChange={(ev) => setDraft(ev.target.value)}
+                    onChange={(ev) => {
+                      setDraft(ev.target.value);
+                      noteAgentTyping();
+                    }}
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
                     placeholder={`Antwort an ${active.customerName || 'den Kunden'}…`}
