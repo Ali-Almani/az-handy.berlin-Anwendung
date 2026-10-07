@@ -15,6 +15,7 @@ import {
   migrateLeadTicketStatus,
   normalizeSocialChannel,
   NACHRICHTEN_ERLEDIGT,
+  QUESTION_FIELD_TYPES,
   questionChatLocale,
   saveInboxNotiz,
   shopAssignsTicket,
@@ -225,6 +226,8 @@ const CallcenterNachrichten = ({
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
   const [templateEditing, setTemplateEditing] = useState(false);
+  const [chipEditing, setChipEditing] = useState(false);
+  const [chipType, setChipType] = useState('text');
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -379,6 +382,30 @@ const CallcenterNachrichten = ({
     };
     patchTicket(id, assignShop);
     onStatusApplied?.(id, 'offen');
+  };
+
+  const addQuestion = (type) => {
+    const id = `cq-${Date.now().toString(36)}`;
+    const label = 'Neue Frage?';
+    setQuestionConfig((prev) => ({
+      ...prev,
+      custom: [...customQuestions(prev), { id, type, label }],
+      labels: { ...prev.labels, [id]: { ...(prev.labels?.[id] || {}), [chatLocale]: label } },
+      texts: { ...prev.texts, [id]: { ...(prev.texts?.[id] || {}), [chatLocale]: '' } },
+      options: type === 'dropdown'
+        ? { ...prev.options, [id]: ['Option 1', 'Option 2'] }
+        : prev.options,
+      order: [...visibleQuestionOrder(prev), id]
+    }));
+  };
+
+  const deleteQuestion = (field, label) => {
+    const name = label || 'Diese Frage';
+    if (!window.confirm(`${name} wirklich löschen?`)) return;
+    setQuestionConfig((prev) => ({
+      ...prev,
+      hidden: prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
+    }));
   };
 
   const patchAnswer = (field, value) => {
@@ -741,7 +768,27 @@ const CallcenterNachrichten = ({
 
               <div className="sz-composer">
                 <div className="sz-quick-head">
-                  <span className="sz-quick-head-label">Fragen</span>
+                  <span className="sz-quick-head-label">
+                    Fragen
+                    <button
+                      type="button"
+                      className={`sz-question-icon${chipEditing ? ' sz-question-icon--active' : ''}`}
+                      onClick={() => setChipEditing((open) => !open)}
+                      aria-pressed={chipEditing}
+                      aria-label={chipEditing ? 'Fragen speichern' : 'Fragen bearbeiten'}
+                      title={chipEditing ? 'Speichern' : 'Bearbeiten'}
+                    >
+                      {chipEditing ? (
+                        <svg viewBox="0 0 24 24" aria-hidden>
+                          <path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" aria-hidden>
+                          <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                        </svg>
+                      )}
+                    </button>
+                  </span>
                   <div className="sz-composer-langs" role="group" aria-label="Fragensprache">
                     {QUESTION_CHAT_LOCALES.map((item) => (
                       <button
@@ -758,16 +805,50 @@ const CallcenterNachrichten = ({
                 </div>
                 <div className={`sz-quick${chatLocale === 'ar' ? ' sz-quick--rtl' : ''}`}>
                   {templateQuestions.map((q) => (
-                    <button
-                      key={q.field}
-                      type="button"
-                      className="sz-quick-btn"
-                      onClick={() => setDraft(q.text)}
-                    >
-                      {q.label}
-                    </button>
+                    <span key={q.field} className={`sz-quick-chip${chipEditing ? ' sz-quick-chip--edit' : ''}`}>
+                      <button
+                        type="button"
+                        className="sz-quick-btn"
+                        onClick={() => {
+                          if (!chipEditing) setDraft(q.text);
+                        }}
+                      >
+                        {q.label}
+                      </button>
+                      {chipEditing ? (
+                        <button
+                          type="button"
+                          className="sz-quick-remove"
+                          onClick={() => deleteQuestion(q.field, q.label)}
+                          aria-label={`${q.label} löschen`}
+                          title="Löschen"
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                    </span>
                   ))}
                 </div>
+                {chipEditing ? (
+                  <div className="sz-template-add sz-quick-add">
+                    <label className="sz-template-options-label">
+                      Feldtyp
+                      <select
+                        className="form-input"
+                        value={chipType}
+                        onChange={(ev) => setChipType(ev.target.value)}
+                        aria-label="Feldtyp"
+                      >
+                        {QUESTION_FIELD_TYPES.map((item) => (
+                          <option key={item.id} value={item.id}>{item.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <button type="button" className="btn btn--secondary btn--small" onClick={() => addQuestion(chipType)}>
+                      Frage hinzufügen
+                    </button>
+                  </div>
+                ) : null}
                 {pendingImages.length ? (
                   <div className="sz-pending-images">
                     {pendingImages.map((img) => (
@@ -877,28 +958,8 @@ const CallcenterNachrichten = ({
               questionConfig={questionConfig}
               questionLocale={chatLocale}
               templateEditing={templateEditing}
-              onQuestionDelete={(field, label) => {
-                const name = label || 'Diese Frage';
-                if (!window.confirm(`${name} wirklich löschen?`)) return;
-                setQuestionConfig((prev) => ({
-                  ...prev,
-                  hidden: prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
-                }));
-              }}
-              onQuestionAdd={(type) => {
-                const id = `cq-${Date.now().toString(36)}`;
-                const label = 'Neue Frage?';
-                setQuestionConfig((prev) => ({
-                  ...prev,
-                  custom: [...customQuestions(prev), { id, type, label }],
-                  labels: { ...prev.labels, [id]: { ...(prev.labels?.[id] || {}), [chatLocale]: label } },
-                  texts: { ...prev.texts, [id]: { ...(prev.texts?.[id] || {}), [chatLocale]: '' } },
-                  options: type === 'dropdown'
-                    ? { ...prev.options, [id]: ['Option 1', 'Option 2'] }
-                    : prev.options,
-                  order: [...visibleQuestionOrder(prev), id]
-                }));
-              }}
+              onQuestionDelete={deleteQuestion}
+              onQuestionAdd={addQuestion}
               onQuestionMove={(field, direction) => {
                 setQuestionConfig((prev) => {
                   const order = visibleQuestionOrder(prev);

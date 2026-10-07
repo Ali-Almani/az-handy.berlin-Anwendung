@@ -590,9 +590,45 @@
 }
 
 .sz-quick-head-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.72rem;
   font-weight: $font-weight-medium;
   color: $text-light;
+}
+
+.sz-quick-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+
+  &--edit .sz-quick-btn {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.sz-quick-remove {
+  margin: 0;
+  height: 100%;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid $border-color;
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: $bg-light;
+  color: $danger-color;
+  font: inherit;
+  line-height: 1.3;
+  cursor: pointer;
+
+  &:hover {
+    background: mix(#fff, $danger-color, 90%);
+  }
+}
+
+.sz-quick-add {
+  margin-bottom: $spacing-sm;
 }
 
 .sz-composer-langs {
