@@ -1,6 +1,6 @@
 import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
-import { TICKET_PRIORITY_DEFAULT, normalizeTicketPriority } from './ticketPriority';
-import { TICKET_LANGUAGE_DEFAULT_NEU, normalizeTicketLanguage } from './ticketLanguage';
+import { TICKET_PRIORITY_DEFAULT, TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
+import { TICKET_LANGUAGE_DEFAULT_NEU, TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
 
 export { LEAD_STADT_OPTIONS } from './deutscheStaedte';
 
@@ -126,8 +126,28 @@ function leadSprache(value) {
 
 export const QUESTION_CONFIG_KEY = 'az-callcenter-question-config';
 
+export const VORLAGE_QUESTION_ORDER = [
+  'priority',
+  'sprache',
+  'rufnummer',
+  'o2Kunde',
+  'angebot',
+  'produktNotiz',
+  'stadt',
+  'marketingNotiz',
+  'terminDatum',
+  'terminZeit'
+];
+
+const DROPDOWN_DEFAULTS = {
+  priority: TICKET_PRIORITY_OPTIONS,
+  sprache: TICKET_LANGUAGE_OPTIONS,
+  o2Kunde: LEAD_O2_OPTIONS,
+  angebot: LEAD_ANGEBOT_OPTIONS
+};
+
 export function emptyQuestionConfig() {
-  return { hidden: [], labels: {}, texts: {} };
+  return { hidden: [], labels: {}, texts: {}, options: {}, order: [] };
 }
 
 export function loadQuestionConfig() {
@@ -138,7 +158,9 @@ export function loadQuestionConfig() {
     return {
       hidden: Array.isArray(parsed.hidden) ? parsed.hidden.filter(Boolean) : [],
       labels: parsed.labels && typeof parsed.labels === 'object' ? parsed.labels : {},
-      texts: parsed.texts && typeof parsed.texts === 'object' ? parsed.texts : {}
+      texts: parsed.texts && typeof parsed.texts === 'object' ? parsed.texts : {},
+      options: parsed.options && typeof parsed.options === 'object' ? parsed.options : {},
+      order: Array.isArray(parsed.order) ? parsed.order.filter((field) => VORLAGE_QUESTION_ORDER.includes(field)) : []
     };
   } catch {
     return emptyQuestionConfig();
@@ -157,15 +179,31 @@ export function isQuestionHidden(config, field) {
   return (config?.hidden || []).includes(field);
 }
 
+export function visibleQuestionOrder(config) {
+  const saved = Array.isArray(config?.order)
+    ? config.order.filter((field) => VORLAGE_QUESTION_ORDER.includes(field))
+    : [];
+  const rest = VORLAGE_QUESTION_ORDER.filter((field) => !saved.includes(field));
+  return [...saved, ...rest].filter((field) => !isQuestionHidden(config, field));
+}
+
+export function questionDropdownOptions(field, config) {
+  const custom = config?.options?.[field];
+  if (Array.isArray(custom) && custom.length) return custom.map((item) => String(item));
+  return DROPDOWN_DEFAULTS[field] ? [...DROPDOWN_DEFAULTS[field]] : null;
+}
+
 export function localizedTemplateQuestions(locale, config) {
   const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  const order = visibleQuestionOrder(config);
   return TEMPLATE_QUESTIONS
     .filter((q) => !isQuestionHidden(config, q.field))
     .map((q) => ({
       field: q.field,
       label: config?.labels?.[q.field]?.[loc] || q[loc]?.label || q.de.label,
       text: config?.texts?.[q.field]?.[loc] || q[loc]?.text || q.de.text
-    }));
+    }))
+    .sort((a, b) => order.indexOf(a.field) - order.indexOf(b.field));
 }
 
 export function templateQuestionText(field, locale) {

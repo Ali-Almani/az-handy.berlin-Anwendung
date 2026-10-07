@@ -10,6 +10,7 @@ import {
   loadQuestionConfig,
   localizedTemplateQuestions,
   saveQuestionConfig,
+  visibleQuestionOrder,
   migrateLeadTicketStatus,
   normalizeSocialChannel,
   NACHRICHTEN_ERLEDIGT,
@@ -222,6 +223,7 @@ const CallcenterNachrichten = ({
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
+  const [templateEditing, setTemplateEditing] = useState(false);
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -839,13 +841,28 @@ const CallcenterNachrichten = ({
 
         {active && answers ? (
           <aside className="sz-questions" aria-label="Vorlage Fragen">
-            <h3 className="sz-questions-title">Vorlage – Fragen</h3>
+            <div className="sz-questions-titlebar">
+              <h3 className="sz-questions-title">Vorlage – Fragen</h3>
+              <button
+                type="button"
+                className={`sz-question-icon${templateEditing ? ' sz-question-icon--active' : ''}`}
+                onClick={() => setTemplateEditing((open) => !open)}
+                aria-pressed={templateEditing}
+                aria-label="Vorlage bearbeiten"
+                title="Vorlage bearbeiten"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                </svg>
+              </button>
+            </div>
             <LeadFragenForm
               embedded
               answers={answers}
               onChange={patchAnswer}
               questionConfig={questionConfig}
               questionLocale={chatLocale}
+              templateEditing={templateEditing}
               onQuestionDelete={(field, label) => {
                 const name = label || 'Diese Frage';
                 if (!window.confirm(`${name} wirklich löschen?`)) return;
@@ -854,18 +871,39 @@ const CallcenterNachrichten = ({
                   hidden: prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
                 }));
               }}
-              onQuestionUpdate={(field, { label, text }) => {
+              onQuestionMove={(field, direction) => {
+                setQuestionConfig((prev) => {
+                  const order = visibleQuestionOrder(prev);
+                  const index = order.indexOf(field);
+                  const nextIndex = index + direction;
+                  if (index < 0 || nextIndex < 0 || nextIndex >= order.length) return prev;
+                  const next = [...order];
+                  const [item] = next.splice(index, 1);
+                  next.splice(nextIndex, 0, item);
+                  const hidden = (prev.hidden || []).filter((id) => !next.includes(id));
+                  return { ...prev, order: [...next, ...hidden] };
+                });
+              }}
+              onQuestionUpdate={(field, { label, text, options }) => {
                 setQuestionConfig((prev) => {
                   const labels = {
                     ...prev.labels,
                     [field]: { ...(prev.labels[field] || {}), [chatLocale]: label }
                   };
-                  if (text == null) return { ...prev, labels };
-                  const texts = {
-                    ...prev.texts,
-                    [field]: { ...(prev.texts[field] || {}), [chatLocale]: text }
-                  };
-                  return { ...prev, labels, texts };
+                  let next = { ...prev, labels };
+                  if (text != null) {
+                    next = {
+                      ...next,
+                      texts: {
+                        ...prev.texts,
+                        [field]: { ...(prev.texts[field] || {}), [chatLocale]: text }
+                      }
+                    };
+                  }
+                  if (Array.isArray(options)) {
+                    next = { ...next, options: { ...prev.options, [field]: options } };
+                  }
+                  return next;
                 });
               }}
             />

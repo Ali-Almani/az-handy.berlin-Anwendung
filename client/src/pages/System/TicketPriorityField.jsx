@@ -1,14 +1,24 @@
 import { TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
 
+function selectedOption(value, options, normalize) {
+  const raw = String(value ?? '').trim();
+  if (options.includes(raw)) return raw;
+  const normalized = normalize(value);
+  if (options.includes(normalized)) return normalized;
+  return options[0] || '';
+}
+
 export default function TicketPriorityField({
   id,
   value,
   onChange,
   required = false,
   questionStyle = false,
-  label
+  label,
+  options
 }) {
-  const current = normalizeTicketPriority(value);
+  const choices = Array.isArray(options) && options.length ? options : TICKET_PRIORITY_OPTIONS;
+  const current = selectedOption(value, choices, normalizeTicketPriority);
 
   return (
     <div className="form-group">
@@ -23,7 +33,7 @@ export default function TicketPriorityField({
         required={required}
         aria-label="Priorität"
       >
-        {TICKET_PRIORITY_OPTIONS.map((opt) => (
+        {choices.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>

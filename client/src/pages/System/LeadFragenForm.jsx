@@ -1,120 +1,127 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import {
-  LEAD_ANGEBOT_OPTIONS,
-  LEAD_O2_OPTIONS,
-  isQuestionHidden,
   looksLikePhoneNumber,
+  questionDropdownOptions,
   telHrefFromPhone,
   templateQuestionText,
+  visibleQuestionOrder,
   whatsappHrefFromPhone
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
 import StadtPicker from './StadtPicker';
 
-function QuestionTools({ onEdit, onDelete, editing }) {
+const FIELD_META = {
+  priority: { label: 'Priorität?', hasText: false },
+  sprache: { label: 'Sprache?', hasText: false },
+  rufnummer: { label: 'Rufnummer?', hasText: true },
+  o2Kunde: { label: 'O2 Kunde?', hasText: true },
+  angebot: { label: 'Angebot / Produkt?', hasText: true },
+  produktNotiz: { label: 'Produkt Notiz?', hasText: true },
+  stadt: { label: 'Stadt?', hasText: true },
+  marketingNotiz: { label: 'Marketing Notiz?', hasText: true },
+  terminDatum: { label: 'Termin Datum?', hasText: true },
+  terminZeit: { label: 'Termin Zeit?', hasText: true }
+};
+
+function OptionsEditor({ options, onCommit }) {
+  const joined = options.join('\n');
+  const [value, setValue] = useState(joined);
+
+  useEffect(() => {
+    setValue(joined);
+  }, [joined]);
+
   return (
-    <div className="sz-question-tools">
-      <button
-        type="button"
-        className="sz-question-icon"
-        onClick={onEdit}
-        aria-label={editing ? 'Frage speichern' : 'Frage aktualisieren'}
-        title={editing ? 'Speichern' : 'Aktualisieren'}
-      >
-        {editing ? (
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" aria-hidden>
-            <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-          </svg>
-        )}
-      </button>
-      <button
-        type="button"
-        className="sz-question-icon sz-question-icon--delete"
-        onClick={onDelete}
-        aria-label="Frage löschen"
-        title="Löschen"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden>
-          <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-        </svg>
-      </button>
-    </div>
+    <textarea
+      className="form-input sz-template-options"
+      rows={Math.min(6, Math.max(2, value.split('\n').length))}
+      value={value}
+      onChange={(ev) => setValue(ev.target.value)}
+      onBlur={() => onCommit(value.split('\n').map((line) => line.trim()).filter(Boolean))}
+    />
   );
 }
 
-function QuestionShell({
-  field,
-  fallbackLabel,
-  locale,
-  config,
-  hasText = false,
-  onDelete,
-  onUpdate,
-  children
-}) {
-  const manageable = Boolean(onDelete && onUpdate);
-  const [editing, setEditing] = useState(false);
-  const [label, setLabel] = useState('');
-  const [text, setText] = useState('');
-  if (manageable && isQuestionHidden(config, field)) return null;
-
-  const shownLabel = config?.labels?.[field]?.[locale] || fallbackLabel;
-  const shownText = config?.texts?.[field]?.[locale] || templateQuestionText(field, locale);
-
-  const startEdit = () => {
-    setLabel(shownLabel);
-    setText(shownText);
-    setEditing(true);
-  };
-
-  const saveEdit = () => {
-    const nextLabel = label.trim();
-    if (!nextLabel) return;
-    onUpdate?.(field, {
-      label: nextLabel,
-      text: hasText ? text.trim() : undefined
-    });
-    setEditing(false);
-  };
-
+function TemplateEditor({ config, locale, onUpdate, onDelete, onMove }) {
+  const order = visibleQuestionOrder(config);
   return (
-    <div className={manageable ? 'sz-question' : undefined}>
-      {manageable ? (
-        <QuestionTools
-          editing={editing}
-          onEdit={editing ? saveEdit : startEdit}
-          onDelete={() => onDelete(field, shownLabel)}
-        />
-      ) : null}
-      {editing ? (
-        <div className="sz-question-edit">
-          <label className="form-label" htmlFor={`edit-label-${field}`}>Bezeichnung</label>
-          <input
-            id={`edit-label-${field}`}
-            className="form-input"
-            value={label}
-            onChange={(ev) => setLabel(ev.target.value)}
-          />
-          {hasText ? (
-            <>
-              <label className="form-label" htmlFor={`edit-text-${field}`}>Fragentext</label>
+    <div className="sz-template-edit">
+      {order.map((field, index) => {
+        const meta = FIELD_META[field];
+        if (!meta) return null;
+        const label = config?.labels?.[field]?.[locale] || meta.label;
+        const text = config?.texts?.[field]?.[locale] || templateQuestionText(field, locale);
+        const options = questionDropdownOptions(field, config);
+        const save = (patch) => onUpdate?.(field, {
+          label: patch.label ?? label,
+          text: meta.hasText ? (patch.text ?? text) : undefined,
+          options: patch.options
+        });
+        return (
+          <div key={field} className="sz-template-item">
+            <div className="sz-template-item__bar">
+              <button
+                type="button"
+                className="sz-question-icon"
+                onClick={() => onMove?.(field, -1)}
+                disabled={index === 0}
+                aria-label="Frage nach oben"
+                title="Nach oben"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="sz-question-icon"
+                onClick={() => onMove?.(field, 1)}
+                disabled={index === order.length - 1}
+                aria-label="Frage nach unten"
+                title="Nach unten"
+              >
+                ↓
+              </button>
               <input
-                id={`edit-text-${field}`}
                 className="form-input"
-                value={text}
-                onChange={(ev) => setText(ev.target.value)}
+                value={label}
+                aria-label="Frage"
+                onChange={(ev) => save({ label: ev.target.value })}
               />
-            </>
-          ) : null}
-        </div>
-      ) : null}
-      {children(shownLabel)}
+              <button
+                type="button"
+                className="sz-question-icon sz-question-icon--delete"
+                onClick={() => onDelete?.(field, label)}
+                aria-label="Frage löschen"
+                title="Löschen"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+              </button>
+            </div>
+            {options ? (
+              <label className="sz-template-options-label">
+                Dropdown-Werte
+                <OptionsEditor
+                  options={options}
+                  onCommit={(next) => save({ options: next.length ? next : options })}
+                />
+              </label>
+            ) : null}
+            {meta.hasText ? (
+              <label className="sz-template-options-label">
+                Fragentext
+                <input
+                  className="form-input"
+                  value={text}
+                  onChange={(ev) => save({ text: ev.target.value })}
+                />
+              </label>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -131,52 +138,60 @@ export default function LeadFragenForm({
   editLog = [],
   questionConfig = null,
   questionLocale = 'de',
+  templateEditing = false,
   onQuestionDelete,
-  onQuestionUpdate
+  onQuestionUpdate,
+  onQuestionMove
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const contactTel = embedded ? telHrefFromPhone(answers?.rufnummer) : null;
   const contactWa = embedded ? whatsappHrefFromPhone(answers?.rufnummer) : null;
   const showContactActions = embedded && looksLikePhoneNumber(answers?.rufnummer) && (contactTel || contactWa);
 
-  const shell = (field, fallbackLabel, hasText, node) => (
-    <QuestionShell
-      key={field}
-      field={field}
-      fallbackLabel={fallbackLabel}
-      locale={questionLocale}
-      config={questionConfig}
-      hasText={hasText}
-      onDelete={onQuestionDelete}
-      onUpdate={onQuestionUpdate}
-    >
-      {node}
-    </QuestionShell>
-  );
+  const labelFor = (field, fallback) => questionConfig?.labels?.[field]?.[questionLocale] || fallback;
+  const order = visibleQuestionOrder(questionConfig);
 
-  const fields = (
-    <div className={embedded ? 'sz-questions-form' : 'lead-fragen-grid'}>
-      {shell('priority', 'Priorität?', false, (label) => (
-        <TicketPriorityField
-          id={`${idPrefix}-priority`}
-          value={answers?.priority}
-          onChange={(value) => patch('priority', value)}
-          questionStyle
-          label={label}
-        />
-      ))}
-      {shell('sprache', 'Sprache?', false, (label) => (
-        <TicketLanguageField
-          id={`${idPrefix}-sprache`}
-          value={answers?.sprache}
-          onChange={(value) => patch('sprache', value)}
-          questionStyle
-          label={label}
-        />
-      ))}
-      {shell('rufnummer', 'Rufnummer?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-rufnummer`}>{label}</label>
+  if (templateEditing) {
+    return (
+      <TemplateEditor
+        config={questionConfig}
+        locale={questionLocale}
+        onUpdate={onQuestionUpdate}
+        onDelete={onQuestionDelete}
+        onMove={onQuestionMove}
+      />
+    );
+  }
+
+  const o2Options = questionDropdownOptions('o2Kunde', questionConfig) || [];
+  const angebotOptions = questionDropdownOptions('angebot', questionConfig) || [];
+
+  const fieldNodes = {
+    priority: (
+      <TicketPriorityField
+        key="priority"
+        id={`${idPrefix}-priority`}
+        value={answers?.priority}
+        onChange={(value) => patch('priority', value)}
+        questionStyle
+        label={labelFor('priority', 'Priorität?')}
+        options={questionDropdownOptions('priority', questionConfig)}
+      />
+    ),
+    sprache: (
+      <TicketLanguageField
+        key="sprache"
+        id={`${idPrefix}-sprache`}
+        value={answers?.sprache}
+        onChange={(value) => patch('sprache', value)}
+        questionStyle
+        label={labelFor('sprache', 'Sprache?')}
+        options={questionDropdownOptions('sprache', questionConfig)}
+      />
+    ),
+    rufnummer: (
+      <div className="form-group" key="rufnummer">
+        <label className="form-label" htmlFor={`${idPrefix}-rufnummer`}>{labelFor('rufnummer', 'Rufnummer?')}</label>
         <div className={embedded ? 'sz-rufnummer-row' : undefined}>
           <input
             id={`${idPrefix}-rufnummer`}
@@ -188,28 +203,19 @@ export default function LeadFragenForm({
           {showContactActions ? (
             <div className="sz-contact-actions sz-contact-actions--inline">
               {contactTel ? (
-                <a href={contactTel} className="sz-contact-btn sz-contact-btn--call">
-                  Anruf
-                </a>
+                <a href={contactTel} className="sz-contact-btn sz-contact-btn--call">Anruf</a>
               ) : null}
               {contactWa ? (
-                <a
-                  href={contactWa}
-                  className="sz-contact-btn sz-contact-btn--whatsapp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  WhatsApp
-                </a>
+                <a href={contactWa} className="sz-contact-btn sz-contact-btn--whatsapp" target="_blank" rel="noopener noreferrer">WhatsApp</a>
               ) : null}
             </div>
           ) : null}
         </div>
       </div>
-      ))}
-      {shell('o2Kunde', 'O2 Kunde?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-o2`}>{label}</label>
+    ),
+    o2Kunde: (
+      <div className="form-group" key="o2Kunde">
+        <label className="form-label" htmlFor={`${idPrefix}-o2`}>{labelFor('o2Kunde', 'O2 Kunde?')}</label>
         <select
           id={`${idPrefix}-o2`}
           className="form-input"
@@ -217,15 +223,15 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('o2Kunde', ev.target.value)}
         >
           <option value="">—</option>
-          {LEAD_O2_OPTIONS.map((opt) => (
+          {o2Options.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
       </div>
-      ))}
-      {shell('angebot', 'Angebot / Produkt?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-angebot`}>{label}</label>
+    ),
+    angebot: (
+      <div className="form-group" key="angebot">
+        <label className="form-label" htmlFor={`${idPrefix}-angebot`}>{labelFor('angebot', 'Angebot / Produkt?')}</label>
         <select
           id={`${idPrefix}-angebot`}
           className="form-input"
@@ -233,15 +239,15 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('angebot', ev.target.value)}
         >
           <option value="">—</option>
-          {LEAD_ANGEBOT_OPTIONS.map((opt) => (
+          {angebotOptions.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
       </div>
-      ))}
-      {shell('produktNotiz', 'Produkt Notiz?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-produkt`}>{label}</label>
+    ),
+    produktNotiz: (
+      <div className="form-group" key="produktNotiz">
+        <label className="form-label" htmlFor={`${idPrefix}-produkt`}>{labelFor('produktNotiz', 'Produkt Notiz?')}</label>
         <input
           id={`${idPrefix}-produkt`}
           className="form-input"
@@ -249,18 +255,19 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('produktNotiz', ev.target.value)}
         />
       </div>
-      ))}
-      {shell('stadt', 'Stadt?', true, (label) => (
+    ),
+    stadt: (
       <StadtPicker
+        key="stadt"
         id={`${idPrefix}-stadt`}
-        label={label}
+        label={labelFor('stadt', 'Stadt?')}
         value={answers?.stadt || ''}
         onChange={(value) => patch('stadt', value)}
       />
-      ))}
-      {shell('marketingNotiz', 'Marketing Notiz?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-marketing`}>{label}</label>
+    ),
+    marketingNotiz: (
+      <div className="form-group" key="marketingNotiz">
+        <label className="form-label" htmlFor={`${idPrefix}-marketing`}>{labelFor('marketingNotiz', 'Marketing Notiz?')}</label>
         <input
           id={`${idPrefix}-marketing`}
           className="form-input"
@@ -268,10 +275,10 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('marketingNotiz', ev.target.value)}
         />
       </div>
-      ))}
-      {shell('terminDatum', 'Termin Datum?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-datum`}>{label}</label>
+    ),
+    terminDatum: (
+      <div className="form-group" key="terminDatum">
+        <label className="form-label" htmlFor={`${idPrefix}-datum`}>{labelFor('terminDatum', 'Termin Datum?')}</label>
         <input
           id={`${idPrefix}-datum`}
           className="form-input"
@@ -280,10 +287,10 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('terminDatum', ev.target.value)}
         />
       </div>
-      ))}
-      {shell('terminZeit', 'Termin Zeit?', true, (label) => (
-      <div className="form-group">
-        <label className="form-label" htmlFor={`${idPrefix}-zeit`}>{label}</label>
+    ),
+    terminZeit: (
+      <div className="form-group" key="terminZeit">
+        <label className="form-label" htmlFor={`${idPrefix}-zeit`}>{labelFor('terminZeit', 'Termin Zeit?')}</label>
         <input
           id={`${idPrefix}-zeit`}
           className="form-input"
@@ -292,7 +299,12 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('terminZeit', ev.target.value)}
         />
       </div>
-      ))}
+    )
+  };
+
+  const fields = (
+    <div className={embedded ? 'sz-questions-form' : 'lead-fragen-grid'}>
+      {order.map((field) => fieldNodes[field]).filter(Boolean)}
     </div>
   );
 

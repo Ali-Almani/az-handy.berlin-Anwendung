@@ -827,13 +827,62 @@
   overflow-y: auto;
 }
 
-.sz-questions-title {
-  margin: 0;
+.sz-questions-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
   padding: $spacing-sm $spacing-md;
   border-bottom: 1px solid $border-color;
+  background: $bg-color;
+}
+
+.sz-questions-title {
+  margin: 0;
   font-size: 0.82rem;
   font-weight: $font-weight-bold;
-  background: $bg-color;
+}
+
+.sz-template-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: $spacing-sm $spacing-md $spacing-md;
+}
+
+.sz-template-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid $border-color;
+}
+
+.sz-template-item__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  .form-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 2rem;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
+  }
+}
+
+.sz-template-options-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: $text-light;
+}
+
+.sz-template-options {
+  min-height: 3.2rem;
+  font-size: 0.82rem;
 }
 
 .sz-questions-form {
@@ -884,6 +933,17 @@
   &--delete:hover {
     border-color: $danger-color;
     color: $danger-color;
+  }
+
+  &--active {
+    border-color: $primary-color;
+    color: $primary-color;
+    background: mix(#fff, $primary-color, 88%);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 }
 
