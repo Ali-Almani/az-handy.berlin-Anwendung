@@ -162,7 +162,6 @@ export function withFirstMessageAutoReply(ticket) {
   nextMessages.splice(firstCustomerAt + 1, 0, {
     id: welcomeAutoReplyId(ticket.id),
     from: 'agent',
-    authorName: 'Zentrale',
     auto: 'welcome',
     locale: 'ar',
     text: FIRST_CUSTOMER_AUTO_REPLY,

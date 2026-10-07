@@ -1064,9 +1064,11 @@ const CallcenterNachrichten = ({
               <div className="sz-thread" ref={threadRef}>
                 {(active.messages || []).map((m) => (
                   <div key={m.id} className={`sz-bubble sz-bubble--${m.from}`}>
-                    <p className="sz-bubble-author">
-                      {m.from === 'agent' ? m.authorName || 'Zentrale' : active.customerName}
-                    </p>
+                    {m.auto === 'welcome' ? null : (
+                      <p className="sz-bubble-author">
+                        {m.from === 'agent' ? m.authorName || 'Zentrale' : active.customerName}
+                      </p>
+                    )}
                     {messageImages(m).length ? (
                       <div className="sz-bubble-images">
                         {messageImages(m).map((img) => (
