@@ -802,7 +802,7 @@
 .sz-composer-input {
   width: 100%;
   min-height: 8.5rem;
-  padding-right: 6.4rem;
+  padding-right: 12.6rem;
   padding-bottom: 3.2rem;
   resize: vertical;
   font-size: 0.95rem;
@@ -810,7 +810,7 @@
 
   &--rtl {
     padding-right: $spacing-md;
-    padding-left: 6.4rem;
+    padding-left: 12.6rem;
     text-align: right;
     font-size: 1rem;
   }
@@ -886,6 +886,49 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
+
+  &--recording {
+    border-color: $danger-color;
+    background: mix(#fff, $danger-color, 88%);
+    color: $danger-color;
+  }
+}
+
+.sz-bubble-voices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.sz-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  audio {
+    width: 13.5rem;
+    max-width: 100%;
+    height: 2rem;
+  }
+}
+
+.sz-voice-duration {
+  font-size: 0.7rem;
+  color: $text-light;
+}
+
+.sz-pending-voice {
+  position: relative;
+  margin-bottom: 0.45rem;
+  padding-right: 1.6rem;
+}
+
+.sz-recording {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: $font-weight-medium;
+  color: $danger-color;
 }
 
 .sz-pending-images {

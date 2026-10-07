@@ -63,9 +63,84 @@ function messageImages(message) {
   return [];
 }
 
+function messageVoices(message) {
+  if (Array.isArray(message?.voices)) {
+    return message.voices.filter((voice) => voice && voice.src);
+  }
+  if (message?.voice) return [{ id: `${message.id}-voice`, src: message.voice, duration: message.duration }];
+  return [];
+}
+
+function formatVoiceDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function blobToVoice(blob, duration) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Aufnahme konnte nicht gespeichert werden.'));
+    reader.onload = () => resolve({
+      id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      src: String(reader.result || ''),
+      duration
+    });
+    reader.readAsDataURL(blob);
+  });
+}
+
+function audioDuration(src) {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    const finish = (value) => resolve(Number.isFinite(value) ? Math.round(value) : 0);
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => finish(audio.duration);
+    audio.onerror = () => finish(0);
+    audio.src = src;
+  });
+}
+
+function readAudioFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !String(file.type || '').startsWith('audio/')) {
+      reject(new Error('Nur Audiodateien sind erlaubt.'));
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      reject(new Error('Sprachnachricht ist zu groß (max. 4 MB).'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Voice konnte nicht gelesen werden.'));
+    reader.onload = async () => {
+      const src = String(reader.result || '');
+      const duration = await audioDuration(src);
+      resolve({
+        id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        src,
+        duration
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function VoicePlayer({ voice }) {
+  if (!voice?.src) return null;
+  return (
+    <div className="sz-voice">
+      <audio controls preload="metadata" src={voice.src} />
+      {voice.duration ? (
+        <span className="sz-voice-duration">{formatVoiceDuration(voice.duration)}</span>
+      ) : null}
+    </div>
+  );
+}
+
 function messagePreview(message) {
   const text = String(message?.text || '').trim();
   if (text) return text;
+  if (messageVoices(message).length) return 'Sprachnachricht';
   const count = messageImages(message).length;
   if (count > 1) return `${count} Bilder`;
   if (count === 1) return 'Bild';
@@ -285,6 +360,9 @@ const CallcenterNachrichten = ({
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
   const [pendingImages, setPendingImages] = useState([]);
+  const [pendingVoice, setPendingVoice] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const [recordSecs, setRecordSecs] = useState(0);
   const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState('');
@@ -298,6 +376,12 @@ const CallcenterNachrichten = ({
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
+  const customerVoiceInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordChunksRef = useRef([]);
+  const recordTimerRef = useRef(null);
+  const recordSecsRef = useRef(0);
+  const ignoreRecordRef = useRef(false);
   const list = tickets || [];
 
   const filtered = useMemo(() => {
@@ -317,7 +401,7 @@ const CallcenterNachrichten = ({
           t.handle,
           t.rufnummer,
           t.angebot,
-          ...(t.messages || []).map((m) => m.text)
+          ...(t.messages || []).map((m) => (m.text || (messageVoices(m).length ? 'Sprachnachricht' : '')))
         ]
           .filter(Boolean)
           .join(' ')
@@ -361,6 +445,8 @@ const CallcenterNachrichten = ({
       window.clearInterval(timer);
       window.clearTimeout(agentTypingTimer.current);
       window.clearTimeout(customerTypingTimer.current);
+      window.clearInterval(recordTimerRef.current);
+      mediaRecorderRef.current?.stream?.getTracks?.().forEach((track) => track.stop());
     };
   }, []);
 
@@ -414,6 +500,14 @@ const CallcenterNachrichten = ({
     setActiveId(id);
     setDraft('');
     setPendingImages([]);
+    setPendingVoice(null);
+    setRecording(false);
+    setRecordSecs(0);
+    window.clearInterval(recordTimerRef.current);
+    ignoreRecordRef.current = true;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     setMobileShowChat(true);
     patchTicket(id, (t) => withMitarbeiter({ ...t, unread: false }, agentName));
   };
@@ -590,11 +684,103 @@ const CallcenterNachrichten = ({
     noteAgentTyping();
   };
 
+  const stopRecording = () => {
+    window.clearInterval(recordTimerRef.current);
+    const rec = mediaRecorderRef.current;
+    if (rec && rec.state !== 'inactive') rec.stop();
+    setRecording(false);
+  };
+
+  const toggleRecording = async () => {
+    if (sending) return;
+    if (recording) {
+      stopRecording();
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      window.alert('Sprachnachrichten werden in diesem Browser nicht unterstützt.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(
+        (type) => MediaRecorder.isTypeSupported(type)
+      );
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      recordChunksRef.current = [];
+      rec.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size) recordChunksRef.current.push(ev.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(recordChunksRef.current, { type: rec.mimeType || 'audio/webm' });
+        recordChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        if (ignoreRecordRef.current) {
+          ignoreRecordRef.current = false;
+          setRecording(false);
+          return;
+        }
+        if (blob.size < 800) {
+          setRecording(false);
+          return;
+        }
+        try {
+          const voice = await blobToVoice(blob, recordSecsRef.current);
+          setPendingVoice(voice);
+          noteAgentTyping();
+        } catch (err) {
+          window.alert(err?.message || 'Aufnahme konnte nicht gespeichert werden.');
+        }
+      };
+      mediaRecorderRef.current = rec;
+      ignoreRecordRef.current = false;
+      setPendingVoice(null);
+      setRecordSecs(0);
+      recordSecsRef.current = 0;
+      setRecording(true);
+      rec.start();
+      recordTimerRef.current = window.setInterval(() => {
+        setRecordSecs((secs) => {
+          const next = secs + 1;
+          recordSecsRef.current = next;
+          return next;
+        });
+      }, 1000);
+      noteAgentTyping();
+    } catch {
+      window.alert('Mikrofonzugriff wurde abgelehnt oder ist nicht verfügbar.');
+    }
+  };
+
+  const handleCustomerVoice = async (ev) => {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file || !active) return;
+    try {
+      const voice = await readAudioFile(file);
+      patchTicket(active.id, (t) => withMitarbeiter({
+        ...t,
+        unread: false,
+        messages: [...(t.messages || []), {
+          id: `local-${Date.now()}`,
+          from: 'customer',
+          text: '',
+          voices: [voice],
+          at: new Date().toISOString()
+        }]
+      }, agentName));
+    } catch (err) {
+      window.alert(err?.message || 'Voice vom Kunden konnte nicht gelesen werden.');
+    }
+  };
+
   const sendText = (text) => {
     if (!active || sending) return;
     const body = String(text || '').trim();
     const images = pendingImages.map(({ id, src }) => ({ id, src }));
-    if (!body && !images.length) return;
+    const voices = pendingVoice ? [{ id: pendingVoice.id, src: pendingVoice.src, duration: pendingVoice.duration }] : [];
+    if (!body && !images.length && !voices.length) return;
     setSending(true);
     const message = {
       id: `local-${Date.now()}`,
@@ -602,6 +788,7 @@ const CallcenterNachrichten = ({
       authorName: agentName || 'Zentrale',
       text: body,
       images,
+      voices,
       at: new Date().toISOString()
     };
     window.setTimeout(() => {
@@ -612,6 +799,7 @@ const CallcenterNachrichten = ({
       }, agentName));
       setDraft('');
       setPendingImages([]);
+      setPendingVoice(null);
       setSending(false);
       setTicketTyping(active.id, 'agent', false);
       window.clearTimeout(agentTypingTimer.current);
@@ -650,6 +838,7 @@ const CallcenterNachrichten = ({
       setActiveId(null);
       setDraft('');
       setPendingImages([]);
+      setPendingVoice(null);
       setMobileShowChat(false);
     }
   };
@@ -887,6 +1076,13 @@ const CallcenterNachrichten = ({
                         ))}
                       </div>
                     ) : null}
+                    {messageVoices(m).length ? (
+                      <div className="sz-bubble-voices">
+                        {messageVoices(m).map((voice) => (
+                          <VoicePlayer key={voice.id} voice={voice} />
+                        ))}
+                      </div>
+                    ) : null}
                     {m.text ? <p className="sz-bubble-text">{m.text}</p> : null}
                     <div className="sz-bubble-meta">
                       <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
@@ -1076,6 +1272,22 @@ const CallcenterNachrichten = ({
                     ))}
                   </div>
                 ) : null}
+                {pendingVoice ? (
+                  <div className="sz-pending-voice">
+                    <VoicePlayer voice={pendingVoice} />
+                    <button
+                      type="button"
+                      className="sz-pending-remove"
+                      onClick={() => setPendingVoice(null)}
+                      aria-label="Sprachnachricht entfernen"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : null}
+                {recording ? (
+                  <p className="sz-recording">Aufnahme… {formatVoiceDuration(recordSecs)}</p>
+                ) : null}
                 <div className={`sz-composer-field${chatLocale === 'ar' ? ' sz-composer-field--rtl' : ''}`}>
                   <label className="visually-hidden" htmlFor="sz-reply">Antwort</label>
                   <textarea
@@ -1100,7 +1312,7 @@ const CallcenterNachrichten = ({
                       type="button"
                       className="sz-attach-btn"
                       onClick={() => imageInputRef.current?.click()}
-                      disabled={sending}
+                      disabled={sending || recording}
                       aria-label="Bild senden"
                       title="Bild senden"
                     >
@@ -1108,6 +1320,36 @@ const CallcenterNachrichten = ({
                         <path
                           fill="currentColor"
                           d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`sz-attach-btn${recording ? ' sz-attach-btn--recording' : ''}`}
+                      onClick={toggleRecording}
+                      disabled={sending}
+                      aria-label={recording ? 'Aufnahme stoppen' : 'Sprachnachricht senden'}
+                      title={recording ? 'Aufnahme stoppen' : 'Sprachnachricht senden'}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden>
+                        <path
+                          fill="currentColor"
+                          d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 0014 0h-2zm-5 8a1 1 0 001-1h2a3 3 0 01-3 3 3 3 0 01-3-3h2a1 1 0 001 1z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="sz-attach-btn"
+                      onClick={() => customerVoiceInputRef.current?.click()}
+                      disabled={sending || recording}
+                      aria-label="Voice vom Kunden"
+                      title="Voice vom Kunden"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden>
+                        <path
+                          fill="currentColor"
+                          d="M12 3l4 4h-3v6h-2V7H8l4-4zm-7 14h14v2H5v-2z"
                         />
                       </svg>
                     </button>
@@ -1119,11 +1361,18 @@ const CallcenterNachrichten = ({
                       hidden
                       onChange={handleOwnImages}
                     />
+                    <input
+                      ref={customerVoiceInputRef}
+                      type="file"
+                      accept="audio/*"
+                      hidden
+                      onChange={handleCustomerVoice}
+                    />
                     <button
                       type="button"
                       className="sz-send"
                       onClick={sendReply}
-                      disabled={sending || (!draft.trim() && pendingImages.length === 0)}
+                      disabled={sending || recording || (!draft.trim() && pendingImages.length === 0 && !pendingVoice)}
                       aria-label="Senden"
                       title="Senden"
                     >
@@ -1134,7 +1383,7 @@ const CallcenterNachrichten = ({
                   </div>
                 </div>
                 <p className="sz-composer-hint">
-                  Sprache wählen, dann Fragen-Chip. Enter sendet, Umschalt+Enter neue Zeile.
+                  Mikrofon: Voice an den Kunden. Pfeil: Voice vom Kunden. Enter sendet.
                 </p>
               </div>
             </>
