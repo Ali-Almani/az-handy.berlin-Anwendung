@@ -118,6 +118,59 @@ export function spracheFromQuestionLocale(locale) {
   return found?.sprache || TICKET_LANGUAGE_DEFAULT_NEU;
 }
 
+export const FIRST_CUSTOMER_AUTO_REPLY = `أهلاً بك في AZ Handy Berlin! 
+استلمنا رسالتك، وسيرد عليك أحد زملائنا شخصياً بأقرب وقت خلال ساعات العمل.
+
+📞 للاستفسارات : 03076767089
+🕙 الإثنين–السبت: 10 صباحاً–6 مساءً
+
+📍 فروعنا في برلين:
+Sonnenallee 16, 12047
+Karl-Marx-Straße 50, 12043
+Karl-Marx-Straße 127, 12043
+Karl-Marx-Straße 169, 12043
+Badstraße 12, 13357
+Turmstraße 47, 10551
+Hauptstraße 156, 10827
+
+🌐 أحدث عروضنا:
+az-handy.berlin
+
+شكراً جزيلاً، يسعدنا مساعدتك! 🌟`;
+
+function welcomeAutoReplyId(ticketId) {
+  return `auto-welcome-${ticketId || 'ticket'}`;
+}
+
+function isWelcomeAutoReply(message) {
+  return message?.auto === 'welcome' || String(message?.id || '').startsWith('auto-welcome-');
+}
+
+export function withFirstMessageAutoReply(ticket) {
+  if (!ticket) return ticket;
+  const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
+  const firstCustomerAt = messages.findIndex((m) => m?.from === 'customer');
+  if (firstCustomerAt < 0) return ticket;
+  if (ticket.welcomeAutoSent || messages.some(isWelcomeAutoReply)) {
+    return ticket.welcomeAutoSent ? ticket : { ...ticket, welcomeAutoSent: true };
+  }
+  const firstAt = messages[firstCustomerAt]?.at;
+  const autoAt = firstAt && !Number.isNaN(new Date(firstAt).getTime())
+    ? new Date(new Date(firstAt).getTime() + 1000).toISOString()
+    : new Date().toISOString();
+  const nextMessages = messages.slice();
+  nextMessages.splice(firstCustomerAt + 1, 0, {
+    id: welcomeAutoReplyId(ticket.id),
+    from: 'agent',
+    authorName: 'Zentrale',
+    auto: 'welcome',
+    locale: 'ar',
+    text: FIRST_CUSTOMER_AUTO_REPLY,
+    at: autoAt
+  });
+  return { ...ticket, welcomeAutoSent: true, messages: nextMessages };
+}
+
 function leadSprache(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return TICKET_LANGUAGE_DEFAULT_NEU;
@@ -1013,13 +1066,14 @@ export function loadLeadTickets() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return ensureCustomerVoiceDemo(ensureWhatsAppSeed(parsed.map(hydrateLeadTicket)));
+        return ensureCustomerVoiceDemo(ensureWhatsAppSeed(parsed.map(hydrateLeadTicket)))
+          .map(withFirstMessageAutoReply);
       }
     }
   } catch {
     /* Store ungültig – Seed verwenden */
   }
-  return ensureCustomerVoiceDemo(cloneSeed().map(hydrateLeadTicket));
+  return ensureCustomerVoiceDemo(cloneSeed().map(hydrateLeadTicket)).map(withFirstMessageAutoReply);
 }
 
 export function saveLeadTickets(tickets) {

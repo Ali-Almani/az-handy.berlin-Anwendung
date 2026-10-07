@@ -26,6 +26,7 @@ import {
   sanitizeMitarbeiterName,
   collectMitarbeiterNames,
   withMitarbeiter,
+  withFirstMessageAutoReply,
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
   isLeadArchived,
@@ -505,7 +506,7 @@ const CallcenterNachrichten = ({
   }, [list, channel]);
 
   const patchTicket = (id, updater) => {
-    onTicketsChange?.((prev) => prev.map((t) => (t.id === id ? updater(t) : t)));
+    onTicketsChange?.((prev) => prev.map((t) => (t.id === id ? withFirstMessageAutoReply(updater(t)) : t)));
   };
 
   const noteAgentTyping = () => {
@@ -1087,10 +1088,18 @@ const CallcenterNachrichten = ({
                         ))}
                       </div>
                     ) : null}
-                    {m.text ? <p className="sz-bubble-text">{m.text}</p> : null}
+                    {m.text ? (
+                      <p
+                        className={`sz-bubble-text${m.locale === 'ar' ? ' sz-bubble-text--rtl' : ''}`}
+                        dir={m.locale === 'ar' ? 'rtl' : undefined}
+                        lang={m.locale === 'ar' ? 'ar' : undefined}
+                      >
+                        {m.text}
+                      </p>
+                    ) : null}
                     <div className="sz-bubble-meta">
                       <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
-                      {m.from === 'agent' ? (
+                      {m.from === 'agent' && m.auto !== 'welcome' ? (
                         <button
                           type="button"
                           className="sz-bubble-delete"
