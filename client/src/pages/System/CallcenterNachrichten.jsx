@@ -356,6 +356,15 @@ const CallcenterNachrichten = ({
 
   const sendReply = () => sendText(draft);
 
+  const deleteMessage = (ticketId, message) => {
+    if (!ticketId || !message?.id) return;
+    if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
+    patchTicket(ticketId, (t) => ({
+      ...t,
+      messages: (t.messages || []).filter((m) => m.id !== message.id)
+    }));
+  };
+
   const handleComposerKey = (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey) {
       ev.preventDefault();
@@ -556,7 +565,17 @@ const CallcenterNachrichten = ({
                       {m.from === 'agent' ? m.authorName || 'Zentrale' : active.customerName}
                     </p>
                     <p className="sz-bubble-text">{m.text}</p>
-                    <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
+                    <div className="sz-bubble-meta">
+                      <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
+                      <button
+                        type="button"
+                        className="sz-bubble-delete"
+                        onClick={() => deleteMessage(active.id, m)}
+                        aria-label="Nachricht löschen"
+                      >
+                        Löschen
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

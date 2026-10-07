@@ -494,12 +494,34 @@
   word-break: break-word;
 }
 
+.sz-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 0.3rem;
+}
+
 .sz-bubble-time {
   display: block;
-  margin-top: 0.3rem;
   font-size: 0.7rem;
   color: $text-light;
   text-align: right;
+}
+
+.sz-bubble-delete {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $danger-color;
+  font-size: 0.7rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.2;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .sz-composer {
