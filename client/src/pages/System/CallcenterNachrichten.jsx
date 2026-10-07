@@ -558,10 +558,17 @@ const CallcenterNachrichten = ({
                 <ContactActionButtons phone={contactPhone} />
                 <button
                   type="button"
-                  className="btn btn--danger btn--small sz-delete-customer"
+                  className="sz-delete-customer"
                   onClick={() => deleteCustomerFromInbox(active)}
+                  aria-label="Aus Postfach löschen"
+                  title="Aus Postfach löschen"
                 >
-                  Aus Postfach löschen
+                  <svg viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      fill="currentColor"
+                      d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                    />
+                  </svg>
                 </button>
                 <div className="sz-chat-status">
                   <StatusShopSelect

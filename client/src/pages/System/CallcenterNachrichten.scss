@@ -438,7 +438,29 @@
 }
 
 .sz-delete-customer {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid mix(#fff, $danger-color, 55%);
+  border-radius: 6px;
+  background: mix(#fff, $danger-color, 92%);
+  color: $danger-color;
+  cursor: pointer;
+
+  svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  &:hover {
+    background: $danger-color;
+    border-color: $danger-color;
+    color: #fff;
+  }
 }
 
 .sz-chat-title {
