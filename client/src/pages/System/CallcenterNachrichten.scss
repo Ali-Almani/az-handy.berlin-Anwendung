@@ -512,6 +512,31 @@
   color: $text-light;
 }
 
+.sz-bubble-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.sz-bubble-image {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+
+  img {
+    display: block;
+    width: 9.5rem;
+    max-width: 100%;
+    height: 7rem;
+    object-fit: cover;
+  }
+}
+
 .sz-bubble-text {
   margin: 0;
   font-size: 0.9rem;
@@ -694,6 +719,104 @@
   right: auto;
   left: 0.55rem;
   bottom: 0.55rem;
+}
+
+.sz-attach {
+  position: absolute;
+  left: 0.55rem;
+  bottom: 0.55rem;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.sz-composer-field--rtl .sz-attach {
+  left: auto;
+  right: 1.35rem;
+}
+
+.sz-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  background: $bg-color;
+  color: $text-color;
+  cursor: pointer;
+
+  svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.sz-pending-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.sz-pending-image {
+  position: relative;
+
+  img {
+    display: block;
+    width: 4.2rem;
+    height: 4.2rem;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid $border-color;
+  }
+}
+
+.sz-pending-remove {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sz-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border: 0;
+  background: rgba(0, 0, 0, 0.72);
+  cursor: zoom-out;
+
+  img {
+    max-width: min(92vw, 56rem);
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 8px;
+  }
 }
 
 .sz-composer-hint {

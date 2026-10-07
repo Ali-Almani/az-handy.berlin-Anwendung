@@ -45,6 +45,60 @@ function formatListTime(iso) {
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 }
 
+const MAX_MESSAGE_IMAGES = 6;
+
+function messageImages(message) {
+  if (Array.isArray(message?.images)) {
+    return message.images.filter((img) => img && img.src);
+  }
+  if (message?.image) return [{ id: `${message.id}-img`, src: message.image }];
+  return [];
+}
+
+function messagePreview(message) {
+  const text = String(message?.text || '').trim();
+  if (text) return text;
+  const count = messageImages(message).length;
+  if (count > 1) return `${count} Bilder`;
+  if (count === 1) return 'Bild';
+  return '—';
+}
+
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !String(file.type || '').startsWith('image/')) {
+      reject(new Error('Nur Bilder sind erlaubt.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.'));
+      img.onload = () => {
+        const max = 1280;
+        let width = img.width;
+        let height = img.height;
+        if (width > max || height > max) {
+          const scale = max / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+        resolve({
+          id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          src: canvas.toDataURL('image/jpeg', 0.72)
+        });
+      };
+      img.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function formatChatTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -161,10 +215,14 @@ const CallcenterNachrichten = ({
   const [search, setSearch] = useState('');
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
+  const [pendingImages, setPendingImages] = useState([]);
   const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState('');
   const threadRef = useRef(null);
   const composerRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const customerImageInputRef = useRef(null);
   const list = tickets || [];
 
   const filtered = useMemo(() => {
@@ -244,6 +302,7 @@ const CallcenterNachrichten = ({
   const openTicket = (id) => {
     setActiveId(id);
     setDraft('');
+    setPendingImages([]);
     setMobileShowChat(true);
     patchTicket(id, (t) => ({
       ...t,
@@ -328,16 +387,77 @@ const CallcenterNachrichten = ({
     if (next?.text) setDraft(next.text);
   };
 
+  const addImageFiles = async (fileList, target) => {
+    const files = Array.from(fileList || []).filter((file) => String(file.type || '').startsWith('image/'));
+    if (!files.length) {
+      window.alert('Bitte nur Bilder auswählen.');
+      return [];
+    }
+    const room = MAX_MESSAGE_IMAGES - (target === 'pending' ? pendingImages.length : 0);
+    if (room <= 0) {
+      window.alert(`Höchstens ${MAX_MESSAGE_IMAGES} Bilder pro Nachricht.`);
+      return [];
+    }
+    const picked = files.slice(0, room);
+    if (files.length > room) {
+      window.alert(`Höchstens ${MAX_MESSAGE_IMAGES} Bilder pro Nachricht.`);
+    }
+    try {
+      return await Promise.all(picked.map(readImageFile));
+    } catch (err) {
+      window.alert(err?.message || 'Bild konnte nicht gelesen werden.');
+      return [];
+    }
+  };
+
+  const handleOwnImages = async (ev) => {
+    const images = await addImageFiles(ev.target.files, 'pending');
+    ev.target.value = '';
+    if (!images.length) return;
+    setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
+  };
+
+  const handleCustomerImages = async (ev) => {
+    const images = await addImageFiles(ev.target.files, 'customer');
+    ev.target.value = '';
+    if (!active || !images.length) return;
+    const message = {
+      id: `local-${Date.now()}`,
+      from: 'customer',
+      text: '',
+      images,
+      at: new Date().toISOString()
+    };
+    patchTicket(active.id, (t) => ({
+      ...t,
+      unread: false,
+      messages: [...(t.messages || []), message]
+    }));
+  };
+
+  const handleComposerPaste = async (ev) => {
+    const files = Array.from(ev.clipboardData?.files || []).filter((file) =>
+      String(file.type || '').startsWith('image/')
+    );
+    if (!files.length) return;
+    ev.preventDefault();
+    const images = await addImageFiles(files, 'pending');
+    if (!images.length) return;
+    setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
+  };
+
   const sendText = (text) => {
     if (!active || sending) return;
     const body = String(text || '').trim();
-    if (!body) return;
+    const images = pendingImages.map(({ id, src }) => ({ id, src }));
+    if (!body && !images.length) return;
     setSending(true);
     const message = {
       id: `local-${Date.now()}`,
       from: 'agent',
       authorName: agentName || 'Zentrale',
       text: body,
+      images,
       at: new Date().toISOString()
     };
     window.setTimeout(() => {
@@ -348,6 +468,7 @@ const CallcenterNachrichten = ({
         messages: [...(t.messages || []), message]
       }));
       setDraft('');
+      setPendingImages([]);
       setSending(false);
       composerRef.current?.focus();
     }, 220);
@@ -374,6 +495,7 @@ const CallcenterNachrichten = ({
     if (activeId === ticket.id) {
       setActiveId(null);
       setDraft('');
+      setPendingImages([]);
       setMobileShowChat(false);
     }
   };
@@ -518,7 +640,7 @@ const CallcenterNachrichten = ({
                         <span className="sz-ticket-meta">
                           <span className="sz-ticket-id">{t.id}</span>
                         </span>
-                        <span className="sz-ticket-preview">{last?.text || '—'}</span>
+                        <span className="sz-ticket-preview">{messagePreview(last)}</span>
                       </span>
                       {t.unread ? <span className="sz-unread-dot" aria-label="ungelesen" /> : null}
                     </button>
@@ -587,7 +709,21 @@ const CallcenterNachrichten = ({
                     <p className="sz-bubble-author">
                       {m.from === 'agent' ? m.authorName || 'Zentrale' : active.customerName}
                     </p>
-                    <p className="sz-bubble-text">{m.text}</p>
+                    {messageImages(m).length ? (
+                      <div className="sz-bubble-images">
+                        {messageImages(m).map((img) => (
+                          <button
+                            key={img.id}
+                            type="button"
+                            className="sz-bubble-image"
+                            onClick={() => setLightboxSrc(img.src)}
+                          >
+                            <img src={img.src} alt="" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    {m.text ? <p className="sz-bubble-text">{m.text}</p> : null}
                     <div className="sz-bubble-meta">
                       <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
                       {m.from === 'agent' ? (
@@ -634,6 +770,23 @@ const CallcenterNachrichten = ({
                     </button>
                   ))}
                 </div>
+                {pendingImages.length ? (
+                  <div className="sz-pending-images">
+                    {pendingImages.map((img) => (
+                      <div key={img.id} className="sz-pending-image">
+                        <img src={img.src} alt="" />
+                        <button
+                          type="button"
+                          className="sz-pending-remove"
+                          onClick={() => setPendingImages((prev) => prev.filter((item) => item.id !== img.id))}
+                          aria-label="Bild entfernen"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 <div className={`sz-composer-field${chatLocale === 'ar' ? ' sz-composer-field--rtl' : ''}`}>
                   <label className="visually-hidden" htmlFor="sz-reply">Antwort</label>
                   <textarea
@@ -644,16 +797,65 @@ const CallcenterNachrichten = ({
                     value={draft}
                     onChange={(ev) => setDraft(ev.target.value)}
                     onKeyDown={handleComposerKey}
+                    onPaste={handleComposerPaste}
                     placeholder={`Antwort an ${active.customerName || 'den Kunden'}…`}
                     disabled={sending}
                     dir={chatLocale === 'ar' ? 'rtl' : 'ltr'}
                     lang={chatLocale === 'ar' ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
+                  <div className="sz-attach">
+                    <button
+                      type="button"
+                      className="sz-attach-btn"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={sending}
+                      aria-label="Bild senden"
+                      title="Bild senden"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden>
+                        <path
+                          fill="currentColor"
+                          d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="sz-attach-btn"
+                      onClick={() => customerImageInputRef.current?.click()}
+                      disabled={sending}
+                      aria-label="Bild vom Kunden"
+                      title="Bild vom Kunden"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden>
+                        <path
+                          fill="currentColor"
+                          d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-3.3 0-8 1.7-8 4v2h16v-2c0-2.3-4.7-4-8-4z"
+                        />
+                      </svg>
+                    </button>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      hidden
+                      onChange={handleOwnImages}
+                    />
+                    <input
+                      ref={customerImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      hidden
+                      onChange={handleCustomerImages}
+                    />
+                  </div>
                   <button
                     type="button"
                     className="sz-send"
                     onClick={sendReply}
-                    disabled={sending || !draft.trim()}
+                    disabled={sending || (!draft.trim() && pendingImages.length === 0)}
                     aria-label="Senden"
                     title="Senden"
                   >
@@ -677,6 +879,16 @@ const CallcenterNachrichten = ({
           </aside>
         ) : null}
       </div>
+      {lightboxSrc ? (
+        <button
+          type="button"
+          className="sz-lightbox"
+          onClick={() => setLightboxSrc('')}
+          aria-label="Bild schließen"
+        >
+          <img src={lightboxSrc} alt="" />
+        </button>
+      ) : null}
     </section>
   );
 };
