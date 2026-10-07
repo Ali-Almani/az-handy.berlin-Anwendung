@@ -1,6 +1,6 @@
 import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
-import { channelLabel, formFromLead } from './callcenterLeadData';
+import { formFromLead } from './callcenterLeadData';
 
 export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], onAnswerChange }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
@@ -13,9 +13,6 @@ export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], on
           <h3 className="lead-fragen-panel__title">{customerName}</h3>
           <p className="lead-fragen-panel__sub">
             {ticket?.id}
-            {' · '}
-            {channelLabel(ticket?.channel)}
-            {ticket?.handle ? ` · ${ticket.handle}` : ''}
           </p>
         </div>
         {onClose ? (

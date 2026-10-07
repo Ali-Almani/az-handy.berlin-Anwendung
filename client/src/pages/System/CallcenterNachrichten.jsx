@@ -21,7 +21,6 @@ import {
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
   isLeadArchived,
-  channelLabel,
   leadPhoneNumber,
   looksLikePhoneNumber,
   telHrefFromPhone,
@@ -518,7 +517,6 @@ const CallcenterNachrichten = ({
                         </span>
                         <span className="sz-ticket-meta">
                           <span className="sz-ticket-id">{t.id}</span>
-                          <span>{t.handle || t.rufnummer || ''}</span>
                         </span>
                         <span className="sz-ticket-preview">{last?.text || '—'}</span>
                       </span>
@@ -550,9 +548,6 @@ const CallcenterNachrichten = ({
                   <h2 className="sz-chat-title">{active.customerName || active.rufnummer || 'Nachricht'}</h2>
                   <p className="sz-chat-sub">
                     <span className="sz-ticket-id">{active.id}</span>
-                    {' · '}
-                    {channelLabel(active.channel)}
-                    {active.handle ? ` · ${active.handle}` : ''}
                   </p>
                 </div>
                 <ContactActionButtons phone={contactPhone} />
