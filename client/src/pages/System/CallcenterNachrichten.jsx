@@ -7,7 +7,9 @@ import {
   leadFieldChange,
   lastMessageAt,
   loadInboxNotiz,
+  loadQuestionConfig,
   localizedTemplateQuestions,
+  saveQuestionConfig,
   migrateLeadTicketStatus,
   normalizeSocialChannel,
   NACHRICHTEN_ERLEDIGT,
@@ -219,6 +221,7 @@ const CallcenterNachrichten = ({
   const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState('');
+  const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -256,8 +259,8 @@ const CallcenterNachrichten = ({
   const showNotiz = readTab === 'notiz';
   const chatLocale = questionChatLocale(active?.sprache);
   const templateQuestions = useMemo(
-    () => localizedTemplateQuestions(chatLocale),
-    [chatLocale]
+    () => localizedTemplateQuestions(chatLocale, questionConfig),
+    [chatLocale, questionConfig]
   );
   const contactPhone = useMemo(() => {
     if (!active) return '';
@@ -269,6 +272,10 @@ const CallcenterNachrichten = ({
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
   }, [inboxNotiz]);
+
+  useEffect(() => {
+    saveQuestionConfig(questionConfig);
+  }, [questionConfig]);
 
   useEffect(() => {
     if (!threadRef.current) return;
@@ -380,9 +387,9 @@ const CallcenterNachrichten = ({
   const handleQuestionLocale = (locale) => {
     if (!active) return;
     patchAnswer('sprache', spracheFromQuestionLocale(locale));
-    const field = templateFieldMatchingDraft(draft);
+    const field = templateFieldMatchingDraft(draft, questionConfig);
     if (!field) return;
-    const next = localizedTemplateQuestions(locale).find((q) => q.field === field);
+    const next = localizedTemplateQuestions(locale, questionConfig).find((q) => q.field === field);
     if (next?.text) setDraft(next.text);
   };
 
@@ -833,7 +840,35 @@ const CallcenterNachrichten = ({
         {active && answers ? (
           <aside className="sz-questions" aria-label="Vorlage Fragen">
             <h3 className="sz-questions-title">Vorlage – Fragen</h3>
-            <LeadFragenForm embedded answers={answers} onChange={patchAnswer} />
+            <LeadFragenForm
+              embedded
+              answers={answers}
+              onChange={patchAnswer}
+              questionConfig={questionConfig}
+              questionLocale={chatLocale}
+              onQuestionDelete={(field, label) => {
+                const name = label || 'Diese Frage';
+                if (!window.confirm(`${name} wirklich löschen?`)) return;
+                setQuestionConfig((prev) => ({
+                  ...prev,
+                  hidden: prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
+                }));
+              }}
+              onQuestionUpdate={(field, { label, text }) => {
+                setQuestionConfig((prev) => {
+                  const labels = {
+                    ...prev.labels,
+                    [field]: { ...(prev.labels[field] || {}), [chatLocale]: label }
+                  };
+                  if (text == null) return { ...prev, labels };
+                  const texts = {
+                    ...prev.texts,
+                    [field]: { ...(prev.texts[field] || {}), [chatLocale]: text }
+                  };
+                  return { ...prev, labels, texts };
+                });
+              }}
+            />
           </aside>
         ) : null}
       </div>

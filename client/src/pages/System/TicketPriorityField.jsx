@@ -5,14 +5,15 @@ export default function TicketPriorityField({
   value,
   onChange,
   required = false,
-  questionStyle = false
+  questionStyle = false,
+  label
 }) {
   const current = normalizeTicketPriority(value);
 
   return (
     <div className="form-group">
       <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
-        {questionStyle ? 'Priorität?' : 'Priorität'}
+        {label || (questionStyle ? 'Priorität?' : 'Priorität')}
       </label>
       <select
         id={id}

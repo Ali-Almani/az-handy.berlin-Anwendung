@@ -840,6 +840,66 @@
   padding: $spacing-sm $spacing-md $spacing-md;
 }
 
+.sz-question {
+  position: relative;
+  margin-bottom: 0.15rem;
+
+  .form-label {
+    padding-right: 3.5rem;
+  }
+}
+
+.sz-question-tools {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.sz-question-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid $border-color;
+  border-radius: 5px;
+  background: $bg-color;
+  color: $text-color;
+  cursor: pointer;
+
+  svg {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+
+  &--delete:hover {
+    border-color: $danger-color;
+    color: $danger-color;
+  }
+}
+
+.sz-question-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.4rem;
+  padding-right: 3.5rem;
+
+  .form-label {
+    padding-right: 0;
+    margin-bottom: 0;
+  }
+}
+
 .sz-questions-form .form-group {
   margin-bottom: 0.55rem;
 }

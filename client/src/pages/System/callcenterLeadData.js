@@ -124,20 +124,64 @@ function leadSprache(value) {
   return normalizeTicketLanguage(raw);
 }
 
-export function localizedTemplateQuestions(locale) {
-  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
-  return TEMPLATE_QUESTIONS.map((q) => ({
-    field: q.field,
-    label: q[loc]?.label || q.de.label,
-    text: q[loc]?.text || q.de.text
-  }));
+export const QUESTION_CONFIG_KEY = 'az-callcenter-question-config';
+
+export function emptyQuestionConfig() {
+  return { hidden: [], labels: {}, texts: {} };
 }
 
-export function templateFieldMatchingDraft(draft) {
+export function loadQuestionConfig() {
+  try {
+    const raw = localStorage.getItem(QUESTION_CONFIG_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== 'object') return emptyQuestionConfig();
+    return {
+      hidden: Array.isArray(parsed.hidden) ? parsed.hidden.filter(Boolean) : [],
+      labels: parsed.labels && typeof parsed.labels === 'object' ? parsed.labels : {},
+      texts: parsed.texts && typeof parsed.texts === 'object' ? parsed.texts : {}
+    };
+  } catch {
+    return emptyQuestionConfig();
+  }
+}
+
+export function saveQuestionConfig(config) {
+  try {
+    localStorage.setItem(QUESTION_CONFIG_KEY, JSON.stringify(config || emptyQuestionConfig()));
+  } catch {
+    /* Quota / privater Modus */
+  }
+}
+
+export function isQuestionHidden(config, field) {
+  return (config?.hidden || []).includes(field);
+}
+
+export function localizedTemplateQuestions(locale, config) {
+  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  return TEMPLATE_QUESTIONS
+    .filter((q) => !isQuestionHidden(config, q.field))
+    .map((q) => ({
+      field: q.field,
+      label: config?.labels?.[q.field]?.[loc] || q[loc]?.label || q.de.label,
+      text: config?.texts?.[q.field]?.[loc] || q[loc]?.text || q.de.text
+    }));
+}
+
+export function templateQuestionText(field, locale) {
+  const q = TEMPLATE_QUESTIONS.find((item) => item.field === field);
+  if (!q) return '';
+  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  return q[loc]?.text || q.de?.text || '';
+}
+
+export function templateFieldMatchingDraft(draft, config) {
   const text = String(draft || '').trim();
   if (!text) return '';
   for (const q of TEMPLATE_QUESTIONS) {
-    if ([q.de?.text, q.ar?.text, q.en?.text].includes(text)) return q.field;
+    const custom = config?.texts?.[q.field] || {};
+    const candidates = [q.de?.text, q.ar?.text, q.en?.text, custom.de, custom.ar, custom.en];
+    if (candidates.filter(Boolean).includes(text)) return q.field;
   }
   return '';
 }

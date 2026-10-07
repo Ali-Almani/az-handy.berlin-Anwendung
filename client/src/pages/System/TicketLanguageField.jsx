@@ -5,14 +5,15 @@ export default function TicketLanguageField({
   value,
   onChange,
   required = false,
-  questionStyle = false
+  questionStyle = false,
+  label
 }) {
   const current = normalizeTicketLanguage(value);
 
   return (
     <div className="form-group">
       <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
-        {questionStyle ? 'Sprache?' : 'Sprache'}
+        {label || (questionStyle ? 'Sprache?' : 'Sprache')}
       </label>
       <select
         id={id}
