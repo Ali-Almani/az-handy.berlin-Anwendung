@@ -829,6 +829,14 @@ const SEED_LEADS = [
         from: 'customer',
         text: 'Hallo, ich habe eure WhatsApp-Nummer. Ist das Gold-Angebot noch verfügbar?',
         at: '2026-08-31T09:35:00.000Z'
+      },
+      {
+        id: 'cc-007-voice',
+        from: 'customer',
+        text: '',
+        voiceDemo: true,
+        duration: 2,
+        at: '2026-08-31T09:36:00.000Z'
       }
     ]
   },
@@ -861,6 +869,56 @@ const SEED_LEADS = [
     ]
   }
 ];
+
+const CUSTOMER_VOICE_DEMO_ID = 'cc-007-voice';
+
+function makeDemoVoiceSrc(seconds = 2) {
+  const sampleRate = 8000;
+  const samples = Math.floor(sampleRate * seconds);
+  const dataSize = samples * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const write = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  write(8, 'WAVEfmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, 'data');
+  view.setUint32(40, dataSize, true);
+  for (let i = 0; i < samples; i += 1) {
+    const t = i / sampleRate;
+    const env = Math.min(1, i / 200, (samples - i) / 400);
+    const sample = Math.sin(2 * Math.PI * 440 * t) * 0.32 * env;
+    view.setInt16(44 + i * 2, Math.round(sample * 32767), true);
+  }
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
+
+function hydrateVoiceMessage(message) {
+  if (!message) return message;
+  if (Array.isArray(message.voices) && message.voices.some((voice) => voice && voice.src)) return message;
+  if (!message.voiceDemo) return message;
+  const duration = Math.max(1, Number(message.duration) || 2);
+  return {
+    ...message,
+    voices: [{
+      id: `${message.id || 'voice'}-src`,
+      src: makeDemoVoiceSrc(duration),
+      duration
+    }]
+  };
+}
 
 function cloneSeed() {
   return JSON.parse(JSON.stringify(SEED_LEADS));
@@ -905,7 +963,7 @@ function hydrateLeadTicket(t) {
     ...withChannel,
     id: migrateLeadId(withChannel),
     channel,
-    messages: Array.isArray(t?.messages) ? t.messages : [],
+    messages: (Array.isArray(t?.messages) ? t.messages : []).map(hydrateVoiceMessage),
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
     priority: normalizeTicketPriority(t?.priority),
     sprache: leadSprache(t?.sprache),
@@ -923,19 +981,45 @@ function ensureWhatsAppSeed(tickets) {
   return waSeed ? [...tickets, hydrateLeadTicket(waSeed)] : tickets;
 }
 
+function ensureCustomerVoiceDemo(tickets) {
+  if (tickets.some((t) => (t.messages || []).some((m) => m.id === CUSTOMER_VOICE_DEMO_ID))) {
+    return tickets;
+  }
+  const index = tickets.findIndex((t) => t.id === 'WA310826007');
+  const fallback = index >= 0 ? index : tickets.findIndex((t) => normalizeSocialChannel(t.channel) === 'whatsapp');
+  if (fallback < 0) return tickets;
+  const next = tickets.slice();
+  const ticket = next[fallback];
+  next[fallback] = {
+    ...ticket,
+    messages: [
+      ...(ticket.messages || []),
+      hydrateVoiceMessage({
+        id: CUSTOMER_VOICE_DEMO_ID,
+        from: 'customer',
+        text: '',
+        voiceDemo: true,
+        duration: 2,
+        at: '2026-08-31T09:36:00.000Z'
+      })
+    ]
+  };
+  return next;
+}
+
 export function loadLeadTickets() {
   try {
     const raw = localStorage.getItem(LEAD_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return ensureWhatsAppSeed(parsed.map(hydrateLeadTicket));
+        return ensureCustomerVoiceDemo(ensureWhatsAppSeed(parsed.map(hydrateLeadTicket)));
       }
     }
   } catch {
     /* Store ungültig – Seed verwenden */
   }
-  return cloneSeed().map(hydrateLeadTicket);
+  return ensureCustomerVoiceDemo(cloneSeed().map(hydrateLeadTicket));
 }
 
 export function saveLeadTickets(tickets) {

@@ -63,11 +63,38 @@ function messageImages(message) {
   return [];
 }
 
+function voiceSrc(item) {
+  if (!item) return '';
+  if (typeof item === 'string') return item;
+  return item.src || item.url || '';
+}
+
 function messageVoices(message) {
   if (Array.isArray(message?.voices)) {
-    return message.voices.filter((voice) => voice && voice.src);
+    return message.voices
+      .map((voice, index) => ({
+        id: voice?.id || `${message.id}-voice-${index}`,
+        src: voiceSrc(voice),
+        duration: voice?.duration
+      }))
+      .filter((voice) => voice.src);
   }
-  if (message?.voice) return [{ id: `${message.id}-voice`, src: message.voice, duration: message.duration }];
+  const direct = voiceSrc(message?.voice) || voiceSrc(message?.audioUrl) || voiceSrc(message?.audio);
+  if (direct) {
+    return [{ id: `${message.id}-voice`, src: direct, duration: message.duration || message?.voice?.duration }];
+  }
+  if (Array.isArray(message?.attachments)) {
+    return message.attachments
+      .filter((item) => {
+        const kind = String(item?.type || item?.mimeType || '');
+        return (kind === 'audio' || kind === 'voice' || kind.startsWith('audio/')) && voiceSrc(item);
+      })
+      .map((item, index) => ({
+        id: item.id || `${message.id}-voice-${index}`,
+        src: voiceSrc(item),
+        duration: item.duration
+      }));
+  }
   return [];
 }
 
@@ -89,50 +116,50 @@ function blobToVoice(blob, duration) {
   });
 }
 
-function audioDuration(src) {
-  return new Promise((resolve) => {
-    const audio = new Audio();
-    const finish = (value) => resolve(Number.isFinite(value) ? Math.round(value) : 0);
-    audio.preload = 'metadata';
-    audio.onloadedmetadata = () => finish(audio.duration);
-    audio.onerror = () => finish(0);
-    audio.src = src;
-  });
-}
-
-function readAudioFile(file) {
-  return new Promise((resolve, reject) => {
-    if (!file || !String(file.type || '').startsWith('audio/')) {
-      reject(new Error('Nur Audiodateien sind erlaubt.'));
-      return;
-    }
-    if (file.size > 4 * 1024 * 1024) {
-      reject(new Error('Sprachnachricht ist zu groß (max. 4 MB).'));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Voice konnte nicht gelesen werden.'));
-    reader.onload = async () => {
-      const src = String(reader.result || '');
-      const duration = await audioDuration(src);
-      resolve({
-        id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        src,
-        duration
-      });
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 function VoicePlayer({ voice }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
   if (!voice?.src) return null;
+
+  const togglePlay = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.paused) {
+      el.play().catch(() => setPlaying(false));
+      return;
+    }
+    el.pause();
+  };
+
   return (
     <div className="sz-voice">
-      <audio controls preload="metadata" src={voice.src} />
+      <button
+        type="button"
+        className="sz-voice-play"
+        onClick={togglePlay}
+        aria-label={playing ? 'Pausieren' : 'Abspielen'}
+        title={playing ? 'Pausieren' : 'Abspielen'}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden>
+          {playing ? (
+            <path fill="currentColor" d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" />
+          ) : (
+            <path fill="currentColor" d="M8 5v14l11-7L8 5z" />
+          )}
+        </svg>
+      </button>
+      <span className="sz-voice-wave" aria-hidden />
       {voice.duration ? (
         <span className="sz-voice-duration">{formatVoiceDuration(voice.duration)}</span>
       ) : null}
+      <audio
+        ref={audioRef}
+        src={voice.src}
+        preload="metadata"
+        onPlay={() => setPlaying(true)}
+        onEnded={() => setPlaying(false)}
+        onPause={() => setPlaying(false)}
+      />
     </div>
   );
 }
@@ -376,7 +403,6 @@ const CallcenterNachrichten = ({
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
-  const customerVoiceInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordChunksRef = useRef([]);
   const recordTimerRef = useRef(null);
@@ -750,28 +776,6 @@ const CallcenterNachrichten = ({
       noteAgentTyping();
     } catch {
       window.alert('Mikrofonzugriff wurde abgelehnt oder ist nicht verfügbar.');
-    }
-  };
-
-  const handleCustomerVoice = async (ev) => {
-    const file = ev.target.files?.[0];
-    ev.target.value = '';
-    if (!file || !active) return;
-    try {
-      const voice = await readAudioFile(file);
-      patchTicket(active.id, (t) => withMitarbeiter({
-        ...t,
-        unread: false,
-        messages: [...(t.messages || []), {
-          id: `local-${Date.now()}`,
-          from: 'customer',
-          text: '',
-          voices: [voice],
-          at: new Date().toISOString()
-        }]
-      }, agentName));
-    } catch (err) {
-      window.alert(err?.message || 'Voice vom Kunden konnte nicht gelesen werden.');
     }
   };
 
@@ -1338,21 +1342,6 @@ const CallcenterNachrichten = ({
                         />
                       </svg>
                     </button>
-                    <button
-                      type="button"
-                      className="sz-attach-btn"
-                      onClick={() => customerVoiceInputRef.current?.click()}
-                      disabled={sending || recording}
-                      aria-label="Voice vom Kunden"
-                      title="Voice vom Kunden"
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden>
-                        <path
-                          fill="currentColor"
-                          d="M12 3l4 4h-3v6h-2V7H8l4-4zm-7 14h14v2H5v-2z"
-                        />
-                      </svg>
-                    </button>
                     <input
                       ref={imageInputRef}
                       type="file"
@@ -1360,13 +1349,6 @@ const CallcenterNachrichten = ({
                       multiple
                       hidden
                       onChange={handleOwnImages}
-                    />
-                    <input
-                      ref={customerVoiceInputRef}
-                      type="file"
-                      accept="audio/*"
-                      hidden
-                      onChange={handleCustomerVoice}
                     />
                     <button
                       type="button"
@@ -1383,7 +1365,7 @@ const CallcenterNachrichten = ({
                   </div>
                 </div>
                 <p className="sz-composer-hint">
-                  Mikrofon: Voice an den Kunden. Pfeil: Voice vom Kunden. Enter sendet.
+                  Mikrofon sendet Voice an den Kunden. Enter sendet, Umschalt+Enter neue Zeile.
                 </p>
               </div>
             </>
