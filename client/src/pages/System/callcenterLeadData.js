@@ -146,8 +146,16 @@ const DROPDOWN_DEFAULTS = {
   angebot: LEAD_ANGEBOT_OPTIONS
 };
 
+export const QUESTION_FIELD_TYPES = [
+  { id: 'text', label: 'Text' },
+  { id: 'dropdown', label: 'Dropdown' },
+  { id: 'date', label: 'Datum' },
+  { id: 'time', label: 'Uhrzeit' },
+  { id: 'tel', label: 'Telefon' }
+];
+
 export function emptyQuestionConfig() {
-  return { hidden: [], labels: {}, texts: {}, options: {}, order: [] };
+  return { hidden: [], labels: {}, texts: {}, options: {}, order: [], custom: [] };
 }
 
 export function loadQuestionConfig() {
@@ -160,7 +168,10 @@ export function loadQuestionConfig() {
       labels: parsed.labels && typeof parsed.labels === 'object' ? parsed.labels : {},
       texts: parsed.texts && typeof parsed.texts === 'object' ? parsed.texts : {},
       options: parsed.options && typeof parsed.options === 'object' ? parsed.options : {},
-      order: Array.isArray(parsed.order) ? parsed.order.filter((field) => VORLAGE_QUESTION_ORDER.includes(field)) : []
+      order: Array.isArray(parsed.order) ? parsed.order.filter((field) => typeof field === 'string' && field) : [],
+      custom: Array.isArray(parsed.custom)
+        ? parsed.custom.filter((item) => item && item.id && QUESTION_FIELD_TYPES.some((type) => type.id === item.type))
+        : []
     };
   } catch {
     return emptyQuestionConfig();
@@ -179,15 +190,28 @@ export function isQuestionHidden(config, field) {
   return (config?.hidden || []).includes(field);
 }
 
+export function customQuestions(config) {
+  return Array.isArray(config?.custom) ? config.custom : [];
+}
+
+export function questionFieldIds(config) {
+  return [...VORLAGE_QUESTION_ORDER, ...customQuestions(config).map((item) => item.id)];
+}
+
 export function visibleQuestionOrder(config) {
-  const saved = Array.isArray(config?.order)
-    ? config.order.filter((field) => VORLAGE_QUESTION_ORDER.includes(field))
-    : [];
-  const rest = VORLAGE_QUESTION_ORDER.filter((field) => !saved.includes(field));
+  const known = questionFieldIds(config);
+  const saved = Array.isArray(config?.order) ? config.order.filter((field) => known.includes(field)) : [];
+  const rest = known.filter((field) => !saved.includes(field));
   return [...saved, ...rest].filter((field) => !isQuestionHidden(config, field));
 }
 
 export function questionDropdownOptions(field, config) {
+  const added = customQuestions(config).find((item) => item.id === field);
+  if (added) {
+    if (added.type !== 'dropdown') return null;
+    const list = config?.options?.[field];
+    return Array.isArray(list) && list.length ? list.map((item) => String(item)) : ['Option 1'];
+  }
   const custom = config?.options?.[field];
   if (Array.isArray(custom) && custom.length) return custom.map((item) => String(item));
   return DROPDOWN_DEFAULTS[field] ? [...DROPDOWN_DEFAULTS[field]] : null;
@@ -203,6 +227,15 @@ export function localizedTemplateQuestions(locale, config) {
       label: config?.labels?.[q.field]?.[loc] || q[loc]?.label || q.de.label,
       text: config?.texts?.[q.field]?.[loc] || q[loc]?.text || q.de.text
     }))
+    .concat(
+      customQuestions(config)
+        .filter((item) => !isQuestionHidden(config, item.id))
+        .map((item) => ({
+          field: item.id,
+          label: config?.labels?.[item.id]?.[loc] || item.label || 'Neue Frage?',
+          text: config?.texts?.[item.id]?.[loc] || item.label || 'Neue Frage?'
+        }))
+    )
     .sort((a, b) => order.indexOf(a.field) - order.indexOf(b.field));
 }
 
@@ -220,6 +253,11 @@ export function templateFieldMatchingDraft(draft, config) {
     const custom = config?.texts?.[q.field] || {};
     const candidates = [q.de?.text, q.ar?.text, q.en?.text, custom.de, custom.ar, custom.en];
     if (candidates.filter(Boolean).includes(text)) return q.field;
+  }
+  for (const item of customQuestions(config)) {
+    const custom = config?.texts?.[item.id] || {};
+    const candidates = [custom.de, custom.ar, custom.en, item.label];
+    if (candidates.filter(Boolean).includes(text)) return item.id;
   }
   return '';
 }

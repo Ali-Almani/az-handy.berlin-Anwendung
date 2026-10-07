@@ -885,6 +885,23 @@
   font-size: 0.82rem;
 }
 
+.sz-template-type {
+  margin: 0;
+  font-size: 0.72rem;
+  color: $text-light;
+}
+
+.sz-template-add {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.45rem;
+
+  .sz-template-options-label {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .sz-questions-form {
   padding: $spacing-sm $spacing-md $spacing-md;
 }

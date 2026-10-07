@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import {
+  QUESTION_FIELD_TYPES,
+  customQuestions,
   questionDropdownOptions,
   templateQuestionText,
   visibleQuestionOrder
@@ -41,12 +43,25 @@ function OptionsEditor({ options, onCommit }) {
   );
 }
 
-function TemplateEditor({ config, locale, onUpdate, onDelete, onMove }) {
+function questionMeta(field, config) {
+  if (FIELD_META[field]) return { ...FIELD_META[field], type: '' };
+  const added = customQuestions(config).find((item) => item.id === field);
+  if (!added) return null;
+  const typeLabel = QUESTION_FIELD_TYPES.find((item) => item.id === added.type)?.label || added.type;
+  return {
+    label: added.label || 'Neue Frage?',
+    hasText: true,
+    type: typeLabel
+  };
+}
+
+function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
   const order = visibleQuestionOrder(config);
+  const [newType, setNewType] = useState('text');
   return (
     <div className="sz-template-edit">
       {order.map((field, index) => {
-        const meta = FIELD_META[field];
+        const meta = questionMeta(field, config);
         if (!meta) return null;
         const label = config?.labels?.[field]?.[locale] || meta.label;
         const text = config?.texts?.[field]?.[locale] || templateQuestionText(field, locale);
@@ -106,6 +121,7 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove }) {
                 />
               </label>
             ) : null}
+            {meta.type ? <p className="sz-template-type">{meta.type}</p> : null}
             {meta.hasText ? (
               <label className="sz-template-options-label">
                 Fragentext
@@ -119,6 +135,24 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove }) {
           </div>
         );
       })}
+      <div className="sz-template-add">
+        <label className="sz-template-options-label">
+          Feldtyp
+          <select
+            className="form-input"
+            value={newType}
+            onChange={(ev) => setNewType(ev.target.value)}
+            aria-label="Feldtyp"
+          >
+            {QUESTION_FIELD_TYPES.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="btn btn--secondary btn--small" onClick={() => onAdd?.(newType)}>
+          Frage hinzufügen
+        </button>
+      </div>
     </div>
   );
 }
@@ -138,7 +172,8 @@ export default function LeadFragenForm({
   templateEditing = false,
   onQuestionDelete,
   onQuestionUpdate,
-  onQuestionMove
+  onQuestionMove,
+  onQuestionAdd
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const labelFor = (field, fallback) => questionConfig?.labels?.[field]?.[questionLocale] || fallback;
@@ -152,6 +187,7 @@ export default function LeadFragenForm({
         onUpdate={onQuestionUpdate}
         onDelete={onQuestionDelete}
         onMove={onQuestionMove}
+        onAdd={onQuestionAdd}
       />
     );
   }
@@ -283,9 +319,48 @@ export default function LeadFragenForm({
     )
   };
 
+  const renderCustomField = (field) => {
+    const added = customQuestions(questionConfig).find((item) => item.id === field);
+    if (!added) return null;
+    const label = labelFor(field, added.label || 'Neue Frage?');
+    const inputId = `${idPrefix}-${field}`;
+    if (added.type === 'dropdown') {
+      const options = questionDropdownOptions(field, questionConfig) || [];
+      return (
+        <div className="form-group" key={field}>
+          <label className="form-label" htmlFor={inputId}>{label}</label>
+          <select
+            id={inputId}
+            className="form-input"
+            value={answers?.[field] || ''}
+            onChange={(ev) => patch(field, ev.target.value)}
+          >
+            <option value="">—</option>
+            {options.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+    const inputType = added.type === 'date' || added.type === 'time' || added.type === 'tel' ? added.type : 'text';
+    return (
+      <div className="form-group" key={field}>
+        <label className="form-label" htmlFor={inputId}>{label}</label>
+        <input
+          id={inputId}
+          className="form-input"
+          type={inputType}
+          value={answers?.[field] || ''}
+          onChange={(ev) => patch(field, ev.target.value)}
+        />
+      </div>
+    );
+  };
+
   const fields = (
     <div className={embedded ? 'sz-questions-form' : 'lead-fragen-grid'}>
-      {order.map((field) => fieldNodes[field]).filter(Boolean)}
+      {order.map((field) => fieldNodes[field] || renderCustomField(field)).filter(Boolean)}
     </div>
   );
 

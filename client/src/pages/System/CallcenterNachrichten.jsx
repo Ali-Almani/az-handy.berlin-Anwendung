@@ -7,6 +7,7 @@ import {
   leadFieldChange,
   lastMessageAt,
   loadInboxNotiz,
+  customQuestions,
   loadQuestionConfig,
   localizedTemplateQuestions,
   saveQuestionConfig,
@@ -257,7 +258,14 @@ const CallcenterNachrichten = ({
   }, [list, channel, readTab, search, activeId]);
 
   const active = list.find((t) => t.id === activeId) || null;
-  const answers = active ? formFromLead(active) : null;
+  const answers = useMemo(() => {
+    if (!active) return null;
+    const base = formFromLead(active);
+    customQuestions(questionConfig).forEach((item) => {
+      base[item.id] = active[item.id] || '';
+    });
+    return base;
+  }, [active, questionConfig]);
   const showNotiz = readTab === 'notiz';
   const chatLocale = questionChatLocale(active?.sprache);
   const templateQuestions = useMemo(
@@ -877,6 +885,20 @@ const CallcenterNachrichten = ({
                   hidden: prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
                 }));
               }}
+              onQuestionAdd={(type) => {
+                const id = `cq-${Date.now().toString(36)}`;
+                const label = 'Neue Frage?';
+                setQuestionConfig((prev) => ({
+                  ...prev,
+                  custom: [...customQuestions(prev), { id, type, label }],
+                  labels: { ...prev.labels, [id]: { ...(prev.labels?.[id] || {}), [chatLocale]: label } },
+                  texts: { ...prev.texts, [id]: { ...(prev.texts?.[id] || {}), [chatLocale]: '' } },
+                  options: type === 'dropdown'
+                    ? { ...prev.options, [id]: ['Option 1', 'Option 2'] }
+                    : prev.options,
+                  order: [...visibleQuestionOrder(prev), id]
+                }));
+              }}
               onQuestionMove={(field, direction) => {
                 setQuestionConfig((prev) => {
                   const order = visibleQuestionOrder(prev);
@@ -908,6 +930,14 @@ const CallcenterNachrichten = ({
                   }
                   if (Array.isArray(options)) {
                     next = { ...next, options: { ...prev.options, [field]: options } };
+                  }
+                  if (customQuestions(prev).some((item) => item.id === field)) {
+                    next = {
+                      ...next,
+                      custom: customQuestions(prev).map((item) => (
+                        item.id === field ? { ...item, label } : item
+                      ))
+                    };
                   }
                   return next;
                 });
