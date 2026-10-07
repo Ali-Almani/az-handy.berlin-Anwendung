@@ -357,12 +357,26 @@ const CallcenterNachrichten = ({
   const sendReply = () => sendText(draft);
 
   const deleteMessage = (ticketId, message) => {
-    if (!ticketId || !message?.id) return;
+    if (!ticketId || !message?.id || message.from !== 'agent') return;
     if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
     patchTicket(ticketId, (t) => ({
       ...t,
       messages: (t.messages || []).filter((m) => m.id !== message.id)
     }));
+  };
+
+  const deleteCustomerFromInbox = (ticket) => {
+    if (!ticket?.id) return;
+    const name = ticket.customerName || ticket.rufnummer || 'Diesen Kunden';
+    const alsoListed = shopAssignsTicket(ticket.shop) || isLeadArchived(ticket);
+    const extra = alsoListed ? ' Er verschwindet damit auch aus Offen bzw. Archiv.' : '';
+    if (!window.confirm(`${name} wirklich komplett aus dem Postfach löschen?${extra}`)) return;
+    onTicketsChange?.((prev) => (prev || []).filter((t) => t.id !== ticket.id));
+    if (activeId === ticket.id) {
+      setActiveId(null);
+      setDraft('');
+      setMobileShowChat(false);
+    }
   };
 
   const handleComposerKey = (ev) => {
@@ -542,6 +556,13 @@ const CallcenterNachrichten = ({
                   </p>
                 </div>
                 <ContactActionButtons phone={contactPhone} />
+                <button
+                  type="button"
+                  className="btn btn--danger btn--small sz-delete-customer"
+                  onClick={() => deleteCustomerFromInbox(active)}
+                >
+                  Aus Postfach löschen
+                </button>
                 <div className="sz-chat-status">
                   <StatusShopSelect
                     shop={active.shop}
@@ -567,14 +588,16 @@ const CallcenterNachrichten = ({
                     <p className="sz-bubble-text">{m.text}</p>
                     <div className="sz-bubble-meta">
                       <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
-                      <button
-                        type="button"
-                        className="sz-bubble-delete"
-                        onClick={() => deleteMessage(active.id, m)}
-                        aria-label="Nachricht löschen"
-                      >
-                        Löschen
-                      </button>
+                      {m.from === 'agent' ? (
+                        <button
+                          type="button"
+                          className="sz-bubble-delete"
+                          onClick={() => deleteMessage(active.id, m)}
+                          aria-label="Eigene Nachricht löschen"
+                        >
+                          Löschen
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 ))}
