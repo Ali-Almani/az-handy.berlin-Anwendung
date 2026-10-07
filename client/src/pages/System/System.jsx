@@ -430,7 +430,7 @@ const System = () => {
   }
 
   return (
-    <div className="system-page container">
+    <div className={`system-page container${listTab === 'nachrichten' ? ' system-page--nachrichten' : ''}`}>
       <h1 className="system-page-title">Ticketing System</h1>
 
       <div className="system-tabs" role="tablist" aria-label="Ticketing System Bereiche">

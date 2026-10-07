@@ -25,11 +25,16 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   border-right: 1px solid $border-color;
   background: $bg-light;
 }
 
 .sz-filters {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 3;
   padding: $spacing-sm;
   border-bottom: 1px solid $border-color;
   background: $bg-color;
@@ -383,6 +388,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   background: $bg-color;
 }
 
@@ -403,6 +409,7 @@
 .sz-chat-head {
   display: flex;
   flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
@@ -411,6 +418,7 @@
 }
 
 .sz-filiale-hint {
+  flex-shrink: 0;
   margin: 0;
   padding: 0.45rem $spacing-md;
   border-bottom: 1px solid $border-color;
@@ -495,6 +503,7 @@
 
 .sz-thread {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: $spacing-md;
   display: flex;
@@ -647,6 +656,7 @@
 }
 
 .sz-composer {
+  flex-shrink: 0;
   padding: $spacing-sm $spacing-md $spacing-md;
   border-top: 1px solid $border-color;
   background: $bg-color;
@@ -1037,19 +1047,30 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   border-left: 1px solid $border-color;
   background: $bg-light;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .sz-questions-titlebar {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem;
   padding: $spacing-sm $spacing-md;
   border-bottom: 1px solid $border-color;
   background: $bg-color;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sz-questions > :not(.sz-questions-titlebar) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .sz-questions-title {
@@ -1225,6 +1246,13 @@
   }
 }
 
+@media (min-width: $breakpoint-lg) {
+  .sz-layout {
+    height: calc(100dvh - 12.5rem);
+    max-height: calc(100dvh - 12.5rem);
+  }
+}
+
 @media (max-width: $breakpoint-lg) {
   .sz-questions {
     border-left: none;
@@ -1238,6 +1266,8 @@
   .sz-layout--with-questions {
     display: block;
     min-height: 0;
+    height: auto;
+    max-height: none;
   }
 
   .sz-list-pane {
@@ -1254,6 +1284,13 @@
     display: none;
   }
 
+  .sz--chat-open .sz-layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 9.5rem);
+    max-height: calc(100dvh - 9.5rem);
+  }
+
   .sz--chat-open .sz-list-pane {
     display: none;
   }
@@ -1261,6 +1298,16 @@
   .sz--chat-open .sz-chat-pane,
   .sz--chat-open .sz-questions {
     display: flex;
+  }
+
+  .sz--chat-open .sz-chat-pane {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sz--chat-open .sz-questions {
+    flex-shrink: 0;
+    max-height: 12rem;
   }
 
   .sz-back {

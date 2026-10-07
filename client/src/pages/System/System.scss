@@ -2,6 +2,10 @@
 
 .system-page {
   padding-bottom: $spacing-xl;
+
+  &--nachrichten {
+    padding-bottom: 0;
+  }
 }
 
 .system-page-title {
