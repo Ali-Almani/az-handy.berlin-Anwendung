@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import {
-  looksLikePhoneNumber,
   questionDropdownOptions,
-  telHrefFromPhone,
   templateQuestionText,
-  visibleQuestionOrder,
-  whatsappHrefFromPhone
+  visibleQuestionOrder
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
@@ -144,10 +141,6 @@ export default function LeadFragenForm({
   onQuestionMove
 }) {
   const patch = (field, value) => onChange?.(field, value);
-  const contactTel = embedded ? telHrefFromPhone(answers?.rufnummer) : null;
-  const contactWa = embedded ? whatsappHrefFromPhone(answers?.rufnummer) : null;
-  const showContactActions = embedded && looksLikePhoneNumber(answers?.rufnummer) && (contactTel || contactWa);
-
   const labelFor = (field, fallback) => questionConfig?.labels?.[field]?.[questionLocale] || fallback;
   const order = visibleQuestionOrder(questionConfig);
 
@@ -192,25 +185,13 @@ export default function LeadFragenForm({
     rufnummer: (
       <div className="form-group" key="rufnummer">
         <label className="form-label" htmlFor={`${idPrefix}-rufnummer`}>{labelFor('rufnummer', 'Rufnummer?')}</label>
-        <div className={embedded ? 'sz-rufnummer-row' : undefined}>
-          <input
-            id={`${idPrefix}-rufnummer`}
-            className="form-input"
-            type="tel"
-            value={answers?.rufnummer || ''}
-            onChange={(ev) => patch('rufnummer', ev.target.value)}
-          />
-          {showContactActions ? (
-            <div className="sz-contact-actions sz-contact-actions--inline">
-              {contactTel ? (
-                <a href={contactTel} className="sz-contact-btn sz-contact-btn--call">Anruf</a>
-              ) : null}
-              {contactWa ? (
-                <a href={contactWa} className="sz-contact-btn sz-contact-btn--whatsapp" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+        <input
+          id={`${idPrefix}-rufnummer`}
+          className="form-input"
+          type="tel"
+          value={answers?.rufnummer || ''}
+          onChange={(ev) => patch('rufnummer', ev.target.value)}
+        />
       </div>
     ),
     o2Kunde: (
