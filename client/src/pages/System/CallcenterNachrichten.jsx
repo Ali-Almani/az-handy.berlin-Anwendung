@@ -634,13 +634,13 @@ const CallcenterNachrichten = ({
                     </button>
                   ))}
                 </div>
-                <div className="sz-composer-row">
+                <div className={`sz-composer-field${chatLocale === 'ar' ? ' sz-composer-field--rtl' : ''}`}>
                   <label className="visually-hidden" htmlFor="sz-reply">Antwort</label>
                   <textarea
                     id="sz-reply"
                     ref={composerRef}
                     className={`form-input sz-composer-input${chatLocale === 'ar' ? ' sz-composer-input--rtl' : ''}`}
-                    rows={2}
+                    rows={5}
                     value={draft}
                     onChange={(ev) => setDraft(ev.target.value)}
                     onKeyDown={handleComposerKey}
@@ -651,11 +651,15 @@ const CallcenterNachrichten = ({
                   />
                   <button
                     type="button"
-                    className="btn btn--primary sz-send"
+                    className="sz-send"
                     onClick={sendReply}
                     disabled={sending || !draft.trim()}
+                    aria-label="Senden"
+                    title="Senden"
                   >
-                    {sending ? 'Senden…' : 'Senden'}
+                    <svg viewBox="0 0 24 24" aria-hidden>
+                      <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
                   </button>
                 </div>
                 <p className="sz-composer-hint">
