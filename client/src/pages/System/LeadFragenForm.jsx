@@ -3,7 +3,9 @@ import VorvertragEditLog from './VorvertragEditLog';
 import {
   QUESTION_FIELD_TYPES,
   customQuestions,
+  normalizeOfferUrl,
   questionDropdownOptions,
+  questionOptionLinks,
   templateQuestionText,
   visibleQuestionOrder
 } from './callcenterLeadData';
@@ -23,6 +25,86 @@ const FIELD_META = {
   terminDatum: { label: 'Termin Datum?', hasText: true },
   terminZeit: { label: 'Termin Zeit?', hasText: true }
 };
+
+export function AngebotLinksEditor({ options, links, onCommit }) {
+  const fromProps = () => {
+    const names = Array.isArray(options) && options.length ? options : [''];
+    const map = links && typeof links === 'object' ? links : {};
+    return names.map((name) => ({
+      name: String(name || ''),
+      url: map[name] || ''
+    }));
+  };
+  const [items, setItems] = useState(fromProps);
+
+  useEffect(() => {
+    setItems(fromProps());
+  }, [Array.isArray(options) ? options.join('\n') : '', JSON.stringify(links || {})]);
+
+  const commit = (next) => {
+    const cleaned = next
+      .map((row) => ({
+        name: String(row.name || '').trim(),
+        url: normalizeOfferUrl(row.url)
+      }))
+      .filter((row) => row.name);
+    onCommit?.({
+      options: cleaned.map((row) => row.name),
+      links: Object.fromEntries(cleaned.filter((row) => row.url).map((row) => [row.name, row.url]))
+    });
+  };
+
+  const changeRow = (index, patch) => {
+    const next = items.map((row, i) => (i === index ? { ...row, ...patch } : row));
+    setItems(next);
+  };
+
+  return (
+    <div className="sz-angebot-links">
+      {items.map((row, index) => (
+        <div key={`angebot-${index}`} className="sz-angebot-link-row">
+          <input
+            className="form-input"
+            value={row.name}
+            aria-label="Angebot"
+            placeholder="Angebot / Produkt"
+            onChange={(ev) => changeRow(index, { name: ev.target.value })}
+            onBlur={() => commit(items)}
+          />
+          <input
+            className="form-input"
+            value={row.url}
+            aria-label="URL"
+            placeholder="https://…"
+            onChange={(ev) => changeRow(index, { url: ev.target.value })}
+            onBlur={() => commit(items)}
+          />
+          <button
+            type="button"
+            className="sz-question-icon sz-question-icon--delete"
+            onClick={() => {
+              const next = items.filter((_, i) => i !== index);
+              const fallback = next.length ? next : [{ name: '', url: '' }];
+              setItems(fallback);
+              commit(fallback);
+            }}
+            aria-label="Angebot löschen"
+            title="Löschen"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="btn btn--secondary btn--small"
+        onClick={() => setItems((prev) => [...prev, { name: '', url: '' }])}
+      >
+        Angebot hinzufügen
+      </button>
+    </div>
+  );
+}
 
 function OptionsEditor({ options, onCommit }) {
   const joined = options.join('\n');
@@ -66,10 +148,12 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
         const label = config?.labels?.[field]?.[locale] || meta.label;
         const text = config?.texts?.[field]?.[locale] || templateQuestionText(field, locale);
         const options = questionDropdownOptions(field, config);
+        const links = questionOptionLinks(field, config);
         const save = (patch) => onUpdate?.(field, {
           label: patch.label ?? label,
           text: meta.hasText ? (patch.text ?? text) : undefined,
-          options: patch.options
+          options: patch.options,
+          links: patch.links
         });
         return (
           <div key={field} className="sz-template-item">
@@ -112,7 +196,19 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
                 </svg>
               </button>
             </div>
-            {options ? (
+            {field === 'angebot' ? (
+              <label className="sz-template-options-label">
+                Angebote und URLs
+                <AngebotLinksEditor
+                  options={options || []}
+                  links={links}
+                  onCommit={(next) => save({
+                    options: next.options.length ? next.options : options,
+                    links: next.links
+                  })}
+                />
+              </label>
+            ) : options ? (
               <label className="sz-template-options-label">
                 Dropdown-Werte
                 <OptionsEditor

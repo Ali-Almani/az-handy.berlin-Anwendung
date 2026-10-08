@@ -207,7 +207,7 @@ export const QUESTION_FIELD_TYPES = [
 ];
 
 export function emptyQuestionConfig() {
-  return { hidden: [], labels: {}, texts: {}, options: {}, order: [], custom: [] };
+  return { hidden: [], labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
 }
 
 export function loadQuestionConfig() {
@@ -220,6 +220,7 @@ export function loadQuestionConfig() {
       labels: parsed.labels && typeof parsed.labels === 'object' ? parsed.labels : {},
       texts: parsed.texts && typeof parsed.texts === 'object' ? parsed.texts : {},
       options: parsed.options && typeof parsed.options === 'object' ? parsed.options : {},
+      links: parsed.links && typeof parsed.links === 'object' ? parsed.links : {},
       order: Array.isArray(parsed.order) ? parsed.order.filter((field) => typeof field === 'string' && field) : [],
       custom: Array.isArray(parsed.custom)
         ? parsed.custom.filter((item) => item && item.id && QUESTION_FIELD_TYPES.some((type) => type.id === item.type))
@@ -255,6 +256,53 @@ export function visibleQuestionOrder(config) {
   const saved = Array.isArray(config?.order) ? config.order.filter((field) => known.includes(field)) : [];
   const rest = known.filter((field) => !saved.includes(field));
   return [...saved, ...rest].filter((field) => !isQuestionHidden(config, field));
+}
+
+export function normalizeOfferUrl(raw) {
+  const url = String(raw || '').trim();
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  if (/^www\./i.test(url) || /^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(url)) return `https://${url}`;
+  return url;
+}
+
+export function questionOptionLinks(field, config) {
+  const map = config?.links?.[field];
+  if (!map || typeof map !== 'object' || Array.isArray(map)) return {};
+  const out = {};
+  Object.entries(map).forEach(([key, value]) => {
+    const name = String(key || '').trim();
+    const href = normalizeOfferUrl(value);
+    if (name && href) out[name] = href;
+  });
+  return out;
+}
+
+export function angebotMentionItems(config) {
+  const options = questionDropdownOptions('angebot', config) || [];
+  const links = questionOptionLinks('angebot', config);
+  return options.map((label) => ({
+    label,
+    url: links[label] || ''
+  })).filter((item) => item.label);
+}
+
+export function mentionAt(text, cursor) {
+  const value = String(text || '');
+  const pos = Number.isFinite(cursor) ? cursor : value.length;
+  const before = value.slice(0, Math.max(0, pos));
+  const match = before.match(/(^|[\s])@([^\s@]*)$/);
+  if (!match) return null;
+  const query = match[2] || '';
+  return { start: before.length - query.length - 1, query };
+}
+
+export function filterAngebotMentions(config, query) {
+  const q = String(query || '').trim().toLowerCase();
+  return angebotMentionItems(config).filter((item) => {
+    if (!q) return true;
+    return item.label.toLowerCase().includes(q) || item.url.toLowerCase().includes(q);
+  });
 }
 
 export function questionDropdownOptions(field, config) {

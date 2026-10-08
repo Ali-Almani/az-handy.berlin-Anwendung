@@ -17,6 +17,9 @@ import {
   NACHRICHTEN_ERLEDIGT,
   QUESTION_FIELD_TYPES,
   questionDropdownOptions,
+  questionOptionLinks,
+  filterAngebotMentions,
+  mentionAt,
   questionChatLocale,
   saveInboxNotiz,
   shopAssignsTicket,
@@ -35,7 +38,7 @@ import {
   telHrefFromPhone,
   whatsappHrefFromPhone
 } from './callcenterLeadData';
-import LeadFragenForm from './LeadFragenForm';
+import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
 import './System.scss';
 import './CallcenterNachrichten.scss';
 
@@ -163,6 +166,21 @@ function VoicePlayer({ voice }) {
       />
     </div>
   );
+}
+
+function linkifyText(text) {
+  const value = String(text || '');
+  const parts = value.split(/(https?:\/\/[^\s]+)/gi);
+  return parts.map((part, index) => {
+    if (/^https?:\/\//i.test(part)) {
+      return (
+        <a key={`${part}-${index}`} href={part} target="_blank" rel="noopener noreferrer">
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
 }
 
 function messagePreview(message) {
@@ -399,6 +417,8 @@ const CallcenterNachrichten = ({
   const [chipEditing, setChipEditing] = useState(false);
   const [fragenOpen, setFragenOpen] = useState(false);
   const [chipType, setChipType] = useState('text');
+  const [cursorAt, setCursorAt] = useState(0);
+  const [mentionHi, setMentionHi] = useState(0);
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
   const customerTypingTimer = useRef(null);
@@ -609,7 +629,7 @@ const CallcenterNachrichten = ({
     }));
   };
 
-  const updateQuestion = (field, { label, text, options }) => {
+  const updateQuestion = (field, { label, text, options, links }) => {
     setQuestionConfig((prev) => {
       const labels = {
         ...prev.labels,
@@ -627,6 +647,9 @@ const CallcenterNachrichten = ({
       }
       if (Array.isArray(options)) {
         next = { ...next, options: { ...prev.options, [field]: options } };
+      }
+      if (links && typeof links === 'object') {
+        next = { ...next, links: { ...(prev.links || {}), [field]: links } };
       }
       if (customQuestions(prev).some((item) => item.id === field)) {
         next = {
@@ -851,7 +874,56 @@ const CallcenterNachrichten = ({
     }
   };
 
+  const mention = mentionAt(draft, cursorAt);
+  const mentionItems = mention ? filterAngebotMentions(questionConfig, mention.query) : [];
+
+  useEffect(() => {
+    setMentionHi(0);
+  }, [mention?.start, mention?.query]);
+
+  const applyMention = (item) => {
+    if (!item || !mention) return;
+    const href = item.url || item.label;
+    const el = composerRef.current;
+    const pos = el && Number.isFinite(el.selectionStart) ? el.selectionStart : cursorAt;
+    const after = draft.slice(Math.max(pos, mention.start + 1));
+    const gap = after.startsWith(' ') || after.startsWith('\n') || !after ? '' : ' ';
+    const next = `${draft.slice(0, mention.start)}${href}${gap}${after}`;
+    setDraft(next);
+    noteAgentTyping();
+    window.requestAnimationFrame(() => {
+      const node = composerRef.current;
+      if (!node) return;
+      const caret = mention.start + href.length + (gap ? 1 : 0);
+      node.focus();
+      node.setSelectionRange(caret, caret);
+      setCursorAt(caret);
+    });
+  };
+
   const handleComposerKey = (ev) => {
+    if (mentionItems.length) {
+      if (ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        setMentionHi((index) => (index + 1) % mentionItems.length);
+        return;
+      }
+      if (ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        setMentionHi((index) => (index - 1 + mentionItems.length) % mentionItems.length);
+        return;
+      }
+      if (ev.key === 'Enter' || ev.key === 'Tab') {
+        ev.preventDefault();
+        applyMention(mentionItems[mentionHi] || mentionItems[0]);
+        return;
+      }
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        setCursorAt(-1);
+        return;
+      }
+    }
     if (ev.key === 'Enter' && !ev.shiftKey) {
       ev.preventDefault();
       sendReply();
@@ -1099,7 +1171,7 @@ const CallcenterNachrichten = ({
                         dir={m.locale === 'ar' ? 'rtl' : undefined}
                         lang={m.locale === 'ar' ? 'ar' : undefined}
                       >
-                        {m.text}
+                        {linkifyText(m.text)}
                       </p>
                     ) : null}
                     <div className="sz-bubble-meta">
@@ -1231,7 +1303,21 @@ const CallcenterNachrichten = ({
                               })}
                             />
                           </label>
-                          {options ? (
+                          {q.field === 'angebot' ? (
+                            <label className="sz-template-options-label">
+                              Angebote und URLs
+                              <AngebotLinksEditor
+                                options={options || []}
+                                links={questionOptionLinks('angebot', questionConfig)}
+                                onCommit={(next) => updateQuestion(q.field, {
+                                  label: q.label,
+                                  text: q.text,
+                                  options: next.options.length ? next.options : options,
+                                  links: next.links
+                                })}
+                              />
+                            </label>
+                          ) : options ? (
                             <label className="sz-template-options-label">
                               Dropdown-Werte
                               <textarea
@@ -1335,15 +1421,38 @@ const CallcenterNachrichten = ({
                     value={draft}
                     onChange={(ev) => {
                       setDraft(ev.target.value);
+                      setCursorAt(ev.target.selectionStart || 0);
                       noteAgentTyping();
                     }}
+                    onSelect={(ev) => setCursorAt(ev.target.selectionStart || 0)}
+                    onClick={(ev) => setCursorAt(ev.target.selectionStart || 0)}
+                    onKeyUp={(ev) => setCursorAt(ev.target.selectionStart || 0)}
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
-                    placeholder={`Antwort an ${active.customerName || 'den Kunden'}…`}
+                    placeholder={`Antwort an ${active.customerName || 'den Kunden'}… (@ Angebot)`}
                     disabled={sending}
                     dir={chatLocale === 'ar' ? 'rtl' : 'ltr'}
                     lang={chatLocale === 'ar' ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
+                  {mentionItems.length ? (
+                    <ul className="sz-mention" role="listbox" aria-label="Angebot wählen">
+                      {mentionItems.map((item, index) => (
+                        <li key={item.label}>
+                          <button
+                            type="button"
+                            className={`sz-mention-item${index === mentionHi ? ' sz-mention-item--active' : ''}`}
+                            onMouseDown={(ev) => {
+                              ev.preventDefault();
+                              applyMention(item);
+                            }}
+                          >
+                            <span className="sz-mention-name">{item.label}</span>
+                            <span className="sz-mention-url">{item.url || 'keine URL'}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <div className="sz-composer-actions">
                     <button
                       type="button"

@@ -848,6 +848,80 @@
   position: relative;
 }
 
+.sz-mention {
+  position: absolute;
+  left: 0.45rem;
+  right: 0.45rem;
+  bottom: calc(100% - 0.35rem);
+  z-index: 6;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  background: $bg-color;
+  box-shadow: $shadow-md;
+}
+
+.sz-mention-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &--active {
+    background: mix(#fff, $primary-color, 90%);
+  }
+}
+
+.sz-mention-name {
+  font-size: 0.82rem;
+  font-weight: $font-weight-medium;
+}
+
+.sz-mention-url {
+  font-size: 0.7rem;
+  color: $text-light;
+  word-break: break-all;
+}
+
+.sz-angebot-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sz-angebot-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 1.45rem;
+  gap: 0.3rem;
+  align-items: center;
+
+  .form-input {
+    min-height: 2rem;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
+  }
+}
+
+.sz-bubble-text a {
+  color: $primary-color;
+  word-break: break-all;
+}
+
 .sz-composer-input {
   width: 100%;
   min-height: 8.5rem;
