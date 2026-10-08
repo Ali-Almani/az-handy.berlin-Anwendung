@@ -397,6 +397,7 @@ const CallcenterNachrichten = ({
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
   const [templateEditing, setTemplateEditing] = useState(false);
   const [chipEditing, setChipEditing] = useState(false);
+  const [fragenOpen, setFragenOpen] = useState(false);
   const [chipType, setChipType] = useState('text');
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
@@ -535,6 +536,8 @@ const CallcenterNachrichten = ({
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+    setFragenOpen(false);
+    setChipEditing(false);
     setMobileShowChat(true);
     patchTicket(id, (t) => withMitarbeiter({ ...t, unread: false }, agentName));
   };
@@ -1135,43 +1138,61 @@ const CallcenterNachrichten = ({
               </div>
 
               <div className="sz-composer">
-                <div className="sz-quick-head">
-                  <span className="sz-quick-head-label">
+                <div className={`sz-quick-head${fragenOpen ? ' sz-quick-head--open' : ''}`}>
+                  <button
+                    type="button"
+                    className="sz-quick-toggle"
+                    aria-expanded={fragenOpen}
+                    aria-label={fragenOpen ? 'Fragen schließen' : 'Fragen öffnen'}
+                    onClick={() => {
+                      setFragenOpen((open) => {
+                        if (open) setChipEditing(false);
+                        return !open;
+                      });
+                    }}
+                  >
+                    <svg className={`sz-quick-chevron${fragenOpen ? ' sz-quick-chevron--open' : ''}`} viewBox="0 0 24 24" aria-hidden>
+                      <path fill="currentColor" d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z" />
+                    </svg>
                     Fragen
-                    <button
-                      type="button"
-                      className={`sz-question-icon${chipEditing ? ' sz-question-icon--active' : ''}`}
-                      onClick={() => setChipEditing((open) => !open)}
-                      aria-pressed={chipEditing}
-                      aria-label={chipEditing ? 'Fragen speichern' : 'Fragen bearbeiten'}
-                      title={chipEditing ? 'Speichern' : 'Bearbeiten'}
-                    >
-                      {chipEditing ? (
-                        <svg viewBox="0 0 24 24" aria-hidden>
-                          <path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" aria-hidden>
-                          <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                        </svg>
-                      )}
-                    </button>
-                  </span>
-                  <div className="sz-composer-langs" role="group" aria-label="Fragensprache">
-                    {QUESTION_CHAT_LOCALES.map((item) => (
+                  </button>
+                  {fragenOpen ? (
+                    <>
                       <button
-                        key={item.id}
                         type="button"
-                        className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
-                        aria-pressed={chatLocale === item.id}
-                        onClick={() => handleQuestionLocale(item.id)}
+                        className={`sz-question-icon${chipEditing ? ' sz-question-icon--active' : ''}`}
+                        onClick={() => setChipEditing((open) => !open)}
+                        aria-pressed={chipEditing}
+                        aria-label={chipEditing ? 'Fragen speichern' : 'Fragen bearbeiten'}
+                        title={chipEditing ? 'Speichern' : 'Bearbeiten'}
                       >
-                        {item.short}
+                        {chipEditing ? (
+                          <svg viewBox="0 0 24 24" aria-hidden>
+                            <path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" aria-hidden>
+                            <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                          </svg>
+                        )}
                       </button>
-                    ))}
-                  </div>
+                      <div className="sz-composer-langs" role="group" aria-label="Fragensprache">
+                        {QUESTION_CHAT_LOCALES.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
+                            aria-pressed={chatLocale === item.id}
+                            onClick={() => handleQuestionLocale(item.id)}
+                          >
+                            {item.short}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
-                {chipEditing ? (
+                {fragenOpen && chipEditing ? (
                   <div className="sz-chip-edit-list">
                     {templateQuestions.map((q) => {
                       const options = questionDropdownOptions(q.field, questionConfig);
@@ -1233,7 +1254,7 @@ const CallcenterNachrichten = ({
                       );
                     })}
                   </div>
-                ) : (
+                ) : fragenOpen ? (
                 <div className={`sz-quick${chatLocale === 'ar' ? ' sz-quick--rtl' : ''}`}>
                   {templateQuestions.map((q) => (
                     <button
@@ -1250,7 +1271,7 @@ const CallcenterNachrichten = ({
                   ))}
                 </div>
                 )}
-                {chipEditing ? (
+                {fragenOpen && chipEditing ? (
                   <div className="sz-template-add sz-quick-add">
                     <label className="sz-template-options-label">
                       Feldtyp
@@ -1375,9 +1396,6 @@ const CallcenterNachrichten = ({
                     </button>
                   </div>
                 </div>
-                <p className="sz-composer-hint">
-                  Mikrofon sendet Voice an den Kunden. Enter sendet, Umschalt+Enter neue Zeile.
-                </p>
               </div>
             </>
           )}

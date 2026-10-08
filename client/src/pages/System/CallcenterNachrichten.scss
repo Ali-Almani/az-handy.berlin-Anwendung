@@ -665,9 +665,42 @@
 .sz-quick-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: $spacing-sm;
-  margin-bottom: 0.4rem;
+  gap: 0.4rem;
+  margin-bottom: 0.15rem;
+
+  &--open {
+    margin-bottom: 0.4rem;
+  }
+}
+
+.sz-quick-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.1rem 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: $font-weight-medium;
+  color: $text-light;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-color;
+  }
+}
+
+.sz-quick-chevron {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+
+  &--open {
+    transform: rotate(180deg);
+  }
 }
 
 .sz-quick-head-label {
@@ -745,6 +778,7 @@
 .sz-composer-langs {
   display: inline-flex;
   flex-shrink: 0;
+  margin-left: auto;
   border: 1px solid $border-color;
   border-radius: 999px;
   overflow: hidden;
@@ -1035,12 +1069,6 @@
     object-fit: contain;
     border-radius: 8px;
   }
-}
-
-.sz-composer-hint {
-  margin: 0.35rem 0 0;
-  font-size: 0.75rem;
-  color: $text-light;
 }
 
 .sz-questions {
