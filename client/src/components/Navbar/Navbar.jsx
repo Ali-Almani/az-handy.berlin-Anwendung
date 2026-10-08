@@ -5,6 +5,7 @@ import {
   canAccessImeisList,
   canAccessVoucherList,
   canAccessDashboard,
+  canAccessTicketingSystem,
   isAdmin,
   isBüroMitarbeiter,
   isPartner,
@@ -441,7 +442,7 @@ const Navbar = ({
   );
 
   const renderSystemNavItem = () =>
-    user && isAdmin(user) ? (
+    user && canAccessTicketingSystem(user) ? (
       <li>
         <NavLink to={TICKETING_SYSTEM_PATH} className={navLinkClassName} onClick={closeMobileMenu}>
           <span className="navbar-link-inner">

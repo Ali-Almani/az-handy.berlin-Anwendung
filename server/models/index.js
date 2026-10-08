@@ -13,8 +13,22 @@ const connectDatabase = async () => {
  * Vollständiger DB-Start. alter:true nur wenn DB_SYNC_ALTER=true (Migration),
  * sonst in Development – in Production nie automatisch (verhindert Hänger/502).
  */
+const ensureUserRoleEnumValue = async (label) => {
+  try {
+    await sequelize.query(
+      `ALTER TYPE enum_users_role ADD VALUE IF NOT EXISTS ${sequelize.escape(label)}`
+    );
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    if (!/already exists|does not exist|enum_users_role/i.test(msg)) {
+      console.warn('User-Rolle ENUM:', msg);
+    }
+  }
+};
+
 const initDatabase = async () => {
   await connectDatabase();
+  await ensureUserRoleEnumValue('Social Media');
   const runAlterSync =
     process.env.DB_SYNC_ALTER === 'true' ||
     (process.env.NODE_ENV !== 'production' && process.env.DB_SYNC_ALTER !== 'false');

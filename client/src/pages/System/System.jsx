@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { isAdmin } from '../../utils/roles';
+import { canAccessTicketingSystem, isAdmin } from '../../utils/roles';
 import {
   listVorvertraegeApi,
   createVorvertragApi,
@@ -194,6 +194,12 @@ const System = () => {
   useEffect(() => {
     if (user && isAdmin(user)) loadList();
   }, [user, loadList]);
+
+  useEffect(() => {
+    if (user && !isAdmin(user) && listTab !== 'nachrichten') {
+      setListTab('nachrichten');
+    }
+  }, [user, listTab]);
 
   useEffect(() => {
     if (!showForm || mode !== 'new' || formKind !== 'vorvertrag' || !navbarFiliale) return;
@@ -425,9 +431,11 @@ const System = () => {
     }
   };
 
-  if (!user || !isAdmin(user)) {
+  if (!user || !canAccessTicketingSystem(user)) {
     return <Navigate to="/" replace />;
   }
+
+  const canManageVorvertrag = isAdmin(user);
 
   return (
     <div className={`system-page container${listTab === 'nachrichten' ? ' system-page--nachrichten' : ''}`}>
@@ -443,36 +451,40 @@ const System = () => {
         >
           Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={listTab === 'erstellen'}
-          className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
-          onClick={() => setListTab('erstellen')}
-        >
-          Ticketing erstellen
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={listTab === 'offen'}
-          className={`system-tab${listTab === 'offen' ? ' system-tab--active' : ''}`}
-          onClick={() => {
-            setListTab('offen');
-            setArchivSearch('');
-          }}
-        >
-          Offen ({offenCount})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={listTab === 'archiv'}
-          className={`system-tab${listTab === 'archiv' ? ' system-tab--active' : ''}`}
-          onClick={() => setListTab('archiv')}
-        >
-          Archiv ({archivCount})
-        </button>
+        {canManageVorvertrag ? (
+          <>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={listTab === 'erstellen'}
+              className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
+              onClick={() => setListTab('erstellen')}
+            >
+              Ticketing erstellen
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={listTab === 'offen'}
+              className={`system-tab${listTab === 'offen' ? ' system-tab--active' : ''}`}
+              onClick={() => {
+                setListTab('offen');
+                setArchivSearch('');
+              }}
+            >
+              Offen ({offenCount})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={listTab === 'archiv'}
+              className={`system-tab${listTab === 'archiv' ? ' system-tab--active' : ''}`}
+              onClick={() => setListTab('archiv')}
+            >
+              Archiv ({archivCount})
+            </button>
+          </>
+        ) : null}
       </div>
 
       {listTab === 'erstellen' ? (
