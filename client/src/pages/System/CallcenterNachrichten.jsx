@@ -1254,7 +1254,8 @@ const CallcenterNachrichten = ({
                       );
                     })}
                   </div>
-                ) : fragenOpen ? (
+                ) : null}
+                {fragenOpen && !chipEditing ? (
                 <div className={`sz-quick${chatLocale === 'ar' ? ' sz-quick--rtl' : ''}`}>
                   {templateQuestions.map((q) => (
                     <button
@@ -1270,7 +1271,7 @@ const CallcenterNachrichten = ({
                     </button>
                   ))}
                 </div>
-                )}
+                ) : null}
                 {fragenOpen && chipEditing ? (
                   <div className="sz-template-add sz-quick-add">
                     <label className="sz-template-options-label">
