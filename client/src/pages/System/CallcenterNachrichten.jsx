@@ -193,6 +193,7 @@ function messagePreview(message) {
   return '—';
 }
 
+const AGENT_CHAT_NAME = 'AZ Handy Berlin';
 const TYPING_STORAGE_KEY = 'az-callcenter-typing';
 const TYPING_MS = 2600;
 
@@ -1141,7 +1142,7 @@ const CallcenterNachrichten = ({
                   <div key={m.id} className={`sz-bubble sz-bubble--${m.from}`}>
                     {m.auto === 'welcome' ? null : (
                       <p className="sz-bubble-author">
-                        {m.from === 'agent' ? m.authorName || 'Zentrale' : active.customerName}
+                        {m.from === 'agent' ? AGENT_CHAT_NAME : active.customerName}
                       </p>
                     )}
                     {messageImages(m).length ? (
@@ -1200,7 +1201,7 @@ const CallcenterNachrichten = ({
                 ) : null}
                 {agentTyping ? (
                   <div className="sz-bubble sz-bubble--agent sz-bubble--typing">
-                    <p className="sz-bubble-author">{agentName || 'Zentrale'}</p>
+                    <p className="sz-bubble-author">{AGENT_CHAT_NAME}</p>
                     <p className="sz-typing-line">
                       <TypingDots />
                       <span>Kunde sieht: schreibt gerade</span>
