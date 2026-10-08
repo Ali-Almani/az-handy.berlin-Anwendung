@@ -4,6 +4,7 @@ export const ROLES = {
   BUERO_MITARBEITER: 'Büro Mitarbeiter',
   MARKETING: 'Marketing',
   SOCIAL_MEDIA: 'Social Media',
+  TEAMLEITER_SOCIAL_MEDIA: 'Teamleiter social media',
   CALLCENTER: 'Callcenter',
   SHOPS: 'Shops',
   BUCHHALTUNG: 'Buchhaltung',
@@ -71,6 +72,7 @@ export const ROLE_OPTIONS = [
   { value: ROLES.MITARBEITER_SHOP, label: 'Mitarbeiter shop' },
   { value: ROLES.MARKETING, label: 'Marketing' },
   { value: ROLES.SOCIAL_MEDIA, label: 'Social Media' },
+  { value: ROLES.TEAMLEITER_SOCIAL_MEDIA, label: 'Teamleiter social media' },
   { value: ROLES.CALLCENTER, label: 'Callcenter' },
   { value: ROLES.BUCHHALTUNG, label: 'Buchhaltung' },
   { value: ROLES.EINKAUF, label: 'Einkauf' },
@@ -117,10 +119,17 @@ export const isSocialMedia = (user) => {
   return normRole(user.role) === 'social media';
 };
 
-/** Ticketing / Nachrichten: Administrator und Social Media */
+export const isTeamleiterSocialMedia = (user) => {
+  if (!user) return false;
+  if (user.role === ROLES.TEAMLEITER_SOCIAL_MEDIA) return true;
+  const k = normRole(user.role);
+  return k === 'teamleiter social media' || (k.includes('teamleiter') && k.includes('social media'));
+};
+
+/** Ticketing / Nachrichten: Administrator, Social Media, Teamleiter social media */
 export const canAccessTicketingSystem = (user) => {
   if (!user) return false;
-  return isAdmin(user) || isSocialMedia(user);
+  return isAdmin(user) || isSocialMedia(user) || isTeamleiterSocialMedia(user);
 };
 
 // Prüfe ob Benutzer Teamleiter shop ist
