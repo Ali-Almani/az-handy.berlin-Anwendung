@@ -8,6 +8,7 @@ const ROLES = [
   'Büro Mitarbeiter',
   'Marketing',
   'Social Media',
+  'Mitarbeiter social media',
   'Teamleiter social media',
   'Callcenter',
   'Shops',

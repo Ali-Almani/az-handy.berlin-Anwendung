@@ -26,6 +26,7 @@ const ROLE_LABELS = new Set([
   'Büro Mitarbeiter',
   'Marketing',
   'Social Media',
+  'Mitarbeiter social media',
   'Teamleiter social media',
   'Callcenter',
   'Shops',

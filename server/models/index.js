@@ -29,6 +29,7 @@ const ensureUserRoleEnumValue = async (label) => {
 const initDatabase = async () => {
   await connectDatabase();
   await ensureUserRoleEnumValue('Social Media');
+  await ensureUserRoleEnumValue('Mitarbeiter social media');
   await ensureUserRoleEnumValue('Teamleiter social media');
   const runAlterSync =
     process.env.DB_SYNC_ALTER === 'true' ||
