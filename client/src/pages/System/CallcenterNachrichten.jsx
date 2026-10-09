@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SOCIAL_CHANNELS,
   QUESTION_CHAT_LOCALES,
@@ -39,6 +39,12 @@ import {
   whatsappHrefFromPhone
 } from './callcenterLeadData';
 import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
+import {
+  getInboxAnweisungApi,
+  markInboxAnweisungReadApi,
+  saveInboxAnweisungApi
+} from '../../services/vorvertrag.service';
+import { getSocket } from '../../services/socket';
 import './System.scss';
 import './CallcenterNachrichten.scss';
 
@@ -398,12 +404,17 @@ const CallcenterNachrichten = ({
   openTicketId,
   onStatusApplied,
   onOpened,
-  canEditFragen = true
+  canEditFragen = true,
+  canWriteAnweisung = false,
+  onAnweisungUnreadChange
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
   const [readTab, setReadTab] = useState('ungelesen');
   const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
+  const [inboxAnweisung, setInboxAnweisung] = useState('');
+  const [anweisungUnread, setAnweisungUnread] = useState(false);
+  const [anweisungBanner, setAnweisungBanner] = useState(false);
   const [search, setSearch] = useState('');
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
@@ -432,6 +443,10 @@ const CallcenterNachrichten = ({
   const recordTimerRef = useRef(null);
   const recordSecsRef = useRef(0);
   const ignoreRecordRef = useRef(false);
+  const anweisungSkipSave = useRef(true);
+  const anweisungDirty = useRef(false);
+  const onAnweisungUnreadRef = useRef(onAnweisungUnreadChange);
+  onAnweisungUnreadRef.current = onAnweisungUnreadChange;
   const list = tickets || [];
 
   const filtered = useMemo(() => {
@@ -439,7 +454,7 @@ const CallcenterNachrichten = ({
     return list
       .filter((t) => (channel === 'all' ? true : normalizeSocialChannel(t.channel) === channel))
       .filter((t) => {
-        if (readTab === 'notiz') return false;
+        if (readTab === 'notiz' || readTab === 'anweisung') return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
         return !t.unread;
       })
@@ -473,6 +488,8 @@ const CallcenterNachrichten = ({
     return base;
   }, [active, questionConfig]);
   const showNotiz = readTab === 'notiz';
+  const showAnweisung = readTab === 'anweisung';
+  const showNotePane = showNotiz || showAnweisung;
   const chatLocale = questionChatLocale(active?.sprache);
   const templateQuestions = useMemo(
     () => localizedTemplateQuestions(chatLocale, questionConfig),
@@ -488,6 +505,95 @@ const CallcenterNachrichten = ({
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
   }, [inboxNotiz]);
+
+  const loadAnweisung = useCallback(async () => {
+    if (anweisungDirty.current) return;
+    try {
+      const res = await getInboxAnweisungApi();
+      anweisungSkipSave.current = true;
+      setInboxAnweisung(String(res?.text ?? ''));
+      const unread = Boolean(res?.unread);
+      setAnweisungUnread(unread);
+      onAnweisungUnreadRef.current?.(unread);
+    } catch {
+      /* offline / kein Zugriff */
+    }
+  }, []);
+
+  const markAnweisungRead = useCallback(async () => {
+    if (canWriteAnweisung) return;
+    setAnweisungUnread(false);
+    onAnweisungUnreadRef.current?.(false);
+    try {
+      await markInboxAnweisungReadApi();
+    } catch {
+      /* Netz */
+    }
+  }, [canWriteAnweisung]);
+
+  const openAnweisungTab = useCallback(() => {
+    const hadUnread = anweisungUnread;
+    setReadTab('anweisung');
+    setMobileShowChat(false);
+    if (hadUnread) setAnweisungBanner(true);
+    markAnweisungRead().finally(() => {
+      loadAnweisung();
+    });
+  }, [anweisungUnread, loadAnweisung, markAnweisungRead]);
+
+  useEffect(() => {
+    loadAnweisung();
+  }, [loadAnweisung]);
+
+  useEffect(() => {
+    if (canWriteAnweisung) return undefined;
+    const id = window.setInterval(loadAnweisung, 8000);
+    return () => window.clearInterval(id);
+  }, [canWriteAnweisung, loadAnweisung]);
+
+  useEffect(() => {
+    if (canWriteAnweisung) return undefined;
+    const socket = getSocket();
+    if (!socket) return undefined;
+    const onNew = (payload) => {
+      const text = String(payload?.text ?? '');
+      if (!text.trim()) return;
+      anweisungSkipSave.current = true;
+      setInboxAnweisung(text);
+      setAnweisungUnread(true);
+      onAnweisungUnreadRef.current?.(true);
+      if (readTab === 'anweisung') {
+        setAnweisungBanner(true);
+        markAnweisungRead();
+      }
+    };
+    socket.on('ticketing:anweisung', onNew);
+    return () => {
+      socket.off('ticketing:anweisung', onNew);
+    };
+  }, [canWriteAnweisung, readTab, markAnweisungRead]);
+
+  useEffect(() => {
+    if (!canWriteAnweisung) return undefined;
+    if (anweisungSkipSave.current) {
+      anweisungSkipSave.current = false;
+      return undefined;
+    }
+    const persist = window.setTimeout(() => {
+      saveInboxAnweisungApi(inboxAnweisung, { notify: false }).catch(() => {});
+    }, 500);
+    const publish = window.setTimeout(() => {
+      saveInboxAnweisungApi(inboxAnweisung, { notify: true })
+        .then(() => {
+          anweisungDirty.current = false;
+        })
+        .catch(() => {});
+    }, 2000);
+    return () => {
+      window.clearTimeout(persist);
+      window.clearTimeout(publish);
+    };
+  }, [inboxAnweisung, canWriteAnweisung]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setTypingTick((n) => n + 1), 400);
@@ -946,7 +1052,7 @@ const CallcenterNachrichten = ({
       <div className={`sz-layout${active ? ' sz-layout--with-questions' : ''}`}>
         <aside className="sz-list-pane">
           <div className="sz-filters">
-            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen oder Notiz">
+            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Notiz oder Anweisung">
               <button
                 type="button"
                 role="tab"
@@ -983,9 +1089,26 @@ const CallcenterNachrichten = ({
               >
                 Notiz
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={readTab === 'anweisung'}
+                className={`sz-read-tab${readTab === 'anweisung' ? ' sz-read-tab--active' : ''}${anweisungUnread && !canWriteAnweisung ? ' sz-read-tab--alert' : ''}`}
+                onClick={openAnweisungTab}
+              >
+                Anweisung
+                {anweisungUnread && !canWriteAnweisung ? (
+                  <span className="sz-chip-count">Neu</span>
+                ) : null}
+              </button>
             </div>
-            {showNotiz ? null : (
+            {showNotePane ? null : (
               <>
+                {anweisungUnread && !canWriteAnweisung ? (
+                  <button type="button" className="sz-anweisung-alert" onClick={openAnweisungTab}>
+                    Neue Anweisung – öffnen
+                  </button>
+                ) : null}
                 <div className="sz-channel-row" role="tablist" aria-label="Kanäle">
                   <button
                     type="button"
@@ -1027,17 +1150,55 @@ const CallcenterNachrichten = ({
               </>
             )}
           </div>
-          {showNotiz ? (
+          {showNotePane ? (
             <div className="sz-note-pane">
-              <label className="visually-hidden" htmlFor="sz-inbox-notiz">Notiz</label>
-              <textarea
-                id="sz-inbox-notiz"
-                className="form-input sz-note-input"
-                value={inboxNotiz}
-                onChange={(ev) => setInboxNotiz(ev.target.value)}
-                placeholder="Notiz schreiben…"
-                spellCheck="true"
-              />
+              {showAnweisung ? (
+                <>
+                  {anweisungBanner && !canWriteAnweisung ? (
+                    <p className="sz-anweisung-banner" role="status">Neue Anweisung</p>
+                  ) : null}
+                  <label className="visually-hidden" htmlFor="sz-inbox-anweisung">Anweisung</label>
+                  <textarea
+                    id="sz-inbox-anweisung"
+                    className={`form-input sz-note-input${canWriteAnweisung ? '' : ' sz-note-input--readonly'}`}
+                    value={inboxAnweisung}
+                    readOnly={!canWriteAnweisung}
+                    aria-readonly={!canWriteAnweisung}
+                    onChange={(ev) => {
+                      if (!canWriteAnweisung) return;
+                      anweisungDirty.current = true;
+                      anweisungSkipSave.current = false;
+                      setInboxAnweisung(ev.target.value);
+                    }}
+                    onBlur={() => {
+                      if (!canWriteAnweisung || !anweisungDirty.current) return;
+                      saveInboxAnweisungApi(inboxAnweisung, { notify: true })
+                        .then(() => {
+                          anweisungDirty.current = false;
+                        })
+                        .catch(() => {});
+                    }}
+                    placeholder={
+                      canWriteAnweisung
+                        ? 'Anweisung an das Team schreiben…'
+                        : 'Noch keine Anweisung.'
+                    }
+                    spellCheck="true"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className="visually-hidden" htmlFor="sz-inbox-notiz">Notiz</label>
+                  <textarea
+                    id="sz-inbox-notiz"
+                    className="form-input sz-note-input"
+                    value={inboxNotiz}
+                    onChange={(ev) => setInboxNotiz(ev.target.value)}
+                    placeholder="Notiz schreiben…"
+                    spellCheck="true"
+                  />
+                </>
+              )}
             </div>
           ) : (
           <ul className="sz-ticket-list">

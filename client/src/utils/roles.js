@@ -148,6 +148,9 @@ export const canViewTicketingOffen = (user) => {
 /** Bearbeiten-Icon für Vorlage–Fragen in Nachrichten (nicht für Mitarbeiter social media) */
 export const canEditTicketingFragen = canManageTicketingSystem;
 
+/** Anweisung-Tab schreiben: Administrator und Teamleiter social media. Mitarbeiter nur lesen. */
+export const canWriteTicketingAnweisung = canManageTicketingSystem;
+
 // Prüfe ob Benutzer Teamleiter shop ist
 export const isTeamleiterShop = (user) => {
   if (!user) return false;

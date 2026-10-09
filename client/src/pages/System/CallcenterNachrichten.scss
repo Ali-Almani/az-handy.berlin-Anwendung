@@ -55,14 +55,16 @@
   justify-content: center;
   gap: 0.35rem;
   margin: 0;
-  padding: 0.45rem 0.4rem;
+  padding: 0.4rem 0.22rem;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: $text-light;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: $font-weight-medium;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
 
   &:hover {
@@ -72,6 +74,10 @@
   &--active {
     color: $primary-color;
     border-bottom-color: $primary-color;
+  }
+
+  &--alert {
+    color: $danger-color;
   }
 }
 
@@ -157,8 +163,39 @@
   text-align: center;
 }
 
+.sz-anweisung-alert {
+  display: block;
+  width: 100%;
+  margin: 0 0 $spacing-sm;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid mix(#fff, $danger-color, 45%);
+  border-radius: $border-radius-card;
+  background: mix(#fff, $danger-color, 88%);
+  color: darken($danger-color, 12%);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: $font-weight-medium;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: mix(#fff, $danger-color, 80%);
+  }
+}
+
+.sz-anweisung-banner {
+  margin: 0 0 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: $border-radius-card;
+  background: mix(#fff, $primary-color, 88%);
+  color: $primary-color;
+  font-size: 0.8rem;
+  font-weight: $font-weight-medium;
+}
+
 .sz-note-pane {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   padding: $spacing-sm;
@@ -166,11 +203,18 @@
 
 .sz-note-input {
   width: 100%;
+  flex: 1;
   min-height: 12rem;
-  height: 100%;
+  height: auto;
   resize: none;
   font-size: 0.88rem;
   line-height: 1.45;
+
+  &--readonly {
+    background: $bg-light;
+    cursor: default;
+    color: $text-color;
+  }
 }
 
 .sz-search {

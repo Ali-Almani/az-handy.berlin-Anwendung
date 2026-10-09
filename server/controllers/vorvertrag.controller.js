@@ -128,6 +128,16 @@ function isTeamleiterSocialMediaRole(role) {
   return k === 'teamleiter social media' || (k.includes('teamleiter') && k.includes('social media'));
 }
 
+function isSocialMediaRole(role) {
+  const k = String(role || '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ');
+  return k === 'mitarbeiter social media' || k === 'social media';
+}
+
 async function canManageTicketing(userId) {
   if (!userId) return false;
   try {
@@ -147,6 +157,50 @@ async function requireTicketingManager(req, res) {
     return false;
   }
   return true;
+}
+
+async function canAccessTicketing(userId) {
+  if (!userId) return false;
+  try {
+    const u = await User.findByPk(userId);
+    if (!u) return false;
+    const role = roleText(u);
+    return isAdminRole(role) || isTeamleiterSocialMediaRole(role) || isSocialMediaRole(role);
+  } catch {
+    return false;
+  }
+}
+
+async function requireTicketingAccess(req, res) {
+  const ok = await canAccessTicketing(req.user?.userId ?? req.user?.id);
+  if (!ok) {
+    res.status(403).json({ success: false, message: 'Kein Zugriff auf das Ticketing-System.' });
+    return false;
+  }
+  return true;
+}
+
+const ANWEISUNG_FILE = 'ticketing-anweisung.json';
+const ANWEISUNG_DEFAULT = () => ({ text: '', publishedText: '', updatedAt: '', seenBy: {} });
+
+function normalizeAnweisungState(state) {
+  if (!state || typeof state !== 'object') return ANWEISUNG_DEFAULT();
+  if (!state.seenBy || typeof state.seenBy !== 'object' || Array.isArray(state.seenBy)) {
+    state.seenBy = {};
+  }
+  state.text = String(state.text ?? '');
+  state.publishedText = String(state.publishedText ?? '');
+  state.updatedAt = String(state.updatedAt ?? '');
+  return state;
+}
+
+function anweisungUnreadForUser(state, userId, isWriter) {
+  if (isWriter) return false;
+  const text = String(state?.text ?? '').trim();
+  const updatedAt = String(state?.updatedAt ?? '');
+  if (!text || !updatedAt) return false;
+  const seen = String(state?.seenBy?.[String(userId)] ?? '');
+  return !seen || seen < updatedAt;
 }
 
 function newId(prefix = 'vv') {
@@ -581,4 +635,57 @@ export async function deleteVorvertrag(req, res) {
     meta: { entryId: id }
   });
   return res.json({ success: true });
+}
+
+export async function getInboxAnweisung(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const userId = req.user?.userId ?? req.user?.id;
+  const isWriter = await canManageTicketing(userId);
+  const data = normalizeAnweisungState(readJsonStore(ANWEISUNG_FILE, ANWEISUNG_DEFAULT()));
+  return res.json({
+    success: true,
+    text: String(data.text ?? ''),
+    updatedAt: String(data.updatedAt ?? ''),
+    unread: anweisungUnreadForUser(data, userId, isWriter)
+  });
+}
+
+export async function saveInboxAnweisung(req, res) {
+  if (!(await requireTicketingManager(req, res))) return;
+  const text = String(req.body?.text ?? '');
+  const notify = Boolean(req.body?.notify);
+  const now = new Date().toISOString();
+  let published = false;
+  let updatedAt = '';
+  updateJsonStore(ANWEISUNG_FILE, ANWEISUNG_DEFAULT(), (state) => {
+    const next = normalizeAnweisungState(state);
+    next.text = text;
+    if (notify && text.trim() && text !== next.publishedText) {
+      next.publishedText = text;
+      next.updatedAt = now;
+      published = true;
+    }
+    updatedAt = next.updatedAt;
+    Object.assign(state, next);
+  });
+  if (published) {
+    const io = req.app?.get?.('io');
+    io?.emit?.('ticketing:anweisung', { text, updatedAt: now });
+  }
+  return res.json({ success: true, text, updatedAt, unread: false });
+}
+
+export async function markInboxAnweisungRead(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const userId = String(req.user?.userId ?? req.user?.id ?? '');
+  if (!userId) {
+    return res.status(401).json({ success: false, message: 'Nicht angemeldet.' });
+  }
+  const now = new Date().toISOString();
+  updateJsonStore(ANWEISUNG_FILE, ANWEISUNG_DEFAULT(), (state) => {
+    const next = normalizeAnweisungState(state);
+    next.seenBy[userId] = now;
+    Object.assign(state, next);
+  });
+  return res.json({ success: true, unread: false });
 }

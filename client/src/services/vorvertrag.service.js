@@ -29,3 +29,21 @@ export const deleteVorvertragApi = async (id) => {
   const res = await api.delete(`/vorvertrag/${encodeURIComponent(id)}`);
   return res.data;
 };
+
+export const getInboxAnweisungApi = async () => {
+  const res = await api.get('/vorvertrag/anweisung');
+  return res.data;
+};
+
+export const saveInboxAnweisungApi = async (text, { notify = false } = {}) => {
+  const res = await api.put('/vorvertrag/anweisung', {
+    text: String(text ?? ''),
+    notify: Boolean(notify)
+  });
+  return res.data;
+};
+
+export const markInboxAnweisungReadApi = async () => {
+  const res = await api.post('/vorvertrag/anweisung/read');
+  return res.data;
+};

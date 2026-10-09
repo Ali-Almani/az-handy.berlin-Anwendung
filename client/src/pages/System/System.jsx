@@ -5,14 +5,17 @@ import {
   canAccessTicketingSystem,
   canEditTicketingFragen,
   canManageTicketingSystem,
-  canViewTicketingOffen
+  canViewTicketingOffen,
+  canWriteTicketingAnweisung
 } from '../../utils/roles';
 import {
   listVorvertraegeApi,
   createVorvertragApi,
   updateVorvertragApi,
-  updateVorvertragTicketStatusApi
+  updateVorvertragTicketStatusApi,
+  getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
+import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
   formFromEntry,
@@ -73,6 +76,7 @@ const System = () => {
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
   const [leadEditId, setLeadEditId] = useState('');
+  const [anweisungUnread, setAnweisungUnread] = useState(false);
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -177,6 +181,34 @@ const System = () => {
     const t = setTimeout(() => setHighlightedId(null), 3500);
     return () => clearTimeout(t);
   }, [highlightedId]);
+
+  useEffect(() => {
+    if (!user || canWriteTicketingAnweisung(user)) {
+      setAnweisungUnread(false);
+      return undefined;
+    }
+    let on = true;
+    const check = async () => {
+      try {
+        const res = await getInboxAnweisungApi();
+        if (on) setAnweisungUnread(Boolean(res?.unread));
+      } catch {
+        /* offline */
+      }
+    };
+    check();
+    const id = window.setInterval(check, 8000);
+    const socket = getSocket();
+    const onNew = () => {
+      if (on) setAnweisungUnread(true);
+    };
+    socket?.on?.('ticketing:anweisung', onNew);
+    return () => {
+      on = false;
+      window.clearInterval(id);
+      socket?.off?.('ticketing:anweisung', onNew);
+    };
+  }, [user]);
 
   const loadList = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -456,6 +488,7 @@ const System = () => {
   const canManageVorvertrag = canManageTicketingSystem(user);
   const canSeeOffen = canViewTicketingOffen(user);
   const canEditFragen = canEditTicketingFragen(user);
+  const canWriteAnweisung = canWriteTicketingAnweisung(user);
 
   return (
     <div className={`system-page container${listTab === 'nachrichten' ? ' system-page--nachrichten' : ''}`}>
@@ -470,6 +503,7 @@ const System = () => {
           onClick={() => setListTab('nachrichten')}
         >
           Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
+          {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
         </button>
         {canManageVorvertrag ? (
           <button
@@ -508,6 +542,17 @@ const System = () => {
           </button>
         ) : null}
       </div>
+
+      {anweisungUnread && listTab !== 'nachrichten' && !canWriteAnweisung ? (
+        <button
+          type="button"
+          className="system-toast system-toast--anweisung"
+          onClick={() => setListTab('nachrichten')}
+        >
+          <span className="system-toast__icon" aria-hidden>●</span>
+          <span className="system-toast__message">Neue Anweisung in Nachrichten</span>
+        </button>
+      ) : null}
 
       {listTab === 'erstellen' ? (
         <div className="system-toolbar">
@@ -550,6 +595,8 @@ const System = () => {
           openTicketId={openLeadId}
           filialeOptions={filialeOptions}
           canEditFragen={canEditFragen}
+          canWriteAnweisung={canWriteAnweisung}
+          onAnweisungUnreadChange={setAnweisungUnread}
           onStatusApplied={(id, targetTab = 'offen') => {
             setOpenLeadId('');
             goToStatusTab(targetTab);

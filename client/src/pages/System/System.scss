@@ -21,6 +21,9 @@
 }
 
 .system-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   margin: 0;
   padding: $spacing-sm $spacing-md;
   border: none;
@@ -40,6 +43,17 @@
     color: $primary-color;
     border-bottom-color: $primary-color;
   }
+}
+
+.system-tab-count {
+  min-width: 1.15rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: $danger-color;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.3;
 }
 
 .lead-fragen-panel {
@@ -111,6 +125,19 @@
     background: mix(#fff, $success-color, 88%);
     border-color: mix(#fff, $success-color, 55%);
     color: darken($success-color, 18%);
+  }
+
+  &--anweisung {
+    width: 100%;
+    background: mix(#fff, $danger-color, 88%);
+    border-color: mix(#fff, $danger-color, 50%);
+    color: darken($danger-color, 12%);
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background: mix(#fff, $danger-color, 80%);
+    }
   }
 
   &__icon {
