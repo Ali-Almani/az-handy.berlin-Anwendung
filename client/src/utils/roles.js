@@ -145,7 +145,7 @@ export const canViewTicketingOffen = (user) => {
   return canManageTicketingSystem(user) || isSocialMedia(user);
 };
 
-/** Vorlage–Fragen und Fragen-Bearbeiten in Nachrichten */
+/** Bearbeiten-Icon für Vorlage–Fragen in Nachrichten (nicht für Mitarbeiter social media) */
 export const canEditTicketingFragen = canManageTicketingSystem;
 
 // Prüfe ob Benutzer Teamleiter shop ist

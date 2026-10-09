@@ -943,7 +943,7 @@ const CallcenterNachrichten = ({
       className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}`}
       aria-label="Posteingang"
     >
-      <div className={`sz-layout${active && canEditFragen ? ' sz-layout--with-questions' : ''}`}>
+      <div className={`sz-layout${active ? ' sz-layout--with-questions' : ''}`}>
         <aside className="sz-list-pane">
           <div className="sz-filters">
             <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen oder Notiz">
@@ -1092,11 +1092,7 @@ const CallcenterNachrichten = ({
         <div className="sz-chat-pane">
           {!active ? (
             <div className="sz-chat-placeholder">
-              <p>
-                {canEditFragen
-                  ? 'Posteingang: Nachricht wählen und direkt antworten. Die Vorlage rechts sind Fragen zum Ausfüllen.'
-                  : 'Posteingang: Nachricht wählen und direkt antworten.'}
-              </p>
+              <p>Posteingang: Nachricht wählen und direkt antworten. Die Vorlage rechts sind Fragen zum Ausfüllen.</p>
             </div>
           ) : (
             <>
@@ -1525,10 +1521,11 @@ const CallcenterNachrichten = ({
           )}
         </div>
 
-        {active && answers && canEditFragen ? (
+        {active && answers ? (
           <aside className="sz-questions" aria-label="Vorlage Fragen">
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Vorlage – Fragen</h3>
+              {canEditFragen ? (
               <button
                 type="button"
                 className={`sz-question-icon${templateEditing ? ' sz-question-icon--active' : ''}`}
@@ -1547,6 +1544,7 @@ const CallcenterNachrichten = ({
                   </svg>
                 )}
               </button>
+              ) : null}
             </div>
             <LeadFragenForm
               embedded
@@ -1554,7 +1552,7 @@ const CallcenterNachrichten = ({
               onChange={patchAnswer}
               questionConfig={questionConfig}
               questionLocale={chatLocale}
-              templateEditing={templateEditing}
+              templateEditing={canEditFragen && templateEditing}
               onQuestionDelete={deleteQuestion}
               onQuestionAdd={addQuestion}
               onQuestionMove={(field, direction) => {
