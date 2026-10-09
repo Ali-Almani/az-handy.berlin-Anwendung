@@ -397,7 +397,8 @@ const CallcenterNachrichten = ({
   onTicketsChange,
   openTicketId,
   onStatusApplied,
-  onOpened
+  onOpened,
+  canEditFragen = true
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
@@ -502,6 +503,12 @@ const CallcenterNachrichten = ({
   useEffect(() => {
     saveQuestionConfig(questionConfig);
   }, [questionConfig]);
+
+  useEffect(() => {
+    if (canEditFragen) return;
+    setTemplateEditing(false);
+    setChipEditing(false);
+  }, [canEditFragen]);
 
   useEffect(() => {
     if (!threadRef.current) return;
@@ -936,7 +943,7 @@ const CallcenterNachrichten = ({
       className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}`}
       aria-label="Posteingang"
     >
-      <div className={`sz-layout${active ? ' sz-layout--with-questions' : ''}`}>
+      <div className={`sz-layout${active && canEditFragen ? ' sz-layout--with-questions' : ''}`}>
         <aside className="sz-list-pane">
           <div className="sz-filters">
             <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen oder Notiz">
@@ -1085,7 +1092,11 @@ const CallcenterNachrichten = ({
         <div className="sz-chat-pane">
           {!active ? (
             <div className="sz-chat-placeholder">
-              <p>Posteingang: Nachricht wählen und direkt antworten. Die Vorlage rechts sind Fragen zum Ausfüllen.</p>
+              <p>
+                {canEditFragen
+                  ? 'Posteingang: Nachricht wählen und direkt antworten. Die Vorlage rechts sind Fragen zum Ausfüllen.'
+                  : 'Posteingang: Nachricht wählen und direkt antworten.'}
+              </p>
             </div>
           ) : (
             <>
@@ -1231,6 +1242,7 @@ const CallcenterNachrichten = ({
                   </button>
                   {fragenOpen ? (
                     <>
+                      {canEditFragen ? (
                       <button
                         type="button"
                         className={`sz-question-icon${chipEditing ? ' sz-question-icon--active' : ''}`}
@@ -1249,6 +1261,7 @@ const CallcenterNachrichten = ({
                           </svg>
                         )}
                       </button>
+                      ) : null}
                       <div className="sz-composer-langs" role="group" aria-label="Fragensprache">
                         {QUESTION_CHAT_LOCALES.map((item) => (
                           <button
@@ -1265,7 +1278,7 @@ const CallcenterNachrichten = ({
                     </>
                   ) : null}
                 </div>
-                {fragenOpen && chipEditing ? (
+                {fragenOpen && chipEditing && canEditFragen ? (
                   <div className="sz-chip-edit-list">
                     {templateQuestions.map((q) => {
                       const options = questionDropdownOptions(q.field, questionConfig);
@@ -1359,7 +1372,7 @@ const CallcenterNachrichten = ({
                   ))}
                 </div>
                 ) : null}
-                {fragenOpen && chipEditing ? (
+                {fragenOpen && chipEditing && canEditFragen ? (
                   <div className="sz-template-add sz-quick-add">
                     <label className="sz-template-options-label">
                       Feldtyp
@@ -1512,7 +1525,7 @@ const CallcenterNachrichten = ({
           )}
         </div>
 
-        {active && answers ? (
+        {active && answers && canEditFragen ? (
           <aside className="sz-questions" aria-label="Vorlage Fragen">
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Vorlage – Fragen</h3>

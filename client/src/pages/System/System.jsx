@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { canAccessTicketingSystem, isAdmin } from '../../utils/roles';
+import {
+  canAccessTicketingSystem,
+  canEditTicketingFragen,
+  canManageTicketingSystem,
+  canViewTicketingOffen
+} from '../../utils/roles';
 import {
   listVorvertraegeApi,
   createVorvertragApi,
@@ -141,7 +146,7 @@ const System = () => {
     imeis,
     loading: geraeteLoading,
     error: geraeteError
-  } = useVorvertragImeiCatalog(Boolean(user && isAdmin(user)));
+  } = useVorvertragImeiCatalog(Boolean(user && canManageTicketingSystem(user)));
 
   useEffect(() => {
     saveLeadTickets(leadTickets);
@@ -192,13 +197,21 @@ const System = () => {
   }, []);
 
   useEffect(() => {
-    if (user && isAdmin(user)) loadList();
+    if (!user) return;
+    if (canManageTicketingSystem(user)) {
+      loadList();
+      return;
+    }
+    setLoading(false);
   }, [user, loadList]);
 
   useEffect(() => {
-    if (user && !isAdmin(user) && listTab !== 'nachrichten') {
-      setListTab('nachrichten');
-    }
+    if (!user) return;
+    const allowed =
+      listTab === 'nachrichten' ||
+      (listTab === 'offen' && canViewTicketingOffen(user)) ||
+      ((listTab === 'erstellen' || listTab === 'archiv') && canManageTicketingSystem(user));
+    if (!allowed) setListTab('nachrichten');
   }, [user, listTab]);
 
   useEffect(() => {
@@ -259,7 +272,20 @@ const System = () => {
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
+  const goToStatusTab = (targetTab = 'offen') => {
+    if (targetTab === 'archiv' && canManageTicketingSystem(user)) {
+      setListTab('archiv');
+      return;
+    }
+    if (canViewTicketingOffen(user)) {
+      setListTab('offen');
+      return;
+    }
+    setListTab('nachrichten');
+  };
+
   const startEdit = (entry) => {
+    if (!isLeadEntry(entry) && !canManageTicketingSystem(user)) return;
     if (isLeadEntry(entry)) {
       setLeadEditId(entry.id);
       setHighlightedId(entry.id);
@@ -402,11 +428,7 @@ const System = () => {
             : t
         )
       );
-      if (nextLead === 'Erledigt') {
-        setListTab('archiv');
-      } else {
-        setListTab('offen');
-      }
+      goToStatusTab(nextLead === 'Erledigt' ? 'archiv' : 'offen');
       setHighlightedId(id);
       return;
     }
@@ -419,11 +441,7 @@ const System = () => {
     try {
       await updateVorvertragTicketStatusApi(id, nextStatus);
       await loadList({ silent: true });
-      if (nextStatus === 'Erledigt') {
-        setListTab('archiv');
-      } else {
-        setListTab('offen');
-      }
+      goToStatusTab(nextStatus === 'Erledigt' ? 'archiv' : 'offen');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Status konnte nicht gespeichert werden.');
     } finally {
@@ -435,7 +453,9 @@ const System = () => {
     return <Navigate to="/" replace />;
   }
 
-  const canManageVorvertrag = isAdmin(user);
+  const canManageVorvertrag = canManageTicketingSystem(user);
+  const canSeeOffen = canViewTicketingOffen(user);
+  const canEditFragen = canEditTicketingFragen(user);
 
   return (
     <div className={`system-page container${listTab === 'nachrichten' ? ' system-page--nachrichten' : ''}`}>
@@ -452,38 +472,40 @@ const System = () => {
           Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
         </button>
         {canManageVorvertrag ? (
-          <>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={listTab === 'erstellen'}
-              className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
-              onClick={() => setListTab('erstellen')}
-            >
-              Ticketing erstellen
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={listTab === 'offen'}
-              className={`system-tab${listTab === 'offen' ? ' system-tab--active' : ''}`}
-              onClick={() => {
-                setListTab('offen');
-                setArchivSearch('');
-              }}
-            >
-              Offen ({offenCount})
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={listTab === 'archiv'}
-              className={`system-tab${listTab === 'archiv' ? ' system-tab--active' : ''}`}
-              onClick={() => setListTab('archiv')}
-            >
-              Archiv ({archivCount})
-            </button>
-          </>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listTab === 'erstellen'}
+            className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
+            onClick={() => setListTab('erstellen')}
+          >
+            Ticketing erstellen
+          </button>
+        ) : null}
+        {canSeeOffen ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listTab === 'offen'}
+            className={`system-tab${listTab === 'offen' ? ' system-tab--active' : ''}`}
+            onClick={() => {
+              setListTab('offen');
+              setArchivSearch('');
+            }}
+          >
+            Offen ({offenCount})
+          </button>
+        ) : null}
+        {canManageVorvertrag ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listTab === 'archiv'}
+            className={`system-tab${listTab === 'archiv' ? ' system-tab--active' : ''}`}
+            onClick={() => setListTab('archiv')}
+          >
+            Archiv ({archivCount})
+          </button>
         ) : null}
       </div>
 
@@ -527,9 +549,10 @@ const System = () => {
           onTicketsChange={setLeadTickets}
           openTicketId={openLeadId}
           filialeOptions={filialeOptions}
+          canEditFragen={canEditFragen}
           onStatusApplied={(id, targetTab = 'offen') => {
             setOpenLeadId('');
-            setListTab(targetTab === 'archiv' ? 'archiv' : 'offen');
+            goToStatusTab(targetTab);
             if (id) setHighlightedId(id);
           }}
           onOpened={() => setOpenLeadId('')}

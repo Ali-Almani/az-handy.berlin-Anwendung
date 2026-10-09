@@ -107,22 +107,43 @@ async function enrichEntryForClient(entry) {
   };
 }
 
-async function isAdminUser(userId) {
+function roleText(user) {
+  return String(user?.role ?? user?.get?.('role') ?? user?.dataValues?.role ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim();
+}
+
+function isAdminRole(role) {
+  const r = String(role || '').trim();
+  return r === 'Administrator' || r === 'admin' || r.toLowerCase().includes('admin');
+}
+
+function isTeamleiterSocialMediaRole(role) {
+  const k = String(role || '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ');
+  return k === 'teamleiter social media' || (k.includes('teamleiter') && k.includes('social media'));
+}
+
+async function canManageTicketing(userId) {
   if (!userId) return false;
   try {
     const u = await User.findByPk(userId);
     if (!u) return false;
-    const role = String(u.role ?? u.get?.('role') ?? u.dataValues?.role ?? '').trim();
-    return role === 'Administrator' || role === 'admin' || role.toLowerCase().includes('admin');
+    const role = roleText(u);
+    return isAdminRole(role) || isTeamleiterSocialMediaRole(role);
   } catch {
     return false;
   }
 }
 
-async function requireAdmin(req, res) {
-  const ok = await isAdminUser(req.user?.userId ?? req.user?.id);
+async function requireTicketingManager(req, res) {
+  const ok = await canManageTicketing(req.user?.userId ?? req.user?.id);
   if (!ok) {
-    res.status(403).json({ success: false, message: 'Nur für Administratoren.' });
+    res.status(403).json({ success: false, message: 'Kein Zugriff auf das Ticketing-System.' });
     return false;
   }
   return true;
@@ -330,7 +351,7 @@ async function editorFromReqAsync(req) {
 }
 
 export async function listVorvertraege(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await requireTicketingManager(req, res))) return;
   const data = await loadStore();
   const entries = [...data.entries].sort(
     (a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
@@ -343,7 +364,7 @@ export async function listVorvertraege(req, res) {
 }
 
 export async function getVorvertrag(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await requireTicketingManager(req, res))) return;
   const id = String(req.params.id || '').trim();
   const data = await loadStore();
   const entry = data.entries.find((e) => String(e.id) === id);
@@ -354,7 +375,7 @@ export async function getVorvertrag(req, res) {
 }
 
 export async function createVorvertrag(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await requireTicketingManager(req, res))) return;
   let normalized = normalizeEntryBody(req.body);
   if (normalized.error) {
     return res.status(400).json({ success: false, message: normalized.error });
@@ -416,7 +437,7 @@ export async function createVorvertrag(req, res) {
 }
 
 export async function updateVorvertrag(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await requireTicketingManager(req, res))) return;
   const id = String(req.params.id || '').trim();
   let normalized = normalizeEntryBody(req.body);
   if (normalized.error) {
@@ -493,7 +514,7 @@ export async function updateVorvertrag(req, res) {
 }
 
 export async function updateVorvertragTicketStatus(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await requireTicketingManager(req, res))) return;
   const id = String(req.params.id || '').trim();
   const ticketStatus = normalizeVorvertragTicketStatus(req.body?.ticketStatus);
   if (!String(req.body?.ticketStatus ?? '').trim()) {
@@ -543,7 +564,7 @@ export async function updateVorvertragTicketStatus(req, res) {
 }
 
 export async function deleteVorvertrag(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  if (!(await requireTicketingManager(req, res))) return;
   const id = String(req.params.id || '').trim();
   const notFound = await mutateStore((data) => {
     const before = data.entries.length;

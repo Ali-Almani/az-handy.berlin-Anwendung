@@ -133,6 +133,21 @@ export const canAccessTicketingSystem = (user) => {
   return isAdmin(user) || isSocialMedia(user) || isTeamleiterSocialMedia(user);
 };
 
+/** Volles Ticketing (Erstellen, Offen, Archiv, Vorlagen): Administrator und Teamleiter social media */
+export const canManageTicketingSystem = (user) => {
+  if (!user) return false;
+  return isAdmin(user) || isTeamleiterSocialMedia(user);
+};
+
+/** Offen-Tab: Administrator, Teamleiter social media, Mitarbeiter social media */
+export const canViewTicketingOffen = (user) => {
+  if (!user) return false;
+  return canManageTicketingSystem(user) || isSocialMedia(user);
+};
+
+/** Vorlage–Fragen und Fragen-Bearbeiten in Nachrichten */
+export const canEditTicketingFragen = canManageTicketingSystem;
+
 // Prüfe ob Benutzer Teamleiter shop ist
 export const isTeamleiterShop = (user) => {
   if (!user) return false;
