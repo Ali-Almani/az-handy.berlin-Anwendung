@@ -741,6 +741,12 @@ const CallcenterNachrichten = ({
         : prev.options,
       order: [...visibleQuestionOrder(prev), id]
     }));
+    window.requestAnimationFrame(() => {
+      const pane = document.querySelector('.sz-chip-edit-list, .sz-template-edit-list');
+      const last = pane?.querySelector('.sz-chip-edit:last-child, .sz-template-item:last-child');
+      last?.scrollIntoView({ block: 'nearest' });
+      last?.querySelector('input')?.focus();
+    });
   };
 
   const updateQuestion = (field, { label, text, options, links }) => {
@@ -1400,6 +1406,7 @@ const CallcenterNachrichten = ({
                   {fragenOpen ? (
                     <>
                       {canEditFragen ? (
+                      <>
                       <button
                         type="button"
                         className={`sz-question-icon${chipEditing ? ' sz-question-icon--active' : ''}`}
@@ -1418,6 +1425,20 @@ const CallcenterNachrichten = ({
                           </svg>
                         )}
                       </button>
+                      {chipEditing ? (
+                        <button
+                          type="button"
+                          className="sz-question-icon"
+                          onClick={() => addQuestion(chipType)}
+                          aria-label="Neue Frage hinzufügen"
+                          title="Neue Frage hinzufügen"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden>
+                            <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                          </svg>
+                        </button>
+                      ) : null}
+                      </>
                       ) : null}
                       <div className="sz-composer-langs" role="group" aria-label="Fragensprache">
                         {QUESTION_CHAT_LOCALES.map((item) => (
@@ -1530,9 +1551,9 @@ const CallcenterNachrichten = ({
                 </div>
                 ) : null}
                 {fragenOpen && chipEditing && canEditFragen ? (
-                  <div className="sz-template-add sz-quick-add">
+                  <div className="sz-template-add sz-quick-add sz-template-add--dock">
                     <label className="sz-template-options-label">
-                      Feldtyp
+                      Neue Frage – Feldtyp
                       <select
                         className="form-input"
                         value={chipType}
@@ -1544,7 +1565,7 @@ const CallcenterNachrichten = ({
                         ))}
                       </select>
                     </label>
-                    <button type="button" className="btn btn--secondary btn--small" onClick={() => addQuestion(chipType)}>
+                    <button type="button" className="btn btn--primary btn--small" onClick={() => addQuestion(chipType)}>
                       Frage hinzufügen
                     </button>
                   </div>
@@ -1687,6 +1708,7 @@ const CallcenterNachrichten = ({
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Vorlage – Fragen</h3>
               {canEditFragen ? (
+              <div className="sz-questions-titlebar-actions">
               <button
                 type="button"
                 className={`sz-question-icon${templateEditing ? ' sz-question-icon--active' : ''}`}
@@ -1705,6 +1727,20 @@ const CallcenterNachrichten = ({
                   </svg>
                 )}
               </button>
+              {templateEditing ? (
+                <button
+                  type="button"
+                  className="sz-question-icon"
+                  onClick={() => addQuestion('text')}
+                  aria-label="Neue Frage hinzufügen"
+                  title="Neue Frage hinzufügen"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden>
+                    <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                  </svg>
+                </button>
+              ) : null}
+              </div>
               ) : null}
             </div>
             <LeadFragenForm

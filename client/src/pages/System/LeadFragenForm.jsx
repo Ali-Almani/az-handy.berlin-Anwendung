@@ -142,6 +142,7 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
   const [newType, setNewType] = useState('text');
   return (
     <div className="sz-template-edit">
+      <div className="sz-template-edit-list">
       {order.map((field, index) => {
         const meta = questionMeta(field, config);
         if (!meta) return null;
@@ -231,9 +232,10 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
           </div>
         );
       })}
-      <div className="sz-template-add">
+      </div>
+      <div className="sz-template-add sz-template-add--dock">
         <label className="sz-template-options-label">
-          Feldtyp
+          Neue Frage – Feldtyp
           <select
             className="form-input"
             value={newType}
@@ -245,7 +247,7 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
             ))}
           </select>
         </label>
-        <button type="button" className="btn btn--secondary btn--small" onClick={() => onAdd?.(newType)}>
+        <button type="button" className="btn btn--primary btn--small" onClick={() => onAdd?.(newType)}>
           Frage hinzufügen
         </button>
       </div>

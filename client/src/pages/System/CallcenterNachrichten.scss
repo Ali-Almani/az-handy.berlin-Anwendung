@@ -794,6 +794,8 @@
   flex-direction: column;
   gap: 0.55rem;
   margin-bottom: $spacing-sm;
+  max-height: 12.5rem;
+  overflow-y: auto;
 }
 
 .sz-chip-edit {
@@ -1214,6 +1216,12 @@
   z-index: 2;
 }
 
+.sz-questions-titlebar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .sz-questions > :not(.sz-questions-titlebar) {
   flex: 1;
   min-height: 0;
@@ -1229,8 +1237,14 @@
 .sz-template-edit {
   display: flex;
   flex-direction: column;
+  padding: 0;
+}
+
+.sz-template-edit-list {
+  display: flex;
+  flex-direction: column;
   gap: 0.65rem;
-  padding: $spacing-sm $spacing-md $spacing-md;
+  padding: $spacing-sm $spacing-md;
 }
 
 .sz-template-item {
@@ -1282,6 +1296,17 @@
   .sz-template-options-label {
     flex: 1;
     min-width: 0;
+  }
+
+  &--dock {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-top: auto;
+    padding: 0.55rem $spacing-md;
+    border-top: 1px solid $border-color;
+    background: $bg-color;
   }
 }
 
