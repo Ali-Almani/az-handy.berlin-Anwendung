@@ -29,6 +29,7 @@ import {
   normalizeNachrichtShop,
   sanitizeMitarbeiterName,
   createManualLeadTicket,
+  isManualLeadTicket,
   MANUAL_TICKET_CHANNEL,
   MANUAL_TICKET_NAME,
   collectMitarbeiterNames,
@@ -469,6 +470,7 @@ const CallcenterNachrichten = ({
     return list
       .filter((t) => (channel === 'all' ? true : normalizeSocialChannel(t.channel) === channel))
       .filter((t) => {
+        if (isManualLeadTicket(t)) return false;
         if (readTab === 'notiz' || readTab === 'anweisung') return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
         return !t.unread;
@@ -519,9 +521,7 @@ const CallcenterNachrichten = ({
   const mitarbeiterLabel = sanitizeMitarbeiterName(agentName)
     || collectMitarbeiterNames(active)[0]
     || '—';
-  const isManualTicket = Boolean(
-    active && normalizeSocialChannel(active.channel) === MANUAL_TICKET_CHANNEL
-  );
+  const isManualTicket = isManualLeadTicket(active);
 
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
@@ -654,7 +654,10 @@ const CallcenterNachrichten = ({
   }, [list]);
 
   const readTabCounts = useMemo(() => {
-    const inChannel = list.filter((t) => (channel === 'all' ? true : t.channel === channel));
+    const inChannel = list.filter((t) => {
+      if (isManualLeadTicket(t)) return false;
+      return channel === 'all' ? true : normalizeSocialChannel(t.channel) === channel;
+    });
     return {
       ungelesen: inChannel.filter((t) => t.unread).length,
       gelesen: inChannel.filter((t) => !t.unread).length
@@ -861,7 +864,7 @@ const CallcenterNachrichten = ({
     const current = list.find((t) => t.id === activeId);
     if (
       current
-      && normalizeSocialChannel(current.channel) === MANUAL_TICKET_CHANNEL
+      && isManualLeadTicket(current)
       && !shopAssignsTicket(current.shop)
       && !String(current.rufnummer || '').trim()
     ) {
@@ -878,6 +881,23 @@ const CallcenterNachrichten = ({
     setChipEditing(false);
     setTemplateEditing(false);
     setMobileShowChat(true);
+  };
+
+  const cancelManualTicket = () => {
+    if (!active || !isManualLeadTicket(active)) return;
+    const hasContent = shopAssignsTicket(active.shop)
+      || String(active.rufnummer || '').trim()
+      || (String(active.customerName || '').trim() && String(active.customerName).trim() !== MANUAL_TICKET_NAME);
+    if (hasContent && !window.confirm('Dieses Ticket abbrechen und aus Offen entfernen?')) return;
+    onTicketsChange?.((prev) => (prev || []).filter((t) => t.id !== active.id));
+    setActiveId(null);
+    setDraft('');
+    setPendingImages([]);
+    setPendingVoice(null);
+    setFragenOpen(false);
+    setChipEditing(false);
+    setTemplateEditing(false);
+    setMobileShowChat(false);
   };
 
   const handleQuestionLocale = (locale) => {
@@ -1787,6 +1807,15 @@ const CallcenterNachrichten = ({
               >
                 Ticketing erstellen
               </button>
+              {isManualTicket ? (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--small sz-questions-create-btn"
+                  onClick={cancelManualTicket}
+                >
+                  Abbrechen
+                </button>
+              ) : null}
             </div>
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Vorlage – Fragen</h3>

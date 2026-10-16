@@ -1224,6 +1224,9 @@
 
 .sz-questions-create {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
   padding: $spacing-sm $spacing-md $spacing-md;
 }
 

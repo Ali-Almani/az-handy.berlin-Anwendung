@@ -406,8 +406,13 @@ export function isLeadArchived(entry) {
   return migrateLeadTicketStatus(entry?.ticketStatus) === 'Erledigt';
 }
 
+export function isManualLeadTicket(ticket) {
+  return normalizeSocialChannel(ticket?.channel) === MANUAL_TICKET_CHANNEL;
+}
+
 export function isLeadInNeu(entry) {
   if (isLeadArchived(entry)) return false;
+  if (isManualLeadTicket(entry)) return true;
   return shopAssignsTicket(entry?.shop);
 }
 
