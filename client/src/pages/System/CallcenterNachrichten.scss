@@ -19,6 +19,22 @@
   .sz-layout--with-questions {
     grid-template-columns: minmax(16.5rem, 20rem) minmax(0, 1fr) minmax(15.5rem, 19rem);
   }
+
+  .sz-layout--with-questions.sz-layout--form-only {
+    grid-template-columns: minmax(16.5rem, 20rem) minmax(0, 1fr);
+  }
+}
+
+.sz-layout--form-only {
+  grid-template-columns: minmax(16.5rem, 20rem) minmax(0, 1fr);
+
+  .sz-chat-pane {
+    display: none;
+  }
+
+  .sz-questions {
+    border-left: none;
+  }
 }
 
 .sz-list-pane {
@@ -1208,7 +1224,7 @@
 
 .sz-questions-create {
   flex-shrink: 0;
-  padding: $spacing-sm $spacing-md 0;
+  padding: $spacing-sm $spacing-md $spacing-md;
 }
 
 .sz-questions-create-btn {
@@ -1501,6 +1517,15 @@
   .sz--chat-open .sz-chat-pane,
   .sz--chat-open .sz-questions {
     display: flex;
+  }
+
+  .sz--form-only.sz--chat-open .sz-chat-pane {
+    display: none;
+  }
+
+  .sz--form-only.sz--chat-open .sz-questions {
+    flex: 1;
+    max-height: none;
   }
 
   .sz--chat-open .sz-chat-pane {

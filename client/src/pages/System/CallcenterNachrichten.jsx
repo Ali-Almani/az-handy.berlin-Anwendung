@@ -519,6 +519,9 @@ const CallcenterNachrichten = ({
   const mitarbeiterLabel = sanitizeMitarbeiterName(agentName)
     || collectMitarbeiterNames(active)[0]
     || '—';
+  const isManualTicket = Boolean(
+    active && normalizeSocialChannel(active.channel) === MANUAL_TICKET_CHANNEL
+  );
 
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
@@ -1124,10 +1127,10 @@ const CallcenterNachrichten = ({
 
   return (
     <section
-      className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}`}
+      className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}${isManualTicket ? ' sz--form-only' : ''}`}
       aria-label="Posteingang"
     >
-      <div className="sz-layout sz-layout--with-questions">
+      <div className={`sz-layout sz-layout--with-questions${isManualTicket ? ' sz-layout--form-only' : ''}`}>
         <aside className="sz-list-pane">
           <div className="sz-filters">
             <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Notiz oder Anweisung">
