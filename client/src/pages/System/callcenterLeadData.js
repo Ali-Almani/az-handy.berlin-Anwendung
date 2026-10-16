@@ -41,6 +41,9 @@ export const SOCIAL_CHANNELS = [
   { id: 'tiktok', label: 'TikTok', short: 'TT' }
 ];
 
+export const MANUAL_TICKET_CHANNEL = 'ticket';
+export const MANUAL_TICKET_NAME = 'Neues Ticket';
+
 export const QUESTION_CHAT_LOCALES = [
   { id: 'de', short: 'DE', sprache: 'Deutsch' },
   { id: 'ar', short: 'AR', sprache: 'Arabisch' },
@@ -540,6 +543,10 @@ export function shopOptionsForNachrichten() {
   return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS, NACHRICHTEN_ERLEDIGT];
 }
 
+export function shopOptionsForTicketing() {
+  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS];
+}
+
 export function shopFitsOrten(shop) {
   return ORTEN_SHOP_OPTIONS.includes(String(shop ?? '').trim());
 }
@@ -687,6 +694,7 @@ export function normalizeSocialChannel(value) {
   if (v === 'whatsapp' || v === 'wa') return 'whatsapp';
   if (v === 'instagram' || v === 'ig') return 'instagram';
   if (v === 'tiktok' || v === 'tt') return 'tiktok';
+  if (v === 'ticket' || v === 'tk' || v === 'intern' || v === 'telefon') return MANUAL_TICKET_CHANNEL;
   if (v === 'facebook' || v === 'fb') return 'facebook';
   return 'facebook';
 }
@@ -728,12 +736,32 @@ export function whatsappHrefFromPhone(raw) {
 
 export function channelShort(channel) {
   const id = normalizeSocialChannel(channel);
+  if (id === MANUAL_TICKET_CHANNEL) return 'TK';
   return SOCIAL_CHANNELS.find((c) => c.id === id)?.short || 'FB';
 }
 
 export function channelLabel(channel) {
   const id = normalizeSocialChannel(channel);
+  if (id === MANUAL_TICKET_CHANNEL) return 'Ticket';
   return SOCIAL_CHANNELS.find((c) => c.id === id)?.label || 'Facebook';
+}
+
+export function createManualLeadTicket({ tickets = [], agentName = '', now = new Date() } = {}) {
+  const createdAt = now.toISOString ? now.toISOString() : new Date().toISOString();
+  const id = nextLeadId(tickets, now instanceof Date ? now : new Date(), MANUAL_TICKET_CHANNEL);
+  return withMitarbeiter({
+    ...emptyLeadForm(),
+    id,
+    channel: MANUAL_TICKET_CHANNEL,
+    customerName: MANUAL_TICKET_NAME,
+    handle: '',
+    unread: false,
+    createdAt,
+    messages: [],
+    source: 'manual',
+    shop: '',
+    ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT
+  }, agentName);
 }
 
 export function migrateLeadId(ticket) {

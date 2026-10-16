@@ -25,8 +25,12 @@ import {
   shopAssignsTicket,
   shopOptionLabel,
   shopOptionsForNachrichten,
+  shopOptionsForTicketing,
   normalizeNachrichtShop,
   sanitizeMitarbeiterName,
+  createManualLeadTicket,
+  MANUAL_TICKET_CHANNEL,
+  MANUAL_TICKET_NAME,
   collectMitarbeiterNames,
   withMitarbeiter,
   withFirstMessageAutoReply,
@@ -291,6 +295,16 @@ function formatChatTime(iso) {
 
 function ChannelIcon({ channel }) {
   const id = normalizeSocialChannel(channel);
+  if (id === MANUAL_TICKET_CHANNEL) {
+    return (
+      <svg className="sz-channel-icon" viewBox="0 0 24 24" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm1 7V3.5L19.5 9H15zM8 12h8v1.5H8V12zm0 3h8v1.5H8V15zm0 3h5V19.5H8V18z"
+        />
+      </svg>
+    );
+  }
   if (id === 'whatsapp') {
     return (
       <svg className="sz-channel-icon" viewBox="0 0 24 24" aria-hidden>
@@ -409,6 +423,7 @@ const CallcenterNachrichten = ({
   onAnweisungUnreadChange
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
+  const ticketingShops = useMemo(() => shopOptionsForTicketing(), []);
   const [channel, setChannel] = useState('all');
   const [readTab, setReadTab] = useState('ungelesen');
   const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
@@ -501,6 +516,9 @@ const CallcenterNachrichten = ({
     if (looksLikePhoneNumber(fromForm)) return fromForm;
     return leadPhoneNumber(active);
   }, [active, answers?.rufnummer]);
+  const mitarbeiterLabel = sanitizeMitarbeiterName(agentName)
+    || collectMitarbeiterNames(active)[0]
+    || '—';
 
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
@@ -796,13 +814,67 @@ const CallcenterNachrichten = ({
     if (!active) return;
     patchTicket(active.id, (t) => {
       const change = leadFieldChange(t, field, value);
-      const next = withMitarbeiter({ ...t, [field]: value }, agentName);
+      const extra = {};
+      if (field === 'rufnummer') {
+        const name = String(t.customerName || '').trim();
+        if (!name || name === MANUAL_TICKET_NAME) {
+          extra.customerName = String(value || '').trim() || MANUAL_TICKET_NAME;
+        }
+      }
+      const next = withMitarbeiter({ ...t, [field]: value, ...extra }, agentName);
       if (!change) return next;
       return appendLeadEditLog(next, {
         editorName: sanitizeMitarbeiterName(agentName),
         changes: [change]
       });
     });
+  };
+
+  const patchFiliale = (value) => {
+    if (!active) return;
+    const shop = normalizeNachrichtShop(value);
+    if (!shop) return;
+    const editor = sanitizeMitarbeiterName(agentName);
+    patchTicket(active.id, (ticket) => {
+      const next = withMitarbeiter({
+        ...ticket,
+        shop,
+        ticketStatus: ticket.ticketStatus === 'Erledigt' ? 'Offen' : (ticket.ticketStatus || 'Offen')
+      }, editor);
+      const changes = [
+        leadFieldChange(ticket, 'shop', shop),
+        leadFieldChange(ticket, 'ticketStatus', next.ticketStatus)
+      ].filter(Boolean);
+      if (!changes.length) return next;
+      return appendLeadEditLog(next, {
+        editorName: editor,
+        action: changes.some((c) => c.field === 'Status') ? 'status_changed' : 'updated',
+        changes
+      });
+    });
+  };
+
+  const startManualTicket = () => {
+    const current = list.find((t) => t.id === activeId);
+    if (
+      current
+      && normalizeSocialChannel(current.channel) === MANUAL_TICKET_CHANNEL
+      && !shopAssignsTicket(current.shop)
+      && !String(current.rufnummer || '').trim()
+    ) {
+      setMobileShowChat(true);
+      return;
+    }
+    const ticket = createManualLeadTicket({ tickets: list, agentName });
+    onTicketsChange?.((prev) => [ticket, ...(prev || [])]);
+    setActiveId(ticket.id);
+    setDraft('');
+    setPendingImages([]);
+    setPendingVoice(null);
+    setFragenOpen(false);
+    setChipEditing(false);
+    setTemplateEditing(false);
+    setMobileShowChat(true);
   };
 
   const handleQuestionLocale = (locale) => {
@@ -1055,7 +1127,7 @@ const CallcenterNachrichten = ({
       className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}`}
       aria-label="Posteingang"
     >
-      <div className={`sz-layout${active ? ' sz-layout--with-questions' : ''}`}>
+      <div className="sz-layout sz-layout--with-questions">
         <aside className="sz-list-pane">
           <div className="sz-filters">
             <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Notiz oder Anweisung">
@@ -1703,8 +1775,16 @@ const CallcenterNachrichten = ({
           )}
         </div>
 
-        {active && answers ? (
-          <aside className="sz-questions" aria-label="Vorlage Fragen">
+        <aside className="sz-questions" aria-label="Vorlage Fragen">
+            <div className="sz-questions-create">
+              <button
+                type="button"
+                className="btn btn--primary btn--small sz-questions-create-btn"
+                onClick={startManualTicket}
+              >
+                Ticketing erstellen
+              </button>
+            </div>
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Vorlage – Fragen</h3>
               {canEditFragen ? (
@@ -1743,6 +1823,35 @@ const CallcenterNachrichten = ({
               </div>
               ) : null}
             </div>
+            {active && answers && !templateEditing ? (
+              <div className="sz-questions-meta">
+                <label className="sz-template-options-label" htmlFor="sz-ticket-mitarbeiter">
+                  Mitarbeiter
+                  <input
+                    id="sz-ticket-mitarbeiter"
+                    className="form-input"
+                    value={mitarbeiterLabel}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                </label>
+                <label className="sz-template-options-label" htmlFor="sz-ticket-filiale">
+                  Filiale wählen
+                  <select
+                    id="sz-ticket-filiale"
+                    className="form-input"
+                    value={normalizeNachrichtShop(active.shop)}
+                    onChange={(ev) => patchFiliale(ev.target.value)}
+                  >
+                    <option value="">— Filiale wählen —</option>
+                    {ticketingShops.map((opt) => (
+                      <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+            {active && answers ? (
             <LeadFragenForm
               embedded
               answers={answers}
@@ -1767,8 +1876,10 @@ const CallcenterNachrichten = ({
               }}
               onQuestionUpdate={updateQuestion}
             />
+            ) : (
+              <p className="sz-questions-empty">Ticketing erstellen, um die Vorlage auszufüllen.</p>
+            )}
           </aside>
-        ) : null}
       </div>
       {lightboxSrc ? (
         <button

@@ -296,6 +296,10 @@
     background: #111;
     color: #25f4ee;
   }
+
+  &--ticket {
+    background: $primary-color;
+  }
 }
 
 .sz-channel-icon {
@@ -1202,6 +1206,15 @@
   overflow: hidden;
 }
 
+.sz-questions-create {
+  flex-shrink: 0;
+  padding: $spacing-sm $spacing-md 0;
+}
+
+.sz-questions-create-btn {
+  width: 100%;
+}
+
 .sz-questions-titlebar {
   display: flex;
   flex-shrink: 0;
@@ -1216,13 +1229,31 @@
   z-index: 2;
 }
 
+.sz-questions-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: $spacing-sm $spacing-md 0;
+}
+
+.sz-questions-empty {
+  margin: 0;
+  padding: $spacing-md;
+  color: $text-light;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .sz-questions-titlebar-actions {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
 }
 
-.sz-questions > :not(.sz-questions-titlebar) {
+.sz-questions > .sz-questions-form,
+.sz-questions > .sz-template-edit,
+.sz-questions > .sz-questions-empty {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
