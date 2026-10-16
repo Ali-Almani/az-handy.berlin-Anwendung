@@ -1908,9 +1908,7 @@ const CallcenterNachrichten = ({
               }}
               onQuestionUpdate={updateQuestion}
             />
-            ) : (
-              <p className="sz-questions-empty">Ticketing erstellen, um die Vorlage auszufüllen.</p>
-            )}
+            ) : null}
           </aside>
       </div>
       {lightboxSrc ? (
