@@ -949,11 +949,16 @@
 }
 
 .sz-composer-translate {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.55rem;
+  right: 0.55rem;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.75rem;
-  margin: 0.2rem 0 0.35rem;
+  margin: 0;
 
   .sz-composer-langs {
     margin-left: 0;
@@ -1067,6 +1072,7 @@
 .sz-composer-input {
   width: 100%;
   min-height: 8.5rem;
+  padding-top: 2.35rem;
   padding-right: 9.6rem;
   padding-bottom: 3.2rem;
   resize: vertical;
@@ -1080,6 +1086,10 @@
     text-align: right;
     font-size: 1rem;
   }
+}
+
+.sz-composer-field--translate-error .sz-composer-input {
+  padding-top: 3.6rem;
 }
 
 .sz-composer-actions {

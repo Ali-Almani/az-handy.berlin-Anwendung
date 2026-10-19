@@ -1799,43 +1799,43 @@ const CallcenterNachrichten = ({
                 {recording ? (
                   <p className="sz-recording">Aufnahme… {formatVoiceDuration(recordSecs)}</p>
                 ) : null}
-                <div className="sz-composer-translate">
-                  <div className="sz-composer-langs" role="group" aria-label="Zielsprache">
-                    {QUESTION_CHAT_LOCALES.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
-                        aria-pressed={chatLocale === item.id}
-                        onClick={() => handleQuestionLocale(item.id)}
-                      >
-                        {item.short}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className="sz-bubble-translate"
-                    onClick={translateDraft}
-                    disabled={sending || recording || Boolean(translatingId) || !String(draft || '').trim()}
-                  >
-                    {translatingId === 'draft' ? 'Übersetzen…' : `Übersetzen nach ${chatLocaleShort}`}
-                  </button>
-                  {draftPrev ? (
+                <div className={`sz-composer-field${composerRtl ? ' sz-composer-field--rtl' : ''}${draftTranslateError ? ' sz-composer-field--translate-error' : ''}`}>
+                  <div className="sz-composer-translate">
+                    <div className="sz-composer-langs" role="group" aria-label="Zielsprache">
+                      {QUESTION_CHAT_LOCALES.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
+                          aria-pressed={chatLocale === item.id}
+                          onClick={() => handleQuestionLocale(item.id)}
+                        >
+                          {item.short}
+                        </button>
+                      ))}
+                    </div>
                     <button
                       type="button"
-                      className="sz-composer-translate-undo"
-                      onClick={restoreDraftOriginal}
-                      disabled={sending || Boolean(translatingId)}
+                      className="sz-bubble-translate"
+                      onClick={translateDraft}
+                      disabled={sending || recording || Boolean(translatingId) || !String(draft || '').trim()}
                     >
-                      Original
+                      {translatingId === 'draft' ? 'Übersetzen…' : `Übersetzen nach ${chatLocaleShort}`}
                     </button>
-                  ) : null}
-                  {draftTranslateError ? (
-                    <p className="sz-bubble-translate-error" role="alert">{draftTranslateError}</p>
-                  ) : null}
-                </div>
-                <div className={`sz-composer-field${composerRtl ? ' sz-composer-field--rtl' : ''}`}>
+                    {draftPrev ? (
+                      <button
+                        type="button"
+                        className="sz-composer-translate-undo"
+                        onClick={restoreDraftOriginal}
+                        disabled={sending || Boolean(translatingId)}
+                      >
+                        Original
+                      </button>
+                    ) : null}
+                    {draftTranslateError ? (
+                      <p className="sz-bubble-translate-error" role="alert">{draftTranslateError}</p>
+                    ) : null}
+                  </div>
                   <label className="visually-hidden" htmlFor="sz-reply">Antwort</label>
                   <textarea
                     id="sz-reply"
