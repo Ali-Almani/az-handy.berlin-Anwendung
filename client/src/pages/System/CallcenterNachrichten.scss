@@ -1340,6 +1340,12 @@
   flex-direction: column;
   gap: 0.45rem;
   padding: $spacing-sm $spacing-md 0;
+
+  .vorvertrag-ticket-row__status-select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .sz-questions-titlebar-actions {

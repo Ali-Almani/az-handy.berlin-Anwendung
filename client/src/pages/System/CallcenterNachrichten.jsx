@@ -25,10 +25,8 @@ import {
   shopAssignsTicket,
   shopOptionLabel,
   shopOptionsForNachrichten,
-  shopOptionsForTicketing,
   normalizeNachrichtShop,
   sanitizeMitarbeiterName,
-  createManualLeadTicket,
   isManualLeadTicket,
   MANUAL_TICKET_CHANNEL,
   MANUAL_TICKET_NAME,
@@ -372,31 +370,13 @@ function ContactActionButtons({ phone, className = '' }) {
   );
 }
 
-function MitarbeiterNamesSelect({ names, ariaLabel }) {
-  if (!names.length) return null;
-  if (names.length === 1) {
-    return <span className="sz-mitarbeiter">{names[0]}</span>;
-  }
-  return (
-    <select
-      className="form-input vorvertrag-ticket-row__status-select sz-mitarbeiter-select"
-      defaultValue={names[0]}
-      aria-label={ariaLabel || 'Mitarbeiter'}
-      onClick={(ev) => ev.stopPropagation()}
-    >
-      {names.map((name) => (
-        <option key={name} value={name}>{name}</option>
-      ))}
-    </select>
-  );
-}
-
-function StatusShopSelect({ shop, ticketStatus, shops, onChange, ariaLabel }) {
+function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel }) {
   const value = migrateLeadTicketStatus(ticketStatus) === 'Erledigt'
     ? NACHRICHTEN_ERLEDIGT
     : normalizeNachrichtShop(shop);
   return (
     <select
+      id={id}
       className="form-input vorvertrag-ticket-row__status-select"
       value={value}
       onChange={(ev) => onChange?.(ev.target.value)}
@@ -425,7 +405,6 @@ const CallcenterNachrichten = ({
   onAnweisungUnreadChange
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
-  const ticketingShops = useMemo(() => shopOptionsForTicketing(), []);
   const [channel, setChannel] = useState('all');
   const [readTab, setReadTab] = useState('ungelesen');
   const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
@@ -850,53 +829,6 @@ const CallcenterNachrichten = ({
         changes: [change]
       });
     });
-  };
-
-  const patchFiliale = (value) => {
-    if (!active) return;
-    const shop = normalizeNachrichtShop(value);
-    if (!shop) return;
-    const editor = sanitizeMitarbeiterName(agentName);
-    patchTicket(active.id, (ticket) => {
-      const next = withMitarbeiter({
-        ...ticket,
-        shop,
-        ticketStatus: ticket.ticketStatus === 'Erledigt' ? 'Offen' : (ticket.ticketStatus || 'Offen')
-      }, editor);
-      const changes = [
-        leadFieldChange(ticket, 'shop', shop),
-        leadFieldChange(ticket, 'ticketStatus', next.ticketStatus)
-      ].filter(Boolean);
-      if (!changes.length) return next;
-      return appendLeadEditLog(next, {
-        editorName: editor,
-        action: changes.some((c) => c.field === 'Status') ? 'status_changed' : 'updated',
-        changes
-      });
-    });
-  };
-
-  const startManualTicket = () => {
-    const current = list.find((t) => t.id === activeId);
-    if (
-      current
-      && isManualLeadTicket(current)
-      && !shopAssignsTicket(current.shop)
-      && !String(current.rufnummer || '').trim()
-    ) {
-      setMobileShowChat(true);
-      return;
-    }
-    const ticket = createManualLeadTicket({ tickets: list, agentName });
-    onTicketsChange?.((prev) => [ticket, ...(prev || [])]);
-    setActiveId(ticket.id);
-    setDraft('');
-    setPendingImages([]);
-    setPendingVoice(null);
-    setFragenOpen(false);
-    setChipEditing(false);
-    setTemplateEditing(false);
-    setMobileShowChat(true);
   };
 
   const cancelManualTicket = () => {
@@ -1451,10 +1383,6 @@ const CallcenterNachrichten = ({
                   </p>
                 </div>
                 <ContactActionButtons phone={contactPhone} />
-                <MitarbeiterNamesSelect
-                  names={collectMitarbeiterNames(active)}
-                  ariaLabel={`Mitarbeiter für ${active.customerName || active.id}`}
-                />
                 <button
                   type="button"
                   className="sz-delete-customer"
@@ -1469,15 +1397,6 @@ const CallcenterNachrichten = ({
                     />
                   </svg>
                 </button>
-                <div className="sz-chat-status">
-                  <StatusShopSelect
-                    shop={active.shop}
-                    ticketStatus={active.ticketStatus}
-                    shops={nachrichtShops}
-                    onChange={(value) => handleStatusOrShop(active.id, value)}
-                    ariaLabel={`Filiale für ${active.customerName || active.id}`}
-                  />
-                </div>
               </header>
               {!shopAssignsTicket(active.shop) && !isLeadArchived(active) ? (
                 <p className="sz-filiale-hint">
@@ -1938,15 +1857,8 @@ const CallcenterNachrichten = ({
         </div>
 
         <aside className="sz-questions" aria-label="Vorlage Fragen">
+            {isManualTicket ? (
             <div className="sz-questions-create">
-              <button
-                type="button"
-                className="btn btn--primary btn--small sz-questions-create-btn"
-                onClick={startManualTicket}
-              >
-                Ticketing erstellen
-              </button>
-              {isManualTicket ? (
                 <button
                   type="button"
                   className="btn btn--secondary btn--small sz-questions-create-btn"
@@ -1954,8 +1866,8 @@ const CallcenterNachrichten = ({
                 >
                   Abbrechen
                 </button>
-              ) : null}
             </div>
+            ) : null}
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Vorlage – Fragen</h3>
               {canEditFragen ? (
@@ -2008,17 +1920,14 @@ const CallcenterNachrichten = ({
                 </label>
                 <label className="sz-template-options-label" htmlFor="sz-ticket-filiale">
                   Filiale wählen
-                  <select
+                  <StatusShopSelect
                     id="sz-ticket-filiale"
-                    className="form-input"
-                    value={normalizeNachrichtShop(active.shop)}
-                    onChange={(ev) => patchFiliale(ev.target.value)}
-                  >
-                    <option value="">— Filiale wählen —</option>
-                    {ticketingShops.map((opt) => (
-                      <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
-                    ))}
-                  </select>
+                    shop={active.shop}
+                    ticketStatus={active.ticketStatus}
+                    shops={nachrichtShops}
+                    onChange={(value) => handleStatusOrShop(active.id, value)}
+                    ariaLabel="Filiale wählen"
+                  />
                 </label>
               </div>
             ) : null}
