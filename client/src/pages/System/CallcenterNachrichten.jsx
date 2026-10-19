@@ -451,6 +451,7 @@ const CallcenterNachrichten = ({
   const [mentionHi, setMentionHi] = useState(0);
   const [translatingId, setTranslatingId] = useState(null);
   const [translateErrorId, setTranslateErrorId] = useState(null);
+  const [translateErrorText, setTranslateErrorText] = useState('');
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
   const customerTypingTimer = useRef(null);
@@ -1083,6 +1084,7 @@ const CallcenterNachrichten = ({
     if (String(message.translation || '').trim()) return;
     setTranslatingId(message.id);
     setTranslateErrorId(null);
+    setTranslateErrorText('');
     try {
       const data = await translateInboxTextApi(text);
       const translation = String(data?.translation || '').trim();
@@ -1102,6 +1104,7 @@ const CallcenterNachrichten = ({
       }));
     } catch (err) {
       setTranslateErrorId(message.id);
+      setTranslateErrorText(String(err?.response?.data?.message || '').trim() || 'Übersetzung fehlgeschlagen.');
     } finally {
       setTranslatingId(null);
     }
@@ -1488,7 +1491,7 @@ const CallcenterNachrichten = ({
                       </p>
                     ) : null}
                     {m.from === 'customer' && translateErrorId === m.id && !m.translation ? (
-                      <p className="sz-bubble-translate-error" role="alert">Übersetzung fehlgeschlagen.</p>
+                      <p className="sz-bubble-translate-error" role="alert">{translateErrorText || 'Übersetzung fehlgeschlagen.'}</p>
                     ) : null}
                     <div className="sz-bubble-meta">
                       {m.from === 'customer' && m.text && !m.translation ? (

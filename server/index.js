@@ -60,6 +60,7 @@ app.get('/api/health', (req, res) => {
     nodeEnv: process.env.NODE_ENV || 'development',
     useMemoryDb: process.env.USE_MEMORY_DB === 'true',
     jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
+    geminiConfigured: !!(process.env.GEMINI_API_KEY && String(process.env.GEMINI_API_KEY).trim().replace(/^["']|["']$/g, '')),
     apiPatchLevel: 6,
     copyHistoryRetentionDays: parseInt(process.env.COPY_HISTORY_RETENTION_DAYS || '4', 10) || 4,
     cluster: {

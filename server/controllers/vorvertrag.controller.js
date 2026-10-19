@@ -732,7 +732,7 @@ function parseGeminiJson(raw) {
 }
 
 function geminiApiKey() {
-  return String(process.env.GEMINI_API_KEY || '').trim();
+  return String(process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 }
 
 function geminiModel() {
