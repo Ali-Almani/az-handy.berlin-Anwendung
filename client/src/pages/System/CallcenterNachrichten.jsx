@@ -452,6 +452,8 @@ const CallcenterNachrichten = ({
   const [translatingId, setTranslatingId] = useState(null);
   const [translateErrorId, setTranslateErrorId] = useState(null);
   const [translateErrorText, setTranslateErrorText] = useState('');
+  const [draftPrev, setDraftPrev] = useState('');
+  const [draftTranslateError, setDraftTranslateError] = useState('');
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
   const customerTypingTimer = useRef(null);
@@ -512,6 +514,14 @@ const CallcenterNachrichten = ({
   const showAnweisung = readTab === 'anweisung';
   const showNotePane = showNotiz || showAnweisung;
   const chatLocale = questionChatLocale(active?.sprache);
+  const chatLocaleShort = QUESTION_CHAT_LOCALES.find((item) => item.id === chatLocale)?.short || 'DE';
+  const composerRtl = chatLocale === 'ar' || /[\u0600-\u06FF]/.test(draft);
+
+  useEffect(() => {
+    setDraftPrev('');
+    setDraftTranslateError('');
+  }, [activeId]);
+
   const templateQuestions = useMemo(
     () => localizedTemplateQuestions(chatLocale, questionConfig),
     [chatLocale, questionConfig]
@@ -689,6 +699,8 @@ const CallcenterNachrichten = ({
     window.clearTimeout(customerTypingTimer.current);
     setActiveId(id);
     setDraft('');
+    setDraftPrev('');
+    setDraftTranslateError('');
     setPendingImages([]);
     setPendingVoice(null);
     setRecording(false);
@@ -1048,6 +1060,8 @@ const CallcenterNachrichten = ({
         messages: [...(t.messages || []), message]
       }, agentName));
       setDraft('');
+      setDraftPrev('');
+      setDraftTranslateError('');
       setPendingImages([]);
       setPendingVoice(null);
       setSending(false);
@@ -1067,6 +1081,34 @@ const CallcenterNachrichten = ({
   };
 
   const sendReply = () => sendText(draft);
+
+  const translateDraft = async () => {
+    const text = String(draft || '').trim();
+    if (!text || translatingId || sending) return;
+    const targetLang = chatLocale === 'ar' || chatLocale === 'en' ? chatLocale : 'de';
+    setTranslatingId('draft');
+    setDraftTranslateError('');
+    try {
+      const data = await translateInboxTextApi(text, targetLang);
+      const translation = String(data?.translation || '').trim();
+      if (!translation) throw new Error('empty');
+      setDraftPrev(text);
+      setDraft(translation);
+      noteAgentTyping();
+    } catch (err) {
+      setDraftTranslateError(String(err?.response?.data?.message || '').trim() || 'Übersetzung fehlgeschlagen.');
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
+  const restoreDraftOriginal = () => {
+    if (!draftPrev) return;
+    setDraft(draftPrev);
+    setDraftPrev('');
+    setDraftTranslateError('');
+    composerRef.current?.focus();
+  };
 
   const deleteMessage = (ticketId, message) => {
     if (!ticketId || !message?.id || message.from !== 'agent') return;
@@ -1757,17 +1799,55 @@ const CallcenterNachrichten = ({
                 {recording ? (
                   <p className="sz-recording">Aufnahme… {formatVoiceDuration(recordSecs)}</p>
                 ) : null}
-                <div className={`sz-composer-field${chatLocale === 'ar' ? ' sz-composer-field--rtl' : ''}`}>
+                <div className="sz-composer-translate">
+                  <div className="sz-composer-langs" role="group" aria-label="Zielsprache">
+                    {QUESTION_CHAT_LOCALES.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
+                        aria-pressed={chatLocale === item.id}
+                        onClick={() => handleQuestionLocale(item.id)}
+                      >
+                        {item.short}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="sz-bubble-translate"
+                    onClick={translateDraft}
+                    disabled={sending || recording || Boolean(translatingId) || !String(draft || '').trim()}
+                  >
+                    {translatingId === 'draft' ? 'Übersetzen…' : `Übersetzen nach ${chatLocaleShort}`}
+                  </button>
+                  {draftPrev ? (
+                    <button
+                      type="button"
+                      className="sz-composer-translate-undo"
+                      onClick={restoreDraftOriginal}
+                      disabled={sending || Boolean(translatingId)}
+                    >
+                      Original
+                    </button>
+                  ) : null}
+                  {draftTranslateError ? (
+                    <p className="sz-bubble-translate-error" role="alert">{draftTranslateError}</p>
+                  ) : null}
+                </div>
+                <div className={`sz-composer-field${composerRtl ? ' sz-composer-field--rtl' : ''}`}>
                   <label className="visually-hidden" htmlFor="sz-reply">Antwort</label>
                   <textarea
                     id="sz-reply"
                     ref={composerRef}
-                    className={`form-input sz-composer-input${chatLocale === 'ar' ? ' sz-composer-input--rtl' : ''}`}
+                    className={`form-input sz-composer-input${composerRtl ? ' sz-composer-input--rtl' : ''}`}
                     rows={5}
                     value={draft}
                     onChange={(ev) => {
                       setDraft(ev.target.value);
                       setCursorAt(ev.target.selectionStart || 0);
+                      if (draftPrev) setDraftPrev('');
+                      if (draftTranslateError) setDraftTranslateError('');
                       noteAgentTyping();
                     }}
                     onSelect={(ev) => setCursorAt(ev.target.selectionStart || 0)}
@@ -1777,8 +1857,8 @@ const CallcenterNachrichten = ({
                     onPaste={handleComposerPaste}
                     placeholder={`Antwort an ${active.customerName || 'den Kunden'}… (@ Angebot)`}
                     disabled={sending}
-                    dir={chatLocale === 'ar' ? 'rtl' : 'ltr'}
-                    lang={chatLocale === 'ar' ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
+                    dir={composerRtl ? 'rtl' : 'ltr'}
+                    lang={composerRtl ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
                   {mentionItems.length ? (
                     <ul className="sz-mention" role="listbox" aria-label="Angebot wählen">

@@ -948,6 +948,44 @@
   }
 }
 
+.sz-composer-translate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin: 0.2rem 0 0.35rem;
+
+  .sz-composer-langs {
+    margin-left: 0;
+  }
+}
+
+.sz-composer-translate .sz-bubble-translate-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.sz-composer-translate-undo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $text-light;
+  font-size: 0.7rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.2;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: $text-color;
+    text-decoration: underline;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.7;
+  }
+}
+
 .sz-composer-field {
   position: relative;
 }

@@ -48,7 +48,10 @@ export const markInboxAnweisungReadApi = async () => {
   return res.data;
 };
 
-export const translateInboxTextApi = async (text) => {
-  const res = await api.post('/vorvertrag/translate', { text }, { timeout: 60000 });
+export const translateInboxTextApi = async (text, targetLang) => {
+  const res = await api.post('/vorvertrag/translate', {
+    text,
+    ...(targetLang ? { targetLang } : {})
+  }, { timeout: 60000 });
   return res.data;
 };

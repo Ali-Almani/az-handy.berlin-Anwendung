@@ -695,16 +695,45 @@ const TRANSLATE_WINDOW_MS = 60_000;
 const TRANSLATE_MAX_PER_WINDOW = 30;
 const translateHits = new Map();
 
+const TRANSLATE_KEEP = 'Keep unchanged: AZ Handy Berlin, O2, Sonnenallee, Karl-Marx-Straße, phone numbers, URLs, ticket IDs, shop names, product model names.';
+const TRANSLATE_TARGETS = {
+  ar: 'Arabic',
+  de: 'German',
+  en: 'English',
+  uk: 'Ukrainian',
+  ur: 'Urdu',
+  hi: 'Hindi'
+};
+
 const TRANSLATE_SYSTEM = [
   'You are a translation engine for AZ Handy Berlin, a mobile-phone shop chat.',
   'Detect the source language of the user message.',
-  'Supported labels: ar (Arabic), de (German), en (English), uk (Ukrainian), ur (Urdu), other.',
+  'Supported labels: ar (Arabic), de (German), en (English), uk (Ukrainian), ur (Urdu), hi (Hindi), other.',
   'If source is Arabic, translate into natural German.',
-  'If source is German, English, Ukrainian, Urdu, or anything else, translate into natural Arabic.',
-  'Return ONLY JSON: {"sourceLang":"ar|de|en|uk|ur|other","translation":"..."}',
+  'If source is German, English, Ukrainian, Urdu, Hindi, or anything else, translate into natural Arabic.',
+  'Return ONLY JSON: {"sourceLang":"ar|de|en|uk|ur|hi|other","translation":"..."}',
   'No quotes around the whole translation, no explanations, no extra lines.',
-  'Keep unchanged: AZ Handy Berlin, O2, Sonnenallee, Karl-Marx-Straße, phone numbers, URLs, ticket IDs, shop names, product model names.'
+  TRANSLATE_KEEP
 ].join(' ');
+
+function normalizeTranslateTarget(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  return TRANSLATE_TARGETS[v] ? v : '';
+}
+
+function translateSystemPrompt(targetLang) {
+  if (!targetLang) return TRANSLATE_SYSTEM;
+  const name = TRANSLATE_TARGETS[targetLang];
+  return [
+    'You are a translation engine for AZ Handy Berlin, a mobile-phone shop chat.',
+    `Translate the user message into natural ${name}.`,
+    'Detect the source language.',
+    'Supported labels: ar (Arabic), de (German), en (English), uk (Ukrainian), ur (Urdu), hi (Hindi), other.',
+    `Return ONLY JSON: {"sourceLang":"ar|de|en|uk|ur|hi|other","translation":"..."}`,
+    'No quotes around the whole translation, no explanations, no extra lines.',
+    TRANSLATE_KEEP
+  ].join(' ');
+}
 
 function allowTranslate(userId) {
   const now = Date.now();
@@ -801,13 +830,13 @@ async function listGeminiChatModels(key) {
     .sort((a, b) => rankGeminiModel(a) - rankGeminiModel(b));
 }
 
-async function generateWithModel(key, modelName, text) {
+async function generateWithModel(key, modelName, text, systemText) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(key)}`;
   const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM }] },
+      systemInstruction: { parts: [{ text: systemText || TRANSLATE_SYSTEM }] },
       contents: [{ role: 'user', parts: [{ text }] }],
       generationConfig: {
         temperature: 0.2,
@@ -823,8 +852,9 @@ function sourceFromOriginal(original) {
   return /[\u0600-\u06FF]/.test(String(original || '')) ? 'ar' : 'other';
 }
 
-async function callGeminiTranslate(text) {
+async function callGeminiTranslate(text, targetLang = '') {
   const key = geminiApiKey();
+  const systemText = translateSystemPrompt(targetLang);
   let listed = [];
   try {
     listed = await listGeminiChatModels(key);
@@ -848,7 +878,7 @@ async function callGeminiTranslate(text) {
     let res;
     let payload;
     try {
-      ({ res, payload } = await generateWithModel(key, modelName, text));
+      ({ res, payload } = await generateWithModel(key, modelName, text, systemText));
     } catch (err) {
       lastDetail = err?.name === 'AbortError' ? 'timeout' : (err?.message || 'network');
       console.warn(`[translate] Gemini ${modelName} network: ${lastDetail}`);
@@ -869,11 +899,11 @@ async function callGeminiTranslate(text) {
       continue;
     }
     const sourceLang = String(parsed?.sourceLang || sourceFromOriginal(text)).trim().toLowerCase();
-    const known = new Set(['ar', 'de', 'en', 'uk', 'ur', 'other']);
+    const known = new Set(['ar', 'de', 'en', 'uk', 'ur', 'hi', 'other']);
     const source = known.has(sourceLang) ? sourceLang : sourceFromOriginal(text);
     return {
       sourceLang: source,
-      targetLang: source === 'ar' ? 'de' : 'ar',
+      targetLang: targetLang || (source === 'ar' ? 'de' : 'ar'),
       translation
     };
   }
@@ -893,6 +923,7 @@ export async function translateInboxMessage(req, res) {
     return res.status(503).json({ success: false, message: 'Übersetzung ist nicht eingerichtet.' });
   }
   const text = String(req.body?.text ?? '').trim();
+  const targetLang = normalizeTranslateTarget(req.body?.targetLang);
   if (!text) {
     return res.status(400).json({ success: false, message: 'Kein Text zum Übersetzen.' });
   }
@@ -903,7 +934,7 @@ export async function translateInboxMessage(req, res) {
     });
   }
   try {
-    const result = await callGeminiTranslate(text);
+    const result = await callGeminiTranslate(text, targetLang);
     return res.json({
       success: true,
       translation: result.translation,
