@@ -9,7 +9,8 @@ import {
   deleteVorvertrag,
   getInboxAnweisung,
   saveInboxAnweisung,
-  markInboxAnweisungRead
+  markInboxAnweisungRead,
+  translateInboxMessage
 } from '../controllers/vorvertrag.controller.js';
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get('/', listVorvertraege);
 router.get('/anweisung', getInboxAnweisung);
 router.put('/anweisung', saveInboxAnweisung);
 router.post('/anweisung/read', markInboxAnweisungRead);
+router.post('/translate', translateInboxMessage);
 router.get('/:id', getVorvertrag);
 router.post('/', createVorvertrag);
 router.patch('/:id/status', updateVorvertragTicketStatus);

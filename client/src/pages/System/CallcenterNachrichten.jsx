@@ -47,7 +47,8 @@ import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
 import {
   getInboxAnweisungApi,
   markInboxAnweisungReadApi,
-  saveInboxAnweisungApi
+  saveInboxAnweisungApi,
+  translateInboxTextApi
 } from '../../services/vorvertrag.service';
 import { getSocket } from '../../services/socket';
 import './System.scss';
@@ -448,6 +449,8 @@ const CallcenterNachrichten = ({
   const [chipType, setChipType] = useState('text');
   const [cursorAt, setCursorAt] = useState(0);
   const [mentionHi, setMentionHi] = useState(0);
+  const [translatingId, setTranslatingId] = useState(null);
+  const [translateErrorId, setTranslateErrorId] = useState(null);
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
   const customerTypingTimer = useRef(null);
@@ -1073,6 +1076,37 @@ const CallcenterNachrichten = ({
     }));
   };
 
+  const translateCustomerMessage = async (message) => {
+    if (!active?.id || !message?.id || message.from !== 'customer') return;
+    const text = String(message.text || '').trim();
+    if (!text || translatingId) return;
+    if (String(message.translation || '').trim()) return;
+    setTranslatingId(message.id);
+    setTranslateErrorId(null);
+    try {
+      const data = await translateInboxTextApi(text);
+      const translation = String(data?.translation || '').trim();
+      if (!translation) throw new Error('empty');
+      patchTicket(active.id, (t) => ({
+        ...t,
+        messages: (t.messages || []).map((m) => (
+          m.id === message.id
+            ? {
+                ...m,
+                translation,
+                translationLang: data.targetLang || '',
+                translationSourceLang: data.sourceLang || ''
+              }
+            : m
+        ))
+      }));
+    } catch (err) {
+      setTranslateErrorId(message.id);
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
   const deleteCustomerFromInbox = (ticket) => {
     if (!ticket?.id) return;
     const name = ticket.customerName || ticket.rufnummer || 'Diesen Kunden';
@@ -1444,7 +1478,29 @@ const CallcenterNachrichten = ({
                         {linkifyText(m.text)}
                       </p>
                     ) : null}
+                    {m.from === 'customer' && m.translation ? (
+                      <p
+                        className={`sz-bubble-translation${m.translationLang === 'ar' ? ' sz-bubble-text--rtl' : ''}`}
+                        dir={m.translationLang === 'ar' ? 'rtl' : undefined}
+                        lang={m.translationLang || undefined}
+                      >
+                        {linkifyText(m.translation)}
+                      </p>
+                    ) : null}
+                    {m.from === 'customer' && translateErrorId === m.id && !m.translation ? (
+                      <p className="sz-bubble-translate-error" role="alert">Übersetzung fehlgeschlagen.</p>
+                    ) : null}
                     <div className="sz-bubble-meta">
+                      {m.from === 'customer' && m.text && !m.translation ? (
+                        <button
+                          type="button"
+                          className="sz-bubble-translate"
+                          onClick={() => translateCustomerMessage(m)}
+                          disabled={Boolean(translatingId)}
+                        >
+                          {translatingId === m.id ? 'Übersetzen…' : 'Übersetzen'}
+                        </button>
+                      ) : null}
                       <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
                       {m.from === 'agent' && m.auto !== 'welcome' ? (
                         <button

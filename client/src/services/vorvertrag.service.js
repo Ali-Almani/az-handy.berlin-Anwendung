@@ -47,3 +47,8 @@ export const markInboxAnweisungReadApi = async () => {
   const res = await api.post('/vorvertrag/anweisung/read');
   return res.data;
 };
+
+export const translateInboxTextApi = async (text) => {
+  const res = await api.post('/vorvertrag/translate', { text });
+  return res.data;
+};
