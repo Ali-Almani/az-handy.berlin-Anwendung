@@ -2,8 +2,11 @@ import ExcelJS from 'exceljs';
 import {
   saveImeisDataToStorage,
   appendImeisFromExcelUpload,
-  applyImeiListVisibilityFilters
+  applyImeiListVisibilityFilters,
+  markIncomingArchiveMatches,
+  deleteRestoredImeisFromAcceptedArchive
 } from './imeis.controller.js';
+import { getAcceptedImeiKeySet } from '../utils/acceptedImeiStore.js';
 import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRoles.js';
 import { canonicalImeiString } from '../utils/imeiKey.js';
 import User from '../models/User.js';
@@ -420,8 +423,17 @@ async function saveImeisAfterExcelParse(req, imeis) {
   const append = await userCanAppendImeiExcel(uploaderId);
   if (append) {
     const parsePreview = imeis.slice(0, 5).map((r) => maskImeiPreview(r?.imei));
-    const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows, total, excludedFromAcceptedArchive } =
-      await appendImeisFromExcelUpload(uploaderId, imeis, req.app);
+    const {
+      merged,
+      added,
+      skippedDuplicate,
+      updatedFromUpload,
+      previousCount,
+      addedRows,
+      total,
+      excludedFromAcceptedArchive,
+      restoredFromAcceptedArchive
+    } = await appendImeisFromExcelUpload(uploaderId, imeis, req.app);
     let message;
     if (added === 0 && (updatedFromUpload ?? 0) > 0) {
       message = `${updatedFromUpload} IMEI-Zeile(n) mit Daten aus der Datei aktualisiert (${total} IMEIs gesamt, vorher ${previousCount}).`;
@@ -434,8 +446,11 @@ async function saveImeisAfterExcelParse(req, imeis) {
     } else {
       message = `Keine Änderungen aus der Datei (${total} IMEIs gesamt).`;
     }
+    if ((restoredFromAcceptedArchive ?? 0) > 0) {
+      message = `${message} ${restoredFromAcceptedArchive} IMEI(s) aus dem Angenommen-Archiv wieder in die Liste übernommen und aus dem Archiv gelöscht.`;
+    }
     if ((excludedFromAcceptedArchive ?? 0) > 0) {
-      message = `${message} ${excludedFromAcceptedArchive} IMEI(s) aus der Liste entfernt (stehen im Angenommen-Archiv).`;
+      message = `${message} ${excludedFromAcceptedArchive} IMEI(s) aus der Liste entfernt (stehen im Angenommen-Archiv und nicht in der Excel).`;
     }
     writeAuditLog(req, {
       category: 'excel',
@@ -453,14 +468,20 @@ async function saveImeisAfterExcelParse(req, imeis) {
       updatedFromUpload: updatedFromUpload ?? 0,
       previousCount,
       excludedFromAcceptedArchive: excludedFromAcceptedArchive ?? 0,
+      restoredFromAcceptedArchive: restoredFromAcceptedArchive ?? 0,
       saved: true,
       parsedFromFile: imeis.length,
       parsePreview
     };
   }
+  const acceptedKeys = getAcceptedImeiKeySet();
+  const { marked, restoredFromAcceptedArchive } = markIncomingArchiveMatches(imeis, acceptedKeys);
   const { filtered: imeisToSave, excludedCount: excludedFromAcceptedArchive } =
-    await applyImeiListVisibilityFilters(imeis);
+    await applyImeiListVisibilityFilters(marked);
   await saveImeisDataToStorage(uploaderId, { imeis: imeisToSave }, req.app);
+  if (restoredFromAcceptedArchive > 0) {
+    deleteRestoredImeisFromAcceptedArchive(imeisToSave);
+  }
   writeAuditLog(req, {
     category: 'excel',
     action: 'excel.upload',
@@ -468,14 +489,18 @@ async function saveImeisAfterExcelParse(req, imeis) {
     meta: { count: imeisToSave.length, excludedFromAcceptedArchive }
   });
   let message = `${imeisToSave.length} IMEI(s) wurden erfolgreich gelesen und gespeichert`;
+  if (restoredFromAcceptedArchive > 0) {
+    message = `${message} ${restoredFromAcceptedArchive} IMEI(s) aus dem Angenommen-Archiv wieder in die Liste übernommen und aus dem Archiv gelöscht.`;
+  }
   if (excludedFromAcceptedArchive > 0) {
-    message = `${message} ${excludedFromAcceptedArchive} IMEI(s) nicht übernommen (Angenommen-Archiv).`;
+    message = `${message} ${excludedFromAcceptedArchive} IMEI(s) nicht übernommen (Angenommen-Archiv, nicht in der Excel).`;
   }
   return {
     success: true,
     message,
     data: imeisToSave,
     excludedFromAcceptedArchive,
+    restoredFromAcceptedArchive,
     saved: true
   };
 }

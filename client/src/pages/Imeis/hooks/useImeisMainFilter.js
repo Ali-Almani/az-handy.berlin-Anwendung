@@ -60,6 +60,7 @@ export function useImeisMainFilter({
       }
       if (verlaufHidden.size > 0) {
         filtered = filtered.filter((item) => {
+          if (item?._acceptedArchiveMatch === true) return true;
           const k = normalizeImeiSortKey(item?.imei);
           return !k || !verlaufHidden.has(k);
         });

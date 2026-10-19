@@ -22,7 +22,8 @@ import {
   listAcceptedImeisForDisplay,
   permanentlyDeleteAcceptedEntry,
   permanentlyDeleteAcceptedEntriesByIds,
-  permanentlyDeleteAcceptedEntriesInRange
+  permanentlyDeleteAcceptedEntriesInRange,
+  removeAcceptedImeiEntriesByImeiKeys
 } from '../utils/acceptedImeiStore.js';
 import { writeAuditLog } from '../utils/auditLog.js';
 import * as redisCache from '../utils/redisCache.js';
@@ -949,6 +950,35 @@ function uploadRowInAcceptedArchive(item, acceptedKeys) {
   return rowMatchesImeiKeySet(item, acceptedKeys);
 }
 
+/** Excel-Zeilen, die schon im Angenommen-Archiv stehen, wieder für die Bestandsliste markieren. */
+export function markIncomingArchiveMatches(imeis, acceptedKeys) {
+  const keys = acceptedKeys instanceof Set ? acceptedKeys : getAcceptedImeiKeySet();
+  let restoredFromAcceptedArchive = 0;
+  const marked = (Array.isArray(imeis) ? imeis : []).map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    if (!uploadRowInAcceptedArchive(item, keys)) {
+      if (!item._acceptedArchiveMatch) return item;
+      const next = { ...item };
+      delete next._acceptedArchiveMatch;
+      return next;
+    }
+    restoredFromAcceptedArchive += 1;
+    return { ...item, _acceptedArchiveMatch: true };
+  });
+  return { marked, restoredFromAcceptedArchive };
+}
+
+/** IMEIs, die aus dem Archiv zurück in die Liste kommen, aus dem Angenommen-Archiv löschen. */
+export function deleteRestoredImeisFromAcceptedArchive(rows) {
+  const keys = [];
+  for (const item of Array.isArray(rows) ? rows : []) {
+    if (item?._acceptedArchiveMatch !== true) continue;
+    if (item.imei) keys.push(item.imei);
+    for (const key of collectImeiKeysFromUploadRow(item)) keys.push(key);
+  }
+  return removeAcceptedImeiEntriesByImeiKeys(keys);
+}
+
 function filterImeisExcludingKeySet(imeis, keySet) {
   const list = Array.isArray(imeis) ? imeis : [];
   if (!keySet?.size) return { filtered: list, excludedCount: 0 };
@@ -984,9 +1014,21 @@ export async function applyImeiListVisibilityFilters(imeis) {
   list = archive.filtered;
   excludedCount += archive.excludedCount;
   const verlaufKeys = await getVerlaufHiddenImeiKeySet();
-  const verlauf = filterImeisExcludingKeySet(list, verlaufKeys);
-  list = verlauf.filtered;
-  excludedCount += verlauf.excludedCount;
+  const verlaufKept = [];
+  let verlaufExcluded = 0;
+  for (const row of list) {
+    if (row?._acceptedArchiveMatch === true) {
+      verlaufKept.push(row);
+      continue;
+    }
+    if (rowMatchesImeiKeySet(row, verlaufKeys)) {
+      verlaufExcluded += 1;
+      continue;
+    }
+    verlaufKept.push(row);
+  }
+  list = verlaufKept;
+  excludedCount += verlaufExcluded;
   return { filtered: list, excludedCount };
 }
 
@@ -1045,11 +1087,28 @@ async function reconcileSharedImeiListAfterVerlaufChange(app) {
   if (io) io.emit('imeis:updated');
 }
 
-/** IMEIs aus Bestand entfernen, die im Angenommen-Archiv stehen (Archiv selbst unverändert). */
+/**
+ * IMEIs aus Bestand entfernen, die im Angenommen-Archiv stehen (Archiv selbst unverändert).
+ * Zeilen mit _acceptedArchiveMatch bleiben: die IMEI war im Archiv und in einer neuen Excel.
+ */
 export function filterImeisExcludingAcceptedArchive(imeis, acceptedKeys = getAcceptedImeiKeySet()) {
   const list = Array.isArray(imeis) ? imeis : [];
   const keys = acceptedKeys instanceof Set ? acceptedKeys : getAcceptedImeiKeySet();
-  return filterImeisExcludingKeySet(list, keys);
+  if (!keys?.size) return { filtered: list, excludedCount: 0 };
+  const filtered = [];
+  let excludedCount = 0;
+  for (const row of list) {
+    if (row?._acceptedArchiveMatch === true) {
+      filtered.push(row);
+      continue;
+    }
+    if (rowMatchesImeiKeySet(row, keys)) {
+      excludedCount += 1;
+      continue;
+    }
+    filtered.push(row);
+  }
+  return { filtered, excludedCount };
 }
 
 function rowActionMatchesImeiKeys(rowId, keySet) {
@@ -1121,7 +1180,10 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     }
   }
   const acceptedKeys = getAcceptedImeiKeySet();
-  const incomingForMerge = incoming.filter((item) => !uploadRowInAcceptedArchive(item, acceptedKeys));
+  const { marked: incomingForMerge, restoredFromAcceptedArchive } = markIncomingArchiveMatches(
+    incoming,
+    acceptedKeys
+  );
   const { merged, added, skippedDuplicate, updatedFromUpload, previousCount, addedRows } = mergeImeiRowsAppend(
     existing,
     incomingForMerge
@@ -1131,13 +1193,29 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     acceptedKeys
   );
   const verlaufKeys = await getVerlaufHiddenImeiKeySet();
-  const verlaufFiltered = filterImeisExcludingKeySet(finalImeis, verlaufKeys);
-  finalImeis = verlaufFiltered.filtered;
-  const excludedFromVerlauf = verlaufFiltered.excludedCount;
+  const verlaufKept = [];
+  let excludedFromVerlauf = 0;
+  for (const row of finalImeis) {
+    if (row?._acceptedArchiveMatch === true) {
+      verlaufKept.push(row);
+      continue;
+    }
+    if (rowMatchesImeiKeySet(row, verlaufKeys)) {
+      excludedFromVerlauf += 1;
+      continue;
+    }
+    verlaufKept.push(row);
+  }
+  finalImeis = verlaufKept;
   const addedRowsVisible = addedRows.filter(
-    (item) => !uploadRowInAcceptedArchive(item, acceptedKeys) && !rowMatchesImeiKeySet(item, verlaufKeys)
+    (item) =>
+      item?._acceptedArchiveMatch === true ||
+      (!uploadRowInAcceptedArchive(item, acceptedKeys) && !rowMatchesImeiKeySet(item, verlaufKeys))
   );
   await saveImeisDataToStorage(baseUserId, { imeis: finalImeis }, app);
+  if (restoredFromAcceptedArchive > 0) {
+    deleteRestoredImeisFromAcceptedArchive(incomingForMerge);
+  }
   const io = app?.get?.('io');
   if (io) io.emit('imeis:updated');
   await invalidateImeisCaches(baseUserId, { sharedListChanged: true });
@@ -1150,7 +1228,8 @@ export async function appendImeisFromExcelUpload(uploaderUserId, incomingImeis, 
     previousCount,
     total: finalImeis.length,
     excludedFromAcceptedArchive,
-    excludedFromVerlauf
+    excludedFromVerlauf,
+    restoredFromAcceptedArchive
   };
 }
 
