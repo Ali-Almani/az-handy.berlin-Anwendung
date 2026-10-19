@@ -736,38 +736,83 @@ function geminiApiKey() {
 }
 
 function geminiModel() {
-  return String(process.env.GEMINI_MODEL || '').trim() || 'gemini-2.5-flash';
+  return String(process.env.GEMINI_MODEL || '').trim();
+}
+
+function geminiPublicMessage(status, detail = '') {
+  const d = String(detail || '').toLowerCase();
+  if (status === 401 || status === 403 || d.includes('api key')) {
+    return 'Gemini-Key ungültig oder ohne Berechtigung.';
+  }
+  if (status === 429) return 'Zu viele Übersetzungen. Bitte kurz warten.';
+  if (d.includes('not found') || d.includes('not supported') || status === 404) {
+    return 'Kein verfügbares Gemini-Modell. GEMINI_MODEL in der Server-.env setzen.';
+  }
+  return 'Übersetzung fehlgeschlagen.';
+}
+
+function shouldTryNextModel(status, detail = '') {
+  if (status === 401 || status === 429) return false;
+  if (status === 404) return true;
+  const d = String(detail || '').toLowerCase();
+  return status === 400 || status === 403
+    || d.includes('not found')
+    || d.includes('not supported')
+    || d.includes('not available');
+}
+
+async function generateWithModel(key, modelName, text) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(key)}`;
+  const body = {
+    systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM }] },
+    contents: [{ role: 'user', parts: [{ text }] }],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 2048,
+      responseMimeType: 'application/json'
+    }
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(25000)
+  });
+  const payload = await res.json().catch(() => ({}));
+  return { res, payload };
 }
 
 async function callGeminiTranslate(text) {
   const key = geminiApiKey();
-  const preferred = geminiModel();
-  const models = [...new Set([preferred, 'gemini-2.5-flash', 'gemini-2.0-flash'])];
+  const models = [...new Set([
+    geminiModel(),
+    'gemini-flash-latest',
+    'gemini-3.8-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
+  ].filter(Boolean))];
   let lastStatus = 502;
+  let lastDetail = '';
   for (const modelName of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': key
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM }] },
-        contents: [{ role: 'user', parts: [{ text }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json'
-        }
-      })
-    });
+    let res;
+    let payload;
+    try {
+      ({ res, payload } = await generateWithModel(key, modelName, text));
+    } catch (err) {
+      lastDetail = err?.name === 'TimeoutError' ? 'timeout' : (err?.message || 'network');
+      console.warn(`[translate] Gemini ${modelName} network: ${lastDetail}`);
+      continue;
+    }
     lastStatus = res.status;
-    if (res.status === 404) continue;
-    const payload = await res.json().catch(() => ({}));
+    lastDetail = String(payload?.error?.message || '').slice(0, 180);
     if (!res.ok) {
+      console.warn(`[translate] Gemini ${modelName} ${res.status} ${lastDetail}`);
+      if (shouldTryNextModel(res.status, lastDetail)) continue;
       const err = new Error('gemini_http');
-      err.status = res.status === 429 ? 429 : 502;
+      err.status = res.status === 429 ? 429 : (res.status === 401 || res.status === 403 ? 403 : 502);
+      err.publicMessage = geminiPublicMessage(res.status, lastDetail);
       throw err;
     }
     const raw = payload?.candidates?.[0]?.content?.parts?.map((p) => p?.text).filter(Boolean).join('\n') || '';
@@ -775,9 +820,8 @@ async function callGeminiTranslate(text) {
     const translation = String(parsed?.translation || '').trim();
     const sourceLang = String(parsed?.sourceLang || 'other').trim().toLowerCase();
     if (!translation) {
-      const err = new Error('gemini_empty');
-      err.status = 502;
-      throw err;
+      console.warn(`[translate] Gemini ${modelName} empty translation`);
+      continue;
     }
     const known = new Set(['ar', 'de', 'en', 'uk', 'ur', 'other']);
     const source = known.has(sourceLang) ? sourceLang : 'other';
@@ -789,6 +833,7 @@ async function callGeminiTranslate(text) {
   }
   const err = new Error('gemini_http');
   err.status = lastStatus === 429 ? 429 : 502;
+  err.publicMessage = geminiPublicMessage(lastStatus, lastDetail);
   throw err;
 }
 
@@ -820,12 +865,12 @@ export async function translateInboxMessage(req, res) {
       targetLang: result.targetLang
     });
   } catch (err) {
-    const status = err?.status === 429 ? 429 : 502;
+    const status = err?.status === 429 ? 429 : (err?.status === 403 ? 403 : 502);
     return res.status(status).json({
       success: false,
-      message: status === 429
+      message: err?.publicMessage || (status === 429
         ? 'Zu viele Übersetzungen. Bitte kurz warten.'
-        : 'Übersetzung fehlgeschlagen.'
+        : 'Übersetzung fehlgeschlagen.')
     });
   }
 }
