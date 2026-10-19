@@ -59,16 +59,45 @@ export const getProductFull = (item) => {
   return '';
 };
 
-/** Tab „17“ soll Xiaomi „17T“ einschließen. iPhone 16e bleibt getrennt von 16. */
+/**
+ * Gleiche Tab-Version. „17“ und „17T“ werden schon in extractXiaomiModelLine
+ * auf „17T“ gelegt. „17T Pro“ und „Note 17 Pro“ bleiben eigene Tabs.
+ * iPhone 16e bleibt getrennt von 16.
+ */
 export const productVersionMatches = (productVersion, activeVersion) => {
   if (!activeVersion) return true;
   if (!productVersion) return false;
-  if (productVersion === activeVersion) return true;
-  const pv = String(productVersion).toLowerCase();
-  const av = String(activeVersion).toLowerCase();
-  const isTSuffix = (base, full) => full.startsWith(base) && full.slice(base.length) === 't';
-  if (isTSuffix(av, pv) || isTSuffix(pv, av)) return true;
-  return false;
+  return String(productVersion).toLowerCase() === String(activeVersion).toLowerCase();
+};
+
+const rowBlob = (productName, item) => {
+  const parts = [];
+  if (productName) parts.push(String(productName));
+  if (item?.rowData) {
+    for (const value of Object.values(item.rowData)) {
+      if (value != null && String(value).trim()) parts.push(String(value));
+    }
+  }
+  return parts.join(' ');
+};
+
+/** Xiaomi 17T / 17T Pro / Note 17 Pro, sonst leer. */
+export const extractXiaomiModelLine = (productName, item = null) => {
+  const text = String(productName || '').trim();
+  const context = rowBlob(text, item);
+  const source = text || context;
+  if (!source) return '';
+  const isXiaomi = /\b(xiaomi|redmi)\b/i.test(context || text);
+  const hasNote17 = /\bnote[\s\-_]*17\b/i.test(source);
+  const has17t = /\b17[\s\-_]*t\b/i.test(source);
+  const hasPro = /\bpro\b/i.test(source);
+
+  if (hasNote17 && (isXiaomi || has17t)) return hasPro ? 'Note 17 Pro' : 'Note 17';
+  if (has17t) return hasPro ? '17T Pro' : '17T';
+  if (!isXiaomi || !/\b17\b/.test(source)) return '';
+  if (/\b(ultra|lite|plus|fe)\b/i.test(source)) return '';
+  if (/\b17[a-su-z]\b/i.test(source)) return '';
+  return hasPro ? '17T Pro' : '17T';
 };
 
 export const extractGB = (productName) => {
@@ -126,6 +155,8 @@ export const extractProductVersion = (productName, item = null) => {
   if (galaxyAMatch) return `A${galaxyAMatch[1]}`;
   const galaxyNoteMatch = productStr.match(/galaxy[\s\-_]?note[\s\-_]?(\d+)/i);
   if (galaxyNoteMatch) return `Note ${galaxyNoteMatch[1]}`;
+  const xiaomiLine = extractXiaomiModelLine(productStr, item);
+  if (xiaomiLine) return xiaomiLine;
   const xiaomiMatch = productStr.match(/\bxiaomi[\s\-_]*(\d+)([a-z])?\b/i);
   if (xiaomiMatch) {
     const num = xiaomiMatch[1];
