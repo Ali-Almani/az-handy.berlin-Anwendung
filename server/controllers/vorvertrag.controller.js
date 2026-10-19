@@ -739,60 +739,109 @@ function geminiModel() {
   return String(process.env.GEMINI_MODEL || '').trim();
 }
 
+const GEMINI_FALLBACK_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
+  'gemini-3.1-flash-lite'
+];
+
 function geminiPublicMessage(status, detail = '') {
   const d = String(detail || '').toLowerCase();
-  if (status === 401 || status === 403 || d.includes('api key')) {
+  if (status === 401 || status === 403 || d.includes('api key') || d.includes('api_key')) {
     return 'Gemini-Key ungültig oder ohne Berechtigung.';
   }
   if (status === 429) return 'Zu viele Übersetzungen. Bitte kurz warten.';
+  if (d.includes('billing') || d.includes('quota')) {
+    return 'Gemini braucht Billing in Google AI Studio.';
+  }
   if (d.includes('not found') || d.includes('not supported') || status === 404) {
     return 'Kein verfügbares Gemini-Modell. GEMINI_MODEL in der Server-.env setzen.';
   }
-  return 'Übersetzung fehlgeschlagen.';
+  const short = String(detail || '').trim().slice(0, 120);
+  return short ? `Übersetzung fehlgeschlagen: ${short}` : 'Übersetzung fehlgeschlagen.';
 }
 
-function shouldTryNextModel(status, detail = '') {
-  if (status === 401 || status === 429) return false;
-  if (status === 404) return true;
-  const d = String(detail || '').toLowerCase();
-  return status === 400 || status === 403
-    || d.includes('not found')
-    || d.includes('not supported')
-    || d.includes('not available');
+function fetchWithTimeout(url, opts, ms = 12000) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(timer));
+}
+
+function rankGeminiModel(name) {
+  const s = String(name || '').toLowerCase();
+  if (s.includes('3.8-flash') && !s.includes('lite')) return 0;
+  if (s.includes('3.5-flash-lite')) return 1;
+  if (s.includes('3.6-flash')) return 2;
+  if (s === 'gemini-flash-latest') return 3;
+  if (s.includes('3.1-flash-lite')) return 4;
+  if (s.includes('flash-lite')) return 5;
+  if (s.includes('flash') && !s.includes('2.0') && !s.includes('1.5') && !s.includes('2.5')) return 6;
+  return 8;
+}
+
+async function listGeminiChatModels(key) {
+  const res = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
+    {},
+    8000
+  );
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error('gemini_list');
+    err.status = res.status;
+    err.detail = String(payload?.error?.message || '');
+    throw err;
+  }
+  return (payload.models || [])
+    .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map((m) => String(m.name || '').replace(/^models\//, ''))
+    .filter((name) => /flash|lite/i.test(name) && !/image|tts|live|audio|veo|nano|embed|2\.0|1\.5/i.test(name))
+    .sort((a, b) => rankGeminiModel(a) - rankGeminiModel(b));
 }
 
 async function generateWithModel(key, modelName, text) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(key)}`;
-  const body = {
-    systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM }] },
-    contents: [{ role: 'user', parts: [{ text }] }],
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 2048,
-      responseMimeType: 'application/json'
-    }
-  };
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(25000)
-  });
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: TRANSLATE_SYSTEM }] },
+      contents: [{ role: 'user', parts: [{ text }] }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 2048
+      }
+    })
+  }, 12000);
   const payload = await res.json().catch(() => ({}));
   return { res, payload };
 }
 
+function sourceFromOriginal(original) {
+  return /[\u0600-\u06FF]/.test(String(original || '')) ? 'ar' : 'other';
+}
+
 async function callGeminiTranslate(text) {
   const key = geminiApiKey();
+  let listed = [];
+  try {
+    listed = await listGeminiChatModels(key);
+  } catch (err) {
+    if (err?.status === 401 || err?.status === 403) {
+      const fail = new Error('gemini_http');
+      fail.status = 403;
+      fail.publicMessage = geminiPublicMessage(err.status, err.detail);
+      throw fail;
+    }
+    console.warn(`[translate] Gemini list models ${err?.status || ''} ${err?.detail || err?.message || 'network'}`);
+  }
   const models = [...new Set([
     geminiModel(),
-    'gemini-flash-latest',
-    'gemini-3.8-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
-  ].filter(Boolean))];
+    ...(listed.length ? listed.slice(0, 2) : GEMINI_FALLBACK_MODELS)
+  ].filter(Boolean))].slice(0, 2);
+
   let lastStatus = 502;
   let lastDetail = '';
   for (const modelName of models) {
@@ -801,7 +850,7 @@ async function callGeminiTranslate(text) {
     try {
       ({ res, payload } = await generateWithModel(key, modelName, text));
     } catch (err) {
-      lastDetail = err?.name === 'TimeoutError' ? 'timeout' : (err?.message || 'network');
+      lastDetail = err?.name === 'AbortError' ? 'timeout' : (err?.message || 'network');
       console.warn(`[translate] Gemini ${modelName} network: ${lastDetail}`);
       continue;
     }
@@ -809,22 +858,19 @@ async function callGeminiTranslate(text) {
     lastDetail = String(payload?.error?.message || '').slice(0, 180);
     if (!res.ok) {
       console.warn(`[translate] Gemini ${modelName} ${res.status} ${lastDetail}`);
-      if (shouldTryNextModel(res.status, lastDetail)) continue;
-      const err = new Error('gemini_http');
-      err.status = res.status === 429 ? 429 : (res.status === 401 || res.status === 403 ? 403 : 502);
-      err.publicMessage = geminiPublicMessage(res.status, lastDetail);
-      throw err;
+      if (lastStatus === 401 || lastStatus === 429) break;
+      continue;
     }
     const raw = payload?.candidates?.[0]?.content?.parts?.map((p) => p?.text).filter(Boolean).join('\n') || '';
     const parsed = parseGeminiJson(raw);
-    const translation = String(parsed?.translation || '').trim();
-    const sourceLang = String(parsed?.sourceLang || 'other').trim().toLowerCase();
+    const translation = String(parsed?.translation || raw || '').trim();
     if (!translation) {
       console.warn(`[translate] Gemini ${modelName} empty translation`);
       continue;
     }
+    const sourceLang = String(parsed?.sourceLang || sourceFromOriginal(text)).trim().toLowerCase();
     const known = new Set(['ar', 'de', 'en', 'uk', 'ur', 'other']);
-    const source = known.has(sourceLang) ? sourceLang : 'other';
+    const source = known.has(sourceLang) ? sourceLang : sourceFromOriginal(text);
     return {
       sourceLang: source,
       targetLang: source === 'ar' ? 'de' : 'ar',
@@ -832,7 +878,7 @@ async function callGeminiTranslate(text) {
     };
   }
   const err = new Error('gemini_http');
-  err.status = lastStatus === 429 ? 429 : 502;
+  err.status = lastStatus === 429 ? 429 : (lastStatus === 401 || lastStatus === 403 ? 403 : 502);
   err.publicMessage = geminiPublicMessage(lastStatus, lastDetail);
   throw err;
 }

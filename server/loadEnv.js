@@ -8,7 +8,11 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '.env') });
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+const rootEnv = dotenv.config({ path: path.join(__dirname, '..', '.env') });
+if (!String(process.env.GEMINI_API_KEY || '').trim()) {
+  const fromRoot = String(rootEnv.parsed?.GEMINI_API_KEY || '').trim();
+  if (fromRoot) process.env.GEMINI_API_KEY = fromRoot;
+}
 
 // Persistenz immer aktivieren (Daten bleiben nach Neustart) – außer explizit 'false' in .env
 if (process.env.PERSIST_MEMORY_DATA !== 'false') {
