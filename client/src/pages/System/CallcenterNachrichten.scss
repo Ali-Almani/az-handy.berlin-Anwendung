@@ -1226,22 +1226,17 @@
   }
 }
 
-.sz-mention-image {
-  width: 1.7rem;
-  height: 1.7rem;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
 .sz-mention-name {
   font-size: 0.82rem;
   font-weight: $font-weight-medium;
 }
 
-.sz-mention-url {
-  font-size: 0.7rem;
-  color: $text-light;
-  word-break: break-all;
+.sz-mention-locale {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.04em;
+  color: $primary-color;
 }
 
 .sz-angebot-links {

@@ -1938,7 +1938,7 @@ const CallcenterNachrichten = ({
                   {mentionItems.length ? (
                     <ul className="sz-mention" role="listbox" aria-label="Angebot wählen">
                       {mentionItems.map((item, index) => (
-                        <li key={item.label}>
+                        <li key={`${item.label}-${item.locale}`}>
                           <button
                             type="button"
                             className={`sz-mention-item${index === mentionHi ? ' sz-mention-item--active' : ''}`}
@@ -1948,8 +1948,7 @@ const CallcenterNachrichten = ({
                             }}
                           >
                             <span className="sz-mention-name">{item.label}</span>
-                            {item.image ? <img className="sz-mention-image" src={item.image} alt="" /> : null}
-                            <span className="sz-mention-url">{item.url || 'keine URL'}</span>
+                            <span className="sz-mention-locale">{item.locale === 'ar' ? 'AR' : 'DE'}</span>
                           </button>
                         </li>
                       ))}

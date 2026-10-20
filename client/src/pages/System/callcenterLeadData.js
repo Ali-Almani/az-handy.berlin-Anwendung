@@ -318,13 +318,15 @@ export function normalizeOfferEntry(value) {
 export function angebotMentionItems(config, locale = 'de') {
   const options = questionDropdownOptions('angebot', config) || [];
   const links = config?.links?.angebot && typeof config.links.angebot === 'object' ? config.links.angebot : {};
-  return options.map((label) => {
-    const media = offerLocale(links[label], locale);
-    return {
+  const order = locale === 'ar' ? ['ar', 'de'] : ['de', 'ar'];
+  return options.flatMap((label) => {
+    const entry = normalizeOfferEntry(links[label]);
+    return order.map((loc) => ({
       label,
-      url: media.url || '',
-      image: media.image || ''
-    };
+      locale: loc,
+      url: entry[loc].url || '',
+      image: entry[loc].image || ''
+    }));
   }).filter((item) => item.label);
 }
 
@@ -342,7 +344,7 @@ export function filterAngebotMentions(config, query, locale = 'de') {
   const q = String(query || '').trim().toLowerCase();
   return angebotMentionItems(config, locale).filter((item) => {
     if (!q) return true;
-    return item.label.toLowerCase().includes(q) || item.url.toLowerCase().includes(q);
+    return item.label.toLowerCase().includes(q) || item.locale.includes(q);
   });
 }
 
