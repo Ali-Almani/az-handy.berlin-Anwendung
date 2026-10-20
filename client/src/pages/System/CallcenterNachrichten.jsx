@@ -17,7 +17,6 @@ import {
   NACHRICHTEN_ERLEDIGT,
   QUESTION_FIELD_TYPES,
   questionDropdownOptions,
-  questionOptionLinks,
   filterAngebotMentions,
   mentionAt,
   questionChatLocale,
@@ -1098,7 +1097,7 @@ const CallcenterNachrichten = ({
   };
 
   const mention = mentionAt(draft, cursorAt);
-  const mentionItems = mention ? filterAngebotMentions(questionConfig, mention.query) : [];
+  const mentionItems = mention ? filterAngebotMentions(questionConfig, mention.query, chatLocale) : [];
 
   useEffect(() => {
     setMentionHi(0);
@@ -1107,6 +1106,12 @@ const CallcenterNachrichten = ({
   const applyMention = (item) => {
     if (!item || !mention) return;
     const href = item.url || item.label;
+    if (item.image) {
+      setPendingImages((prev) => {
+        if (prev.some((img) => img.src === item.image)) return prev;
+        return [...prev, { id: `offer-${Date.now()}`, src: item.image }].slice(0, MAX_MESSAGE_IMAGES);
+      });
+    }
     const el = composerRef.current;
     const pos = el && Number.isFinite(el.selectionStart) ? el.selectionStart : cursorAt;
     const after = draft.slice(Math.max(pos, mention.start + 1));
@@ -1766,7 +1771,7 @@ const CallcenterNachrichten = ({
                               Angebote und URLs
                               <AngebotLinksEditor
                                 options={options || []}
-                                links={questionOptionLinks('angebot', questionConfig)}
+                                links={questionConfig?.links?.angebot || {}}
                                 onCommit={(next) => updateQuestion(q.field, {
                                   label: q.label,
                                   text: q.text,
@@ -1943,6 +1948,7 @@ const CallcenterNachrichten = ({
                             }}
                           >
                             <span className="sz-mention-name">{item.label}</span>
+                            {item.image ? <img className="sz-mention-image" src={item.image} alt="" /> : null}
                             <span className="sz-mention-url">{item.url || 'keine URL'}</span>
                           </button>
                         </li>

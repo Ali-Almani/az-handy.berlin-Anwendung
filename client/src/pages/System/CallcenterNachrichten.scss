@@ -1205,9 +1205,10 @@
 
 .sz-mention-item {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
   width: 100%;
   margin: 0;
   padding: 0.4rem 0.55rem;
@@ -1223,6 +1224,13 @@
   &--active {
     background: mix(#fff, $primary-color, 90%);
   }
+}
+
+.sz-mention-image {
+  width: 1.7rem;
+  height: 1.7rem;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .sz-mention-name {
@@ -1243,16 +1251,76 @@
 }
 
 .sz-angebot-link-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 1.45rem;
-  gap: 0.3rem;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid $border-color;
 
   .form-input {
     min-height: 2rem;
     padding: 0.28rem 0.5rem;
     font-size: 0.82rem;
   }
+}
+
+.sz-angebot-link-head {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  .form-input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.sz-angebot-locale {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr) auto;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.sz-angebot-locale-tag {
+  font-size: 0.68rem;
+  font-weight: $font-weight-bold;
+  color: $text-light;
+}
+
+.sz-angebot-image-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.sz-angebot-image-btn {
+  display: inline-flex;
+  padding: 0;
+  border: 1px solid $border-color;
+  border-radius: 5px;
+  background: $bg-color;
+  cursor: pointer;
+
+  img {
+    display: block;
+    width: 1.85rem;
+    height: 1.85rem;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+}
+
+.sz-angebot-image-clear {
+  margin: 0;
+  padding: 0 0.2rem;
+  border: 0;
+  background: transparent;
+  color: $text-light;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .sz-bubble-text a {

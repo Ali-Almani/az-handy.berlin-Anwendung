@@ -67,8 +67,8 @@ export const TEMPLATE_QUESTIONS = [
   },
   {
     field: 'angebot',
-    label: 'Angebot / Produkt?',
-    de: { label: 'Angebot / Produkt?', text: 'Welches Angebot oder Produkt möchten Sie?' },
+    label: 'Produkt?',
+    de: { label: 'Produkt?', text: 'Welches Angebot oder Produkt möchten Sie?' },
     ar: { label: 'العرض / المنتج؟', text: 'أي عرض أو منتج ترغب به؟' },
     en: { label: 'Offer / Product?', text: 'Which offer or product would you like?' }
   },
@@ -275,19 +275,57 @@ export function questionOptionLinks(field, config) {
   const out = {};
   Object.entries(map).forEach(([key, value]) => {
     const name = String(key || '').trim();
-    const href = normalizeOfferUrl(value);
+    const href = offerLocale(value, 'de').url;
     if (name && href) out[name] = href;
   });
   return out;
 }
 
-export function angebotMentionItems(config) {
+function emptyOfferLocale() {
+  return { url: '', image: '' };
+}
+
+export function offerLocale(value, locale) {
+  const loc = locale === 'ar' ? 'ar' : 'de';
+  const entry = normalizeOfferEntry(value);
+  const chosen = entry[loc];
+  if (chosen.url || chosen.image) return chosen;
+  return entry.de;
+}
+
+export function normalizeOfferEntry(value) {
+  const pack = (url, image) => ({
+    url: normalizeOfferUrl(url),
+    image: String(image || '').trim()
+  });
+  if (typeof value === 'string') {
+    const url = normalizeOfferUrl(value);
+    return { de: pack(url, ''), ar: pack(url, '') };
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { de: emptyOfferLocale(), ar: emptyOfferLocale() };
+  }
+  if (value.de || value.ar) {
+    return {
+      de: pack(value.de?.url, value.de?.image),
+      ar: pack(value.ar?.url, value.ar?.image)
+    };
+  }
+  const shared = pack(value.url, value.image);
+  return { de: shared, ar: { ...shared } };
+}
+
+export function angebotMentionItems(config, locale = 'de') {
   const options = questionDropdownOptions('angebot', config) || [];
-  const links = questionOptionLinks('angebot', config);
-  return options.map((label) => ({
-    label,
-    url: links[label] || ''
-  })).filter((item) => item.label);
+  const links = config?.links?.angebot && typeof config.links.angebot === 'object' ? config.links.angebot : {};
+  return options.map((label) => {
+    const media = offerLocale(links[label], locale);
+    return {
+      label,
+      url: media.url || '',
+      image: media.image || ''
+    };
+  }).filter((item) => item.label);
 }
 
 export function mentionAt(text, cursor) {
@@ -300,12 +338,19 @@ export function mentionAt(text, cursor) {
   return { start: before.length - query.length - 1, query };
 }
 
-export function filterAngebotMentions(config, query) {
+export function filterAngebotMentions(config, query, locale = 'de') {
   const q = String(query || '').trim().toLowerCase();
-  return angebotMentionItems(config).filter((item) => {
+  return angebotMentionItems(config, locale).filter((item) => {
     if (!q) return true;
     return item.label.toLowerCase().includes(q) || item.url.toLowerCase().includes(q);
   });
+}
+
+function storedQuestionLabel(field, locale, config) {
+  const custom = String(config?.labels?.[field]?.[locale] || '').trim();
+  if (!custom) return '';
+  if (field === 'angebot' && (custom === 'Angebot / Produkt?' || custom === 'Angebot / Produkt')) return '';
+  return custom;
 }
 
 export function questionDropdownOptions(field, config) {
@@ -327,7 +372,7 @@ export function localizedTemplateQuestions(locale, config) {
     .filter((q) => !isQuestionHidden(config, q.field))
     .map((q) => ({
       field: q.field,
-      label: config?.labels?.[q.field]?.[loc] || q[loc]?.label || q.de.label,
+      label: storedQuestionLabel(q.field, loc, config) || q[loc]?.label || q.de.label,
       text: config?.texts?.[q.field]?.[loc] || q[loc]?.text || q.de.text
     }))
     .concat(

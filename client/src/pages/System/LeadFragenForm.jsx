@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import {
   QUESTION_FIELD_TYPES,
   customQuestions,
+  normalizeOfferEntry,
   normalizeOfferUrl,
   questionDropdownOptions,
   questionOptionLinks,
@@ -18,7 +19,7 @@ const FIELD_META = {
   sprache: { label: 'Sprache?', hasText: false },
   rufnummer: { label: 'Rufnummer?', hasText: true },
   o2Kunde: { label: 'O2 Kunde?', hasText: true },
-  angebot: { label: 'Angebot / Produkt?', hasText: true },
+  angebot: { label: 'Produkt?', hasText: true },
   produktNotiz: { label: 'Produkt Notiz?', hasText: true },
   stadt: { label: 'Stadt?', hasText: true },
   marketingNotiz: { label: 'Marketing Notiz?', hasText: true },
@@ -26,14 +27,52 @@ const FIELD_META = {
   terminZeit: { label: 'Termin Zeit?', hasText: true }
 };
 
+function readOfferImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !String(file.type || '').startsWith('image/')) {
+      reject(new Error('Nur Bilder sind erlaubt.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.'));
+      img.onload = () => {
+        const max = 480;
+        let width = img.width;
+        let height = img.height;
+        if (width > max || height > max) {
+          const scale = max / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.68));
+      };
+      img.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function blankOfferRow() {
+  return { name: '', de: { url: '', image: '' }, ar: { url: '', image: '' } };
+}
+
 export function AngebotLinksEditor({ options, links, onCommit }) {
+  const fileRef = useRef(null);
+  const pickTarget = useRef(null);
   const fromProps = () => {
     const names = Array.isArray(options) && options.length ? options : [''];
     const map = links && typeof links === 'object' ? links : {};
-    return names.map((name) => ({
-      name: String(name || ''),
-      url: map[name] || ''
-    }));
+    return names.map((name) => {
+      const entry = normalizeOfferEntry(map[name]);
+      return { name: String(name || ''), de: entry.de, ar: entry.ar };
+    });
   };
   const [items, setItems] = useState(fromProps);
 
@@ -45,62 +84,152 @@ export function AngebotLinksEditor({ options, links, onCommit }) {
     const cleaned = next
       .map((row) => ({
         name: String(row.name || '').trim(),
-        url: normalizeOfferUrl(row.url)
+        de: {
+          url: normalizeOfferUrl(row.de?.url),
+          image: String(row.de?.image || '').trim()
+        },
+        ar: {
+          url: normalizeOfferUrl(row.ar?.url),
+          image: String(row.ar?.image || '').trim()
+        }
       }))
       .filter((row) => row.name);
     onCommit?.({
       options: cleaned.map((row) => row.name),
-      links: Object.fromEntries(cleaned.filter((row) => row.url).map((row) => [row.name, row.url]))
+      links: Object.fromEntries(cleaned.map((row) => [row.name, { de: row.de, ar: row.ar }]))
     });
   };
 
   const changeRow = (index, patch) => {
     const next = items.map((row, i) => (i === index ? { ...row, ...patch } : row));
     setItems(next);
+    return next;
+  };
+
+  const changeLocale = (index, locale, patch) => {
+    const row = items[index];
+    if (!row) return items;
+    return changeRow(index, {
+      [locale]: { ...row[locale], ...patch }
+    });
+  };
+
+  const onImage = async (ev) => {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    const target = pickTarget.current;
+    pickTarget.current = null;
+    if (!file || !target) return;
+    try {
+      const src = await readOfferImage(file);
+      const next = changeLocale(target.index, target.locale, { image: src });
+      commit(next);
+    } catch (err) {
+      window.alert(err?.message || 'Bild konnte nicht gelesen werden.');
+    }
   };
 
   return (
     <div className="sz-angebot-links">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={onImage}
+      />
       {items.map((row, index) => (
         <div key={`angebot-${index}`} className="sz-angebot-link-row">
-          <input
-            className="form-input"
-            value={row.name}
-            aria-label="Angebot"
-            placeholder="Angebot / Produkt"
-            onChange={(ev) => changeRow(index, { name: ev.target.value })}
-            onBlur={() => commit(items)}
-          />
-          <input
-            className="form-input"
-            value={row.url}
-            aria-label="URL"
-            placeholder="https://…"
-            onChange={(ev) => changeRow(index, { url: ev.target.value })}
-            onBlur={() => commit(items)}
-          />
-          <button
-            type="button"
-            className="sz-question-icon sz-question-icon--delete"
-            onClick={() => {
-              const next = items.filter((_, i) => i !== index);
-              const fallback = next.length ? next : [{ name: '', url: '' }];
-              setItems(fallback);
-              commit(fallback);
-            }}
-            aria-label="Angebot löschen"
-            title="Löschen"
-          >
-            ×
-          </button>
+          <div className="sz-angebot-link-head">
+            <input
+              className="form-input"
+              value={row.name}
+              aria-label="Produkt"
+              placeholder="Produkt"
+              onChange={(ev) => changeRow(index, { name: ev.target.value })}
+              onBlur={(ev) => commit(changeRow(index, { name: ev.target.value }))}
+            />
+            <button
+              type="button"
+              className="sz-question-icon sz-question-icon--delete"
+              onClick={() => {
+                const next = items.filter((_, i) => i !== index);
+                const fallback = next.length ? next : [blankOfferRow()];
+                setItems(fallback);
+                commit(fallback);
+              }}
+              aria-label="Produkt löschen"
+              title="Löschen"
+            >
+              ×
+            </button>
+          </div>
+          {['de', 'ar'].map((locale) => (
+            <div key={locale} className="sz-angebot-locale">
+              <span className="sz-angebot-locale-tag">{locale === 'de' ? 'DE' : 'AR'}</span>
+              <input
+                className="form-input"
+                value={row[locale]?.url || ''}
+                aria-label={`URL ${locale === 'de' ? 'Deutsch' : 'Arabisch'}`}
+                placeholder="https://…"
+                onChange={(ev) => changeLocale(index, locale, { url: ev.target.value })}
+                onBlur={(ev) => commit(changeLocale(index, locale, { url: ev.target.value }))}
+              />
+              <div className="sz-angebot-image-slot">
+                {row[locale]?.image ? (
+                  <button
+                    type="button"
+                    className="sz-angebot-image-btn"
+                    onClick={() => {
+                      pickTarget.current = { index, locale };
+                      fileRef.current?.click();
+                    }}
+                    aria-label={`Bild ${locale === 'de' ? 'Deutsch' : 'Arabisch'} ändern`}
+                    title="Bild ändern"
+                  >
+                    <img src={row[locale].image} alt="" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="sz-question-icon"
+                    onClick={() => {
+                      pickTarget.current = { index, locale };
+                      fileRef.current?.click();
+                    }}
+                    aria-label={`Bild ${locale === 'de' ? 'Deutsch' : 'Arabisch'} hinzufügen`}
+                    title="Bild hinzufügen"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden>
+                      <path fill="currentColor" d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                    </svg>
+                  </button>
+                )}
+                {row[locale]?.image ? (
+                  <button
+                    type="button"
+                    className="sz-angebot-image-clear"
+                    onClick={() => {
+                      const next = changeLocale(index, locale, { image: '' });
+                      commit(next);
+                    }}
+                    aria-label="Bild entfernen"
+                    title="Bild entfernen"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
         </div>
       ))}
       <button
         type="button"
         className="btn btn--secondary btn--small"
-        onClick={() => setItems((prev) => [...prev, { name: '', url: '' }])}
+        onClick={() => setItems((prev) => [...prev, blankOfferRow()])}
       >
-        Angebot hinzufügen
+        Produkt hinzufügen
       </button>
     </div>
   );
@@ -149,7 +278,9 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
         const label = config?.labels?.[field]?.[locale] || meta.label;
         const text = config?.texts?.[field]?.[locale] || templateQuestionText(field, locale);
         const options = questionDropdownOptions(field, config);
-        const links = questionOptionLinks(field, config);
+        const links = field === 'angebot'
+          ? (config?.links?.angebot || {})
+          : questionOptionLinks(field, config);
         const save = (patch) => onUpdate?.(field, {
           label: patch.label ?? label,
           text: meta.hasText ? (patch.text ?? text) : undefined,
@@ -275,7 +406,8 @@ export default function LeadFragenForm({
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const labelFor = (field, fallback) => {
-    const custom = String(questionConfig?.labels?.[field]?.[questionLocale] || '').trim();
+    let custom = String(questionConfig?.labels?.[field]?.[questionLocale] || '').trim();
+    if (field === 'angebot' && (custom === 'Angebot / Produkt?' || custom === 'Angebot / Produkt')) custom = '';
     const text = custom || fallback;
     return text.endsWith('?') ? text : `${text}?`;
   };
@@ -355,10 +487,10 @@ export default function LeadFragenForm({
           id={`${idPrefix}-angebot`}
           className="form-input"
           value={answers?.angebot || ''}
-          aria-label={labelFor('angebot', 'Angebot / Produkt?')}
+          aria-label={labelFor('angebot', 'Produkt?')}
           onChange={(ev) => patch('angebot', ev.target.value)}
         >
-          <option value="">{labelFor('angebot', 'Angebot / Produkt?')}</option>
+          <option value="">{labelFor('angebot', 'Produkt?')}</option>
           {angebotOptions.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
