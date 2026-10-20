@@ -46,6 +46,13 @@
 }
 
 @media (max-width: $breakpoint-md) {
+  .system-page.container,
+  body.layout-host--schnelltest .main > .system-page.container {
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .system-page-title {
     font-size: 1.2rem;
     margin-bottom: $spacing-sm;

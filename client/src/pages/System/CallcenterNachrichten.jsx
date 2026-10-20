@@ -1916,7 +1916,7 @@ const CallcenterNachrichten = ({
                     id="sz-reply"
                     ref={composerRef}
                     className={`form-input sz-composer-input${composerRtl ? ' sz-composer-input--rtl' : ''}`}
-                    rows={5}
+                    rows={2}
                     value={draft}
                     onChange={(ev) => {
                       setDraft(ev.target.value);
@@ -1930,7 +1930,7 @@ const CallcenterNachrichten = ({
                     onKeyUp={(ev) => setCursorAt(ev.target.selectionStart || 0)}
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
-                    placeholder={`Antwort an ${active.customerName || 'den Kunden'}… (@ Angebot)`}
+                    placeholder="Antwort schreiben"
                     disabled={sending}
                     dir={composerRtl ? 'rtl' : 'ltr'}
                     lang={composerRtl ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
