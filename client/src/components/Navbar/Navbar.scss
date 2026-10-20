@@ -685,6 +685,10 @@
     font-size: 1rem;
   }
 
+  .navbar-link--system {
+    font-size: 0.82rem;
+  }
+
   .navbar-archiv-trigger {
     display: flex;
     flex-direction: row;
@@ -768,7 +772,7 @@
   }
 }
 
-/* Mobile: Logo links, Avatar + Hamburger rechts */
+/* Mobile: Logo links, Hamburger rechts. Filiale und Avatar liegen im Menü. */
 .navbar-dropdown--header {
   right: 0;
   left: auto;
@@ -781,30 +785,56 @@
   margin-left: auto;
 }
 
+.navbar-mobile-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0.85rem;
+  border-bottom: 1px solid $border-color;
+
+  .navbar-einsatzort--mobile {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    margin-top: 0;
+
+    .navbar-einsatzort__select {
+      width: 100%;
+      max-width: none;
+      font-size: 0.9rem;
+    }
+  }
+
+  .navbar-avatar-container {
+    width: 100%;
+    margin: 0;
+  }
+
+  .navbar-avatar-btn--with-greeting {
+    width: 100%;
+    max-width: none;
+  }
+
+  .navbar-dropdown--header {
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
+    width: 100%;
+    min-width: 0;
+    margin-top: 0.5rem;
+    box-shadow: none;
+    border: 1px solid $border-color;
+    animation: none;
+  }
+}
+
 /* Responsive: ab 992px Desktop, darunter Mobile */
 @media (max-width: 992px) {
   .navbar-mobile-right {
     display: flex;
-    margin-top: 1rem;
-    padding-top: 0.25rem;
-    flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-end;
-  }
-
-  .navbar-mobile-right .navbar-avatar-container {
-    margin-top: 0.15rem;
-  }
-
-  .navbar-einsatzort--mobile {
-    display: flex;
-    max-width: 8.5rem;
-    margin-top: 0.2rem;
-
-    .navbar-einsatzort__select {
-      max-width: 8.5rem;
-      font-size: 0.72rem;
-      padding: 0.48rem 1.85rem 0.48rem 2rem;
-    }
   }
 
   .navbar-hamburger {

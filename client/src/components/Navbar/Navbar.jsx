@@ -444,7 +444,7 @@ const Navbar = ({
   const renderSystemNavItem = () =>
     user && canAccessTicketingSystem(user) ? (
       <li>
-        <NavLink to={TICKETING_SYSTEM_PATH} className={navLinkClassName} onClick={closeMobileMenu}>
+        <NavLink to={TICKETING_SYSTEM_PATH} className={({ isActive }) => `${navLinkClassName({ isActive })} navbar-link--system`} onClick={closeMobileMenu}>
           <span className="navbar-link-inner">
             <span className="navbar-link-icon" aria-hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -804,8 +804,48 @@ const Navbar = ({
           ) : null}
         </ul>
         <div className="navbar-mobile-right">
+          <button
+            type="button"
+            className="navbar-hamburger"
+            onClick={toggleMobileMenu}
+            aria-label="Menü öffnen"
+            aria-expanded={mobileMenuOpen}
+          >
+            <span className="navbar-hamburger-bar" />
+            <span className="navbar-hamburger-bar" />
+            <span className="navbar-hamburger-bar" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu overlay */}
+      <div
+        className={`navbar-mobile-overlay ${mobileMenuOpen ? 'navbar-mobile-overlay--open' : ''}`}
+        onClick={closeMobileMenu}
+        role="button"
+        tabIndex={-1}
+        aria-hidden={!mobileMenuOpen}
+      >
+        <div
+          className="navbar-mobile-panel"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="navbar-mobile-header">
+            <Link to="/" className="navbar-brand" onClick={closeMobileMenu}>
+              <img src={logo} alt="az-handy.berlin Logo" className="navbar-logo" />
+            </Link>
+            <button
+              type="button"
+              className="navbar-mobile-close"
+              onClick={closeMobileMenu}
+              aria-label="Menü schließen"
+            >
+              <span />
+              <span />
+            </button>
+          </div>
           {user ? (
-            <>
+            <div className="navbar-mobile-account">
               <NavbarEinsatzortSelect user={user} setUser={setUser} className="navbar-einsatzort--mobile" />
               <div className="navbar-avatar-container" ref={mobileHeaderDropdownRef}>
               <button
@@ -982,48 +1022,8 @@ const Navbar = ({
                 </div>
               )}
               </div>
-            </>
+            </div>
           ) : null}
-          <button
-            type="button"
-            className="navbar-hamburger"
-            onClick={toggleMobileMenu}
-            aria-label="Menü öffnen"
-            aria-expanded={mobileMenuOpen}
-          >
-            <span className="navbar-hamburger-bar" />
-            <span className="navbar-hamburger-bar" />
-            <span className="navbar-hamburger-bar" />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile menu overlay */}
-      <div
-        className={`navbar-mobile-overlay ${mobileMenuOpen ? 'navbar-mobile-overlay--open' : ''}`}
-        onClick={closeMobileMenu}
-        role="button"
-        tabIndex={-1}
-        aria-hidden={!mobileMenuOpen}
-      >
-        <div
-          className="navbar-mobile-panel"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="navbar-mobile-header">
-            <Link to="/" className="navbar-brand" onClick={closeMobileMenu}>
-              <img src={logo} alt="az-handy.berlin Logo" className="navbar-logo" />
-            </Link>
-            <button
-              type="button"
-              className="navbar-mobile-close"
-              onClick={closeMobileMenu}
-              aria-label="Menü schließen"
-            >
-              <span />
-              <span />
-            </button>
-          </div>
           <ul className="navbar-mobile-nav">
             {navLinksMobile}
           </ul>
