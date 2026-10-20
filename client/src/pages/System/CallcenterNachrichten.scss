@@ -37,6 +37,29 @@
   }
 }
 
+.sz-mobile-panes {
+  display: none;
+}
+
+.sz-mobile-pane {
+  flex: 1;
+  margin: 0;
+  padding: 0.55rem 0.4rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: $text-light;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+
+  &--active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+  }
+}
+
 .sz-list-pane {
   display: flex;
   flex-direction: column;
@@ -1611,19 +1634,50 @@
   }
 
   .sz--chat-open .sz-layout {
+    position: relative;
     display: flex;
     flex-direction: column;
     height: calc(100dvh - 9.5rem);
     max-height: calc(100dvh - 9.5rem);
   }
 
-  .sz--chat-open .sz-list-pane {
+  .sz--chat-open .sz-mobile-panes {
+    display: flex;
+    flex-shrink: 0;
+    border-bottom: 1px solid $border-color;
+    background: $bg-color;
+  }
+
+  .sz--chat-open .sz-list-pane,
+  .sz--chat-open .sz-questions {
     display: none;
   }
 
-  .sz--chat-open .sz-chat-pane,
-  .sz--chat-open .sz-questions {
+  .sz--chat-open .sz-chat-pane {
     display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sz--chat-open.sz--side-list .sz-chat-pane,
+  .sz--chat-open.sz--side-questions .sz-chat-pane {
+    display: none;
+  }
+
+  .sz--chat-open.sz--side-list .sz-list-pane {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    border-right: none;
+  }
+
+  .sz--chat-open.sz--side-questions .sz-questions {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+    border-top: none;
   }
 
   .sz--form-only.sz--chat-open .sz-chat-pane {
@@ -1631,24 +1685,16 @@
   }
 
   .sz--form-only.sz--chat-open .sz-questions {
-    flex: 1;
-    max-height: none;
-  }
-
-  .sz--chat-open .sz-chat-pane {
+    display: flex;
     flex: 1;
     min-height: 0;
-  }
-
-  .sz--chat-open .sz-questions {
-    flex: 1 1 50%;
-    min-height: 16rem;
     max-height: none;
     overflow: hidden;
+    border-top: none;
   }
 
-  .sz-back {
-    display: inline-flex;
+  .sz--form-only.sz--chat-open.sz--side-list .sz-questions {
+    display: none;
   }
 
   .sz-chat-status {

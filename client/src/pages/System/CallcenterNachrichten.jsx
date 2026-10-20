@@ -420,6 +420,7 @@ const CallcenterNachrichten = ({
   const [recordSecs, setRecordSecs] = useState(0);
   const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [mobileSide, setMobileSide] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
   const [templateEditing, setTemplateEditing] = useState(false);
@@ -692,6 +693,7 @@ const CallcenterNachrichten = ({
     setFragenOpen(false);
     setChipEditing(false);
     setMobileShowChat(true);
+    setMobileSide('');
     patchTicket(id, (t) => withMitarbeiter({ ...t, unread: false }, agentName));
   };
 
@@ -846,6 +848,7 @@ const CallcenterNachrichten = ({
     setChipEditing(false);
     setTemplateEditing(false);
     setMobileShowChat(false);
+    setMobileSide('');
   };
 
   const handleQuestionLocale = (locale) => {
@@ -1097,6 +1100,7 @@ const CallcenterNachrichten = ({
       setPendingImages([]);
       setPendingVoice(null);
       setMobileShowChat(false);
+      setMobileSide('');
     }
   };
 
@@ -1158,10 +1162,41 @@ const CallcenterNachrichten = ({
 
   return (
     <section
-      className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}${isManualTicket ? ' sz--form-only' : ''}`}
+      className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}${mobileSide === 'list' ? ' sz--side-list' : ''}${mobileSide === 'questions' ? ' sz--side-questions' : ''}${isManualTicket ? ' sz--form-only' : ''}`}
       aria-label="Posteingang"
     >
       <div className={`sz-layout sz-layout--with-questions${isManualTicket ? ' sz-layout--form-only' : ''}`}>
+        <div className="sz-mobile-panes" role="tablist" aria-label="Spalten">
+          <button
+            type="button"
+            role="tab"
+            className={`sz-mobile-pane${mobileSide === 'list' ? ' sz-mobile-pane--active' : ''}`}
+            aria-selected={mobileSide === 'list'}
+            onClick={() => setMobileSide('list')}
+          >
+            Liste
+          </button>
+          {isManualTicket ? null : (
+            <button
+              type="button"
+              role="tab"
+              className={`sz-mobile-pane${mobileSide === '' ? ' sz-mobile-pane--active' : ''}`}
+              aria-selected={mobileSide === ''}
+              onClick={() => setMobileSide('')}
+            >
+              Chat
+            </button>
+          )}
+          <button
+            type="button"
+            role="tab"
+            className={`sz-mobile-pane${(isManualTicket ? mobileSide === '' : mobileSide === 'questions') ? ' sz-mobile-pane--active' : ''}`}
+            aria-selected={isManualTicket ? mobileSide === '' : mobileSide === 'questions'}
+            onClick={() => setMobileSide(isManualTicket ? '' : 'questions')}
+          >
+            Vorlage
+          </button>
+        </div>
         <aside className="sz-list-pane">
           <div className="sz-filters">
             <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Notiz oder Anweisung">
