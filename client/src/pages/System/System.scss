@@ -45,6 +45,25 @@
   }
 }
 
+@media (max-width: $breakpoint-md) {
+  .system-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .system-tab {
+    flex-shrink: 0;
+    gap: 0.25rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.82rem;
+  }
+}
+
 .system-tab-count {
   min-width: 1.15rem;
   padding: 0.1rem 0.4rem;
