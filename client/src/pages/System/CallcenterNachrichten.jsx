@@ -2061,27 +2061,23 @@ const CallcenterNachrichten = ({
             </div>
             {active && answers && !templateEditing ? (
               <div className="sz-questions-meta">
-                <label className="sz-template-options-label" htmlFor="sz-ticket-mitarbeiter">
-                  Mitarbeiter
-                  <input
-                    id="sz-ticket-mitarbeiter"
-                    className="form-input"
-                    value={mitarbeiterLabel}
-                    readOnly
-                    aria-readonly="true"
-                  />
-                </label>
-                <label className="sz-template-options-label" htmlFor="sz-ticket-filiale">
-                  Filiale wählen
-                  <StatusShopSelect
-                    id="sz-ticket-filiale"
-                    shop={active.shop}
-                    ticketStatus={active.ticketStatus}
-                    shops={nachrichtShops}
-                    onChange={(value) => handleStatusOrShop(active.id, value)}
-                    ariaLabel="Filiale wählen"
-                  />
-                </label>
+                <input
+                  id="sz-ticket-mitarbeiter"
+                  className="form-input"
+                  value={mitarbeiterLabel === '—' ? '' : mitarbeiterLabel}
+                  readOnly
+                  aria-readonly="true"
+                  aria-label="Mitarbeiter"
+                  placeholder="Mitarbeiter"
+                />
+                <StatusShopSelect
+                  id="sz-ticket-filiale"
+                  shop={active.shop}
+                  ticketStatus={active.ticketStatus}
+                  shops={nachrichtShops}
+                  onChange={(value) => handleStatusOrShop(active.id, value)}
+                  ariaLabel="Filiale wählen"
+                />
               </div>
             ) : null}
             {active && answers ? (

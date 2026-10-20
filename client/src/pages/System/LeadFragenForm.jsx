@@ -318,26 +318,27 @@ export default function LeadFragenForm({
     ),
     rufnummer: (
       <div className="form-group" key="rufnummer">
-        <label className="form-label" htmlFor={`${idPrefix}-rufnummer`}>{labelFor('rufnummer', 'Rufnummer?')}</label>
         <input
           id={`${idPrefix}-rufnummer`}
           className="form-input"
           type="tel"
           value={answers?.rufnummer || ''}
+          placeholder={labelFor('rufnummer', 'Rufnummer?')}
+          aria-label={labelFor('rufnummer', 'Rufnummer?')}
           onChange={(ev) => patch('rufnummer', ev.target.value)}
         />
       </div>
     ),
     o2Kunde: (
       <div className="form-group" key="o2Kunde">
-        <label className="form-label" htmlFor={`${idPrefix}-o2`}>{labelFor('o2Kunde', 'O2 Kunde?')}</label>
         <select
           id={`${idPrefix}-o2`}
           className="form-input"
           value={answers?.o2Kunde || ''}
+          aria-label={labelFor('o2Kunde', 'O2 Kunde?')}
           onChange={(ev) => patch('o2Kunde', ev.target.value)}
         >
-          <option value="">—</option>
+          <option value="">{labelFor('o2Kunde', 'O2 Kunde?')}</option>
           {o2Options.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
@@ -346,14 +347,14 @@ export default function LeadFragenForm({
     ),
     angebot: (
       <div className="form-group" key="angebot">
-        <label className="form-label" htmlFor={`${idPrefix}-angebot`}>{labelFor('angebot', 'Angebot / Produkt?')}</label>
         <select
           id={`${idPrefix}-angebot`}
           className="form-input"
           value={answers?.angebot || ''}
+          aria-label={labelFor('angebot', 'Angebot / Produkt?')}
           onChange={(ev) => patch('angebot', ev.target.value)}
         >
-          <option value="">—</option>
+          <option value="">{labelFor('angebot', 'Angebot / Produkt?')}</option>
           {angebotOptions.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
@@ -362,11 +363,12 @@ export default function LeadFragenForm({
     ),
     produktNotiz: (
       <div className="form-group" key="produktNotiz">
-        <label className="form-label" htmlFor={`${idPrefix}-produkt`}>{labelFor('produktNotiz', 'Produkt Notiz?')}</label>
         <input
           id={`${idPrefix}-produkt`}
           className="form-input"
           value={answers?.produktNotiz || ''}
+          placeholder={labelFor('produktNotiz', 'Produkt Notiz?')}
+          aria-label={labelFor('produktNotiz', 'Produkt Notiz?')}
           onChange={(ev) => patch('produktNotiz', ev.target.value)}
         />
       </div>
@@ -382,35 +384,42 @@ export default function LeadFragenForm({
     ),
     marketingNotiz: (
       <div className="form-group" key="marketingNotiz">
-        <label className="form-label" htmlFor={`${idPrefix}-marketing`}>{labelFor('marketingNotiz', 'Marketing Notiz?')}</label>
         <input
           id={`${idPrefix}-marketing`}
           className="form-input"
           value={answers?.marketingNotiz || ''}
+          placeholder={labelFor('marketingNotiz', 'Marketing Notiz?')}
+          aria-label={labelFor('marketingNotiz', 'Marketing Notiz?')}
           onChange={(ev) => patch('marketingNotiz', ev.target.value)}
         />
       </div>
     ),
     terminDatum: (
       <div className="form-group" key="terminDatum">
-        <label className="form-label" htmlFor={`${idPrefix}-datum`}>{labelFor('terminDatum', 'Termin Datum?')}</label>
         <input
           id={`${idPrefix}-datum`}
           className="form-input"
-          type="date"
+          type={answers?.terminDatum ? 'date' : 'text'}
           value={answers?.terminDatum || ''}
+          placeholder={labelFor('terminDatum', 'Termin Datum?')}
+          aria-label={labelFor('terminDatum', 'Termin Datum?')}
+          onFocus={(ev) => { ev.target.type = 'date'; }}
+          onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminDatum', ev.target.value)}
         />
       </div>
     ),
     terminZeit: (
       <div className="form-group" key="terminZeit">
-        <label className="form-label" htmlFor={`${idPrefix}-zeit`}>{labelFor('terminZeit', 'Termin Zeit?')}</label>
         <input
           id={`${idPrefix}-zeit`}
           className="form-input"
-          type="time"
+          type={answers?.terminZeit ? 'time' : 'text'}
           value={answers?.terminZeit || ''}
+          placeholder={labelFor('terminZeit', 'Termin Zeit?')}
+          aria-label={labelFor('terminZeit', 'Termin Zeit?')}
+          onFocus={(ev) => { ev.target.type = 'time'; }}
+          onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminZeit', ev.target.value)}
         />
       </div>
@@ -426,14 +435,14 @@ export default function LeadFragenForm({
       const options = questionDropdownOptions(field, questionConfig) || [];
       return (
         <div className="form-group" key={field}>
-          <label className="form-label" htmlFor={inputId}>{label}</label>
           <select
             id={inputId}
             className="form-input"
             value={answers?.[field] || ''}
+            aria-label={label}
             onChange={(ev) => patch(field, ev.target.value)}
           >
-            <option value="">—</option>
+            <option value="">{label}</option>
             {options.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
@@ -442,14 +451,23 @@ export default function LeadFragenForm({
       );
     }
     const inputType = added.type === 'date' || added.type === 'time' || added.type === 'tel' ? added.type : 'text';
+    const hasValue = Boolean(answers?.[field]);
+    const shownType = (added.type === 'date' || added.type === 'time') && !hasValue ? 'text' : inputType;
     return (
       <div className="form-group" key={field}>
-        <label className="form-label" htmlFor={inputId}>{label}</label>
         <input
           id={inputId}
           className="form-input"
-          type={inputType}
+          type={shownType}
           value={answers?.[field] || ''}
+          placeholder={label}
+          aria-label={label}
+          onFocus={(ev) => {
+            if (added.type === 'date' || added.type === 'time') ev.target.type = added.type;
+          }}
+          onBlur={(ev) => {
+            if ((added.type === 'date' || added.type === 'time') && !ev.target.value) ev.target.type = 'text';
+          }}
           onChange={(ev) => patch(field, ev.target.value)}
         />
       </div>

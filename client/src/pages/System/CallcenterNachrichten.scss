@@ -1529,13 +1529,18 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.4rem;
   padding: $spacing-sm $spacing-md 0;
 
+  .form-input,
+  select.form-input,
   .vorvertrag-ticket-row__status-select {
     width: 100%;
     min-width: 0;
     max-width: 100%;
+    min-height: 2rem;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
   }
 }
 
@@ -1710,7 +1715,7 @@
 }
 
 .sz-questions-form .form-group {
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.4rem;
 }
 
 .sz-questions-form .form-label {

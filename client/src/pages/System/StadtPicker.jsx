@@ -39,7 +39,6 @@ export default function StadtPicker({
 
   return (
     <div className="form-group original-anbieter-picker" ref={rootRef}>
-      <label htmlFor={id} className="form-label">{label}</label>
       <input
         id={id}
         type="text"
@@ -49,8 +48,9 @@ export default function StadtPicker({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-label={label}
         autoComplete="off"
-        placeholder="Stadt suchen oder selbst schreiben…"
+        placeholder={label}
         onFocus={() => setOpen(true)}
         onChange={(ev) => {
           const next = ev.target.value;

@@ -22,17 +22,22 @@ export default function TicketPriorityField({
 
   return (
     <div className="form-group">
-      <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
-        {label || (questionStyle ? 'Priorität?' : 'Priorität')}
-      </label>
+      {questionStyle ? null : (
+        <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
+          {label || 'Priorität'}
+        </label>
+      )}
       <select
         id={id}
         className="form-input"
-        value={current}
+        value={questionStyle && !String(value ?? '').trim() ? '' : current}
         onChange={(ev) => onChange?.(ev.target.value)}
         required={required}
-        aria-label="Priorität"
+        aria-label={label || (questionStyle ? 'Priorität?' : 'Priorität')}
       >
+        {questionStyle ? (
+          <option value="">{label || 'Priorität?'}</option>
+        ) : null}
         {choices.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}

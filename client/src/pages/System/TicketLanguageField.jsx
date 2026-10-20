@@ -22,17 +22,22 @@ export default function TicketLanguageField({
 
   return (
     <div className="form-group">
-      <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
-        {label || (questionStyle ? 'Sprache?' : 'Sprache')}
-      </label>
+      {questionStyle ? null : (
+        <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
+          {label || 'Sprache'}
+        </label>
+      )}
       <select
         id={id}
         className="form-input"
-        value={current}
+        value={questionStyle && !String(value ?? '').trim() ? '' : current}
         onChange={(ev) => onChange?.(ev.target.value)}
         required={required}
-        aria-label="Sprache"
+        aria-label={label || (questionStyle ? 'Sprache?' : 'Sprache')}
       >
+        {questionStyle ? (
+          <option value="">{label || 'Sprache?'}</option>
+        ) : null}
         {choices.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}
