@@ -421,6 +421,8 @@ const CallcenterNachrichten = ({
   const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [mobileSide, setMobileSide] = useState('');
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
   const [templateEditing, setTemplateEditing] = useState(false);
@@ -555,6 +557,20 @@ const CallcenterNachrichten = ({
       loadAnweisung();
     });
   }, [anweisungUnread, loadAnweisung, markAnweisungRead]);
+
+  const openMobileNotiz = () => {
+    setChatMenuOpen(false);
+    setMobileSheet('notiz');
+  };
+
+  const openMobileAnweisung = () => {
+    setChatMenuOpen(false);
+    setMobileSheet('anweisung');
+    if (anweisungUnread) setAnweisungBanner(true);
+    markAnweisungRead().finally(() => {
+      loadAnweisung();
+    });
+  };
 
   useEffect(() => {
     loadAnweisung();
@@ -694,6 +710,8 @@ const CallcenterNachrichten = ({
     setChipEditing(false);
     setMobileShowChat(true);
     setMobileSide('');
+    setChatMenuOpen(false);
+    setMobileSheet('');
     patchTicket(id, (t) => withMitarbeiter({ ...t, unread: false }, agentName));
   };
 
@@ -1228,7 +1246,7 @@ const CallcenterNachrichten = ({
                 type="button"
                 role="tab"
                 aria-selected={readTab === 'notiz'}
-                className={`sz-read-tab${readTab === 'notiz' ? ' sz-read-tab--active' : ''}`}
+                className={`sz-read-tab sz-read-tab--desktop${readTab === 'notiz' ? ' sz-read-tab--active' : ''}`}
                 onClick={() => {
                   setReadTab('notiz');
                   setMobileShowChat(false);
@@ -1240,7 +1258,7 @@ const CallcenterNachrichten = ({
                 type="button"
                 role="tab"
                 aria-selected={readTab === 'anweisung'}
-                className={`sz-read-tab${readTab === 'anweisung' ? ' sz-read-tab--active' : ''}${anweisungUnread && !canWriteAnweisung ? ' sz-read-tab--alert' : ''}`}
+                className={`sz-read-tab sz-read-tab--desktop${readTab === 'anweisung' ? ' sz-read-tab--active' : ''}${anweisungUnread && !canWriteAnweisung ? ' sz-read-tab--alert' : ''}`}
                 onClick={openAnweisungTab}
               >
                 Anweisung
@@ -1418,6 +1436,65 @@ const CallcenterNachrichten = ({
                   </p>
                 </div>
                 <ContactActionButtons phone={contactPhone} />
+                <div className="sz-chat-more">
+                  {chatMenuOpen ? (
+                    <button
+                      type="button"
+                      className="sz-chat-more-backdrop"
+                      aria-label="Menü schließen"
+                      onClick={() => setChatMenuOpen(false)}
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    className="sz-chat-more-btn"
+                    aria-label="Mehr"
+                    aria-expanded={chatMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setChatMenuOpen((open) => !open)}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden>
+                      <path fill="currentColor" d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                    {anweisungUnread && !canWriteAnweisung ? <span className="sz-chat-more-dot" /> : null}
+                  </button>
+                  {chatMenuOpen ? (
+                    <div className="sz-chat-more-menu" role="menu">
+                      <button type="button" role="menuitem" className="sz-chat-more-item" onClick={openMobileNotiz}>
+                        Notiz
+                      </button>
+                      <button type="button" role="menuitem" className="sz-chat-more-item" onClick={openMobileAnweisung}>
+                        Anweisung
+                        {anweisungUnread && !canWriteAnweisung ? <span className="sz-chip-count">Neu</span> : null}
+                      </button>
+                      {telHrefFromPhone(contactPhone) ? (
+                        <a role="menuitem" className="sz-chat-more-item" href={telHrefFromPhone(contactPhone)} onClick={() => setChatMenuOpen(false)}>
+                          Anruf
+                        </a>
+                      ) : (
+                        <button type="button" role="menuitem" className="sz-chat-more-item" disabled>
+                          Anruf
+                        </button>
+                      )}
+                      {whatsappHrefFromPhone(contactPhone) ? (
+                        <a
+                          role="menuitem"
+                          className="sz-chat-more-item"
+                          href={whatsappHrefFromPhone(contactPhone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setChatMenuOpen(false)}
+                        >
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <button type="button" role="menuitem" className="sz-chat-more-item" disabled>
+                          WhatsApp
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
                 <button
                   type="button"
                   className="sz-delete-customer"
@@ -1433,6 +1510,66 @@ const CallcenterNachrichten = ({
                   </svg>
                 </button>
               </header>
+              {mobileSheet ? (
+                <div className="sz-chat-sheet">
+                  <div className="sz-chat-sheet-bar">
+                    <h3 className="sz-chat-sheet-title">{mobileSheet === 'anweisung' ? 'Anweisung' : 'Notiz'}</h3>
+                    <button type="button" className="sz-chat-sheet-close" onClick={() => setMobileSheet('')}>
+                      Schließen
+                    </button>
+                  </div>
+                  <div className="sz-note-pane">
+                    {mobileSheet === 'anweisung' ? (
+                      <>
+                        {anweisungBanner && !canWriteAnweisung ? (
+                          <p className="sz-anweisung-banner" role="status">Neue Anweisung</p>
+                        ) : null}
+                        <label className="visually-hidden" htmlFor="sz-chat-anweisung">Anweisung</label>
+                        <textarea
+                          id="sz-chat-anweisung"
+                          className={`form-input sz-note-input${canWriteAnweisung ? '' : ' sz-note-input--readonly'}`}
+                          value={inboxAnweisung}
+                          readOnly={!canWriteAnweisung}
+                          aria-readonly={!canWriteAnweisung}
+                          onChange={(ev) => {
+                            if (!canWriteAnweisung) return;
+                            anweisungDirty.current = true;
+                            anweisungSkipSave.current = false;
+                            setInboxAnweisung(ev.target.value);
+                          }}
+                          onBlur={() => {
+                            if (!canWriteAnweisung || !anweisungDirty.current) return;
+                            saveInboxAnweisungApi(inboxAnweisung, { notify: true })
+                              .then(() => {
+                                anweisungDirty.current = false;
+                              })
+                              .catch(() => {});
+                          }}
+                          placeholder={
+                            canWriteAnweisung
+                              ? 'Anweisung an das Team schreiben…'
+                              : 'Noch keine Anweisung.'
+                          }
+                          spellCheck="true"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <label className="visually-hidden" htmlFor="sz-chat-notiz">Notiz</label>
+                        <textarea
+                          id="sz-chat-notiz"
+                          className="form-input sz-note-input"
+                          value={inboxNotiz}
+                          onChange={(ev) => setInboxNotiz(ev.target.value)}
+                          placeholder="Notiz schreiben…"
+                          spellCheck="true"
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+              <>
               {!shopAssignsTicket(active.shop) && !isLeadArchived(active) ? (
                 <p className="sz-filiale-hint">
                   Noch kein Ticket. Wählen Sie Filiale, Call Center oder Erledigt — Erledigt landet direkt im Archiv.
@@ -1887,6 +2024,8 @@ const CallcenterNachrichten = ({
                   </div>
                 </div>
               </div>
+              </>
+              )}
             </>
           )}
         </div>

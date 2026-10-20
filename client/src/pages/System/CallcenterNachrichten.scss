@@ -576,6 +576,132 @@
   }
 }
 
+.sz-chat-more {
+  display: none;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sz-chat-more-btn {
+  position: relative;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  background: $bg-color;
+  color: $text-color;
+  cursor: pointer;
+
+  svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+.sz-chat-more-dot {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: $danger-color;
+}
+
+.sz-chat-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.sz-chat-more-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  min-width: 11.5rem;
+  padding: 0.3rem;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  background: $bg-color;
+  box-shadow: $shadow-md;
+}
+
+.sz-chat-more-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: $text-color;
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: $bg-light;
+    text-decoration: none;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.sz-chat-sheet {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sz-chat-sheet-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 1px solid $border-color;
+}
+
+.sz-chat-sheet-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.sz-chat-sheet-close {
+  margin: 0;
+  padding: 0.25rem 0.45rem;
+  border: none;
+  background: transparent;
+  color: $primary-color;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+}
+
 .sz-chat-title {
   margin: 0;
   font-size: 1rem;
@@ -1700,5 +1826,17 @@
   .sz-chat-status {
     margin-left: 0;
     width: 100%;
+  }
+
+  .sz-read-tab--desktop {
+    display: none;
+  }
+
+  .sz-chat-more {
+    display: block;
+  }
+
+  .sz-chat-head .sz-contact-actions {
+    display: none;
   }
 }
