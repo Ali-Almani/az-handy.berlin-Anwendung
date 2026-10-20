@@ -666,6 +666,22 @@
     opacity: 0.45;
     cursor: default;
   }
+
+  &--danger {
+    color: $danger-color;
+  }
+}
+
+.sz-chat-more-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex-shrink: 0;
+  }
 }
 
 .sz-chat-sheet {
@@ -1836,7 +1852,36 @@
     display: block;
   }
 
-  .sz-chat-head .sz-contact-actions {
+  .sz-chat-head .sz-contact-actions,
+  .sz-chat-head .sz-delete-customer {
     display: none;
+  }
+
+  .sz-composer {
+    padding: 0.4rem 0.65rem 0.45rem;
+  }
+
+  .sz-composer-input {
+    min-height: 6.4rem;
+    padding-top: 2.15rem;
+    padding-bottom: 2.55rem;
+  }
+
+  .sz-composer-field--translate-error .sz-composer-input {
+    padding-top: 3.35rem;
+  }
+
+  .sz-composer-translate {
+    top: 0.28rem;
+  }
+
+  .sz-composer-actions {
+    right: 0.7rem;
+    bottom: 0.5rem;
+  }
+
+  .sz-composer-field--rtl .sz-composer-actions {
+    left: 0.85rem;
+    bottom: 0.55rem;
   }
 }
