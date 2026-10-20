@@ -577,7 +577,7 @@
 }
 
 .sz-chat-more {
-  display: none;
+  display: block;
   position: relative;
   flex-shrink: 0;
 }
@@ -604,6 +604,7 @@
 }
 
 .sz-chat-more-dot {
+  display: none;
   position: absolute;
   top: 0.28rem;
   right: 0.28rem;
@@ -669,6 +670,10 @@
 
   &--danger {
     color: $danger-color;
+  }
+
+  &--phone {
+    display: none;
   }
 }
 
@@ -1848,13 +1853,13 @@
     display: none;
   }
 
-  .sz-chat-more {
-    display: block;
+  .sz-chat-more-item--phone,
+  .sz-chat-more-dot {
+    display: flex;
   }
 
-  .sz-chat-head .sz-contact-actions,
-  .sz-chat-head .sz-delete-customer {
-    display: none;
+  .sz-chat-more-dot {
+    display: block;
   }
 
   .sz-composer {

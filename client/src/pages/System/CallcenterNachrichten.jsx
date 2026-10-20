@@ -345,31 +345,6 @@ function ChannelIcon({ channel }) {
   );
 }
 
-function ContactActionButtons({ phone, className = '' }) {
-  const tel = telHrefFromPhone(phone);
-  const wa = whatsappHrefFromPhone(phone);
-  if (!tel && !wa) return null;
-  return (
-    <div className={`sz-contact-actions${className ? ` ${className}` : ''}`}>
-      {tel ? (
-        <a href={tel} className="sz-contact-btn sz-contact-btn--call">
-          Anruf
-        </a>
-      ) : null}
-      {wa ? (
-        <a
-          href={wa}
-          className="sz-contact-btn sz-contact-btn--whatsapp"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          WhatsApp
-        </a>
-      ) : null}
-    </div>
-  );
-}
-
 function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel }) {
   const value = migrateLeadTicketStatus(ticketStatus) === 'Erledigt'
     ? NACHRICHTEN_ERLEDIGT
@@ -1435,7 +1410,6 @@ const CallcenterNachrichten = ({
                     <span className="sz-ticket-id">{active.id}</span>
                   </p>
                 </div>
-                <ContactActionButtons phone={contactPhone} />
                 <div className="sz-chat-more">
                   {chatMenuOpen ? (
                     <button
@@ -1460,10 +1434,10 @@ const CallcenterNachrichten = ({
                   </button>
                   {chatMenuOpen ? (
                     <div className="sz-chat-more-menu" role="menu">
-                      <button type="button" role="menuitem" className="sz-chat-more-item" onClick={openMobileNotiz}>
+                      <button type="button" role="menuitem" className="sz-chat-more-item sz-chat-more-item--phone" onClick={openMobileNotiz}>
                         Notiz
                       </button>
-                      <button type="button" role="menuitem" className="sz-chat-more-item" onClick={openMobileAnweisung}>
+                      <button type="button" role="menuitem" className="sz-chat-more-item sz-chat-more-item--phone" onClick={openMobileAnweisung}>
                         Anweisung
                         {anweisungUnread && !canWriteAnweisung ? <span className="sz-chip-count">Neu</span> : null}
                       </button>
@@ -1514,20 +1488,6 @@ const CallcenterNachrichten = ({
                     </div>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  className="sz-delete-customer"
-                  onClick={() => deleteCustomerFromInbox(active)}
-                  aria-label="Aus Postfach löschen"
-                  title="Aus Postfach löschen"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden>
-                    <path
-                      fill="currentColor"
-                      d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
-                    />
-                  </svg>
-                </button>
               </header>
               {mobileSheet ? (
                 <div className="sz-chat-sheet">
