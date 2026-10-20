@@ -358,7 +358,7 @@ function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel }
       onClick={(ev) => ev.stopPropagation()}
       aria-label={ariaLabel || 'Filiale wählen'}
     >
-      <option value="">— Filiale wählen —</option>
+      <option value="">Filiale?</option>
       {shops.map((opt) => (
         <option key={opt} value={opt}>
           {opt === NACHRICHTEN_ERLEDIGT ? opt : shopOptionLabel(opt)}
@@ -2068,7 +2068,7 @@ const CallcenterNachrichten = ({
                   readOnly
                   aria-readonly="true"
                   aria-label="Mitarbeiter"
-                  placeholder="Mitarbeiter"
+                  placeholder="Mitarbeiter?"
                 />
                 <StatusShopSelect
                   id="sz-ticket-filiale"

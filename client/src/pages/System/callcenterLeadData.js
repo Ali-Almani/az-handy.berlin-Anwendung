@@ -451,8 +451,8 @@ export function formFromLead(entry) {
     terminZeit: entry?.terminZeit || '',
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
-    priority: normalizeTicketPriority(entry?.priority),
-    sprache: leadSprache(entry?.sprache),
+    priority: String(entry?.priority ?? '').trim() ? normalizeTicketPriority(entry.priority) : '',
+    sprache: String(entry?.sprache ?? '').trim() ? normalizeTicketLanguage(entry.sprache) : '',
     nachrichtArt: normalizeNachrichtArt(entry?.nachrichtArt)
   };
 }

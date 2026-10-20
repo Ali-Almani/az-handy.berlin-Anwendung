@@ -274,7 +274,11 @@ export default function LeadFragenForm({
   onQuestionAdd
 }) {
   const patch = (field, value) => onChange?.(field, value);
-  const labelFor = (field, fallback) => questionConfig?.labels?.[field]?.[questionLocale] || fallback;
+  const labelFor = (field, fallback) => {
+    const custom = String(questionConfig?.labels?.[field]?.[questionLocale] || '').trim();
+    const text = custom || fallback;
+    return text.endsWith('?') ? text : `${text}?`;
+  };
   const order = visibleQuestionOrder(questionConfig);
 
   if (templateEditing) {

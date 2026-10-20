@@ -1723,10 +1723,17 @@
 }
 
 .sz-questions-form .form-input,
-.sz-questions-form select.form-input {
+.sz-questions-form select.form-input,
+.sz-questions-meta .form-input,
+.sz-questions-meta select.form-input {
   min-height: 2rem;
   padding: 0.28rem 0.5rem;
   font-size: 0.82rem;
+}
+
+.sz-questions-form select.form-input:has(option[value=""]:checked),
+.sz-questions-meta select.form-input:has(option[value=""]:checked) {
+  color: $text-light;
 }
 
 .visually-hidden {
