@@ -1213,7 +1213,7 @@ const CallcenterNachrichten = ({
                 setMobileSide(isManualTicket ? '' : 'questions');
               }}
             >
-              Fragen zu Ticket
+              Ticket
             </button>
           ) : null}
           {mobileSide !== 'list' ? (
@@ -2071,7 +2071,7 @@ const CallcenterNachrichten = ({
           )}
         </div>
 
-        <aside className="sz-questions" aria-label="Fragen zu Ticket">
+        <aside className="sz-questions" aria-label="Ticket">
             {isManualTicket ? (
             <div className="sz-questions-create">
                 <button
@@ -2084,7 +2084,7 @@ const CallcenterNachrichten = ({
             </div>
             ) : null}
             <div className="sz-questions-titlebar">
-              <h3 className="sz-questions-title">Fragen zu Ticket</h3>
+              <h3 className="sz-questions-title">Ticket</h3>
               {canEditFragen && active ? (
               <div className="sz-questions-titlebar-actions">
               <button
@@ -2092,7 +2092,7 @@ const CallcenterNachrichten = ({
                 className={`sz-question-icon${templateEditing ? ' sz-question-icon--active' : ''}`}
                 onClick={() => setTemplateEditing((open) => !open)}
                 aria-pressed={templateEditing}
-                aria-label={templateEditing ? 'Fragen zu Ticket speichern' : 'Fragen zu Ticket bearbeiten'}
+                aria-label={templateEditing ? 'Ticket speichern' : 'Ticket bearbeiten'}
                 title={templateEditing ? 'Speichern' : 'Bearbeiten'}
               >
                 {templateEditing ? (

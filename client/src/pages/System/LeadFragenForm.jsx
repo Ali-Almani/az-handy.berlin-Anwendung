@@ -390,7 +390,7 @@ export default function LeadFragenForm({
   answers,
   onChange,
   idPrefix = 'q',
-  title = 'Fragen zu Ticket',
+  title = 'Ticket',
   subtitle = '',
   onClose,
   embedded = false,
