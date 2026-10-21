@@ -1558,12 +1558,6 @@ const CallcenterNachrichten = ({
                 </div>
               ) : (
               <>
-              {!shopAssignsTicket(active.shop) && !isLeadArchived(active) ? (
-                <p className="sz-filiale-hint">
-                  Noch kein Ticket. Wählen Sie Filiale, Call Center oder Erledigt — Erledigt landet direkt im Archiv.
-                </p>
-              ) : null}
-
               <div className="sz-thread" ref={threadRef}>
                 {(active.messages || []).map((m) => (
                   <div key={m.id} className={`sz-bubble sz-bubble--${m.from}`}>

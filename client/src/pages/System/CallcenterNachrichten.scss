@@ -504,16 +504,6 @@
   background: $bg-light;
 }
 
-.sz-filiale-hint {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0.45rem $spacing-md;
-  border-bottom: 1px solid $border-color;
-  background: mix(#fff, $warning-color, 88%);
-  font-size: 0.78rem;
-  color: $text-color;
-}
-
 .sz-back {
   display: none;
   margin: 0;
@@ -1329,9 +1319,17 @@
   padding-top: 2rem;
   padding-right: 9.6rem;
   padding-bottom: 2.55rem;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   resize: vertical;
   font-size: 0.95rem;
   line-height: 1.45;
+
+  &:focus {
+    border: none;
+    box-shadow: none;
+  }
 
   &--rtl {
     padding-right: $spacing-md;
@@ -1833,6 +1831,11 @@
 }
 
 @media (max-width: $breakpoint-md) {
+  .sz {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
   .sz-layout,
   .sz-layout--with-questions {
     display: block;

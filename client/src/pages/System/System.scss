@@ -142,6 +142,18 @@
 }
 
 @media (max-width: $breakpoint-md) {
+  .main:has(.system-page) {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .system-page {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
   .system-page.container,
   body.layout-host--schnelltest .main > .system-page.container {
     max-width: none;
