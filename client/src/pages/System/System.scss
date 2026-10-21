@@ -45,12 +45,123 @@
   }
 }
 
+.system-section-bar {
+  display: none;
+}
+
+.system-section-menu {
+  display: none;
+  position: relative;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.system-section-menu-btn {
+  position: relative;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  background: $bg-color;
+  color: $text-color;
+  cursor: pointer;
+
+  svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+.system-section-menu-dot {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: $danger-color;
+}
+
+.system-section-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.system-section-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  min-width: 12.5rem;
+  padding: 0.3rem;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  background: $bg-color;
+  box-shadow: $shadow-md;
+}
+
+.system-section-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: $text-color;
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: $bg-light;
+  }
+
+  &--active {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+  }
+}
+
 @media (max-width: $breakpoint-md) {
   .system-page.container,
   body.layout-host--schnelltest .main > .system-page.container {
     max-width: none;
     padding-left: 0;
     padding-right: 0;
+  }
+
+  .system-page-title,
+  .system-tabs {
+    display: none;
+  }
+
+  .system-section-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.2rem 0.45rem 0.35rem;
+  }
+
+  .system-section-menu {
+    display: block;
   }
 
   .system-page-title {

@@ -376,7 +376,9 @@ const CallcenterNachrichten = ({
   onOpened,
   canEditFragen = true,
   canWriteAnweisung = false,
-  onAnweisungUnreadChange
+  onAnweisungUnreadChange,
+  sectionMenu = null,
+  paneMenu = null
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
@@ -1194,6 +1196,7 @@ const CallcenterNachrichten = ({
           >
             Vorlage
           </button>
+          {paneMenu}
         </div>
         <aside className="sz-list-pane">
           <div className="sz-filters">
@@ -1222,6 +1225,7 @@ const CallcenterNachrichten = ({
                   <span className="sz-read-tab-count">{readTabCounts.gelesen}</span>
                 ) : null}
               </button>
+              {sectionMenu}
               <button
                 type="button"
                 role="tab"

@@ -53,6 +53,75 @@ import './System.scss';
 
 const TOAST_MS = 4500;
 
+function TicketingSectionMenu({
+  listTab,
+  setListTab,
+  canManage,
+  canSeeOffen,
+  leadUnread,
+  offenCount,
+  archivCount,
+  anweisungUnread,
+  onOpenOffen
+}) {
+  const [open, setOpen] = useState(false);
+  const choose = (tab) => {
+    setOpen(false);
+    if (tab === 'offen') onOpenOffen();
+    else setListTab(tab);
+  };
+  const itemClass = (tab) => `system-section-menu-item${listTab === tab ? ' system-section-menu-item--active' : ''}`;
+
+  return (
+    <div className="system-section-menu">
+      {open ? (
+        <button
+          type="button"
+          className="system-section-menu-backdrop"
+          aria-label="Menü schließen"
+          onClick={() => setOpen(false)}
+        />
+      ) : null}
+      <button
+        type="button"
+        className="system-section-menu-btn"
+        aria-label="Bereiche"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden>
+          <path fill="currentColor" d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+        {anweisungUnread ? <span className="system-section-menu-dot" /> : null}
+      </button>
+      {open ? (
+        <div className="system-section-menu-panel" role="menu">
+          <button type="button" role="menuitem" className={itemClass('nachrichten')} onClick={() => choose('nachrichten')}>
+            Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
+            {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
+          </button>
+          {canManage ? (
+            <button type="button" role="menuitem" className={itemClass('erstellen')} onClick={() => choose('erstellen')}>
+              Ticketing erstellen
+            </button>
+          ) : null}
+          {canSeeOffen ? (
+            <button type="button" role="menuitem" className={itemClass('offen')} onClick={() => choose('offen')}>
+              Offen ({offenCount})
+            </button>
+          ) : null}
+          {canManage ? (
+            <button type="button" role="menuitem" className={itemClass('archiv')} onClick={() => choose('archiv')}>
+              Archiv ({archivCount})
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const System = () => {
   const { user } = useAuth();
   const formRef = useRef(null);
@@ -489,6 +558,20 @@ const System = () => {
   const canSeeOffen = canViewTicketingOffen(user);
   const canEditFragen = canEditTicketingFragen(user);
   const canWriteAnweisung = canWriteTicketingAnweisung(user);
+  const sectionMenuProps = {
+    listTab,
+    setListTab,
+    canManage: canManageVorvertrag,
+    canSeeOffen,
+    leadUnread,
+    offenCount,
+    archivCount,
+    anweisungUnread,
+    onOpenOffen: () => {
+      setListTab('offen');
+      setArchivSearch('');
+    }
+  };
 
   return (
     <div className={`system-page container${listTab === 'nachrichten' ? ' system-page--nachrichten' : ''}`}>
@@ -542,6 +625,12 @@ const System = () => {
           </button>
         ) : null}
       </div>
+
+      {listTab !== 'nachrichten' ? (
+        <div className="system-section-bar">
+          <TicketingSectionMenu {...sectionMenuProps} />
+        </div>
+      ) : null}
 
       {anweisungUnread && listTab !== 'nachrichten' && !canWriteAnweisung ? (
         <button
@@ -603,6 +692,8 @@ const System = () => {
             if (id) setHighlightedId(id);
           }}
           onOpened={() => setOpenLeadId('')}
+          sectionMenu={<TicketingSectionMenu {...sectionMenuProps} />}
+          paneMenu={<TicketingSectionMenu {...sectionMenuProps} />}
         />
       ) : null}
 

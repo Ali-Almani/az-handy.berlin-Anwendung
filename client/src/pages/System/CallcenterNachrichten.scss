@@ -1860,15 +1860,20 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 9.5rem);
-    max-height: calc(100dvh - 9.5rem);
+    height: calc(100dvh - 6rem);
+    max-height: calc(100dvh - 6rem);
   }
 
   .sz--chat-open .sz-mobile-panes {
     display: flex;
     flex-shrink: 0;
+    align-items: center;
     border-bottom: 1px solid $border-color;
     background: $bg-color;
+  }
+
+  .sz--side-list .sz-mobile-panes .system-section-menu {
+    display: none;
   }
 
   .sz--chat-open .sz-list-pane,
