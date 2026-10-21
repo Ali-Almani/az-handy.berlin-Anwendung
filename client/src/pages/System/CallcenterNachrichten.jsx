@@ -377,7 +377,6 @@ const CallcenterNachrichten = ({
   canEditFragen = true,
   canWriteAnweisung = false,
   onAnweisungUnreadChange,
-  sectionMenu = null,
   paneMenu = null
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
@@ -1176,15 +1175,17 @@ const CallcenterNachrichten = ({
           >
             Nachrichten
           </button>
-          <button
-            type="button"
-            role="tab"
-            className={`sz-mobile-pane${(isManualTicket ? mobileSide === '' : mobileSide === 'questions') ? ' sz-mobile-pane--active' : ''}`}
-            aria-selected={isManualTicket ? mobileSide === '' : mobileSide === 'questions'}
-            onClick={() => setMobileSide(isManualTicket ? '' : 'questions')}
-          >
-            Vorlage
-          </button>
+          {mobileSide !== 'list' ? (
+            <button
+              type="button"
+              role="tab"
+              className={`sz-mobile-pane${(isManualTicket ? mobileSide === '' : mobileSide === 'questions') ? ' sz-mobile-pane--active' : ''}`}
+              aria-selected={isManualTicket ? mobileSide === '' : mobileSide === 'questions'}
+              onClick={() => setMobileSide(isManualTicket ? '' : 'questions')}
+            >
+              Vorlage
+            </button>
+          ) : null}
           {paneMenu}
         </div>
         <aside className="sz-list-pane">
@@ -1214,7 +1215,6 @@ const CallcenterNachrichten = ({
                   <span className="sz-read-tab-count">{readTabCounts.gelesen}</span>
                 ) : null}
               </button>
-              {sectionMenu}
               <button
                 type="button"
                 role="tab"

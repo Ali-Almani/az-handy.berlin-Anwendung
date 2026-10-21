@@ -715,7 +715,6 @@ const System = () => {
             if (id) setHighlightedId(id);
           }}
           onOpened={() => setOpenLeadId('')}
-          sectionMenu={<TicketingSectionMenu {...sectionMenuProps} />}
           paneMenu={<TicketingSectionMenu {...sectionMenuProps} variant="tabs" />}
         />
       ) : null}
