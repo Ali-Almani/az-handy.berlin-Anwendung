@@ -49,6 +49,10 @@
   display: none;
 }
 
+.system-section-tabs {
+  display: none;
+}
+
 .system-section-menu {
   display: none;
   position: relative;
@@ -174,6 +178,10 @@
 
   .system-section-menu {
     display: block;
+  }
+
+  .system-section-tabs {
+    display: contents;
   }
 
   .system-page-title {

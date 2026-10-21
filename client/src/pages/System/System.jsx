@@ -62,7 +62,8 @@ function TicketingSectionMenu({
   offenCount,
   archivCount,
   anweisungUnread,
-  onOpenOffen
+  onOpenOffen,
+  variant = 'menu'
 }) {
   const [open, setOpen] = useState(false);
   const choose = (tab) => {
@@ -71,6 +72,32 @@ function TicketingSectionMenu({
     else setListTab(tab);
   };
   const itemClass = (tab) => `system-section-menu-item${listTab === tab ? ' system-section-menu-item--active' : ''}`;
+
+  if (variant === 'tabs') {
+    return (
+      <div className="system-section-tabs">
+        <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('nachrichten')}>
+          Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
+          {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
+        </button>
+        {canManage ? (
+          <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('erstellen')}>
+            Ticketing erstellen
+          </button>
+        ) : null}
+        {canSeeOffen ? (
+          <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('offen')}>
+            Offen ({offenCount})
+          </button>
+        ) : null}
+        {canManage ? (
+          <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('archiv')}>
+            Archiv ({archivCount})
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="system-section-menu">
@@ -693,7 +720,7 @@ const System = () => {
           }}
           onOpened={() => setOpenLeadId('')}
           sectionMenu={<TicketingSectionMenu {...sectionMenuProps} />}
-          paneMenu={<TicketingSectionMenu {...sectionMenuProps} />}
+          paneMenu={<TicketingSectionMenu {...sectionMenuProps} variant="tabs" />}
         />
       ) : null}
 

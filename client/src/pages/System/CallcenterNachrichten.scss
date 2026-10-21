@@ -1870,13 +1870,26 @@
   .sz--chat-open .sz-mobile-panes {
     display: flex;
     flex-shrink: 0;
+    flex-wrap: nowrap;
     align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
     border-bottom: 1px solid $border-color;
     background: $bg-color;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
-  .sz--side-list .sz-mobile-panes .system-section-menu {
-    display: none;
+  .sz--chat-open .sz-mobile-pane {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .system-section-tabs {
+    display: contents;
   }
 
   .sz--chat-open .sz-list-pane,
