@@ -1213,7 +1213,7 @@ const CallcenterNachrichten = ({
                 setMobileSide(isManualTicket ? '' : 'questions');
               }}
             >
-              Vorlage
+              Fragen zu Ticket
             </button>
           ) : null}
           {mobileSide !== 'list' ? (
@@ -1443,7 +1443,7 @@ const CallcenterNachrichten = ({
         <div className="sz-chat-pane">
           {!active ? (
             <div className="sz-chat-placeholder">
-              <p>Posteingang: Nachricht wählen und direkt antworten. Die Vorlage rechts sind Fragen zum Ausfüllen.</p>
+              <p>Posteingang: Nachricht wählen und direkt antworten. Die Fragen zum Ticket stehen rechts.</p>
             </div>
           ) : (
             <>
@@ -2071,7 +2071,7 @@ const CallcenterNachrichten = ({
           )}
         </div>
 
-        <aside className="sz-questions" aria-label="Vorlage Fragen">
+        <aside className="sz-questions" aria-label="Fragen zu Ticket">
             {isManualTicket ? (
             <div className="sz-questions-create">
                 <button
@@ -2084,15 +2084,15 @@ const CallcenterNachrichten = ({
             </div>
             ) : null}
             <div className="sz-questions-titlebar">
-              <h3 className="sz-questions-title">Vorlage – Fragen</h3>
-              {canEditFragen ? (
+              <h3 className="sz-questions-title">Fragen zu Ticket</h3>
+              {canEditFragen && active ? (
               <div className="sz-questions-titlebar-actions">
               <button
                 type="button"
                 className={`sz-question-icon${templateEditing ? ' sz-question-icon--active' : ''}`}
                 onClick={() => setTemplateEditing((open) => !open)}
                 aria-pressed={templateEditing}
-                aria-label={templateEditing ? 'Vorlage speichern' : 'Vorlage bearbeiten'}
+                aria-label={templateEditing ? 'Fragen zu Ticket speichern' : 'Fragen zu Ticket bearbeiten'}
                 title={templateEditing ? 'Speichern' : 'Bearbeiten'}
               >
                 {templateEditing ? (
