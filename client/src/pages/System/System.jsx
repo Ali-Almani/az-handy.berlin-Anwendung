@@ -76,11 +76,6 @@ function TicketingSectionMenu({
   if (variant === 'tabs') {
     return (
       <div className="system-section-tabs">
-        {canManage ? (
-          <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('erstellen')}>
-            Ticketing erstellen
-          </button>
-        ) : null}
         {canSeeOffen ? (
           <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('offen')}>
             Offen ({offenCount})
@@ -124,11 +119,6 @@ function TicketingSectionMenu({
             Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
             {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
           </button>
-          {canManage ? (
-            <button type="button" role="menuitem" className={itemClass('erstellen')} onClick={() => choose('erstellen')}>
-              Ticketing erstellen
-            </button>
-          ) : null}
           {canSeeOffen ? (
             <button type="button" role="menuitem" className={itemClass('offen')} onClick={() => choose('offen')}>
               Offen ({offenCount})
@@ -611,17 +601,6 @@ const System = () => {
           Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
           {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
         </button>
-        {canManageVorvertrag ? (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={listTab === 'erstellen'}
-            className={`system-tab${listTab === 'erstellen' ? ' system-tab--active' : ''}`}
-            onClick={() => setListTab('erstellen')}
-          >
-            Ticketing erstellen
-          </button>
-        ) : null}
         {canSeeOffen ? (
           <button
             type="button"
