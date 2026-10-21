@@ -1166,15 +1166,34 @@ const CallcenterNachrichten = ({
     >
       <div className={`sz-layout sz-layout--with-questions${isManualTicket ? ' sz-layout--form-only' : ''}`}>
         <div className="sz-mobile-panes" role="tablist" aria-label="Spalten">
-          <button
-            type="button"
-            role="tab"
-            className={`sz-mobile-pane${mobileSide === 'list' ? ' sz-mobile-pane--active' : ''}`}
-            aria-selected={mobileSide === 'list'}
-            onClick={() => setMobileSide('list')}
-          >
-            Nachrichten
-          </button>
+          {mobileSide === 'list' ? (
+            <button
+              type="button"
+              role="tab"
+              className="sz-mobile-pane sz-mobile-pane--active"
+              aria-selected="true"
+              onClick={() => setMobileSide('list')}
+            >
+              Nachrichten
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="sz-mobile-pane sz-mobile-pane--back"
+              aria-label="Zurück"
+              onClick={() => setMobileSide('list')}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M19 12H5M5 12l6-6M5 12l6 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
           {mobileSide !== 'list' ? (
             <button
               type="button"
