@@ -76,10 +76,6 @@ function TicketingSectionMenu({
   if (variant === 'tabs') {
     return (
       <div className="system-section-tabs">
-        <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('nachrichten')}>
-          Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
-          {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
-        </button>
         {canManage ? (
           <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('erstellen')}>
             Ticketing erstellen

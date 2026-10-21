@@ -1174,19 +1174,8 @@ const CallcenterNachrichten = ({
             aria-selected={mobileSide === 'list'}
             onClick={() => setMobileSide('list')}
           >
-            Liste
+            Nachrichten
           </button>
-          {isManualTicket ? null : (
-            <button
-              type="button"
-              role="tab"
-              className={`sz-mobile-pane${mobileSide === '' ? ' sz-mobile-pane--active' : ''}`}
-              aria-selected={mobileSide === ''}
-              onClick={() => setMobileSide('')}
-            >
-              Chat
-            </button>
-          )}
           <button
             type="button"
             role="tab"
@@ -1408,7 +1397,7 @@ const CallcenterNachrichten = ({
             <>
               <header className="sz-chat-head">
                 <button type="button" className="sz-back" onClick={() => setMobileShowChat(false)}>
-                  ← Liste
+                  ← Nachrichten
                 </button>
                 <span className={`sz-ticket-channel sz-ticket-channel--${normalizeSocialChannel(active.channel)}`}>
                   <ChannelIcon channel={active.channel} />
@@ -1928,7 +1917,7 @@ const CallcenterNachrichten = ({
                     onKeyUp={(ev) => setCursorAt(ev.target.selectionStart || 0)}
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
-                    placeholder="Antwort schreiben"
+                    placeholder={chatLocale === 'ar' ? 'اكتب الرد' : chatLocale === 'en' ? 'Write a reply' : 'Antwort schreiben'}
                     disabled={sending}
                     dir={composerRtl ? 'rtl' : 'ltr'}
                     lang={composerRtl ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
