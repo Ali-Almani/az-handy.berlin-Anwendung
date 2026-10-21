@@ -1316,7 +1316,7 @@
 .sz-composer-input {
   width: 100%;
   min-height: 6rem;
-  padding-top: 2rem;
+  padding-top: 0.65rem;
   padding-right: 9.6rem;
   padding-bottom: 2.55rem;
   border: none;
@@ -1338,6 +1338,10 @@
     text-align: right;
     font-size: 1rem;
   }
+}
+
+.sz-composer-field--selection .sz-composer-input {
+  padding-top: 2rem;
 }
 
 .sz-composer-field--translate-error .sz-composer-input {
@@ -1988,8 +1992,12 @@
 
   .sz-composer-input {
     min-height: 5.2rem;
-    padding-top: 1.85rem;
+    padding-top: 0.55rem;
     padding-bottom: 2.15rem;
+  }
+
+  .sz-composer-field--selection .sz-composer-input {
+    padding-top: 1.85rem;
   }
 
   .sz-composer-field--translate-error .sz-composer-input {

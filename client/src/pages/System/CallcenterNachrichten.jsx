@@ -415,6 +415,7 @@ const CallcenterNachrichten = ({
   const [translateErrorId, setTranslateErrorId] = useState(null);
   const [translateErrorText, setTranslateErrorText] = useState('');
   const [draftPrev, setDraftPrev] = useState('');
+  const [draftSelection, setDraftSelection] = useState(null);
   const [draftTranslateError, setDraftTranslateError] = useState('');
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
@@ -476,7 +477,6 @@ const CallcenterNachrichten = ({
   const showAnweisung = readTab === 'anweisung';
   const showNotePane = showNotiz || showAnweisung;
   const chatLocale = questionChatLocale(active?.sprache);
-  const chatLocaleShort = QUESTION_CHAT_LOCALES.find((item) => item.id === chatLocale)?.short || 'DE';
   const composerRtl = chatLocale === 'ar' || /[\u0600-\u06FF]/.test(draft);
 
   useEffect(() => {
@@ -1015,18 +1015,34 @@ const CallcenterNachrichten = ({
 
   const sendReply = () => sendText(draft);
 
-  const translateDraft = async () => {
-    const text = String(draft || '').trim();
+  const rememberDraftSelection = (el) => {
+    if (!el) {
+      setDraftSelection(null);
+      return;
+    }
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const text = String(el.value || '').slice(start, end);
+    if (end <= start || !text.trim()) return;
+    setDraftSelection({ start, end, text });
+  };
+
+  const translateDraftSelection = async (targetLang) => {
+    const sel = draftSelection;
+    const text = String(sel?.text || '').trim();
     if (!text || translatingId || sending) return;
-    const targetLang = chatLocale === 'ar' || chatLocale === 'en' ? chatLocale : 'de';
+    const lang = targetLang === 'ar' || targetLang === 'en' ? targetLang : 'de';
     setTranslatingId('draft');
     setDraftTranslateError('');
     try {
-      const data = await translateInboxTextApi(text, targetLang);
+      const data = await translateInboxTextApi(text, lang);
       const translation = String(data?.translation || '').trim();
       if (!translation) throw new Error('empty');
-      setDraftPrev(text);
-      setDraft(translation);
+      const start = sel.start;
+      const end = sel.end;
+      setDraftPrev(draft);
+      setDraft(draft.slice(0, start) + translation + draft.slice(end));
+      setDraftSelection(null);
       noteAgentTyping();
     } catch (err) {
       setDraftTranslateError(String(err?.response?.data?.message || '').trim() || 'Übersetzung fehlgeschlagen.');
@@ -1040,6 +1056,7 @@ const CallcenterNachrichten = ({
     setDraft(draftPrev);
     setDraftPrev('');
     setDraftTranslateError('');
+    setDraftSelection(null);
     composerRef.current?.focus();
   };
 
@@ -1931,29 +1948,25 @@ const CallcenterNachrichten = ({
                 {recording ? (
                   <p className="sz-recording">Aufnahme… {formatVoiceDuration(recordSecs)}</p>
                 ) : null}
-                <div className={`sz-composer-field${composerRtl ? ' sz-composer-field--rtl' : ''}${draftTranslateError ? ' sz-composer-field--translate-error' : ''}`}>
-                  <div className="sz-composer-translate">
-                    <div className="sz-composer-langs" role="group" aria-label="Zielsprache">
-                      {QUESTION_CHAT_LOCALES.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className={`sz-lang-btn${chatLocale === item.id ? ' sz-lang-btn--active' : ''}`}
-                          aria-pressed={chatLocale === item.id}
-                          onClick={() => handleQuestionLocale(item.id)}
-                        >
-                          {item.short}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="sz-bubble-translate"
-                      onClick={translateDraft}
-                      disabled={sending || recording || Boolean(translatingId) || !String(draft || '').trim()}
-                    >
-                      {translatingId === 'draft' ? 'Übersetzen…' : `Übersetzen nach ${chatLocaleShort}`}
-                    </button>
+                <div className={`sz-composer-field${composerRtl ? ' sz-composer-field--rtl' : ''}${draftSelection?.text ? ' sz-composer-field--selection' : ''}${draftTranslateError ? ' sz-composer-field--translate-error' : ''}`}>
+                  {draftSelection?.text || draftPrev || draftTranslateError ? (
+                  <div className="sz-composer-translate" onMouseDown={(ev) => ev.preventDefault()}>
+                    {draftSelection?.text ? (
+                      <div className="sz-composer-langs" role="group" aria-label="Markierten Text übersetzen">
+                        {QUESTION_CHAT_LOCALES.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="sz-lang-btn"
+                            onClick={() => translateDraftSelection(item.id)}
+                            disabled={sending || recording || Boolean(translatingId)}
+                            aria-label={`Nach ${item.sprache} übersetzen`}
+                          >
+                            {translatingId === 'draft' ? '…' : item.short}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     {draftPrev ? (
                       <button
                         type="button"
@@ -1968,6 +1981,7 @@ const CallcenterNachrichten = ({
                       <p className="sz-bubble-translate-error" role="alert">{draftTranslateError}</p>
                     ) : null}
                   </div>
+                  ) : null}
                   <label className="visually-hidden" htmlFor="sz-reply">Antwort</label>
                   <textarea
                     id="sz-reply"
@@ -1978,13 +1992,25 @@ const CallcenterNachrichten = ({
                     onChange={(ev) => {
                       setDraft(ev.target.value);
                       setCursorAt(ev.target.selectionStart || 0);
+                      setDraftSelection(null);
                       if (draftPrev) setDraftPrev('');
                       if (draftTranslateError) setDraftTranslateError('');
                       noteAgentTyping();
                     }}
-                    onSelect={(ev) => setCursorAt(ev.target.selectionStart || 0)}
-                    onClick={(ev) => setCursorAt(ev.target.selectionStart || 0)}
-                    onKeyUp={(ev) => setCursorAt(ev.target.selectionStart || 0)}
+                    onSelect={(ev) => {
+                      setCursorAt(ev.target.selectionStart || 0);
+                      rememberDraftSelection(ev.target);
+                    }}
+                    onClick={(ev) => {
+                      setCursorAt(ev.target.selectionStart || 0);
+                      const start = ev.target.selectionStart ?? 0;
+                      const end = ev.target.selectionEnd ?? 0;
+                      if (end <= start) setDraftSelection(null);
+                    }}
+                    onKeyUp={(ev) => {
+                      setCursorAt(ev.target.selectionStart || 0);
+                      rememberDraftSelection(ev.target);
+                    }}
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
                     placeholder={chatLocale === 'ar' ? 'اكتب الرد' : chatLocale === 'en' ? 'Write a reply' : 'Antwort schreiben'}
