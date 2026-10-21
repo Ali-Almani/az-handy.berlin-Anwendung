@@ -1896,6 +1896,10 @@
     color: $primary-color;
   }
 
+  .sz--chat-open .sz-pane-more {
+    margin-left: auto;
+  }
+
   .system-section-tabs {
     display: contents;
   }
@@ -1946,6 +1950,17 @@
   }
 
   .sz--form-only.sz--chat-open.sz--side-list .sz-questions {
+    display: none;
+  }
+
+  .sz--chat-open.sz--note-open .sz-chat-pane,
+  .sz--form-only.sz--chat-open.sz--note-open .sz-chat-pane {
+    display: flex;
+  }
+
+  .sz--chat-open.sz--note-open .sz-questions,
+  .sz--chat-open.sz--note-open .sz-list-pane,
+  .sz--form-only.sz--chat-open.sz--note-open .sz-questions {
     display: none;
   }
 

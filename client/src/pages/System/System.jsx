@@ -62,8 +62,7 @@ function TicketingSectionMenu({
   offenCount,
   archivCount,
   anweisungUnread,
-  onOpenOffen,
-  variant = 'menu'
+  onOpenOffen
 }) {
   const [open, setOpen] = useState(false);
   const choose = (tab) => {
@@ -72,23 +71,6 @@ function TicketingSectionMenu({
     else setListTab(tab);
   };
   const itemClass = (tab) => `system-section-menu-item${listTab === tab ? ' system-section-menu-item--active' : ''}`;
-
-  if (variant === 'tabs') {
-    return (
-      <div className="system-section-tabs">
-        {canSeeOffen ? (
-          <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('offen')}>
-            Offen ({offenCount})
-          </button>
-        ) : null}
-        {canManage ? (
-          <button type="button" role="tab" className="sz-mobile-pane" onClick={() => choose('archiv')}>
-            Archiv ({archivCount})
-          </button>
-        ) : null}
-      </div>
-    );
-  }
 
   return (
     <div className="system-section-menu">
@@ -694,7 +676,15 @@ const System = () => {
             if (id) setHighlightedId(id);
           }}
           onOpened={() => setOpenLeadId('')}
-          paneMenu={<TicketingSectionMenu {...sectionMenuProps} variant="tabs" />}
+          canOpenOffen={canSeeOffen}
+          canOpenArchiv={canManageVorvertrag}
+          offenCount={offenCount}
+          archivCount={archivCount}
+          onOpenOffen={() => {
+            setListTab('offen');
+            setArchivSearch('');
+          }}
+          onOpenArchiv={() => setListTab('archiv')}
         />
       ) : null}
 

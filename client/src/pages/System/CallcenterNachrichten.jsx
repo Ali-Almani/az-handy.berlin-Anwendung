@@ -377,7 +377,12 @@ const CallcenterNachrichten = ({
   canEditFragen = true,
   canWriteAnweisung = false,
   onAnweisungUnreadChange,
-  paneMenu = null
+  canOpenOffen = false,
+  canOpenArchiv = false,
+  offenCount = 0,
+  archivCount = 0,
+  onOpenOffen,
+  onOpenArchiv
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
@@ -397,6 +402,7 @@ const CallcenterNachrichten = ({
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [mobileSide, setMobileSide] = useState('');
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [listMenuOpen, setListMenuOpen] = useState(false);
   const [mobileSheet, setMobileSheet] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
@@ -1161,7 +1167,7 @@ const CallcenterNachrichten = ({
 
   return (
     <section
-      className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}${mobileSide === 'list' ? ' sz--side-list' : ''}${mobileSide === 'questions' ? ' sz--side-questions' : ''}${isManualTicket ? ' sz--form-only' : ''}`}
+      className={`sz${mobileShowChat && active ? ' sz--chat-open' : ''}${mobileSide === 'list' ? ' sz--side-list' : ''}${mobileSide === 'questions' ? ' sz--side-questions' : ''}${isManualTicket ? ' sz--form-only' : ''}${mobileSheet ? ' sz--note-open' : ''}`}
       aria-label="Posteingang"
     >
       <div className={`sz-layout sz-layout--with-questions${isManualTicket ? ' sz-layout--form-only' : ''}`}>
@@ -1181,7 +1187,10 @@ const CallcenterNachrichten = ({
               type="button"
               className="sz-mobile-pane sz-mobile-pane--back"
               aria-label="Zurück"
-              onClick={() => setMobileSide('list')}
+              onClick={() => {
+                setMobileSheet('');
+                setMobileSide('list');
+              }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
@@ -1198,14 +1207,93 @@ const CallcenterNachrichten = ({
             <button
               type="button"
               role="tab"
-              className={`sz-mobile-pane${(isManualTicket ? mobileSide === '' : mobileSide === 'questions') ? ' sz-mobile-pane--active' : ''}`}
-              aria-selected={isManualTicket ? mobileSide === '' : mobileSide === 'questions'}
-              onClick={() => setMobileSide(isManualTicket ? '' : 'questions')}
+              className={`sz-mobile-pane${(isManualTicket ? mobileSide === '' : mobileSide === 'questions') && !mobileSheet ? ' sz-mobile-pane--active' : ''}`}
+              aria-selected={(isManualTicket ? mobileSide === '' : mobileSide === 'questions') && !mobileSheet}
+              onClick={() => {
+                setMobileSheet('');
+                setMobileSide(isManualTicket ? '' : 'questions');
+              }}
             >
               Vorlage
             </button>
           ) : null}
-          {paneMenu}
+          {mobileSide !== 'list' ? (
+            <button
+              type="button"
+              role="tab"
+              className={`sz-mobile-pane${mobileSheet === 'notiz' ? ' sz-mobile-pane--active' : ''}`}
+              aria-selected={mobileSheet === 'notiz'}
+              onClick={openMobileNotiz}
+            >
+              Notiz
+            </button>
+          ) : null}
+          {mobileSide !== 'list' ? (
+            <button
+              type="button"
+              role="tab"
+              className={`sz-mobile-pane${mobileSheet === 'anweisung' ? ' sz-mobile-pane--active' : ''}${anweisungUnread && !canWriteAnweisung ? ' sz-mobile-pane--alert' : ''}`}
+              aria-selected={mobileSheet === 'anweisung'}
+              onClick={openMobileAnweisung}
+            >
+              Anweisung
+              {anweisungUnread && !canWriteAnweisung ? <span className="sz-chip-count">Neu</span> : null}
+            </button>
+          ) : null}
+          {mobileSide === 'list' && (canOpenOffen || canOpenArchiv) ? (
+            <div className="sz-chat-more sz-pane-more">
+              {listMenuOpen ? (
+                <button
+                  type="button"
+                  className="sz-chat-more-backdrop"
+                  aria-label="Menü schließen"
+                  onClick={() => setListMenuOpen(false)}
+                />
+              ) : null}
+              <button
+                type="button"
+                className="sz-chat-more-btn"
+                aria-label="Mehr"
+                aria-expanded={listMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => setListMenuOpen((open) => !open)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path fill="currentColor" d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+              {listMenuOpen ? (
+                <div className="sz-chat-more-menu" role="menu">
+                  {canOpenOffen ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="sz-chat-more-item"
+                      onClick={() => {
+                        setListMenuOpen(false);
+                        onOpenOffen?.();
+                      }}
+                    >
+                      Offen ({offenCount})
+                    </button>
+                  ) : null}
+                  {canOpenArchiv ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="sz-chat-more-item"
+                      onClick={() => {
+                        setListMenuOpen(false);
+                        onOpenArchiv?.();
+                      }}
+                    >
+                      Archiv ({archivCount})
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <aside className="sz-list-pane">
           <div className="sz-filters">
@@ -1447,17 +1535,9 @@ const CallcenterNachrichten = ({
                     <svg viewBox="0 0 24 24" aria-hidden>
                       <path fill="currentColor" d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
                     </svg>
-                    {anweisungUnread && !canWriteAnweisung ? <span className="sz-chat-more-dot" /> : null}
                   </button>
                   {chatMenuOpen ? (
                     <div className="sz-chat-more-menu" role="menu">
-                      <button type="button" role="menuitem" className="sz-chat-more-item sz-chat-more-item--phone" onClick={openMobileNotiz}>
-                        Notiz
-                      </button>
-                      <button type="button" role="menuitem" className="sz-chat-more-item sz-chat-more-item--phone" onClick={openMobileAnweisung}>
-                        Anweisung
-                        {anweisungUnread && !canWriteAnweisung ? <span className="sz-chip-count">Neu</span> : null}
-                      </button>
                       {telHrefFromPhone(contactPhone) ? (
                         <a role="menuitem" className="sz-chat-more-item" href={telHrefFromPhone(contactPhone)} onClick={() => setChatMenuOpen(false)}>
                           Anruf
@@ -1483,6 +1563,32 @@ const CallcenterNachrichten = ({
                           WhatsApp
                         </button>
                       )}
+                      {canOpenOffen ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="sz-chat-more-item sz-chat-more-item--phone"
+                          onClick={() => {
+                            setChatMenuOpen(false);
+                            onOpenOffen?.();
+                          }}
+                        >
+                          Offen ({offenCount})
+                        </button>
+                      ) : null}
+                      {canOpenArchiv ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="sz-chat-more-item sz-chat-more-item--phone"
+                          onClick={() => {
+                            setChatMenuOpen(false);
+                            onOpenArchiv?.();
+                          }}
+                        >
+                          Archiv ({archivCount})
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         role="menuitem"
