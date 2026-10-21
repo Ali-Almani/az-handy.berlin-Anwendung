@@ -402,7 +402,6 @@ const CallcenterNachrichten = ({
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [mobileSide, setMobileSide] = useState('');
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
-  const [listMenuOpen, setListMenuOpen] = useState(false);
   const [mobileSheet, setMobileSheet] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
@@ -1239,60 +1238,6 @@ const CallcenterNachrichten = ({
               Anweisung
               {anweisungUnread && !canWriteAnweisung ? <span className="sz-chip-count">Neu</span> : null}
             </button>
-          ) : null}
-          {mobileSide === 'list' && (canOpenOffen || canOpenArchiv) ? (
-            <div className="sz-chat-more sz-pane-more">
-              {listMenuOpen ? (
-                <button
-                  type="button"
-                  className="sz-chat-more-backdrop"
-                  aria-label="Menü schließen"
-                  onClick={() => setListMenuOpen(false)}
-                />
-              ) : null}
-              <button
-                type="button"
-                className="sz-chat-more-btn"
-                aria-label="Mehr"
-                aria-expanded={listMenuOpen}
-                aria-haspopup="menu"
-                onClick={() => setListMenuOpen((open) => !open)}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden>
-                  <path fill="currentColor" d="M12 8a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>
-              {listMenuOpen ? (
-                <div className="sz-chat-more-menu" role="menu">
-                  {canOpenOffen ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="sz-chat-more-item"
-                      onClick={() => {
-                        setListMenuOpen(false);
-                        onOpenOffen?.();
-                      }}
-                    >
-                      Offen ({offenCount})
-                    </button>
-                  ) : null}
-                  {canOpenArchiv ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="sz-chat-more-item"
-                      onClick={() => {
-                        setListMenuOpen(false);
-                        onOpenArchiv?.();
-                      }}
-                    >
-                      Archiv ({archivCount})
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
           ) : null}
         </div>
         <aside className="sz-list-pane">
