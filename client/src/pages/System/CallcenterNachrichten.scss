@@ -938,19 +938,22 @@
 .sz-quick-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
   margin: 0;
-  padding: 0.1rem 0;
-  border: 0;
-  background: transparent;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid $border-color;
+  border-radius: 999px;
+  background: $bg-light;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: $font-weight-medium;
-  color: $text-light;
+  color: $text-color;
   cursor: pointer;
 
-  &:hover {
-    color: $text-color;
+  &:hover,
+  .sz-quick-head--open & {
+    border-color: $primary-color;
+    color: $primary-color;
   }
 }
 
