@@ -14,24 +14,30 @@ export default function LeadNachrichtHistory({
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
   const filledForTicket = useRef('');
-  const attemptFields = useRef([]);
+  const skipAutoFill = useRef(false);
+  const onAnswerChangeRef = useRef(onAnswerChange);
+  onAnswerChangeRef.current = onAnswerChange;
 
   useEffect(() => {
     const name = String(bearbeiterName || '').trim();
-    if (!ticket?.id || !name || filledForTicket.current === ticket.id) return;
+    if (skipAutoFill.current || !ticket?.id || !name || filledForTicket.current === ticket.id) return;
     const next = OFFEN_FOLLOWUP_GROUPS
       .flatMap((group) => group.fields)
       .find((field) => field.autoName && !String(ticket[field.key] || '').trim());
-    const group = next
-      ? OFFEN_FOLLOWUP_GROUPS.find((item) => item.fields.some((field) => field.key === next.key))
-      : [...OFFEN_FOLLOWUP_GROUPS].reverse().find((item) =>
-        item.fields.some((field) => String(ticket[field.key] || '').trim())
-      );
-    attemptFields.current = (group || OFFEN_FOLLOWUP_GROUPS[OFFEN_FOLLOWUP_GROUPS.length - 1])
-      .fields.map((field) => field.key);
     filledForTicket.current = ticket.id;
-    if (next) onAnswerChange?.(next.key, name);
-  }, [ticket, bearbeiterName, onAnswerChange]);
+    if (next) onAnswerChangeRef.current?.(next.key, name);
+  }, [ticket, bearbeiterName]);
+
+  const clearCurrentAttempt = () => {
+    const group = [...OFFEN_FOLLOWUP_GROUPS].reverse().find((item) =>
+      item.fields.some((field) => String(ticket?.[field.key] || '').trim())
+    );
+    if (!group) return;
+    skipAutoFill.current = true;
+    filledForTicket.current = ticket?.id || filledForTicket.current;
+    onClearFields?.(group.fields.map((field) => field.key));
+    onClose?.();
+  };
 
   return (
     <section className="lead-fragen-panel" aria-label="Ticket bearbeiten">
@@ -46,7 +52,7 @@ export default function LeadNachrichtHistory({
           <button
             type="button"
             className="btn btn--outline btn--small"
-            onClick={() => onClearFields?.(attemptFields.current)}
+            onClick={clearCurrentAttempt}
           >
             Abbrechen
           </button>
