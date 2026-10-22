@@ -1,10 +1,10 @@
-export const TICKET_PRIORITY_OPTIONS = ['Niedrig', 'Normal', 'Hoch', 'Dringend'];
+export const TICKET_PRIORITY_OPTIONS = ['Normal', 'Hoch', 'Dringend'];
 
 export const TICKET_PRIORITY_DEFAULT = 'Normal';
 
 const PRIORITY_ALIASES = {
-  niedrig: 'Niedrig',
-  low: 'Niedrig',
+  niedrig: 'Normal',
+  low: 'Normal',
   normal: 'Normal',
   mittel: 'Normal',
   medium: 'Normal',

@@ -393,16 +393,25 @@ function storedQuestionLabel(field, locale, config) {
   return custom;
 }
 
+function withoutNiedrigPriority(field, list) {
+  if (field !== 'priority' || !Array.isArray(list)) return list;
+  const next = list.filter((item) => String(item).trim().toLowerCase() !== 'niedrig');
+  return next.length ? next : [...TICKET_PRIORITY_OPTIONS];
+}
+
 export function questionDropdownOptions(field, config) {
   const added = customQuestions(config).find((item) => item.id === field);
   if (added) {
     if (added.type !== 'dropdown') return null;
     const list = config?.options?.[field];
-    return Array.isArray(list) && list.length ? list.map((item) => String(item)) : ['Option 1'];
+    const options = Array.isArray(list) && list.length ? list.map((item) => String(item)) : ['Option 1'];
+    return withoutNiedrigPriority(field, options);
   }
   const custom = config?.options?.[field];
-  if (Array.isArray(custom) && custom.length) return custom.map((item) => String(item));
-  return DROPDOWN_DEFAULTS[field] ? [...DROPDOWN_DEFAULTS[field]] : null;
+  if (Array.isArray(custom) && custom.length) {
+    return withoutNiedrigPriority(field, custom.map((item) => String(item)));
+  }
+  return DROPDOWN_DEFAULTS[field] ? withoutNiedrigPriority(field, [...DROPDOWN_DEFAULTS[field]]) : null;
 }
 
 export function localizedTemplateQuestions(locale, config) {
