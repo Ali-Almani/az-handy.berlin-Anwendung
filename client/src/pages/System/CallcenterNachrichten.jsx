@@ -1205,6 +1205,10 @@ const CallcenterNachrichten = ({
               aria-label="Zurück"
               onClick={() => {
                 setMobileSheet('');
+                if (mobileSide === 'questions') {
+                  setMobileSide('');
+                  return;
+                }
                 setMobileSide('list');
               }}
             >

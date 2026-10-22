@@ -1993,6 +1993,14 @@
     padding: 0.3rem 0 0.35rem;
   }
 
+  .sz-quick-head,
+  .sz-quick,
+  .sz-chip-edit-list,
+  .sz-quick-add {
+    padding-left: $spacing-md;
+    padding-right: $spacing-md;
+  }
+
   .sz-composer-input {
     min-height: 5.2rem;
     padding-top: 0.55rem;
