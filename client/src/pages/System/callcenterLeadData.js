@@ -52,18 +52,18 @@ export const QUESTION_CHAT_LOCALES = [
 
 export const TEMPLATE_QUESTIONS = [
   {
-    field: 'rufnummer',
-    label: 'Rufnummer?',
-    de: { label: 'Rufnummer?', text: 'Wie lautet Ihre Rufnummer?' },
-    ar: { label: 'رقم الهاتف؟', text: 'ما هو رقم هاتفك؟' },
-    en: { label: 'Phone number?', text: 'What is your phone number?' }
-  },
-  {
     field: 'o2Kunde',
     label: 'O2 Kunde?',
     de: { label: 'O2 Kunde?', text: 'Sind Sie bereits O2-Kunde?' },
     ar: { label: 'عميل O2؟', text: 'هل أنت عميل O2 حالياً؟' },
     en: { label: 'O2 customer?', text: 'Are you already an O2 customer?' }
+  },
+  {
+    field: 'rufnummer',
+    label: 'Rufnummer?',
+    de: { label: 'Rufnummer?', text: 'Wie lautet Ihre Rufnummer?' },
+    ar: { label: 'رقم الهاتف؟', text: 'ما هو رقم هاتفك؟' },
+    en: { label: 'Phone number?', text: 'What is your phone number?' }
   },
   {
     field: 'angebot',
@@ -181,24 +181,38 @@ function leadSprache(value) {
 
 export const QUESTION_CONFIG_KEY = 'az-callcenter-question-config';
 
-const PREVIOUS_VORLAGE_QUESTION_ORDER = [
-  'priority',
-  'sprache',
-  'rufnummer',
-  'o2Kunde',
-  'angebot',
-  'produktNotiz',
-  'stadt',
-  'marketingNotiz',
-  'terminDatum',
-  'terminZeit'
+const PREVIOUS_VORLAGE_QUESTION_ORDERS = [
+  [
+    'priority',
+    'sprache',
+    'rufnummer',
+    'o2Kunde',
+    'angebot',
+    'produktNotiz',
+    'marketingNotiz',
+    'stadt',
+    'terminDatum',
+    'terminZeit'
+  ],
+  [
+    'priority',
+    'sprache',
+    'rufnummer',
+    'o2Kunde',
+    'angebot',
+    'produktNotiz',
+    'stadt',
+    'marketingNotiz',
+    'terminDatum',
+    'terminZeit'
+  ]
 ];
 
 export const VORLAGE_QUESTION_ORDER = [
   'priority',
   'sprache',
-  'rufnummer',
   'o2Kunde',
+  'rufnummer',
   'angebot',
   'produktNotiz',
   'marketingNotiz',
@@ -224,9 +238,10 @@ export const QUESTION_FIELD_TYPES = [
 
 function upgradeQuestionOrder(order) {
   if (!Array.isArray(order) || !order.length) return order;
-  const old = PREVIOUS_VORLAGE_QUESTION_ORDER;
-  const matchesOld = old.every((field, index) => order[index] === field);
-  if (!matchesOld) return order;
+  const old = PREVIOUS_VORLAGE_QUESTION_ORDERS.find((candidate) => (
+    candidate.every((field, index) => order[index] === field)
+  ));
+  if (!old) return order;
   return [...VORLAGE_QUESTION_ORDER, ...order.slice(old.length)];
 }
 
@@ -503,6 +518,21 @@ export function emptyLeadForm() {
     kundenbesuch1Bearbeiter: '',
     kundenbesuch2Bearbeiter: '',
     kundenbesuch3Bearbeiter: '',
+    kontakt1ShopNotiz: '',
+    kontakt1Datum: '',
+    kontakt1Zeit: '',
+    kontakt2Bearbeiter: '',
+    kontakt2ShopNotiz: '',
+    kontakt2Datum: '',
+    kontakt2Zeit: '',
+    kontakt3Bearbeiter: '',
+    kontakt3ShopNotiz: '',
+    kontakt3Datum: '',
+    kontakt3Zeit: '',
+    kontakt4Bearbeiter: '',
+    kontakt4ShopNotiz: '',
+    kontakt4Datum: '',
+    kontakt4Zeit: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
@@ -512,10 +542,60 @@ export function emptyLeadForm() {
   };
 }
 
-export const OFFEN_KUNDENBESUCH_FIELDS = [
-  { key: 'kundenbesuch1Bearbeiter', placeholder: 'Kundenbesuch 1' },
-  { key: 'kundenbesuch2Bearbeiter', placeholder: 'Kundenbesuch 2' },
-  { key: 'kundenbesuch3Bearbeiter', placeholder: 'Kundenbesuch 3' }
+export const OFFEN_FOLLOWUP_GROUPS = [
+  {
+    title: 'Kundenbesuch 1',
+    fields: [
+      { key: 'kundenbesuch1Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true }
+    ]
+  },
+  {
+    title: 'Kundenbesuch 2',
+    fields: [
+      { key: 'kundenbesuch2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true }
+    ]
+  },
+  {
+    title: 'Kundenbesuch 3',
+    fields: [
+      { key: 'kundenbesuch3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true }
+    ]
+  },
+  {
+    title: 'Kontaktversuch 1',
+    fields: [
+      { key: 'kontakt1ShopNotiz', label: 'Shop Notiz', type: 'text' },
+      { key: 'kontakt1Datum', label: 'Datum', type: 'date' },
+      { key: 'kontakt1Zeit', label: 'Zeit bis Aktion', type: 'text' }
+    ]
+  },
+  {
+    title: 'Kontaktversuch 2',
+    fields: [
+      { key: 'kontakt2Bearbeiter', label: 'Bearbeiter', type: 'text' },
+      { key: 'kontakt2ShopNotiz', label: 'Shop Notiz', type: 'text' },
+      { key: 'kontakt2Datum', label: 'Datum', type: 'date' },
+      { key: 'kontakt2Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
+    ]
+  },
+  {
+    title: 'Kontaktversuch 3',
+    fields: [
+      { key: 'kontakt3Bearbeiter', label: 'Bearbeiter', type: 'text' },
+      { key: 'kontakt3ShopNotiz', label: 'Shop Notiz', type: 'text' },
+      { key: 'kontakt3Datum', label: 'Datum', type: 'date' },
+      { key: 'kontakt3Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
+    ]
+  },
+  {
+    title: 'Kontaktversuch 4',
+    fields: [
+      { key: 'kontakt4Bearbeiter', label: 'Bearbeiter', type: 'text' },
+      { key: 'kontakt4ShopNotiz', label: 'Shop Notiz', type: 'text' },
+      { key: 'kontakt4Datum', label: 'Datum', type: 'date' },
+      { key: 'kontakt4Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
+    ]
+  }
 ];
 
 export function formFromLead(entry) {
@@ -545,9 +625,24 @@ const LEAD_FIELD_LABELS = {
   marketingNotiz: 'Marketing Notiz',
   terminDatum: 'Termin Datum',
   terminZeit: 'Termin Zeit',
-  kundenbesuch1Bearbeiter: 'Kundenbesuch 1',
-  kundenbesuch2Bearbeiter: 'Kundenbesuch 2',
-  kundenbesuch3Bearbeiter: 'Kundenbesuch 3',
+  kundenbesuch1Bearbeiter: 'Kundenbesuch 1 Bearbeiter',
+  kundenbesuch2Bearbeiter: 'Kundenbesuch 2 Bearbeiter',
+  kundenbesuch3Bearbeiter: 'Kundenbesuch 3 Bearbeiter',
+  kontakt1ShopNotiz: 'Kontaktversuch 1 Shop Notiz',
+  kontakt1Datum: 'Kontaktversuch 1 Datum',
+  kontakt1Zeit: 'Kontaktversuch 1 Zeit bis Aktion',
+  kontakt2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
+  kontakt2ShopNotiz: 'Kontaktversuch 2 Shop Notiz',
+  kontakt2Datum: 'Kontaktversuch 2 Datum',
+  kontakt2Zeit: 'Kontaktversuch 2 Zeit bis Aktion des letzten Versuchs',
+  kontakt3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
+  kontakt3ShopNotiz: 'Kontaktversuch 3 Shop Notiz',
+  kontakt3Datum: 'Kontaktversuch 3 Datum',
+  kontakt3Zeit: 'Kontaktversuch 3 Zeit bis Aktion des letzten Versuchs',
+  kontakt4Bearbeiter: 'Kontaktversuch 4 Bearbeiter',
+  kontakt4ShopNotiz: 'Kontaktversuch 4 Shop Notiz',
+  kontakt4Datum: 'Kontaktversuch 4 Datum',
+  kontakt4Zeit: 'Kontaktversuch 4 Zeit bis Aktion des letzten Versuchs',
   shop: 'Shop',
   ticketStatus: 'Status',
   priority: 'Priorität',
