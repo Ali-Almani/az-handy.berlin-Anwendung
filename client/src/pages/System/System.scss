@@ -260,6 +260,16 @@
   margin-bottom: $spacing-md;
 }
 
+.offen-followup {
+  margin-bottom: $spacing-md;
+
+  .form-label {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.75rem;
+  }
+}
+
 .system-toolbar {
   display: flex;
   flex-wrap: wrap;
