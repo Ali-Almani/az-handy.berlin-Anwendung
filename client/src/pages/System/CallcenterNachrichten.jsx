@@ -1759,7 +1759,7 @@ const CallcenterNachrichten = ({
                       <>
                       <button
                         type="button"
-                        className={`sz-question-icon${chipEditing ? ' sz-question-icon--active' : ''}`}
+                        className={`sz-question-icon sz-phone-hide${chipEditing ? ' sz-question-icon--active' : ''}`}
                         onClick={() => setChipEditing((open) => !open)}
                         aria-pressed={chipEditing}
                         aria-label={chipEditing ? 'Fragen speichern' : 'Fragen bearbeiten'}
@@ -1778,7 +1778,7 @@ const CallcenterNachrichten = ({
                       {chipEditing ? (
                         <button
                           type="button"
-                          className="sz-question-icon"
+                          className="sz-question-icon sz-phone-hide"
                           onClick={() => addQuestion(chipType)}
                           aria-label="Neue Frage hinzufügen"
                           title="Neue Frage hinzufügen"
@@ -2117,7 +2117,7 @@ const CallcenterNachrichten = ({
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Ticket</h3>
               {canEditFragen && active ? (
-              <div className="sz-questions-titlebar-actions">
+              <div className="sz-questions-titlebar-actions sz-phone-hide">
               <button
                 type="button"
                 className={`sz-question-icon${templateEditing ? ' sz-question-icon--active' : ''}`}
