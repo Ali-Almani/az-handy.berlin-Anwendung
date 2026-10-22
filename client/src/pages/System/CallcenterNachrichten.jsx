@@ -1204,7 +1204,11 @@ const CallcenterNachrichten = ({
               className="sz-mobile-pane sz-mobile-pane--back"
               aria-label="Zurück"
               onClick={() => {
-                setMobileSheet('');
+                if (mobileSheet) {
+                  setMobileSheet('');
+                  setMobileSide('');
+                  return;
+                }
                 if (mobileSide === 'questions') {
                   setMobileSide('');
                   return;
@@ -1582,9 +1586,6 @@ const CallcenterNachrichten = ({
                 <div className="sz-chat-sheet">
                   <div className="sz-chat-sheet-bar">
                     <h3 className="sz-chat-sheet-title">{mobileSheet === 'anweisung' ? 'Anweisung' : 'Notiz'}</h3>
-                    <button type="button" className="sz-chat-sheet-close" onClick={() => setMobileSheet('')}>
-                      Schließen
-                    </button>
                   </div>
                   <div className="sz-note-pane">
                     {mobileSheet === 'anweisung' ? (
