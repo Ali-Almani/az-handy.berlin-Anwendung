@@ -1,10 +1,21 @@
+import { useEffect, useRef } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
-import { formFromLead, OFFEN_FOLLOWUP_GROUPS } from './callcenterLeadData';
+import { formFromLead, OFFEN_KUNDENBESUCH_FIELDS } from './callcenterLeadData';
 
-export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], onAnswerChange }) {
+export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], onAnswerChange, bearbeiterName = '' }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
+  const filledForTicket = useRef('');
+
+  useEffect(() => {
+    const name = String(bearbeiterName || '').trim();
+    if (!ticket?.id || !name || filledForTicket.current === ticket.id) return;
+    filledForTicket.current = ticket.id;
+    OFFEN_KUNDENBESUCH_FIELDS.forEach((field) => {
+      if (!String(ticket[field.key] || '').trim()) onAnswerChange?.(field.key, name);
+    });
+  }, [ticket, bearbeiterName, onAnswerChange]);
 
   return (
     <section className="lead-fragen-panel" aria-label="Ticket bearbeiten">
@@ -28,35 +39,20 @@ export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], on
         onChange={onAnswerChange}
         idPrefix="offen-q"
       />
-      {OFFEN_FOLLOWUP_GROUPS.map((group) => (
-        <section key={group.title} className="offen-followup">
-          <h3 className="vorvertrag-section-title">{group.title}</h3>
-          <div className="lead-fragen-grid">
-            {group.fields.map((field) => {
-              const value = ticket?.[field.key] || '';
-              const inputType = field.type === 'date' && value ? 'date' : 'text';
-              return (
-                <label key={field.key} className="form-group">
-                  <span className="form-label">{field.label}</span>
-                  <input
-                    className="form-input"
-                    type={inputType}
-                    value={value}
-                    aria-label={`${group.title} ${field.label}`}
-                    onFocus={(ev) => {
-                      if (field.type === 'date') ev.target.type = 'date';
-                    }}
-                    onBlur={(ev) => {
-                      if (field.type === 'date' && !ev.target.value) ev.target.type = 'text';
-                    }}
-                    onChange={(ev) => onAnswerChange?.(field.key, ev.target.value)}
-                  />
-                </label>
-              );
-            })}
+      <div className="lead-fragen-grid offen-followup">
+        {OFFEN_KUNDENBESUCH_FIELDS.map((field) => (
+          <div key={field.key} className="form-group">
+            <input
+              className="form-input"
+              type="text"
+              value={ticket?.[field.key] || ''}
+              placeholder={field.placeholder}
+              aria-label={field.placeholder}
+              onChange={(ev) => onAnswerChange?.(field.key, ev.target.value)}
+            />
           </div>
-        </section>
-      ))}
+        ))}
+      </div>
       {logItems.length > 0 ? (
         <VorvertragEditLog items={logItems} />
       ) : (

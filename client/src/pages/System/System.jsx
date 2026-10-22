@@ -733,6 +733,7 @@ const System = () => {
             onClose={() => setLeadEditId('')}
             editLog={editingLead.editLog}
             onAnswerChange={patchLeadAnswer}
+            bearbeiterName={defaultMitarbeiter}
           />
         </div>
       ) : null}
