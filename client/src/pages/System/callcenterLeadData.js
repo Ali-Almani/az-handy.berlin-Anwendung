@@ -551,8 +551,7 @@ export const OFFEN_FOLLOWUP_GROUPS = [
   {
     title: 'Kundenbesuch 2',
     fields: [
-      { key: 'kundenbesuch2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
-      { key: 'kontakt2Bearbeiter', label: 'Bearbeiter', type: 'text' },
+      { key: 'kontakt2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt2ShopNotiz', label: 'Shop Notiz', type: 'text' },
       { key: 'kontakt2Datum', label: 'Datum', type: 'date' },
       { key: 'kontakt2Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
@@ -561,8 +560,7 @@ export const OFFEN_FOLLOWUP_GROUPS = [
   {
     title: 'Kundenbesuch 3',
     fields: [
-      { key: 'kundenbesuch3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
-      { key: 'kontakt3Bearbeiter', label: 'Bearbeiter', type: 'text' },
+      { key: 'kontakt3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt3ShopNotiz', label: 'Shop Notiz', type: 'text' },
       { key: 'kontakt3Datum', label: 'Datum', type: 'date' },
       { key: 'kontakt3Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }

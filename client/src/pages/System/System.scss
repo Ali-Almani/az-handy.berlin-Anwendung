@@ -260,6 +260,11 @@
   margin-bottom: $spacing-md;
 }
 
+.lead-fragen-panel .form-input,
+.lead-fragen-panel select.form-input {
+  font-size: 0.62rem;
+}
+
 .lead-fragen-panel .form-input::placeholder {
   font-size: 0.62rem;
 }
