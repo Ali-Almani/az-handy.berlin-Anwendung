@@ -260,8 +260,21 @@
   margin-bottom: $spacing-md;
 }
 
+.lead-fragen-panel .form-input::placeholder {
+  font-size: 0.68rem;
+}
+
 .offen-followup {
   margin-bottom: $spacing-md;
+
+  .form-input {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+
+  .form-input::placeholder {
+    font-size: 0.62rem;
+  }
 }
 
 .system-toolbar {
