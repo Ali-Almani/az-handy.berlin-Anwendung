@@ -429,6 +429,28 @@ const System = () => {
     );
   };
 
+  const clearLeadAnswers = (fields) => {
+    if (!leadEditId || !Array.isArray(fields) || fields.length === 0) return;
+    setLeadTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== leadEditId) return t;
+        const changes = [];
+        const cleared = {};
+        fields.forEach((field) => {
+          const change = leadFieldChange(t, field, '');
+          if (change) changes.push(change);
+          cleared[field] = '';
+        });
+        if (!changes.length) return t;
+        const next = withMitarbeiter({ ...t, ...cleared }, defaultMitarbeiter);
+        return appendLeadEditLog(next, {
+          editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
+          changes
+        });
+      })
+    );
+  };
+
   const handleFormChange = (field, value) => {
     setForm((prev) => {
       if (field === 'ausgabeGeraet') {
@@ -733,6 +755,7 @@ const System = () => {
             onClose={() => setLeadEditId('')}
             editLog={editingLead.editLog}
             onAnswerChange={patchLeadAnswer}
+            onClearFields={clearLeadAnswers}
             bearbeiterName={defaultMitarbeiter}
           />
         </div>

@@ -235,6 +235,13 @@
   margin-bottom: $spacing-md;
 }
 
+.lead-fragen-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
 .lead-fragen-panel__title {
   margin: 0;
   font-size: 1rem;

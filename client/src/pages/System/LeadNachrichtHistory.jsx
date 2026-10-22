@@ -3,10 +3,18 @@ import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
 import { formFromLead, OFFEN_FOLLOWUP_GROUPS } from './callcenterLeadData';
 
-export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], onAnswerChange, bearbeiterName = '' }) {
+export default function LeadNachrichtHistory({
+  ticket,
+  onClose,
+  editLog = [],
+  onAnswerChange,
+  onClearFields,
+  bearbeiterName = ''
+}) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
   const filledForTicket = useRef('');
+  const attemptFields = useRef([]);
 
   useEffect(() => {
     const name = String(bearbeiterName || '').trim();
@@ -14,6 +22,13 @@ export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], on
     const next = OFFEN_FOLLOWUP_GROUPS
       .flatMap((group) => group.fields)
       .find((field) => field.autoName && !String(ticket[field.key] || '').trim());
+    const group = next
+      ? OFFEN_FOLLOWUP_GROUPS.find((item) => item.fields.some((field) => field.key === next.key))
+      : [...OFFEN_FOLLOWUP_GROUPS].reverse().find((item) =>
+        item.fields.some((field) => String(ticket[field.key] || '').trim())
+      );
+    attemptFields.current = (group || OFFEN_FOLLOWUP_GROUPS[OFFEN_FOLLOWUP_GROUPS.length - 1])
+      .fields.map((field) => field.key);
     filledForTicket.current = ticket.id;
     if (next) onAnswerChange?.(next.key, name);
   }, [ticket, bearbeiterName, onAnswerChange]);
@@ -27,11 +42,20 @@ export default function LeadNachrichtHistory({ ticket, onClose, editLog = [], on
             {ticket?.id}
           </p>
         </div>
-        {onClose ? (
-          <button type="button" className="btn btn--secondary btn--small" onClick={onClose}>
-            Fertig
+        <div className="lead-fragen-panel__actions">
+          <button
+            type="button"
+            className="btn btn--outline btn--small"
+            onClick={() => onClearFields?.(attemptFields.current)}
+          >
+            Abbrechen
           </button>
-        ) : null}
+          {onClose ? (
+            <button type="button" className="btn btn--secondary btn--small" onClick={onClose}>
+              Fertig
+            </button>
+          ) : null}
+        </div>
       </div>
       <h3 className="vorvertrag-section-title">Informationen</h3>
       <LeadFragenForm
