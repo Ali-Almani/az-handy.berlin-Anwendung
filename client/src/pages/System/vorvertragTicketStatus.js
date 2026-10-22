@@ -1,8 +1,11 @@
 export const VORVERTRAG_TICKET_STATUS_OPTIONS = [
   'Offen',
-  'In Bearbeitung',
-  'Bestellen',
-  'Zur Abholung bereit',
+  'Nicht erreicht',
+  'Kundenrückmeldung',
+  'Kundenbesuch',
+  'Boni Ticket',
+  'Bestellung',
+  'Abholbereit',
   'Erledigt'
 ];
 
@@ -10,12 +13,20 @@ export const VORVERTRAG_TICKET_STATUS_DEFAULT = 'Offen';
 
 const STATUS_ALIASES = {
   offen: 'Offen',
-  'in bearbeitung': 'In Bearbeitung',
-  'in berbeitung': 'In Bearbeitung',
+  'nicht erreicht': 'Nicht erreicht',
+  kundenrueckmeldung: 'Kundenrückmeldung',
+  'kundenrückmeldung': 'Kundenrückmeldung',
+  kundenbesuch: 'Kundenbesuch',
+  'boni ticket': 'Boni Ticket',
+  'bonus ticket': 'Boni Ticket',
+  bestellung: 'Bestellung',
+  bestellen: 'Bestellung',
+  abholbereit: 'Abholbereit',
+  'zur abholung bereit': 'Abholbereit',
+  'zur abhohlung bereit': 'Abholbereit',
   erledigt: 'Erledigt',
-  'zur abholung bereit': 'Zur Abholung bereit',
-  'zur abhohlung bereit': 'Zur Abholung bereit',
-  bestellen: 'Bestellen'
+  'in bearbeitung': 'Offen',
+  'in berbeitung': 'Offen'
 };
 
 export function normalizeVorvertragTicketStatus(value) {
@@ -33,8 +44,8 @@ export function isVorvertragArchived(entry) {
 export function vorvertragTicketStatusBadge(status) {
   const s = normalizeVorvertragTicketStatus(status);
   if (s === 'Erledigt') return 'yes';
-  if (s === 'Zur Abholung bereit') return 'pickup';
-  if (s === 'Bestellen') return 'bestellen';
+  if (s === 'Abholbereit') return 'pickup';
+  if (s === 'Bestellung') return 'bestellen';
   if (s === 'Offen') return 'open';
   return 'order';
 }
