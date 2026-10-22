@@ -529,10 +529,6 @@ export function emptyLeadForm() {
     kontakt3ShopNotiz: '',
     kontakt3Datum: '',
     kontakt3Zeit: '',
-    kontakt4Bearbeiter: '',
-    kontakt4ShopNotiz: '',
-    kontakt4Datum: '',
-    kontakt4Zeit: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
@@ -546,32 +542,16 @@ export const OFFEN_FOLLOWUP_GROUPS = [
   {
     title: 'Kundenbesuch 1',
     fields: [
-      { key: 'kundenbesuch1Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true }
-    ]
-  },
-  {
-    title: 'Kundenbesuch 2',
-    fields: [
-      { key: 'kundenbesuch2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true }
-    ]
-  },
-  {
-    title: 'Kundenbesuch 3',
-    fields: [
-      { key: 'kundenbesuch3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true }
-    ]
-  },
-  {
-    title: 'Kontaktversuch 1',
-    fields: [
+      { key: 'kundenbesuch1Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt1ShopNotiz', label: 'Shop Notiz', type: 'text' },
       { key: 'kontakt1Datum', label: 'Datum', type: 'date' },
       { key: 'kontakt1Zeit', label: 'Zeit bis Aktion', type: 'text' }
     ]
   },
   {
-    title: 'Kontaktversuch 2',
+    title: 'Kundenbesuch 2',
     fields: [
+      { key: 'kundenbesuch2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt2Bearbeiter', label: 'Bearbeiter', type: 'text' },
       { key: 'kontakt2ShopNotiz', label: 'Shop Notiz', type: 'text' },
       { key: 'kontakt2Datum', label: 'Datum', type: 'date' },
@@ -579,21 +559,13 @@ export const OFFEN_FOLLOWUP_GROUPS = [
     ]
   },
   {
-    title: 'Kontaktversuch 3',
+    title: 'Kundenbesuch 3',
     fields: [
+      { key: 'kundenbesuch3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt3Bearbeiter', label: 'Bearbeiter', type: 'text' },
       { key: 'kontakt3ShopNotiz', label: 'Shop Notiz', type: 'text' },
       { key: 'kontakt3Datum', label: 'Datum', type: 'date' },
       { key: 'kontakt3Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
-    ]
-  },
-  {
-    title: 'Kontaktversuch 4',
-    fields: [
-      { key: 'kontakt4Bearbeiter', label: 'Bearbeiter', type: 'text' },
-      { key: 'kontakt4ShopNotiz', label: 'Shop Notiz', type: 'text' },
-      { key: 'kontakt4Datum', label: 'Datum', type: 'date' },
-      { key: 'kontakt4Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
     ]
   }
 ];
@@ -639,10 +611,6 @@ const LEAD_FIELD_LABELS = {
   kontakt3ShopNotiz: 'Kontaktversuch 3 Shop Notiz',
   kontakt3Datum: 'Kontaktversuch 3 Datum',
   kontakt3Zeit: 'Kontaktversuch 3 Zeit bis Aktion des letzten Versuchs',
-  kontakt4Bearbeiter: 'Kontaktversuch 4 Bearbeiter',
-  kontakt4ShopNotiz: 'Kontaktversuch 4 Shop Notiz',
-  kontakt4Datum: 'Kontaktversuch 4 Datum',
-  kontakt4Zeit: 'Kontaktversuch 4 Zeit bis Aktion des letzten Versuchs',
   shop: 'Shop',
   ticketStatus: 'Status',
   priority: 'Priorität',
