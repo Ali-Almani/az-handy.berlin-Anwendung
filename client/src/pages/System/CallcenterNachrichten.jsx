@@ -344,7 +344,7 @@ function ChannelIcon({ channel }) {
   );
 }
 
-function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel }) {
+function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel, disabled = false }) {
   const value = migrateLeadTicketStatus(ticketStatus) === 'Erledigt'
     ? NACHRICHTEN_ERLEDIGT
     : normalizeNachrichtShop(shop);
@@ -356,6 +356,8 @@ function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel }
       onChange={(ev) => onChange?.(ev.target.value)}
       onClick={(ev) => ev.stopPropagation()}
       aria-label={ariaLabel || 'Filiale wählen'}
+      disabled={disabled}
+      title={disabled ? 'Zuerst Sprache, Rufnummer, O2 Kunde und Produkt wählen.' : undefined}
     >
       <option value="">Filiale?</option>
       {shops.map((opt) => (
@@ -498,6 +500,9 @@ const CallcenterNachrichten = ({
     || collectMitarbeiterNames(active)[0]
     || '—';
   const isManualTicket = isManualLeadTicket(active);
+  const filialeReady = ['sprache', 'rufnummer', 'o2Kunde', 'angebot'].every((field) =>
+    String(active?.[field] || '').trim()
+  );
 
   useEffect(() => {
     saveInboxNotiz(inboxNotiz);
@@ -725,6 +730,11 @@ const CallcenterNachrichten = ({
 
     const shop = normalizeNachrichtShop(value);
     if (!shop) return;
+    const source = (tickets || []).find((t) => t.id === id);
+    const ready = ['sprache', 'rufnummer', 'o2Kunde', 'angebot'].every((field) =>
+      String(source?.[field] || '').trim()
+    );
+    if (!ready) return;
     const assignShop = (ticket) => {
       const editor = sanitizeMitarbeiterName(agentName);
       const next = withMitarbeiter({
@@ -2170,6 +2180,7 @@ const CallcenterNachrichten = ({
                   shops={nachrichtShops}
                   onChange={(value) => handleStatusOrShop(active.id, value)}
                   ariaLabel="Filiale wählen"
+                  disabled={!filialeReady}
                 />
               </div>
             ) : null}
