@@ -1248,7 +1248,7 @@ const CallcenterNachrichten = ({
                 setMobileSide(isManualTicket ? '' : 'questions');
               }}
             >
-              Ticket
+              Ticket eröffnen
             </button>
           ) : null}
           {mobileSide !== 'list' ? (
@@ -1553,7 +1553,7 @@ const CallcenterNachrichten = ({
                             onOpenOffen?.();
                           }}
                         >
-                          Offen ({offenCount})
+                          Geöffnete Tickets ({offenCount})
                         </button>
                       ) : null}
                       {canOpenArchiv ? (
@@ -2112,7 +2112,7 @@ const CallcenterNachrichten = ({
           )}
         </div>
 
-        <aside className="sz-questions" aria-label="Ticket">
+        <aside className="sz-questions" aria-label="Ticket eröffnen">
             {isManualTicket ? (
             <div className="sz-questions-create">
                 <button
@@ -2125,7 +2125,7 @@ const CallcenterNachrichten = ({
             </div>
             ) : null}
             <div className="sz-questions-titlebar">
-              <h3 className="sz-questions-title">Ticket</h3>
+              <h3 className="sz-questions-title">Ticket eröffnen</h3>
               {canEditFragen && active ? (
               <div className="sz-questions-titlebar-actions sz-phone-hide">
               <button

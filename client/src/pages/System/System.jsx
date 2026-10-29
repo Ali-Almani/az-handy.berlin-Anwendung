@@ -103,7 +103,7 @@ function TicketingSectionMenu({
           </button>
           {canSeeOffen ? (
             <button type="button" role="menuitem" className={itemClass('offen')} onClick={() => choose('offen')}>
-              Offen ({offenCount})
+              Geöffnete Tickets ({offenCount})
             </button>
           ) : null}
           {canManage ? (
@@ -616,7 +616,7 @@ const System = () => {
               setArchivSearch('');
             }}
           >
-            Offen ({offenCount})
+            Geöffnete Tickets ({offenCount})
           </button>
         ) : null}
         {canManageVorvertrag ? (
