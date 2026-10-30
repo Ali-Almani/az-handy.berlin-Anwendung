@@ -62,12 +62,28 @@ export const getProductFull = (item) => {
 /**
  * Gleiche Tab-Version. „17“ und „17T“ werden schon in extractXiaomiModelLine
  * auf „17T“ gelegt. „17T Pro“ und „Note 17 Pro“ bleiben eigene Tabs.
- * iPhone 16e bleibt getrennt von 16.
+ * iPhone 16e und 17e bleiben getrennt von 16 und 17. iPhone Air ist ein eigener Tab neben 18.
  */
 export const productVersionMatches = (productVersion, activeVersion) => {
   if (!activeVersion) return true;
   if (!productVersion) return false;
   return String(productVersion).toLowerCase() === String(activeVersion).toLowerCase();
+};
+
+/** Tab-Reihenfolge: 17, dann 17e, 18, dann Air direkt daneben. */
+export const compareProductVersions = (a, b) => {
+  const rank = (version) => {
+    const value = String(version ?? '').trim();
+    if (/^air$/i.test(value)) return 18.5;
+    const num = parseInt(value, 10);
+    if (Number.isNaN(num)) return null;
+    if (/e$/i.test(value)) return num + 0.1;
+    return num;
+  };
+  const left = rank(a);
+  const right = rank(b);
+  if (left != null && right != null && left !== right) return left - right;
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
 };
 
 const rowBlob = (productName, item) => {
@@ -131,6 +147,13 @@ export const extractProductVersion = (productName, item = null) => {
     if (watchSeriesMatch) return watchSeriesMatch[1];
     return '';
   }
+
+  const iphoneText = /\biphone\b/i.test(productStr)
+    ? productStr
+    : (/\biphone\b/i.test(rowBlob(productStr, item)) ? rowBlob(productStr, item) : '');
+  if (iphoneText && /\bair\b/i.test(iphoneText)) return 'Air';
+  const iPhoneEMatch = iphoneText.match(/iphone[\s\-_]*(\d+)\s*e\b/i);
+  if (iPhoneEMatch) return `${iPhoneEMatch[1]}e`;
 
   // iPhone: optionales Buchstabensuffix direkt nach der Versionszahl (z. B. „16e“, „13c“).
   // So werden „iPhone 16“ und „iPhone 16e“ getrennte Version-/Tab-Zeilen, nicht zusammen unter „16 / Standard“.

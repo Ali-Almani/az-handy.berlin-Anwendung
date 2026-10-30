@@ -65,7 +65,7 @@ export const getZustandData = (imeis, rowActions, { getManufacturer, getProductF
     const productFull = gpf(item);
     let productName = getProductToVersion(item, gpf);
     if (productName) {
-      productName = productName.replace(/\s*ultramarin\s*/gi, ' ').replace(/ultramarin/gi, '').replace(/(\d+)e\b/gi, '$1').replace(/\s+/g, ' ').trim().replace(/^iphone\s+/i, 'iPhone ');
+      productName = productName.replace(/\s*ultramarin\s*/gi, ' ').replace(/ultramarin/gi, '').replace(/\s+/g, ' ').trim().replace(/^iphone\s+/i, 'iPhone ');
     }
 
     const variant = epv(productFull) || '';

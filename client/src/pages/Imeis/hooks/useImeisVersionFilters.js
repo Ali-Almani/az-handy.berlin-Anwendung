@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { isAppleManufacturerName, isAppleWatchProductFull, productVersionMatches } from '../utils/imeisProductUtils';
+import { compareProductVersions, isAppleManufacturerName, isAppleWatchProductFull, productVersionMatches } from '../utils/imeisProductUtils';
 
 const convertToGB = (gbStr) => {
   const value = parseInt(gbStr.replace(/[^\d]/g, '')) || 0;
@@ -72,12 +72,7 @@ export function useImeisVersionFilters({
       const version = extractProductVersion(productFull, item);
       if (version) versions.add(version);
     });
-    const versionsArray = Array.from(versions).sort((a, b) => {
-      const numA = parseInt(a, 10);
-      const numB = parseInt(b, 10);
-      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB;
-      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-    });
+    const versionsArray = Array.from(versions).sort(compareProductVersions);
     setAvailableVersions(versionsArray);
 
     if (activeVersion) {
