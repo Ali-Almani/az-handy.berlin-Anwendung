@@ -952,219 +952,15 @@ export function nextLeadId(tickets = [], date = new Date(), channel = 'facebook'
   return formatLeadId(short, dateKey, max + 1);
 }
 
-const SEED_LEADS = [
-  {
-    id: 'FB310826001',
-    channel: 'facebook',
-    customerName: 'Fatima Kaya',
-    handle: '+49 176 8821 4410',
-    rufnummer: '+49 176 8821 4410',
-    o2Kunde: 'Ja',
-    angebot: 'Gold',
-    produktNotiz: '10 in 1',
-    stadt: 'Berlin',
-    marketingNotiz: '',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Callcenter',
-    nachrichtArt: 'angebot',
-    unread: true,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T08:10:00.000Z',
-    messages: [
-      {
-        id: 'cc-001-1',
-        from: 'customer',
-        text: 'Hallo, ich interessiere mich für das Gold-Angebot (10 in 1). Geht das in Berlin?',
-        at: '2026-08-31T08:10:00.000Z'
-      }
-    ]
-  },
-  {
-    id: 'IG310826002',
-    channel: 'instagram',
-    customerName: 'Mehmet Özdemir',
-    handle: '@mehmet.oz',
-    rufnummer: '',
-    o2Kunde: 'Nein',
-    angebot: 'Sonstiges',
-    produktNotiz: 'MacBookNeo13',
-    stadt: 'Brandenburg',
-    marketingNotiz: '',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Orten',
-    nachrichtArt: 'angebot',
-    unread: true,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T08:18:00.000Z',
-    messages: [
-      {
-        id: 'cc-002-1',
-        from: 'customer',
-        text: 'Hi, habt ihr das MacBook Neo 13 noch? Ich komme aus Brandenburg.',
-        at: '2026-08-31T08:18:00.000Z'
-      }
-    ]
-  },
-  {
-    id: 'FB310826003',
-    channel: 'facebook',
-    customerName: 'Lisa Weber',
-    handle: '+49 163 5512 9088',
-    rufnummer: '+49 163 5512 9088',
-    o2Kunde: 'Ja',
-    angebot: 'S26 Ultra',
-    produktNotiz: 'S26',
-    stadt: 'außerhalb Berlin',
-    marketingNotiz: '',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Callcenter',
-    nachrichtArt: 'allgemeineInfo',
-    unread: false,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T08:25:00.000Z',
-    messages: [
-      {
-        id: 'cc-003-1',
-        from: 'customer',
-        text: 'S26 Ultra noch da? Ich wohne außerhalb von Berlin.',
-        at: '2026-08-31T08:25:00.000Z'
-      },
-      {
-        id: 'cc-003-2',
-        from: 'agent',
-        authorName: 'Büro Zentrale',
-        text: 'Guten Tag, wir prüfen das und legen Ihnen gern einen Termin an. Welcher Shop passt?',
-        at: '2026-08-31T08:32:00.000Z'
-      }
-    ]
-  },
-  {
-    id: 'TT310826004',
-    channel: 'tiktok',
-    customerName: 'Nisa Yildiz',
-    handle: '@nisa.shop',
-    rufnummer: '',
-    o2Kunde: 'Ja',
-    angebot: 'IP 17 Pro Max',
-    produktNotiz: '17ProMax',
-    stadt: 'Berlin',
-    marketingNotiz: '',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Orten',
-    nachrichtArt: 'angebot',
-    unread: true,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T08:40:00.000Z',
-    messages: [
-      {
-        id: 'cc-004-1',
-        from: 'customer',
-        text: 'Unter eurem Video: iPhone 17 Pro Max – könnt ihr in Berlin reservieren?',
-        at: '2026-08-31T08:40:00.000Z'
-      }
-    ]
-  },
-  {
-    id: 'FB310826005',
-    channel: 'facebook',
-    customerName: 'Kai Hartmann',
-    handle: '+49 157 3340 2291',
-    rufnummer: '',
-    o2Kunde: 'Nein',
-    angebot: 'DSL',
-    produktNotiz: 'dsl',
-    stadt: 'Bayern',
-    marketingNotiz: '',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Callcenter',
-    nachrichtArt: 'beschwerde',
-    unread: true,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T09:05:00.000Z',
-    messages: [
-      {
-        id: 'cc-005-1',
-        from: 'customer',
-        text: 'Geht bei euch auch DSL, wenn ich in Bayern bin?',
-        at: '2026-08-31T09:05:00.000Z'
-      }
-    ]
-  },
-  {
-    id: 'WA310826007',
-    channel: 'whatsapp',
-    customerName: 'Aylin Demir',
-    handle: '+49 151 8823 4401',
-    rufnummer: '+49 151 8823 4401',
-    o2Kunde: 'Nein',
-    angebot: 'Gold',
-    produktNotiz: '10 in 1',
-    stadt: 'Berlin',
-    marketingNotiz: '',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Callcenter',
-    nachrichtArt: 'angebot',
-    unread: true,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T09:35:00.000Z',
-    messages: [
-      {
-        id: 'cc-007-1',
-        from: 'customer',
-        text: 'Hallo, ich habe eure WhatsApp-Nummer. Ist das Gold-Angebot noch verfügbar?',
-        at: '2026-08-31T09:35:00.000Z'
-      },
-      {
-        id: 'cc-007-voice',
-        from: 'customer',
-        text: '',
-        voiceDemo: true,
-        duration: 2,
-        at: '2026-08-31T09:36:00.000Z'
-      }
-    ]
-  },
-  {
-    id: 'IG310826006',
-    channel: 'instagram',
-    customerName: 'Sara Müller',
-    handle: '@sara.mueller.bln',
-    rufnummer: '',
-    o2Kunde: 'Ja',
-    angebot: 'SIM Only',
-    produktNotiz: '10in1 Deal 40€ mtl.',
-    stadt: 'Baden-Württemberg',
-    marketingNotiz: 'weil er seine bekannte zu uns',
-    terminDatum: '',
-    terminZeit: '',
-    shop: '',
-    ticketStatus: 'Orten',
-    nachrichtArt: 'allgemeineInfo',
-    unread: false,
-    mitarbeiterName: '',
-    createdAt: '2026-08-31T09:20:00.000Z',
-    messages: [
-      {
-        id: 'cc-006-1',
-        from: 'customer',
-        text: 'SIM Only 10in1 Deal 40€ – eine Bekannte hat euch empfohlen. Wann Termin?',
-        at: '2026-08-31T09:20:00.000Z'
-      }
-    ]
-  }
-];
+const DEMO_LEAD_IDS = new Set([
+  'FB310826001',
+  'IG310826002',
+  'FB310826003',
+  'TT310826004',
+  'FB310826005',
+  'IG310826006',
+  'WA310826007'
+]);
 
 const CUSTOMER_VOICE_DEMO_ID = 'cc-007-voice';
 
@@ -1216,8 +1012,24 @@ function hydrateVoiceMessage(message) {
   };
 }
 
-function cloneSeed() {
-  return JSON.parse(JSON.stringify(SEED_LEADS));
+function isDemoLeadTicket(ticket) {
+  const id = String(ticket?.id || '');
+  if (isLiveWhatsAppTicket(ticket) || id.startsWith('WA-')) return false;
+  if (DEMO_LEAD_IDS.has(id)) return true;
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  if (!messages.length) return false;
+  return messages.every((message) => {
+    const messageId = String(message?.id || '');
+    return message?.voiceDemo || messageId === CUSTOMER_VOICE_DEMO_ID || /^cc-00\d/.test(messageId);
+  });
+}
+
+function withoutDemoMessages(ticket) {
+  const messages = (Array.isArray(ticket?.messages) ? ticket.messages : []).filter((message) => {
+    const messageId = String(message?.id || '');
+    return messageId !== CUSTOMER_VOICE_DEMO_ID && !message?.voiceDemo && !/^cc-00\d/.test(messageId);
+  });
+  return { ...ticket, messages };
 }
 
 export function leadToNeuEntry(lead) {
@@ -1273,52 +1085,23 @@ function hydrateLeadTicket(t) {
   };
 }
 
-function ensureWhatsAppSeed(tickets) {
-  if (tickets.some((t) => normalizeSocialChannel(t.channel) === 'whatsapp')) return tickets;
-  const waSeed = SEED_LEADS.find((t) => normalizeSocialChannel(t.channel) === 'whatsapp');
-  return waSeed ? [...tickets, hydrateLeadTicket(waSeed)] : tickets;
-}
-
-function ensureCustomerVoiceDemo(tickets) {
-  if (tickets.some((t) => (t.messages || []).some((m) => m.id === CUSTOMER_VOICE_DEMO_ID))) {
-    return tickets;
-  }
-  const index = tickets.findIndex((t) => t.id === 'WA310826007');
-  const fallback = index >= 0 ? index : tickets.findIndex((t) => normalizeSocialChannel(t.channel) === 'whatsapp');
-  if (fallback < 0) return tickets;
-  const next = tickets.slice();
-  const ticket = next[fallback];
-  next[fallback] = {
-    ...ticket,
-    messages: [
-      ...(ticket.messages || []),
-      hydrateVoiceMessage({
-        id: CUSTOMER_VOICE_DEMO_ID,
-        from: 'customer',
-        text: '',
-        voiceDemo: true,
-        duration: 2,
-        at: '2026-08-31T09:36:00.000Z'
-      })
-    ]
-  };
-  return next;
-}
-
 export function loadLeadTickets() {
   try {
     const raw = localStorage.getItem(LEAD_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return ensureCustomerVoiceDemo(ensureWhatsAppSeed(parsed.map(hydrateLeadTicket)))
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(hydrateLeadTicket)
+          .filter((ticket) => !isDemoLeadTicket(ticket))
+          .map(withoutDemoMessages)
           .map(withFirstMessageAutoReply);
       }
     }
   } catch {
-    /* Store ungültig – Seed verwenden */
+    /* Store ungültig */
   }
-  return ensureCustomerVoiceDemo(cloneSeed().map(hydrateLeadTicket)).map(withFirstMessageAutoReply);
+  return [];
 }
 
 export function saveLeadTickets(tickets) {
