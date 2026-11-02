@@ -13,6 +13,18 @@ if (!String(process.env.GEMINI_API_KEY || '').trim()) {
   const fromRoot = String(rootEnv.parsed?.GEMINI_API_KEY || '').trim();
   if (fromRoot) process.env.GEMINI_API_KEY = fromRoot;
 }
+for (const key of [
+  'WHATSAPP_TOKEN',
+  'WHATSAPP_PHONE_NUMBER_ID',
+  'WHATSAPP_BUSINESS_ACCOUNT_ID',
+  'WHATSAPP_APP_SECRET',
+  'WHATSAPP_VERIFY_TOKEN'
+]) {
+  if (!String(process.env[key] || '').trim()) {
+    const fromRoot = String(rootEnv.parsed?.[key] || '').trim();
+    if (fromRoot) process.env[key] = fromRoot;
+  }
+}
 
 // Persistenz immer aktivieren (Daten bleiben nach Neustart) – außer explizit 'false' in .env
 if (process.env.PERSIST_MEMORY_DATA !== 'false') {

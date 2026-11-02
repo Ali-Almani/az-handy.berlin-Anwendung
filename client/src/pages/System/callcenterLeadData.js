@@ -149,8 +149,19 @@ function isWelcomeAutoReply(message) {
   return message?.auto === 'welcome' || String(message?.id || '').startsWith('auto-welcome-');
 }
 
+export function isLiveWhatsAppTicket(ticket) {
+  return Boolean(ticket?.liveWhatsApp || ticket?.waId);
+}
+
+export function mergeWhatsAppTickets(local, remote) {
+  const list = Array.isArray(local) ? local : [];
+  const cloud = Array.isArray(remote) ? remote : [];
+  const others = list.filter((t) => normalizeSocialChannel(t.channel) !== 'whatsapp' && !isLiveWhatsAppTicket(t));
+  return [...others, ...cloud.map((t) => hydrateLeadTicket({ ...t, liveWhatsApp: true }))];
+}
+
 export function withFirstMessageAutoReply(ticket) {
-  if (!ticket) return ticket;
+  if (!ticket || isLiveWhatsAppTicket(ticket)) return ticket;
   const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
   const firstCustomerAt = messages.findIndex((m) => m?.from === 'customer');
   if (firstCustomerAt < 0) return ticket;
@@ -1256,7 +1267,9 @@ function hydrateLeadTicket(t) {
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
-    editLog: Array.isArray(t?.editLog) ? t.editLog : []
+    editLog: Array.isArray(t?.editLog) ? t.editLog : [],
+    liveWhatsApp: Boolean(t?.liveWhatsApp || t?.waId),
+    waId: String(t?.waId || '').trim()
   };
 }
 

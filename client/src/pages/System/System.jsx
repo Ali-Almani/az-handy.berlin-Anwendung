@@ -15,6 +15,7 @@ import {
   updateVorvertragTicketStatusApi,
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
+import { listWhatsAppTicketsApi } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -41,7 +42,9 @@ import {
   isLeadEntry,
   isLeadInNeu,
   leadToNeuEntry,
+  isLiveWhatsAppTicket,
   loadLeadTickets,
+  mergeWhatsAppTickets,
   migrateLeadTicketStatus,
   saveLeadTickets,
   sanitizeMitarbeiterName,
@@ -219,6 +222,47 @@ const System = () => {
   useEffect(() => {
     saveLeadTickets(leadTickets);
   }, [leadTickets]);
+
+  useEffect(() => {
+    let on = true;
+    const applyRemote = (remote) => {
+      if (!on) return;
+      setLeadTickets((prev) => mergeWhatsAppTickets(prev, remote));
+    };
+    const load = async () => {
+      try {
+        const res = await listWhatsAppTicketsApi();
+        if (!res?.configured) return;
+        applyRemote(res.tickets || []);
+      } catch {
+        /* Demo-Postfach bleibt */
+      }
+    };
+    load();
+    const socket = getSocket();
+    const onInbox = (ticket) => {
+      if (!ticket?.id) return;
+      setLeadTickets((prev) => {
+        const cloud = [
+          ticket,
+          ...prev.filter((t) => isLiveWhatsAppTicket(t) && t.id !== ticket.id && t.waId !== ticket.waId)
+        ];
+        return mergeWhatsAppTickets(prev, cloud);
+      });
+    };
+    const onDeleted = (payload) => {
+      const id = payload?.id;
+      if (!id) return;
+      setLeadTickets((prev) => prev.filter((t) => t.id !== id));
+    };
+    socket?.on?.('whatsapp:inbox', onInbox);
+    socket?.on?.('whatsapp:deleted', onDeleted);
+    return () => {
+      on = false;
+      socket?.off?.('whatsapp:inbox', onInbox);
+      socket?.off?.('whatsapp:deleted', onDeleted);
+    };
+  }, []);
 
   useEffect(() => {
     const name = sanitizeMitarbeiterName(defaultMitarbeiter);

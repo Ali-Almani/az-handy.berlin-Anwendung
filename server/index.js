@@ -48,7 +48,13 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+  limit: '50mb',
+  verify: (req, _res, buf) => {
+    const pathOnly = String(req.originalUrl || req.url || '').split('?')[0];
+    if (pathOnly === '/api/whatsapp/webhook') req.rawBody = Buffer.from(buf);
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.get('/api/health', (req, res) => {
@@ -61,7 +67,9 @@ app.get('/api/health', (req, res) => {
     useMemoryDb: process.env.USE_MEMORY_DB === 'true',
     jwtSecretConfigured: !!(secret != null && String(secret).trim() !== ''),
     geminiConfigured: !!(process.env.GEMINI_API_KEY && String(process.env.GEMINI_API_KEY).trim().replace(/^["']|["']$/g, '')),
-    apiPatchLevel: 6,
+    whatsappConfigured: !!(process.env.WHATSAPP_TOKEN && String(process.env.WHATSAPP_TOKEN).trim()
+      && process.env.WHATSAPP_PHONE_NUMBER_ID && String(process.env.WHATSAPP_PHONE_NUMBER_ID).trim()),
+    apiPatchLevel: 7,
     copyHistoryRetentionDays: parseInt(process.env.COPY_HISTORY_RETENTION_DAYS || '4', 10) || 4,
     cluster: {
       pid: process.pid,
@@ -83,6 +91,7 @@ const mountRoutes = async () => {
   const imeisRoutes = (await import('./routes/imeis.routes.js')).default;
   const formularCenterRoutes = (await import('./routes/formularCenter.routes.js')).default;
   const vorvertragRoutes = (await import('./routes/vorvertrag.routes.js')).default;
+  const whatsappRoutes = (await import('./routes/whatsapp.routes.js')).default;
   const auditLogRoutes = (await import('./routes/auditLog.routes.js')).default;
 
   app.use('/api/auth', authRoutes);
@@ -92,6 +101,7 @@ const mountRoutes = async () => {
   app.use('/api/imeis', imeisRoutes);
   app.use('/api/formular-center', formularCenterRoutes);
   app.use('/api/vorvertrag', vorvertragRoutes);
+  app.use('/api/whatsapp', whatsappRoutes);
   app.use('/api/audit-logs', auditLogRoutes);
 
   app.use((req, res) => {

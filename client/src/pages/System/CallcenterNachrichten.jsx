@@ -35,6 +35,7 @@ import {
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
   isLeadArchived,
+  isLiveWhatsAppTicket,
   leadPhoneNumber,
   looksLikePhoneNumber,
   telHrefFromPhone,
@@ -47,6 +48,11 @@ import {
   saveInboxAnweisungApi,
   translateInboxTextApi
 } from '../../services/vorvertrag.service';
+import {
+  deleteWhatsAppTicketApi,
+  patchWhatsAppTicketApi,
+  sendWhatsAppTextApi
+} from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import './System.scss';
 import './CallcenterNachrichten.scss';
@@ -432,6 +438,7 @@ const CallcenterNachrichten = ({
   const ignoreRecordRef = useRef(false);
   const anweisungSkipSave = useRef(true);
   const anweisungDirty = useRef(false);
+  const waPatchTimer = useRef(null);
   const onAnweisungUnreadRef = useRef(onAnweisungUnreadChange);
   onAnweisungUnreadRef.current = onAnweisungUnreadChange;
   const list = tickets || [];
@@ -660,7 +667,35 @@ const CallcenterNachrichten = ({
   }, [list, channel]);
 
   const patchTicket = (id, updater) => {
-    onTicketsChange?.((prev) => prev.map((t) => (t.id === id ? withFirstMessageAutoReply(updater(t)) : t)));
+    onTicketsChange?.((prev) => prev.map((t) => {
+      if (t.id !== id) return t;
+      const next = withFirstMessageAutoReply(updater(t));
+      if (isLiveWhatsAppTicket(next)) {
+        window.clearTimeout(waPatchTimer.current);
+        const payload = {
+          shop: next.shop,
+          unread: next.unread,
+          ticketStatus: next.ticketStatus,
+          sprache: next.sprache,
+          rufnummer: next.rufnummer,
+          customerName: next.customerName,
+          o2Kunde: next.o2Kunde,
+          angebot: next.angebot,
+          produktNotiz: next.produktNotiz,
+          stadt: next.stadt,
+          marketingNotiz: next.marketingNotiz,
+          terminDatum: next.terminDatum,
+          terminZeit: next.terminZeit,
+          nachrichtArt: next.nachrichtArt,
+          mitarbeiterName: next.mitarbeiterName,
+          priority: next.priority
+        };
+        waPatchTimer.current = window.setTimeout(() => {
+          patchWhatsAppTicketApi(id, payload).catch(() => {});
+        }, 400);
+      }
+      return next;
+    }));
   };
 
   const noteAgentTyping = () => {
@@ -986,6 +1021,37 @@ const CallcenterNachrichten = ({
     const images = pendingImages.map(({ id, src }) => ({ id, src }));
     const voices = pendingVoice ? [{ id: pendingVoice.id, src: pendingVoice.src, duration: pendingVoice.duration }] : [];
     if (!body && !images.length && !voices.length) return;
+    if (isLiveWhatsAppTicket(active)) {
+      if (!body) {
+        window.alert('WhatsApp-Bilder und Sprache folgen später. Bitte Text senden.');
+        return;
+      }
+      if (images.length || voices.length) {
+        window.alert('Bild und Sprache gehen über WhatsApp noch nicht mit. Der Text wird gesendet.');
+      }
+      setSending(true);
+      sendWhatsAppTextApi(active.id, body, agentName)
+        .then((data) => {
+          const ticket = data?.ticket;
+          if (ticket) {
+            onTicketsChange?.((prev) => prev.map((t) => (t.id === ticket.id ? ticket : t)));
+          }
+          setDraft('');
+          setDraftPrev('');
+          setDraftTranslateError('');
+          setPendingImages([]);
+          setPendingVoice(null);
+        })
+        .catch((err) => {
+          window.alert(err?.response?.data?.message || 'WhatsApp-Nachricht konnte nicht gesendet werden.');
+        })
+        .finally(() => {
+          setSending(false);
+          setTicketTyping(active.id, 'agent', false);
+          composerRef.current?.focus();
+        });
+      return;
+    }
     setSending(true);
     const message = {
       id: `local-${Date.now()}`,
@@ -1118,6 +1184,9 @@ const CallcenterNachrichten = ({
     const alsoListed = shopAssignsTicket(ticket.shop) || isLeadArchived(ticket);
     const extra = alsoListed ? ' Er verschwindet damit auch aus Offen bzw. Archiv.' : '';
     if (!window.confirm(`${name} wirklich komplett aus dem Postfach löschen?${extra}`)) return;
+    if (isLiveWhatsAppTicket(ticket)) {
+      deleteWhatsAppTicketApi(ticket.id).catch(() => {});
+    }
     onTicketsChange?.((prev) => (prev || []).filter((t) => t.id !== ticket.id));
     if (activeId === ticket.id) {
       setActiveId(null);
