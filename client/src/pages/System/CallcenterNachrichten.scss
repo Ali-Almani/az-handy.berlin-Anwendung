@@ -1207,6 +1207,9 @@
 
 .sz-composer-field {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
 }
 
 .sz-mention {
@@ -1348,10 +1351,11 @@
 
 .sz-composer-input {
   width: 100%;
-  min-height: 6rem;
+  min-height: 4.4rem;
   padding-top: 0.65rem;
-  padding-right: 9.6rem;
-  padding-bottom: 2.55rem;
+  padding-right: $spacing-md;
+  padding-bottom: 0.45rem;
+  padding-left: $spacing-md;
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -1366,8 +1370,8 @@
 
   &--rtl {
     padding-right: $spacing-md;
-    padding-left: 11.2rem;
-    padding-bottom: 2.45rem;
+    padding-left: $spacing-md;
+    padding-bottom: 0.45rem;
     text-align: right;
     font-size: 1rem;
   }
@@ -1382,36 +1386,46 @@
 }
 
 .sz-composer-actions {
-  position: absolute;
-  right: 0.65rem;
-  bottom: 0.35rem;
+  position: static;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.15rem 0.55rem 0.45rem;
+  z-index: 2;
 }
 
 .sz-composer-field--rtl .sz-composer-actions {
   right: auto;
-  left: 0.65rem;
-  bottom: 0.4rem;
+  left: auto;
+  flex-direction: row;
+  justify-content: flex-end;
 }
 
 .sz-send {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.15rem;
+  gap: 0.3rem;
+  min-width: 2.15rem;
   height: 2.15rem;
-  padding: 0;
+  padding: 0 0.7rem;
   border: 0;
   border-radius: 6px;
   background: $primary-color;
   color: #fff;
   cursor: pointer;
+  flex-shrink: 0;
 
   svg {
     width: 1.05rem;
     height: 1.05rem;
+  }
+
+  .sz-send-label {
+    font-size: 0.82rem;
+    font-weight: $font-weight-medium;
+    line-height: 1;
   }
 
   &:hover:not(:disabled) {
@@ -1428,6 +1442,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   width: 2.15rem;
   height: 2.15rem;
   padding: 0;
@@ -2041,9 +2056,11 @@
   }
 
   .sz-composer-input {
-    min-height: 5.2rem;
+    min-height: 3.6rem;
     padding-top: 0.55rem;
-    padding-bottom: 2.15rem;
+    padding-bottom: 0.35rem;
+    padding-right: $spacing-md;
+    padding-left: $spacing-md;
   }
 
   .sz-composer-field--selection .sz-composer-input {
@@ -2059,12 +2076,22 @@
   }
 
   .sz-composer-actions {
-    right: 0.7rem;
-    bottom: 0.5rem;
+    position: static;
+    right: auto;
+    bottom: auto;
+    justify-content: flex-end;
+    padding: 0.1rem 0.5rem 0.4rem;
+    gap: 0.45rem;
   }
 
   .sz-composer-field--rtl .sz-composer-actions {
-    left: 0.85rem;
-    bottom: 0.55rem;
+    left: auto;
+    bottom: auto;
+    justify-content: flex-end;
+  }
+
+  .sz-send {
+    min-width: 4.6rem;
+    height: 2.35rem;
   }
 }

@@ -511,6 +511,7 @@ const CallcenterNachrichten = ({
   const [pendingFiles, setPendingFiles] = useState([]);
   const [pendingVoice, setPendingVoice] = useState(null);
   const [recording, setRecording] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const [recordSecs, setRecordSecs] = useState(0);
   const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
@@ -542,6 +543,9 @@ const CallcenterNachrichten = ({
   const recordTimerRef = useRef(null);
   const recordSecsRef = useRef(0);
   const ignoreRecordRef = useRef(false);
+  const draftRef = useRef('');
+  const sendTextRef = useRef(() => false);
+  draftRef.current = draft;
   const anweisungSkipSave = useRef(true);
   const anweisungDirty = useRef(false);
   const waPatchTimer = useRef(null);
@@ -829,6 +833,7 @@ const CallcenterNachrichten = ({
     clearPendingFiles(setPendingFiles);
     setPendingVoice(null);
     setRecording(false);
+    setVoiceBusy(false);
     setRecordSecs(0);
     window.clearInterval(recordTimerRef.current);
     ignoreRecordRef.current = true;
@@ -1002,6 +1007,7 @@ const CallcenterNachrichten = ({
     setPendingImages([]);
     clearPendingFiles(setPendingFiles);
     setPendingVoice(null);
+    setVoiceBusy(false);
     setFragenOpen(false);
     setChipEditing(false);
     setTemplateEditing(false);
@@ -1108,12 +1114,17 @@ const CallcenterNachrichten = ({
     const rec = mediaRecorderRef.current;
     if (rec && rec.state !== 'inactive') rec.stop();
     setRecording(false);
+    setVoiceBusy(true);
   };
 
   const toggleRecording = async () => {
-    if (sending) return;
+    if (sending || voiceBusy) return;
     if (recording) {
       stopRecording();
+      return;
+    }
+    if (pendingVoice) {
+      sendTextRef.current?.(draft, { voice: pendingVoice });
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -1138,18 +1149,26 @@ const CallcenterNachrichten = ({
         if (ignoreRecordRef.current) {
           ignoreRecordRef.current = false;
           setRecording(false);
+          setVoiceBusy(false);
           return;
         }
         if (blob.size < 800) {
           setRecording(false);
+          setVoiceBusy(false);
           return;
         }
+        setVoiceBusy(true);
         try {
           const voice = await blobToVoice(blob, recordSecsRef.current);
           setPendingVoice(voice);
           noteAgentTyping();
+          const sent = sendTextRef.current?.(draftRef.current, { voice });
+          if (!sent) setVoiceBusy(false);
         } catch (err) {
           window.alert(err?.message || 'Aufnahme konnte nicht gespeichert werden.');
+          setVoiceBusy(false);
+        } finally {
+          setRecording(false);
         }
       };
       mediaRecorderRef.current = rec;
@@ -1172,16 +1191,17 @@ const CallcenterNachrichten = ({
     }
   };
 
-  const sendText = (text) => {
-    if (!active || sending) return;
+  const sendText = (text, extra = {}) => {
+    if (!active || sending) return false;
     const body = String(text || '').trim();
     const images = pendingImages.map(({ id, src }) => ({ id, src }));
-    const voices = pendingVoice ? [{ id: pendingVoice.id, src: pendingVoice.src, duration: pendingVoice.duration }] : [];
+    const voice = extra.voice || pendingVoice;
+    const voices = voice ? [{ id: voice.id, src: voice.src, duration: voice.duration }] : [];
     const rawFiles = pendingFiles.filter((file) => file.rawFile);
     const files = pendingFiles
       .filter((file) => !file.rawFile)
       .map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind }));
-    if (!body && !images.length && !voices.length && !files.length && !rawFiles.length) return;
+    if (!body && !images.length && !voices.length && !files.length && !rawFiles.length) return false;
     if (isLiveWhatsAppTicket(active)) {
       setSending(true);
       (async () => {
@@ -1224,10 +1244,11 @@ const CallcenterNachrichten = ({
         })
         .finally(() => {
           setSending(false);
+          setVoiceBusy(false);
           setTicketTyping(active.id, 'agent', false);
-          composerRef.current?.focus();
+          if (!voice) composerRef.current?.focus();
         });
-      return;
+      return true;
     }
     setSending(true);
     const message = {
@@ -1258,6 +1279,7 @@ const CallcenterNachrichten = ({
       clearPendingFiles(setPendingFiles);
       setPendingVoice(null);
       setSending(false);
+      setVoiceBusy(false);
       setTicketTyping(active.id, 'agent', false);
       window.clearTimeout(agentTypingTimer.current);
       window.clearTimeout(customerTypingTimer.current);
@@ -1271,7 +1293,9 @@ const CallcenterNachrichten = ({
       }, 900);
       composerRef.current?.focus();
     }, 220);
+    return true;
   };
+  sendTextRef.current = sendText;
 
   const sendReply = () => sendText(draft);
 
@@ -2290,7 +2314,10 @@ const CallcenterNachrichten = ({
                   </div>
                 ) : null}
                 {recording ? (
-                  <p className="sz-recording">Aufnahme… {formatVoiceDuration(recordSecs)}</p>
+                  <p className="sz-recording">Aufnahme… {formatVoiceDuration(recordSecs)} — erneut tippen zum Senden</p>
+                ) : null}
+                {voiceBusy && !recording ? (
+                  <p className="sz-recording">Sprachnachricht wird vorbereitet…</p>
                 ) : null}
                 <div className={`sz-composer-field${composerRtl ? ' sz-composer-field--rtl' : ''}${draftSelection?.text ? ' sz-composer-field--selection' : ''}${draftTranslateError ? ' sz-composer-field--translate-error' : ''}`}>
                   {draftSelection?.text || draftPrev || draftTranslateError ? (
@@ -2303,7 +2330,7 @@ const CallcenterNachrichten = ({
                             type="button"
                             className="sz-lang-btn"
                             onClick={() => translateDraftSelection(item.id)}
-                            disabled={sending || recording || Boolean(translatingId)}
+                            disabled={sending || recording || voiceBusy || Boolean(translatingId)}
                             aria-label={`Nach ${item.sprache} übersetzen`}
                           >
                             {translatingId === 'draft' ? '…' : item.short}
@@ -2358,7 +2385,7 @@ const CallcenterNachrichten = ({
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
                     placeholder={chatLocale === 'ar' ? 'اكتب الرد' : chatLocale === 'en' ? 'Write a reply' : 'Antwort schreiben'}
-                    disabled={sending}
+                    disabled={sending || voiceBusy}
                     dir={composerRtl ? 'rtl' : 'ltr'}
                     lang={composerRtl ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
@@ -2386,7 +2413,7 @@ const CallcenterNachrichten = ({
                       type="button"
                       className="sz-attach-btn"
                       onClick={() => imageInputRef.current?.click()}
-                      disabled={sending || recording}
+                      disabled={sending || recording || voiceBusy}
                       aria-label="Bild, Video oder PDF senden"
                       title="Bild, Video oder PDF"
                     >
@@ -2401,9 +2428,9 @@ const CallcenterNachrichten = ({
                       type="button"
                       className={`sz-attach-btn${recording ? ' sz-attach-btn--recording' : ''}`}
                       onClick={toggleRecording}
-                      disabled={sending}
-                      aria-label={recording ? 'Aufnahme stoppen' : 'Sprachnachricht senden'}
-                      title={recording ? 'Aufnahme stoppen' : 'Sprachnachricht senden'}
+                      disabled={sending || voiceBusy}
+                      aria-label={recording ? 'Aufnahme stoppen und senden' : pendingVoice ? 'Sprachnachricht senden' : 'Sprachnachricht aufnehmen'}
+                      title={recording ? 'Aufnahme stoppen und senden' : pendingVoice ? 'Sprachnachricht senden' : 'Sprachnachricht aufnehmen'}
                     >
                       <svg viewBox="0 0 24 24" aria-hidden>
                         <path
@@ -2424,13 +2451,14 @@ const CallcenterNachrichten = ({
                       type="button"
                       className="sz-send"
                       onClick={sendReply}
-                      disabled={sending || recording || (!draft.trim() && pendingImages.length === 0 && !pendingVoice && pendingFiles.length === 0)}
+                      disabled={sending || recording || voiceBusy || (!draft.trim() && pendingImages.length === 0 && !pendingVoice && pendingFiles.length === 0)}
                       aria-label="Senden"
                       title="Senden"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden>
                         <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                       </svg>
+                      <span className="sz-send-label">Senden</span>
                     </button>
                   </div>
                 </div>
