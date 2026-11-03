@@ -16,6 +16,7 @@ import {
   findWhatsAppTicket,
   findTicketInState,
   sendOutgoingParts,
+  sendOutgoingSavedFile,
   sendWelcomeIfNeeded,
   downloadWhatsAppMedia,
   resolveWhatsAppFile,
@@ -287,6 +288,40 @@ export async function sendWhatsAppTicketMessage(req, res) {
     return res.status(err?.status === 400 ? 400 : 502).json({
       success: false,
       message: err?.detail || 'WhatsApp-Nachricht konnte nicht gesendet werden.'
+    });
+  }
+}
+
+export async function sendWhatsAppTicketMedia(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  if (!whatsappConfigured()) {
+    return res.status(503).json({ success: false, message: 'WhatsApp ist nicht eingerichtet.' });
+  }
+  const ticket = findWhatsAppTicket(req.params.id);
+  if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  if (!req.file?.path) {
+    return res.status(400).json({ success: false, message: 'Keine Datei empfangen.' });
+  }
+  const text = String(req.body?.text ?? '').trim();
+  const authorName = String(req.body?.authorName || req.user?.name || 'Zentrale').trim();
+  const kind = String(req.body?.kind || '').trim();
+  try {
+    const part = await sendOutgoingSavedFile(ticket.waId, {
+      filePath: req.file.path,
+      mime: req.file.mimetype,
+      name: req.file.originalname || req.file.filename,
+      kind,
+      text
+    });
+    const message = { ...part, authorName };
+    const state = await appendOutgoingMessage(ticket.id, message, { mitarbeiterName: authorName });
+    const next = findTicketInState(state, ticket.id) || findWhatsAppTicket(ticket.id);
+    req.app.get('io')?.emit('whatsapp:inbox', next);
+    return res.json({ success: true, ticket: next });
+  } catch (err) {
+    return res.status(err?.status === 400 ? 400 : 502).json({
+      success: false,
+      message: err?.detail || 'WhatsApp-Datei konnte nicht gesendet werden.'
     });
   }
 }

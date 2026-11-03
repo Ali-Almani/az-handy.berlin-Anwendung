@@ -4,6 +4,12 @@ import path from 'path';
 import { getDataDir } from './filePersistence.js';
 import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
 import { prepareWhatsAppAudio } from './whatsappAudio.js';
+import {
+  WHATSAPP_FILE_MAX_BYTES,
+  WHATSAPP_NATIVE_VIDEO_MAX_BYTES
+} from '../middleware/whatsappMediaUpload.js';
+
+export { WHATSAPP_FILE_MAX_BYTES, WHATSAPP_NATIVE_VIDEO_MAX_BYTES };
 
 const FILE = 'whatsapp-inbox.json';
 const DEFAULT = () => ({ tickets: [] });
@@ -112,19 +118,22 @@ function graphError(payload, fallback) {
 
 function extForMime(mime, fallback = '.bin') {
   const m = String(mime || '').toLowerCase();
+  if (m.startsWith('video/')) {
+    if (m.includes('3gpp') || m.includes('3gp')) return '.3gp';
+    if (m.includes('quicktime')) return '.mov';
+    return '.mp4';
+  }
   if (m.includes('jpeg') || m.includes('jpg')) return '.jpg';
   if (m.includes('png')) return '.png';
   if (m.includes('webp')) return '.webp';
   if (m.includes('gif')) return '.gif';
   if (m.includes('ogg')) return '.ogg';
   if (m.includes('mpeg') || m.includes('mp3')) return '.mp3';
-  if (m.includes('mp4') || m.includes('m4a') || m.includes('aac')) return '.m4a';
+  if (m.includes('m4a') || m.includes('aac') || m === 'audio/mp4') return '.m4a';
   if (m.includes('webm')) return '.webm';
   if (m.includes('wav')) return '.wav';
   if (m.includes('amr')) return '.amr';
   if (m.includes('pdf')) return '.pdf';
-  if (m.includes('3gpp') || m.includes('3gp')) return '.3gp';
-  if (m.includes('mp4') || m.includes('quicktime')) return '.mp4';
   return fallback;
 }
 
@@ -194,7 +203,7 @@ export async function uploadWhatsAppMedia(buffer, mime, filename) {
   if (!token || !phoneId) throw graphError({}, 'WhatsApp ist nicht eingerichtet.');
   const type = String(mime || 'application/octet-stream').split(';')[0].trim() || 'application/octet-stream';
   const name = filename || `upload${extForMime(type)}`;
-  const bytes = Uint8Array.from(buffer);
+  const bytes = buffer instanceof Uint8Array ? buffer : Buffer.from(buffer);
   const file = typeof File === 'function'
     ? new File([bytes], name, { type })
     : new Blob([bytes], { type });
@@ -208,8 +217,84 @@ export async function uploadWhatsAppMedia(buffer, mime, filename) {
     body: form
   });
   const payload = await res.json().catch(() => ({}));
-  if (!res.ok || !payload?.id) throw graphError(payload, 'whatsapp_media');
+  if (!res.ok || !payload?.id) {
+    const msg = String(payload?.error?.message || '');
+    if (/too large|file size|16\s*mb|100\s*mb|131053/i.test(msg)) {
+      throw graphError(payload, 'Datei ist für WhatsApp zu groß.');
+    }
+    throw graphError(payload, 'whatsapp_media');
+  }
   return String(payload.id);
+}
+
+function looksLikeVideoFile({ mime, name, kind } = {}) {
+  return String(kind || '').toLowerCase() === 'video'
+    || String(mime || '').toLowerCase().startsWith('video/')
+    || /\.(mp4|mov|3gp|3gpp)$/i.test(String(name || ''));
+}
+
+export async function sendOutgoingSavedFile(toWaId, { filePath, mime, name, kind, text } = {}) {
+  const full = path.resolve(String(filePath || ''));
+  if (!full || !fs.existsSync(full)) throw graphError({}, 'Datei nicht gefunden.');
+  const size = fs.statSync(full).size;
+  if (size > WHATSAPP_FILE_MAX_BYTES) {
+    const err = graphError({}, 'Datei darf höchstens 100 MB groß sein.');
+    err.status = 400;
+    throw err;
+  }
+  const buffer = fs.readFileSync(full);
+  const filename = String(name || path.basename(full) || 'Datei').trim() || 'Datei';
+  const isVideo = looksLikeVideoFile({ mime, name: filename, kind });
+  const nativeVideo = isVideo && size <= WHATSAPP_NATIVE_VIDEO_MAX_BYTES;
+  const uploadType = nativeVideo
+    ? uploadMime(mime, 'video')
+    : isVideo
+      ? (String(mime || '').split(';')[0].trim() || 'video/mp4')
+      : uploadMime(mime, 'document');
+  let mediaId;
+  try {
+    mediaId = await uploadWhatsAppMedia(buffer, uploadType, filename);
+  } catch (err) {
+    if (isVideo && !nativeVideo) {
+      const friendly = graphError({}, 'WhatsApp spielt Videos nur bis 16 MB ab. Größere Videos (bis 100 MB) gehen als Datei – wenn WhatsApp ablehnt, bitte kürzer aufnehmen oder komprimieren.');
+      friendly.status = 400;
+      throw friendly;
+    }
+    throw err;
+  }
+  const caption = String(text || '').trim();
+  const savedName = path.basename(full);
+  const src = `/api/whatsapp/files/${savedName}`;
+  const at = new Date().toISOString();
+  if (nativeVideo) {
+    const id = await sendWhatsAppVideo(toWaId, mediaId, caption);
+    return {
+      id,
+      from: 'agent',
+      text: caption,
+      videos: [{ id: savedName, src, name: filename }],
+      at
+    };
+  }
+  try {
+    const id = await sendWhatsAppDocument(toWaId, mediaId, filename, caption);
+    const part = {
+      id,
+      from: 'agent',
+      text: caption,
+      files: [{ id: savedName, src, name: filename, mime: uploadType }],
+      at
+    };
+    if (isVideo) part.videos = [{ id: savedName, src, name: filename }];
+    return part;
+  } catch (err) {
+    if (isVideo) {
+      const friendly = graphError({}, 'WhatsApp spielt Videos nur bis 16 MB ab. Größere Videos (bis 100 MB) gehen als Datei – wenn WhatsApp ablehnt, bitte kürzer aufnehmen oder komprimieren.');
+      friendly.status = 400;
+      throw friendly;
+    }
+    throw err;
+  }
 }
 
 export function loadWhatsAppTickets() {

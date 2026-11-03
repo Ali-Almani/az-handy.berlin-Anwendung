@@ -16,6 +16,20 @@ export const sendWhatsAppMessageApi = async (ticketId, { text, images, voices, f
   return res.data;
 };
 
+export const sendWhatsAppMediaFileApi = async (ticketId, { file, text, authorName, kind } = {}) => {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('text', text || '');
+  form.append('authorName', authorName || '');
+  form.append('kind', kind || '');
+  const res = await api.post(
+    `/whatsapp/tickets/${encodeURIComponent(ticketId)}/media`,
+    form,
+    { timeout: 300000 }
+  );
+  return res.data;
+};
+
 export const sendWhatsAppTextApi = async (ticketId, text, authorName) => (
   sendWhatsAppMessageApi(ticketId, { text, authorName })
 );

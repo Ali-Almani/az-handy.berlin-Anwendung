@@ -53,6 +53,7 @@ import {
   deleteWhatsAppMessageApi,
   deleteWhatsAppTicketApi,
   patchWhatsAppTicketApi,
+  sendWhatsAppMediaFileApi,
   sendWhatsAppMessageApi
 } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
@@ -75,6 +76,25 @@ function formatListTime(iso) {
 }
 
 const MAX_MESSAGE_IMAGES = 6;
+const MAX_WHATSAPP_FILE_BYTES = 100 * 1024 * 1024;
+
+function revokePendingFile(file) {
+  const src = String(file?.src || '');
+  if (src.startsWith('blob:')) {
+    try {
+      URL.revokeObjectURL(src);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function clearPendingFiles(setter) {
+  setter((prev) => {
+    (prev || []).forEach(revokePendingFile);
+    return [];
+  });
+}
 
 function publicMediaSrc(src) {
   const s = String(src || '').trim();
@@ -806,7 +826,7 @@ const CallcenterNachrichten = ({
     setDraftPrev('');
     setDraftTranslateError('');
     setPendingImages([]);
-    setPendingFiles([]);
+    clearPendingFiles(setPendingFiles);
     setPendingVoice(null);
     setRecording(false);
     setRecordSecs(0);
@@ -980,7 +1000,7 @@ const CallcenterNachrichten = ({
     setActiveId(null);
     setDraft('');
     setPendingImages([]);
-    setPendingFiles([]);
+    clearPendingFiles(setPendingFiles);
     setPendingVoice(null);
     setFragenOpen(false);
     setChipEditing(false);
@@ -1038,26 +1058,28 @@ const CallcenterNachrichten = ({
     }
     const extra = [];
     for (const file of videos) {
-      if (file.size > 16 * 1024 * 1024) {
-        window.alert('Video darf höchstens 16 MB groß sein.');
+      if (file.size > MAX_WHATSAPP_FILE_BYTES) {
+        window.alert('Video darf höchstens 100 MB groß sein.');
         continue;
       }
       extra.push({
         id: `vid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        src: await readBlobAsDataUrl(file),
+        src: URL.createObjectURL(file),
+        rawFile: file,
         name: file.name || 'video.mp4',
         mime: file.type || 'video/mp4',
         kind: 'video'
       });
     }
     for (const file of pdfs) {
-      if (file.size > 20 * 1024 * 1024) {
-        window.alert('PDF darf höchstens 20 MB groß sein.');
+      if (file.size > MAX_WHATSAPP_FILE_BYTES) {
+        window.alert('PDF darf höchstens 100 MB groß sein.');
         continue;
       }
       extra.push({
         id: `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        src: await readBlobAsDataUrl(file),
+        src: URL.createObjectURL(file),
+        rawFile: file,
         name: file.name || 'Datei.pdf',
         mime: file.type || 'application/pdf',
         kind: 'pdf'
@@ -1155,29 +1177,48 @@ const CallcenterNachrichten = ({
     const body = String(text || '').trim();
     const images = pendingImages.map(({ id, src }) => ({ id, src }));
     const voices = pendingVoice ? [{ id: pendingVoice.id, src: pendingVoice.src, duration: pendingVoice.duration }] : [];
-    const files = pendingFiles.map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind }));
-    if (!body && !images.length && !voices.length && !files.length) return;
+    const rawFiles = pendingFiles.filter((file) => file.rawFile);
+    const files = pendingFiles
+      .filter((file) => !file.rawFile)
+      .map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind }));
+    if (!body && !images.length && !voices.length && !files.length && !rawFiles.length) return;
     if (isLiveWhatsAppTicket(active)) {
       setSending(true);
-      sendWhatsAppMessageApi(active.id, {
-        text: body,
-        images,
-        voices,
-        files,
-        authorName: agentName
-      })
-        .then((data) => {
-          const ticket = data?.ticket;
-          if (ticket) {
-            onTicketsChange?.((prev) => prev.map((t) => (t.id === ticket.id ? ticket : t)));
-          }
-          setDraft('');
-          setDraftPrev('');
-          setDraftTranslateError('');
-          setPendingImages([]);
-          setPendingFiles([]);
-          setPendingVoice(null);
-        })
+      (async () => {
+        let ticket = active;
+        let captionUsed = false;
+        for (const file of rawFiles) {
+          const caption = !captionUsed && body && !images.length && !voices.length ? body : '';
+          const data = await sendWhatsAppMediaFileApi(active.id, {
+            file: file.rawFile,
+            text: caption,
+            authorName: agentName,
+            kind: file.kind
+          });
+          if (caption) captionUsed = true;
+          if (data?.ticket) ticket = data.ticket;
+        }
+        const restText = captionUsed ? '' : body;
+        if (restText || images.length || voices.length || files.length) {
+          const data = await sendWhatsAppMessageApi(active.id, {
+            text: restText,
+            images,
+            voices,
+            files,
+            authorName: agentName
+          });
+          if (data?.ticket) ticket = data.ticket;
+        }
+        if (ticket) {
+          onTicketsChange?.((prev) => prev.map((t) => (t.id === ticket.id ? ticket : t)));
+        }
+        setDraft('');
+        setDraftPrev('');
+        setDraftTranslateError('');
+        setPendingImages([]);
+        clearPendingFiles(setPendingFiles);
+        setPendingVoice(null);
+      })()
         .catch((err) => {
           window.alert(err?.response?.data?.message || 'WhatsApp-Nachricht konnte nicht gesendet werden.');
         })
@@ -1196,8 +1237,12 @@ const CallcenterNachrichten = ({
       text: body,
       images,
       voices,
-      videos: files.filter((file) => file.kind === 'video'),
-      files: files.filter((file) => file.kind !== 'video'),
+      videos: pendingFiles
+        .filter((file) => file.kind === 'video')
+        .map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind })),
+      files: pendingFiles
+        .filter((file) => file.kind !== 'video')
+        .map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind })),
       at: new Date().toISOString()
     };
     window.setTimeout(() => {
@@ -1210,7 +1255,7 @@ const CallcenterNachrichten = ({
       setDraftPrev('');
       setDraftTranslateError('');
       setPendingImages([]);
-      setPendingFiles([]);
+      clearPendingFiles(setPendingFiles);
       setPendingVoice(null);
       setSending(false);
       setTicketTyping(active.id, 'agent', false);
@@ -1354,7 +1399,7 @@ const CallcenterNachrichten = ({
         setActiveId(null);
         setDraft('');
         setPendingImages([]);
-        setPendingFiles([]);
+        clearPendingFiles(setPendingFiles);
         setPendingVoice(null);
         setMobileShowChat(false);
         setMobileSide('');
@@ -2219,7 +2264,10 @@ const CallcenterNachrichten = ({
                         <button
                           type="button"
                           className="sz-pending-remove"
-                          onClick={() => setPendingFiles((prev) => prev.filter((item) => item.id !== file.id))}
+                          onClick={() => setPendingFiles((prev) => {
+                            revokePendingFile(file);
+                            return prev.filter((item) => item.id !== file.id);
+                          })}
                           aria-label="Datei entfernen"
                         >
                           ×
