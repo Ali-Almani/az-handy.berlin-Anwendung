@@ -776,6 +776,48 @@
   }
 }
 
+.sz-bubble-videos {
+  margin-bottom: 0.35rem;
+}
+
+.sz-bubble-video {
+  display: block;
+  width: 16rem;
+  max-width: 100%;
+  border-radius: 8px;
+  background: #111;
+}
+
+.sz-bubble-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.35rem;
+}
+
+.sz-bubble-file {
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+}
+
+.sz-pending-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sz-pending-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
 .sz-bubble-text {
   margin: 0;
   font-size: 0.9rem;

@@ -114,6 +114,8 @@ async function messageFromWhatsApp(item) {
     text: '',
     images: [],
     voices: [],
+    videos: [],
+    files: [],
     at,
     waType: type
   };
@@ -131,9 +133,25 @@ async function messageFromWhatsApp(item) {
     if (saved?.src) message.voices = [{ id: saved.id, src: saved.src }];
     else message.text = '[Sprachnachricht]';
   } else if (type === 'video') {
-    message.text = String(item?.video?.caption || '').trim() || '[Video]';
+    const media = item?.video || {};
+    message.text = String(media.caption || '').trim();
+    const saved = await downloadWhatsAppMedia(media.id, 'video');
+    if (saved?.src) message.videos = [{ id: saved.id, src: saved.src, name: 'video.mp4' }];
+    else if (!message.text) message.text = '[Video]';
   } else if (type === 'document') {
-    message.text = String(item?.document?.filename || item?.document?.caption || '[Datei]').trim();
+    const media = item?.document || {};
+    message.text = String(media.caption || '').trim();
+    const saved = await downloadWhatsAppMedia(media.id, 'document');
+    if (saved?.src) {
+      message.files = [{
+        id: saved.id,
+        src: saved.src,
+        name: String(media.filename || 'Datei').trim() || 'Datei',
+        mime: saved.mime
+      }];
+    } else if (!message.text) {
+      message.text = String(media.filename || '[Datei]').trim();
+    }
   } else if (type === 'location') {
     message.text = '[Standort]';
   } else if (type === 'reaction' || type === 'unsupported') {
@@ -141,7 +159,13 @@ async function messageFromWhatsApp(item) {
   } else {
     message.text = `[${type}]`;
   }
-  if (!message.text && !(message.images || []).length && !(message.voices || []).length) return null;
+  if (
+    !message.text
+    && !(message.images || []).length
+    && !(message.voices || []).length
+    && !(message.videos || []).length
+    && !(message.files || []).length
+  ) return null;
   return message;
 }
 
@@ -195,6 +219,10 @@ export function serveWhatsAppFile(req, res) {
     : ext === '.m4a' ? 'audio/mp4'
     : ext === '.webm' ? 'audio/webm'
     : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+    : ext === '.pdf' ? 'application/pdf'
+    : ext === '.mp4' ? 'video/mp4'
+    : ext === '.3gp' ? 'video/3gpp'
+    : ext === '.mov' ? 'video/mp4'
     : 'application/octet-stream';
   res.type(mime);
   fs.createReadStream(full).pipe(res);
@@ -237,12 +265,13 @@ export async function sendWhatsAppTicketMessage(req, res) {
   const text = String(req.body?.text ?? '').trim();
   const images = Array.isArray(req.body?.images) ? req.body.images : [];
   const voices = Array.isArray(req.body?.voices) ? req.body.voices : [];
-  if (!text && !images.length && !voices.length) {
-    return res.status(400).json({ success: false, message: 'Kein Text, Bild oder Sprache.' });
+  const files = Array.isArray(req.body?.files) ? req.body.files : [];
+  if (!text && !images.length && !voices.length && !files.length) {
+    return res.status(400).json({ success: false, message: 'Kein Text, Bild, Datei oder Sprache.' });
   }
   const authorName = String(req.body?.authorName || req.user?.name || 'Zentrale').trim();
   try {
-    const sent = await sendOutgoingParts(ticket.waId, { text, images, voices });
+    const sent = await sendOutgoingParts(ticket.waId, { text, images, voices, files });
     if (!sent.length) {
       return res.status(400).json({ success: false, message: 'Nichts zu senden.' });
     }

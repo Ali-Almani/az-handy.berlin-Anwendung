@@ -134,17 +134,76 @@ function formatVoiceDuration(seconds) {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function blobToVoice(blob, duration) {
+function writeWavString(view, offset, string) {
+  for (let i = 0; i < string.length; i += 1) view.setUint8(offset + i, string.charCodeAt(i));
+}
+
+function floatToWavBlob(samples, sampleRate) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  writeWavString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeWavString(view, 8, 'WAVE');
+  writeWavString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeWavString(view, 36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i += 1) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function downsampleMono(audioBuffer, outRate) {
+  const ch0 = audioBuffer.getChannelData(0);
+  const ch1 = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : null;
+  const ratio = audioBuffer.sampleRate / outRate;
+  const outLen = Math.max(1, Math.floor(ch0.length / ratio));
+  const out = new Float32Array(outLen);
+  for (let i = 0; i < outLen; i += 1) {
+    const idx = Math.min(ch0.length - 1, Math.floor(i * ratio));
+    out[i] = ch1 ? (ch0[idx] + ch1[idx]) / 2 : ch0[idx];
+  }
+  return out;
+}
+
+function readBlobAsDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Aufnahme konnte nicht gespeichert werden.'));
-    reader.onload = () => resolve({
-      id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      src: String(reader.result || ''),
-      duration
-    });
+    reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden.'));
+    reader.onload = () => resolve(String(reader.result || ''));
     reader.readAsDataURL(blob);
   });
+}
+
+async function blobToVoice(blob, duration) {
+  let wav = blob;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (Ctx && blob) {
+      const ctx = new Ctx();
+      const audioBuf = await ctx.decodeAudioData(await blob.arrayBuffer());
+      wav = floatToWavBlob(downsampleMono(audioBuf, 16000), 16000);
+      await ctx.close().catch(() => {});
+    }
+  } catch {
+    wav = blob;
+  }
+  const src = await readBlobAsDataUrl(wav);
+  return {
+    id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    src,
+    duration
+  };
 }
 
 function VoicePlayer({ voice }) {
@@ -210,10 +269,24 @@ function linkifyText(text) {
   });
 }
 
+function messageFiles(message) {
+  return (Array.isArray(message?.files) ? message.files : [])
+    .map((file) => (file ? { ...file, src: publicMediaSrc(file.src) } : file))
+    .filter((file) => file && file.src);
+}
+
+function messageVideos(message) {
+  return (Array.isArray(message?.videos) ? message.videos : [])
+    .map((video) => (video ? { ...video, src: publicMediaSrc(video.src) } : video))
+    .filter((video) => video && video.src);
+}
+
 function messagePreview(message) {
   const text = String(message?.text || '').trim();
   if (text) return text;
   if (messageVoices(message).length) return 'Sprachnachricht';
+  if (messageVideos(message).length) return 'Video';
+  if (messageFiles(message).length) return messageFiles(message)[0].name || 'PDF';
   const count = messageImages(message).length;
   if (count > 1) return `${count} Bilder`;
   if (count === 1) return 'Bild';
@@ -415,6 +488,7 @@ const CallcenterNachrichten = ({
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
   const [pendingImages, setPendingImages] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [pendingVoice, setPendingVoice] = useState(null);
   const [recording, setRecording] = useState(false);
   const [recordSecs, setRecordSecs] = useState(0);
@@ -732,6 +806,7 @@ const CallcenterNachrichten = ({
     setDraftPrev('');
     setDraftTranslateError('');
     setPendingImages([]);
+    setPendingFiles([]);
     setPendingVoice(null);
     setRecording(false);
     setRecordSecs(0);
@@ -905,6 +980,7 @@ const CallcenterNachrichten = ({
     setActiveId(null);
     setDraft('');
     setPendingImages([]);
+    setPendingFiles([]);
     setPendingVoice(null);
     setFragenOpen(false);
     setChipEditing(false);
@@ -946,11 +1022,51 @@ const CallcenterNachrichten = ({
   };
 
   const handleOwnImages = async (ev) => {
-    const images = await addImageFiles(ev.target.files);
+    const files = Array.from(ev.target.files || []);
     ev.target.value = '';
-    if (!images.length) return;
-    setPendingImages((prev) => [...prev, ...images].slice(0, MAX_MESSAGE_IMAGES));
-    noteAgentTyping();
+    if (!files.length) return;
+    const images = files.filter((file) => String(file.type || '').startsWith('image/'));
+    const videos = files.filter((file) => String(file.type || '').startsWith('video/'));
+    const pdfs = files.filter((file) => {
+      const type = String(file.type || '').toLowerCase();
+      const name = String(file.name || '').toLowerCase();
+      return type === 'application/pdf' || name.endsWith('.pdf');
+    });
+    if (images.length) {
+      const ready = await addImageFiles(images);
+      if (ready.length) setPendingImages((prev) => [...prev, ...ready].slice(0, MAX_MESSAGE_IMAGES));
+    }
+    const extra = [];
+    for (const file of videos) {
+      if (file.size > 16 * 1024 * 1024) {
+        window.alert('Video darf höchstens 16 MB groß sein.');
+        continue;
+      }
+      extra.push({
+        id: `vid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        src: await readBlobAsDataUrl(file),
+        name: file.name || 'video.mp4',
+        mime: file.type || 'video/mp4',
+        kind: 'video'
+      });
+    }
+    for (const file of pdfs) {
+      if (file.size > 20 * 1024 * 1024) {
+        window.alert('PDF darf höchstens 20 MB groß sein.');
+        continue;
+      }
+      extra.push({
+        id: `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        src: await readBlobAsDataUrl(file),
+        name: file.name || 'Datei.pdf',
+        mime: file.type || 'application/pdf',
+        kind: 'pdf'
+      });
+    }
+    if (extra.length) {
+      setPendingFiles((prev) => [...prev, ...extra].slice(0, 4));
+    }
+    if (images.length || extra.length) noteAgentTyping();
   };
 
   const handleComposerPaste = async (ev) => {
@@ -1020,7 +1136,7 @@ const CallcenterNachrichten = ({
       setRecordSecs(0);
       recordSecsRef.current = 0;
       setRecording(true);
-      rec.start();
+      rec.start(250);
       recordTimerRef.current = window.setInterval(() => {
         setRecordSecs((secs) => {
           const next = secs + 1;
@@ -1039,13 +1155,15 @@ const CallcenterNachrichten = ({
     const body = String(text || '').trim();
     const images = pendingImages.map(({ id, src }) => ({ id, src }));
     const voices = pendingVoice ? [{ id: pendingVoice.id, src: pendingVoice.src, duration: pendingVoice.duration }] : [];
-    if (!body && !images.length && !voices.length) return;
+    const files = pendingFiles.map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind }));
+    if (!body && !images.length && !voices.length && !files.length) return;
     if (isLiveWhatsAppTicket(active)) {
       setSending(true);
       sendWhatsAppMessageApi(active.id, {
         text: body,
         images,
         voices,
+        files,
         authorName: agentName
       })
         .then((data) => {
@@ -1057,6 +1175,7 @@ const CallcenterNachrichten = ({
           setDraftPrev('');
           setDraftTranslateError('');
           setPendingImages([]);
+          setPendingFiles([]);
           setPendingVoice(null);
         })
         .catch((err) => {
@@ -1077,6 +1196,8 @@ const CallcenterNachrichten = ({
       text: body,
       images,
       voices,
+      videos: files.filter((file) => file.kind === 'video'),
+      files: files.filter((file) => file.kind !== 'video'),
       at: new Date().toISOString()
     };
     window.setTimeout(() => {
@@ -1089,6 +1210,7 @@ const CallcenterNachrichten = ({
       setDraftPrev('');
       setDraftTranslateError('');
       setPendingImages([]);
+      setPendingFiles([]);
       setPendingVoice(null);
       setSending(false);
       setTicketTyping(active.id, 'agent', false);
@@ -1232,6 +1354,7 @@ const CallcenterNachrichten = ({
         setActiveId(null);
         setDraft('');
         setPendingImages([]);
+        setPendingFiles([]);
         setPendingVoice(null);
         setMobileShowChat(false);
         setMobileSide('');
@@ -1797,6 +1920,28 @@ const CallcenterNachrichten = ({
                         ))}
                       </div>
                     ) : null}
+                    {messageVideos(m).length ? (
+                      <div className="sz-bubble-videos">
+                        {messageVideos(m).map((video) => (
+                          <video key={video.id} className="sz-bubble-video" src={video.src} controls playsInline preload="metadata" />
+                        ))}
+                      </div>
+                    ) : null}
+                    {messageFiles(m).length ? (
+                      <div className="sz-bubble-files">
+                        {messageFiles(m).map((file) => (
+                          <a
+                            key={file.id}
+                            className="sz-bubble-file"
+                            href={file.src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {file.name || 'PDF'}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
                     {m.text ? (
                       <p
                         className={`sz-bubble-text${m.locale === 'ar' ? ' sz-bubble-text--rtl' : ''}`}
@@ -2066,6 +2211,23 @@ const CallcenterNachrichten = ({
                     ))}
                   </div>
                 ) : null}
+                {pendingFiles.length ? (
+                  <div className="sz-pending-files">
+                    {pendingFiles.map((file) => (
+                      <div key={file.id} className="sz-pending-file">
+                        <span>{file.kind === 'video' ? 'Video' : 'PDF'}: {file.name}</span>
+                        <button
+                          type="button"
+                          className="sz-pending-remove"
+                          onClick={() => setPendingFiles((prev) => prev.filter((item) => item.id !== file.id))}
+                          aria-label="Datei entfernen"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 {pendingVoice ? (
                   <div className="sz-pending-voice">
                     <VoicePlayer voice={pendingVoice} />
@@ -2177,8 +2339,8 @@ const CallcenterNachrichten = ({
                       className="sz-attach-btn"
                       onClick={() => imageInputRef.current?.click()}
                       disabled={sending || recording}
-                      aria-label="Bild senden"
-                      title="Bild senden"
+                      aria-label="Bild, Video oder PDF senden"
+                      title="Bild, Video oder PDF"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden>
                         <path
@@ -2205,7 +2367,7 @@ const CallcenterNachrichten = ({
                     <input
                       ref={imageInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/mp4,video/quicktime,.pdf,application/pdf"
                       multiple
                       hidden
                       onChange={handleOwnImages}
@@ -2214,7 +2376,7 @@ const CallcenterNachrichten = ({
                       type="button"
                       className="sz-send"
                       onClick={sendReply}
-                      disabled={sending || recording || (!draft.trim() && pendingImages.length === 0 && !pendingVoice)}
+                      disabled={sending || recording || (!draft.trim() && pendingImages.length === 0 && !pendingVoice && pendingFiles.length === 0)}
                       aria-label="Senden"
                       title="Senden"
                     >

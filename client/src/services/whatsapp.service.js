@@ -5,13 +5,14 @@ export const listWhatsAppTicketsApi = async () => {
   return res.data;
 };
 
-export const sendWhatsAppMessageApi = async (ticketId, { text, images, voices, authorName } = {}) => {
+export const sendWhatsAppMessageApi = async (ticketId, { text, images, voices, files, authorName } = {}) => {
   const res = await api.post(`/whatsapp/tickets/${encodeURIComponent(ticketId)}/messages`, {
     text,
     images,
     voices,
+    files,
     authorName
-  }, { timeout: 60000 });
+  }, { timeout: 120000 });
   return res.data;
 };
 

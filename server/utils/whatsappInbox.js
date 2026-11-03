@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { getDataDir } from './filePersistence.js';
 import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
+import { prepareWhatsAppAudio } from './whatsappAudio.js';
 
 const FILE = 'whatsapp-inbox.json';
 const DEFAULT = () => ({ tickets: [] });
@@ -121,6 +122,9 @@ function extForMime(mime, fallback = '.bin') {
   if (m.includes('webm')) return '.webm';
   if (m.includes('wav')) return '.wav';
   if (m.includes('amr')) return '.amr';
+  if (m.includes('pdf')) return '.pdf';
+  if (m.includes('3gpp') || m.includes('3gp')) return '.3gp';
+  if (m.includes('mp4') || m.includes('quicktime')) return '.mp4';
   return fallback;
 }
 
@@ -142,7 +146,8 @@ function ensureMediaDir() {
 
 function saveBuffer(buffer, mime, kind) {
   const dir = ensureMediaDir();
-  const ext = extForMime(mime, kind === 'audio' ? '.ogg' : '.jpg');
+  const fallback = kind === 'audio' ? '.ogg' : kind === 'video' ? '.mp4' : kind === 'document' ? '.pdf' : '.jpg';
+  const ext = extForMime(mime, fallback);
   const name = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
   fs.writeFileSync(path.join(dir, name), buffer);
   return {
@@ -356,6 +361,28 @@ export async function sendWhatsAppAudio(toWaId, mediaId) {
   });
 }
 
+export async function sendWhatsAppVideo(toWaId, mediaId, caption = '') {
+  const video = { id: mediaId };
+  const cap = String(caption || '').trim();
+  if (cap) video.caption = cap;
+  return sendGraphMessage({
+    to: normalizeWaId(toWaId),
+    type: 'video',
+    video
+  });
+}
+
+export async function sendWhatsAppDocument(toWaId, mediaId, filename, caption = '') {
+  const document = { id: mediaId, filename: String(filename || 'Datei.pdf').trim() || 'Datei.pdf' };
+  const cap = String(caption || '').trim();
+  if (cap) document.caption = cap;
+  return sendGraphMessage({
+    to: normalizeWaId(toWaId),
+    type: 'document',
+    document
+  });
+}
+
 export async function deleteCloudMessage(wamid) {
   const id = String(wamid || '').trim();
   if (!id || !id.startsWith('wamid.')) return false;
@@ -377,19 +404,26 @@ function uploadMime(raw, kind) {
     if (mime === 'image/png') return 'image/png';
     return 'image/jpeg';
   }
+  if (kind === 'video') {
+    if (mime.includes('3gpp') || mime.includes('3gp')) return 'video/3gpp';
+    return 'video/mp4';
+  }
+  if (kind === 'document') return mime.includes('pdf') ? 'application/pdf' : mime || 'application/pdf';
   if (mime === 'audio/ogg' || mime === 'audio/opus') return 'audio/ogg';
   if (mime === 'audio/mpeg' || mime === 'audio/mp3') return 'audio/mpeg';
   if (mime === 'audio/mp4' || mime === 'audio/aac' || mime === 'audio/m4a') return 'audio/mp4';
   if (mime === 'audio/amr') return 'audio/amr';
-  if (mime === 'audio/webm') return 'audio/ogg';
+  if (mime === 'audio/wav' || mime === 'audio/x-wav' || mime === 'audio/wave') return 'audio/wav';
+  if (mime === 'audio/webm') return 'audio/webm';
   return mime || (kind === 'audio' ? 'audio/ogg' : 'image/jpeg');
 }
 
-export async function sendOutgoingParts(toWaId, { text = '', images = [], voices = [] } = {}) {
+export async function sendOutgoingParts(toWaId, { text = '', images = [], voices = [], files = [] } = {}) {
   const sent = [];
   const body = String(text || '').trim();
   const pics = (Array.isArray(images) ? images : []).filter((img) => img && (img.src || img.url));
   const audios = (Array.isArray(voices) ? voices : []).filter((voice) => voice && (voice.src || voice.url));
+  const docs = (Array.isArray(files) ? files : []).filter((file) => file && (file.src || file.url));
   let captionUsed = false;
 
   for (let i = 0; i < pics.length; i += 1) {
@@ -416,21 +450,54 @@ export async function sendOutgoingParts(toWaId, { text = '', images = [], voices
   for (const voice of audios) {
     const parsed = parseDataUrl(voice.src || voice.url);
     if (!parsed) throw graphError({}, 'Sprachnachricht konnte nicht gelesen werden.');
-    const mime = uploadMime(parsed.mime, 'audio');
-    const mediaId = await uploadWhatsAppMedia(parsed.buffer, mime, `audio${extForMime(mime, '.ogg')}`);
+    const prepared = await prepareWhatsAppAudio(parsed.buffer, uploadMime(parsed.mime, 'audio'));
+    const mediaId = await uploadWhatsAppMedia(prepared.buffer, prepared.mime, `audio${extForMime(prepared.mime, '.mp3')}`);
     const id = await sendWhatsAppAudio(toWaId, mediaId);
-    const saved = saveBuffer(parsed.buffer, mime, 'audio');
+    const saved = saveBuffer(prepared.buffer, prepared.mime, 'audio');
     sent.push({
       id,
       from: 'agent',
       text: '',
       voices: [{
         id: saved.id,
-        src: String(voice.src || '').startsWith('data:') ? voice.src : saved.src,
+        src: saved.src,
         duration: voice.duration
       }],
       at: new Date().toISOString()
     });
+  }
+
+  for (const file of docs) {
+    const parsed = parseDataUrl(file.src || file.url);
+    if (!parsed) throw graphError({}, 'Datei konnte nicht gelesen werden.');
+    const kind = String(file.kind || '').toLowerCase() === 'video' || String(parsed.mime || '').startsWith('video/')
+      ? 'video'
+      : 'document';
+    const mime = uploadMime(parsed.mime || file.mime, kind);
+    const filename = String(file.name || (kind === 'video' ? 'video.mp4' : 'Datei.pdf')).trim() || 'Datei.pdf';
+    const mediaId = await uploadWhatsAppMedia(parsed.buffer, mime, filename);
+    const caption = !captionUsed && body ? body : '';
+    if (caption) captionUsed = true;
+    const saved = saveBuffer(parsed.buffer, mime, kind);
+    if (kind === 'video') {
+      const id = await sendWhatsAppVideo(toWaId, mediaId, caption);
+      sent.push({
+        id,
+        from: 'agent',
+        text: caption,
+        videos: [{ id: saved.id, src: saved.src, name: filename }],
+        at: new Date().toISOString()
+      });
+    } else {
+      const id = await sendWhatsAppDocument(toWaId, mediaId, filename, caption);
+      sent.push({
+        id,
+        from: 'agent',
+        text: caption,
+        files: [{ id: saved.id, src: saved.src, name: filename, mime }],
+        at: new Date().toISOString()
+      });
+    }
   }
 
   if (body && !captionUsed) {
