@@ -10,8 +10,13 @@ import {
   appendOutgoingMessage,
   patchWhatsAppTicket,
   deleteWhatsAppTicket,
+  deleteStoredMessage,
+  deleteCloudMessage,
   findWhatsAppTicket,
-  sendWhatsAppText,
+  findTicketInState,
+  sendOutgoingParts,
+  sendWelcomeIfNeeded,
+  downloadWhatsAppMedia,
   normalizeWaId
 } from '../utils/whatsappInbox.js';
 
@@ -94,27 +99,46 @@ export function verifyWhatsAppWebhook(req, res) {
   return res.sendStatus(403);
 }
 
-function messageFromWhatsApp(item) {
+async function messageFromWhatsApp(item) {
   const id = String(item?.id || `in-${Date.now()}`);
   const ts = Number(item?.timestamp);
   const at = Number.isFinite(ts) ? new Date(ts * 1000).toISOString() : new Date().toISOString();
   const type = String(item?.type || 'text');
-  let text = '';
-  if (type === 'text') text = String(item?.text?.body || '').trim();
-  else if (type === 'image') text = String(item?.image?.caption || '').trim() || '[Bild]';
-  else if (type === 'audio' || type === 'voice') text = '[Sprachnachricht]';
-  else if (type === 'video') text = String(item?.video?.caption || '').trim() || '[Video]';
-  else if (type === 'document') text = String(item?.document?.filename || item?.document?.caption || '[Datei]').trim();
-  else if (type === 'sticker') text = '[Sticker]';
-  else if (type === 'location') text = '[Standort]';
-  else text = `[${type}]`;
-  return {
+  const message = {
     id,
     from: 'customer',
-    text,
+    text: '',
+    images: [],
+    voices: [],
     at,
     waType: type
   };
+  if (type === 'text') {
+    message.text = String(item?.text?.body || '').trim();
+  } else if (type === 'image' || type === 'sticker') {
+    const media = item?.image || item?.sticker || {};
+    message.text = String(media.caption || '').trim();
+    const saved = await downloadWhatsAppMedia(media.id, 'image');
+    if (saved?.src) message.images = [{ id: saved.id, src: saved.src }];
+    else if (!message.text) message.text = '[Bild]';
+  } else if (type === 'audio' || type === 'voice') {
+    const media = item?.audio || item?.voice || {};
+    const saved = await downloadWhatsAppMedia(media.id, 'audio');
+    if (saved?.src) message.voices = [{ id: saved.id, src: saved.src }];
+    else message.text = '[Sprachnachricht]';
+  } else if (type === 'video') {
+    message.text = String(item?.video?.caption || '').trim() || '[Video]';
+  } else if (type === 'document') {
+    message.text = String(item?.document?.filename || item?.document?.caption || '[Datei]').trim();
+  } else if (type === 'location') {
+    message.text = '[Standort]';
+  } else if (type === 'reaction' || type === 'unsupported') {
+    return null;
+  } else {
+    message.text = `[${type}]`;
+  }
+  if (!message.text && !(message.images || []).length && !(message.voices || []).length) return null;
+  return message;
 }
 
 export async function receiveWhatsAppWebhook(req, io) {
@@ -131,10 +155,11 @@ export async function receiveWhatsAppWebhook(req, io) {
         const waId = normalizeWaId(item.from);
         if (!waId) continue;
         const name = String(contacts.find((c) => normalizeWaId(c.wa_id) === waId)?.profile?.name || '').trim();
-        const message = messageFromWhatsApp(item);
-        if (!message.text) continue;
+        const message = await messageFromWhatsApp(item);
+        if (!message) continue;
         const state = await upsertIncomingMessage({ waId, name, message });
-        const ticket = (state?.tickets || []).find((t) => t.waId === waId);
+        let ticket = findTicketInState(state, null, waId);
+        ticket = await sendWelcomeIfNeeded(ticket);
         if (ticket && io) io.emit('whatsapp:inbox', ticket);
       }
     }
@@ -176,20 +201,23 @@ export async function sendWhatsAppTicketMessage(req, res) {
   const ticket = findWhatsAppTicket(req.params.id);
   if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
   const text = String(req.body?.text ?? '').trim();
-  if (!text) return res.status(400).json({ success: false, message: 'Kein Text.' });
+  const images = Array.isArray(req.body?.images) ? req.body.images : [];
+  const voices = Array.isArray(req.body?.voices) ? req.body.voices : [];
+  if (!text && !images.length && !voices.length) {
+    return res.status(400).json({ success: false, message: 'Kein Text, Bild oder Sprache.' });
+  }
+  const authorName = String(req.body?.authorName || req.user?.name || 'Zentrale').trim();
   try {
-    const waMessageId = await sendWhatsAppText(ticket.waId, text);
-    const message = {
-      id: waMessageId,
-      from: 'agent',
-      authorName: String(req.body?.authorName || req.user?.name || 'Zentrale').trim(),
-      text,
-      at: new Date().toISOString()
-    };
-    const state = await appendOutgoingMessage(ticket.id, message, {
-      mitarbeiterName: message.authorName
-    });
-    const next = (state?.tickets || []).find((t) => t.id === ticket.id) || { ...ticket, messages: [...(ticket.messages || []), message] };
+    const sent = await sendOutgoingParts(ticket.waId, { text, images, voices });
+    if (!sent.length) {
+      return res.status(400).json({ success: false, message: 'Nichts zu senden.' });
+    }
+    let next = ticket;
+    for (const part of sent) {
+      const message = { ...part, authorName };
+      const state = await appendOutgoingMessage(ticket.id, message, { mitarbeiterName: authorName });
+      next = findTicketInState(state, ticket.id) || next;
+    }
     req.app.get('io')?.emit('whatsapp:inbox', next);
     return res.json({ success: true, ticket: next });
   } catch (err) {
@@ -198,6 +226,23 @@ export async function sendWhatsAppTicketMessage(req, res) {
       message: err?.detail || 'WhatsApp-Nachricht konnte nicht gesendet werden.'
     });
   }
+}
+
+export async function deleteWhatsAppMessageHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const ticket = findWhatsAppTicket(req.params.id);
+  if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  const messageId = String(req.params.messageId || '').trim();
+  const message = (ticket.messages || []).find((m) => m.id === messageId);
+  if (!message) return res.status(404).json({ success: false, message: 'Nachricht nicht gefunden.' });
+  if (message.from !== 'agent') {
+    return res.status(400).json({ success: false, message: 'Nur eigene Nachrichten können gelöscht werden.' });
+  }
+  await deleteCloudMessage(messageId);
+  const state = await deleteStoredMessage(ticket.id, messageId);
+  const next = findTicketInState(state, ticket.id) || { ...ticket, messages: (ticket.messages || []).filter((m) => m.id !== messageId) };
+  req.app.get('io')?.emit('whatsapp:inbox', next);
+  return res.json({ success: true, ticket: next });
 }
 
 export async function patchWhatsAppTicketHandler(req, res) {

@@ -157,7 +157,25 @@ export function mergeWhatsAppTickets(local, remote) {
   const list = Array.isArray(local) ? local : [];
   const cloud = Array.isArray(remote) ? remote : [];
   const others = list.filter((t) => normalizeSocialChannel(t.channel) !== 'whatsapp' && !isLiveWhatsAppTicket(t));
-  return [...others, ...cloud.map((t) => hydrateLeadTicket({ ...t, liveWhatsApp: true }))];
+  const prevById = new Map(list.filter(isLiveWhatsAppTicket).map((t) => [t.id, t]));
+  return [...others, ...cloud.map((raw) => {
+    const hydrated = hydrateLeadTicket({ ...raw, liveWhatsApp: true });
+    const prev = prevById.get(hydrated.id);
+    if (!prev) return hydrated;
+    return {
+      ...hydrated,
+      messages: (hydrated.messages || []).map((message) => {
+        const old = (prev.messages || []).find((item) => item.id === message.id);
+        if (!old?.translation) return message;
+        return {
+          ...message,
+          translation: old.translation,
+          translationLang: old.translationLang,
+          translationSourceLang: old.translationSourceLang
+        };
+      })
+    };
+  })];
 }
 
 export function withFirstMessageAutoReply(ticket) {

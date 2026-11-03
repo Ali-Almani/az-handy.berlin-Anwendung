@@ -49,9 +49,10 @@ import {
   translateInboxTextApi
 } from '../../services/vorvertrag.service';
 import {
+  deleteWhatsAppMessageApi,
   deleteWhatsAppTicketApi,
   patchWhatsAppTicketApi,
-  sendWhatsAppTextApi
+  sendWhatsAppMessageApi
 } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import './System.scss';
@@ -736,6 +737,11 @@ const CallcenterNachrichten = ({
   };
 
   useEffect(() => {
+    if (!active || !isLiveWhatsAppTicket(active) || !active.unread) return;
+    patchTicket(active.id, (t) => (t.unread ? { ...t, unread: false } : t));
+  }, [active?.id, active?.unread, active?.messages?.length]);
+
+  useEffect(() => {
     if (!openTicketId) return;
     openTicket(openTicketId);
     onOpened?.();
@@ -965,7 +971,7 @@ const CallcenterNachrichten = ({
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(
+      const mime = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(
         (type) => MediaRecorder.isTypeSupported(type)
       );
       const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
@@ -1022,15 +1028,13 @@ const CallcenterNachrichten = ({
     const voices = pendingVoice ? [{ id: pendingVoice.id, src: pendingVoice.src, duration: pendingVoice.duration }] : [];
     if (!body && !images.length && !voices.length) return;
     if (isLiveWhatsAppTicket(active)) {
-      if (!body) {
-        window.alert('WhatsApp-Bilder und Sprache folgen später. Bitte Text senden.');
-        return;
-      }
-      if (images.length || voices.length) {
-        window.alert('Bild und Sprache gehen über WhatsApp noch nicht mit. Der Text wird gesendet.');
-      }
       setSending(true);
-      sendWhatsAppTextApi(active.id, body, agentName)
+      sendWhatsAppMessageApi(active.id, {
+        text: body,
+        images,
+        voices,
+        authorName: agentName
+      })
         .then((data) => {
           const ticket = data?.ticket;
           if (ticket) {
@@ -1139,6 +1143,26 @@ const CallcenterNachrichten = ({
   const deleteMessage = (ticketId, message) => {
     if (!ticketId || !message?.id || message.from !== 'agent') return;
     if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
+    const ticket = (tickets || []).find((t) => t.id === ticketId);
+    if (isLiveWhatsAppTicket(ticket)) {
+      deleteWhatsAppMessageApi(ticketId, message.id)
+        .then((data) => {
+          const next = data?.ticket;
+          if (next) {
+            onTicketsChange?.((prev) => prev.map((t) => (t.id === next.id ? next : t)));
+            return;
+          }
+          onTicketsChange?.((prev) => prev.map((t) => (
+            t.id === ticketId
+              ? { ...t, messages: (t.messages || []).filter((m) => m.id !== message.id) }
+              : t
+          )));
+        })
+        .catch((err) => {
+          window.alert(err?.response?.data?.message || 'Nachricht konnte nicht gelöscht werden.');
+        });
+      return;
+    }
     patchTicket(ticketId, (t) => ({
       ...t,
       messages: (t.messages || []).filter((m) => m.id !== message.id)
@@ -1184,18 +1208,26 @@ const CallcenterNachrichten = ({
     const alsoListed = shopAssignsTicket(ticket.shop) || isLeadArchived(ticket);
     const extra = alsoListed ? ' Er verschwindet damit auch aus Offen bzw. Archiv.' : '';
     if (!window.confirm(`${name} wirklich komplett aus dem Postfach löschen?${extra}`)) return;
+    const removeLocal = () => {
+      onTicketsChange?.((prev) => (prev || []).filter((t) => t.id !== ticket.id));
+      if (activeId === ticket.id) {
+        setActiveId(null);
+        setDraft('');
+        setPendingImages([]);
+        setPendingVoice(null);
+        setMobileShowChat(false);
+        setMobileSide('');
+      }
+    };
     if (isLiveWhatsAppTicket(ticket)) {
-      deleteWhatsAppTicketApi(ticket.id).catch(() => {});
+      deleteWhatsAppTicketApi(ticket.id)
+        .then(removeLocal)
+        .catch((err) => {
+          window.alert(err?.response?.data?.message || 'Kunde konnte nicht gelöscht werden.');
+        });
+      return;
     }
-    onTicketsChange?.((prev) => (prev || []).filter((t) => t.id !== ticket.id));
-    if (activeId === ticket.id) {
-      setActiveId(null);
-      setDraft('');
-      setPendingImages([]);
-      setPendingVoice(null);
-      setMobileShowChat(false);
-      setMobileSide('');
-    }
+    removeLocal();
   };
 
   const mention = mentionAt(draft, cursorAt);

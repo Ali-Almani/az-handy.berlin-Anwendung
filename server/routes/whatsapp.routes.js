@@ -6,7 +6,8 @@ import {
   listWhatsAppTickets,
   sendWhatsAppTicketMessage,
   patchWhatsAppTicketHandler,
-  deleteWhatsAppTicketHandler
+  deleteWhatsAppTicketHandler,
+  deleteWhatsAppMessageHandler
 } from '../controllers/whatsapp.controller.js';
 
 const router = Router();
@@ -17,6 +18,7 @@ router.post('/webhook', handleWhatsAppWebhookPost);
 router.use(authenticateToken);
 router.get('/tickets', listWhatsAppTickets);
 router.post('/tickets/:id/messages', sendWhatsAppTicketMessage);
+router.delete('/tickets/:id/messages/:messageId', deleteWhatsAppMessageHandler);
 router.patch('/tickets/:id', patchWhatsAppTicketHandler);
 router.delete('/tickets/:id', deleteWhatsAppTicketHandler);
 

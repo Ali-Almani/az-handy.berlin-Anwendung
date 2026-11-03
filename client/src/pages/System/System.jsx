@@ -239,6 +239,7 @@ const System = () => {
       }
     };
     load();
+    const timer = window.setInterval(load, 4000);
     const socket = getSocket();
     const onInbox = (ticket) => {
       if (!ticket?.id) return;
@@ -255,10 +256,13 @@ const System = () => {
       if (!id) return;
       setLeadTickets((prev) => prev.filter((t) => t.id !== id));
     };
+    socket?.on?.('connect', load);
     socket?.on?.('whatsapp:inbox', onInbox);
     socket?.on?.('whatsapp:deleted', onDeleted);
     return () => {
       on = false;
+      window.clearInterval(timer);
+      socket?.off?.('connect', load);
       socket?.off?.('whatsapp:inbox', onInbox);
       socket?.off?.('whatsapp:deleted', onDeleted);
     };
