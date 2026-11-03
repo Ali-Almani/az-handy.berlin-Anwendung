@@ -310,6 +310,14 @@ function messageVideos(message) {
     .filter((video) => video && video.src);
 }
 
+function videoSourceType(video) {
+  const mime = String(video?.mime || '').split(';')[0].trim().toLowerCase();
+  if (mime.startsWith('video/')) return mime;
+  const src = String(video?.src || '').toLowerCase();
+  if (src.includes('.3gp')) return 'video/3gpp';
+  return 'video/mp4';
+}
+
 function messagePreview(message) {
   const text = String(message?.text || '').trim();
   if (text) return text;
@@ -2013,7 +2021,15 @@ const CallcenterNachrichten = ({
                     {messageVideos(m).length ? (
                       <div className="sz-bubble-videos">
                         {messageVideos(m).map((video) => (
-                          <video key={video.id} className="sz-bubble-video" src={video.src} controls playsInline preload="metadata" />
+                          <video
+                            key={video.id}
+                            className="sz-bubble-video"
+                            controls
+                            playsInline
+                            preload="metadata"
+                          >
+                            <source src={video.src} type={videoSourceType(video)} />
+                          </video>
                         ))}
                       </div>
                     ) : null}

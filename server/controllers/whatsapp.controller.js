@@ -206,27 +206,57 @@ export async function receiveWhatsAppWebhook(req, io) {
   }
 }
 
+function mimeFromExtension(full) {
+  const ext = path.extname(full).toLowerCase();
+  if (ext === '.png') return 'image/png';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.gif') return 'image/gif';
+  if (ext === '.ogg') return 'audio/ogg';
+  if (ext === '.mp3') return 'audio/mpeg';
+  if (ext === '.webm') return 'audio/webm';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.pdf') return 'application/pdf';
+  if (ext === '.mp4' || ext === '.mov') return 'video/mp4';
+  if (ext === '.3gp') return 'video/3gpp';
+  if (ext === '.m4a') return 'audio/mp4';
+  return 'application/octet-stream';
+}
+
+/** iOS braucht den echten Typ: alte Videos wurden als .m4a gespeichert (audio/mp4) und spielen dann nicht. */
+function sniffWhatsAppFileMime(full) {
+  try {
+    const fd = fs.openSync(full, 'r');
+    const buf = Buffer.alloc(16);
+    const n = fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+    if (n >= 12 && buf.toString('ascii', 4, 8) === 'ftyp') {
+      const brand = buf.toString('ascii', 8, 12);
+      if (brand === 'M4A ' || brand === 'M4B ' || brand === 'M4P ') return 'audio/mp4';
+      if (brand.startsWith('3gp')) return 'video/3gpp';
+      return 'video/mp4';
+    }
+  } catch {
+    /* Dateiendung */
+  }
+  return mimeFromExtension(full);
+}
+
 export function serveWhatsAppFile(req, res) {
   const full = resolveWhatsAppFile(req.params.name);
   if (!full) return res.sendStatus(404);
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Cache-Control', 'private, max-age=86400');
-  const ext = path.extname(full).toLowerCase();
-  const mime = ext === '.png' ? 'image/png'
-    : ext === '.webp' ? 'image/webp'
-    : ext === '.gif' ? 'image/gif'
-    : ext === '.ogg' ? 'audio/ogg'
-    : ext === '.mp3' ? 'audio/mpeg'
-    : ext === '.m4a' ? 'audio/mp4'
-    : ext === '.webm' ? 'audio/webm'
-    : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
-    : ext === '.pdf' ? 'application/pdf'
-    : ext === '.mp4' ? 'video/mp4'
-    : ext === '.3gp' ? 'video/3gpp'
-    : ext === '.mov' ? 'video/mp4'
-    : 'application/octet-stream';
-  res.type(mime);
-  fs.createReadStream(full).pipe(res);
+  const mime = sniffWhatsAppFileMime(full);
+  return res.sendFile(full, {
+    acceptRanges: true,
+    headers: {
+      'Content-Type': mime,
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'private, max-age=86400',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+    }
+  }, (err) => {
+    if (!err || res.headersSent) return;
+    res.sendStatus(err.status || err.statusCode || 404);
+  });
 }
 
 export async function handleWhatsAppWebhookPost(req, res) {
