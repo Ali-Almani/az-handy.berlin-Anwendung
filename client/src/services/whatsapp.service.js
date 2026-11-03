@@ -30,8 +30,8 @@ export const deleteWhatsAppTicketApi = async (ticketId) => {
 };
 
 export const deleteWhatsAppMessageApi = async (ticketId, messageId) => {
-  const res = await api.delete(
-    `/whatsapp/tickets/${encodeURIComponent(ticketId)}/messages/${encodeURIComponent(messageId)}`
-  );
+  const res = await api.post(`/whatsapp/tickets/${encodeURIComponent(ticketId)}/messages/delete`, {
+    messageId
+  });
   return res.data;
 };

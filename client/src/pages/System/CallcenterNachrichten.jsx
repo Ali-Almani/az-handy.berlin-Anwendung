@@ -37,6 +37,7 @@ import {
   isLeadArchived,
   isLiveWhatsAppTicket,
   leadPhoneNumber,
+  mergeWhatsAppTickets,
   looksLikePhoneNumber,
   telHrefFromPhone,
   whatsappHrefFromPhone
@@ -75,18 +76,28 @@ function formatListTime(iso) {
 
 const MAX_MESSAGE_IMAGES = 6;
 
+function publicMediaSrc(src) {
+  const s = String(src || '').trim();
+  if (!s) return '';
+  const prefix = '/uploads/whatsapp/';
+  if (s.startsWith(prefix)) return `/api/whatsapp/files/${s.slice(prefix.length)}`;
+  return s;
+}
+
 function messageImages(message) {
   if (Array.isArray(message?.images)) {
-    return message.images.filter((img) => img && img.src);
+    return message.images
+      .map((img) => (img ? { ...img, src: publicMediaSrc(img.src) } : img))
+      .filter((img) => img && img.src);
   }
-  if (message?.image) return [{ id: `${message.id}-img`, src: message.image }];
+  if (message?.image) return [{ id: `${message.id}-img`, src: publicMediaSrc(message.image) }];
   return [];
 }
 
 function voiceSrc(item) {
   if (!item) return '';
-  if (typeof item === 'string') return item;
-  return item.src || item.url || '';
+  if (typeof item === 'string') return publicMediaSrc(item);
+  return publicMediaSrc(item.src || item.url || '');
 }
 
 function messageVoices(message) {
@@ -502,7 +513,9 @@ const CallcenterNachrichten = ({
     if (!active) return '';
     const fromForm = String(answers?.rufnummer || '').trim();
     if (looksLikePhoneNumber(fromForm)) return fromForm;
-    return leadPhoneNumber(active);
+    const fromLead = leadPhoneNumber(active);
+    if (fromLead) return fromLead;
+    return String(active.waId || '').trim();
   }, [active, answers?.rufnummer]);
   const mitarbeiterLabel = sanitizeMitarbeiterName(agentName)
     || collectMitarbeiterNames(active)[0]
@@ -1145,18 +1158,23 @@ const CallcenterNachrichten = ({
     if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
     const ticket = (tickets || []).find((t) => t.id === ticketId);
     if (isLiveWhatsAppTicket(ticket)) {
+      onTicketsChange?.((prev) => prev.map((t) => (
+        t.id === ticketId
+          ? { ...t, messages: (t.messages || []).filter((m) => m.id !== message.id) }
+          : t
+      )));
       deleteWhatsAppMessageApi(ticketId, message.id)
         .then((data) => {
           const next = data?.ticket;
           if (next) {
-            onTicketsChange?.((prev) => prev.map((t) => (t.id === next.id ? next : t)));
-            return;
+            onTicketsChange?.((prev) => mergeWhatsAppTickets(
+              prev.filter((t) => t.id !== next.id),
+              [next, ...prev.filter((t) => isLiveWhatsAppTicket(t) && t.id !== next.id)]
+            ));
           }
-          onTicketsChange?.((prev) => prev.map((t) => (
-            t.id === ticketId
-              ? { ...t, messages: (t.messages || []).filter((m) => m.id !== message.id) }
-              : t
-          )));
+          if (data?.cloudDeleted === false && data?.message) {
+            window.alert(data.message);
+          }
         })
         .catch((err) => {
           window.alert(err?.response?.data?.message || 'Nachricht konnte nicht gelöscht werden.');

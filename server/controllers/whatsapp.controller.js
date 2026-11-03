@@ -11,14 +11,18 @@ import {
   patchWhatsAppTicket,
   deleteWhatsAppTicket,
   deleteStoredMessage,
+  deleteStoredMessageById,
   deleteCloudMessage,
   findWhatsAppTicket,
   findTicketInState,
   sendOutgoingParts,
   sendWelcomeIfNeeded,
   downloadWhatsAppMedia,
+  resolveWhatsAppFile,
   normalizeWaId
 } from '../utils/whatsappInbox.js';
+import fs from 'fs';
+import path from 'path';
 
 function roleText(user) {
   return String(user?.role ?? user?.get?.('role') ?? user?.dataValues?.role ?? '')
@@ -162,8 +166,38 @@ export async function receiveWhatsAppWebhook(req, io) {
         ticket = await sendWelcomeIfNeeded(ticket);
         if (ticket && io) io.emit('whatsapp:inbox', ticket);
       }
+      const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+      for (const status of statuses) {
+        const statusName = String(status?.status || '').toLowerCase();
+        if (statusName !== 'deleted' && statusName !== 'revoked') continue;
+        const wamid = String(status?.id || '').trim();
+        if (!wamid) continue;
+        const tickets = await deleteStoredMessageById(wamid);
+        if (io) {
+          tickets.forEach((ticket) => io.emit('whatsapp:inbox', ticket));
+        }
+      }
     }
   }
+}
+
+export function serveWhatsAppFile(req, res) {
+  const full = resolveWhatsAppFile(req.params.name);
+  if (!full) return res.sendStatus(404);
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cache-Control', 'private, max-age=86400');
+  const ext = path.extname(full).toLowerCase();
+  const mime = ext === '.png' ? 'image/png'
+    : ext === '.webp' ? 'image/webp'
+    : ext === '.gif' ? 'image/gif'
+    : ext === '.ogg' ? 'audio/ogg'
+    : ext === '.mp3' ? 'audio/mpeg'
+    : ext === '.m4a' ? 'audio/mp4'
+    : ext === '.webm' ? 'audio/webm'
+    : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+    : 'application/octet-stream';
+  res.type(mime);
+  fs.createReadStream(full).pipe(res);
 }
 
 export async function handleWhatsAppWebhookPost(req, res) {
@@ -232,17 +266,24 @@ export async function deleteWhatsAppMessageHandler(req, res) {
   if (!(await requireTicketingAccess(req, res))) return;
   const ticket = findWhatsAppTicket(req.params.id);
   if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
-  const messageId = String(req.params.messageId || '').trim();
+  const messageId = String(req.body?.messageId || req.params.messageId || '').trim();
   const message = (ticket.messages || []).find((m) => m.id === messageId);
   if (!message) return res.status(404).json({ success: false, message: 'Nachricht nicht gefunden.' });
   if (message.from !== 'agent') {
     return res.status(400).json({ success: false, message: 'Nur eigene Nachrichten können gelöscht werden.' });
   }
-  await deleteCloudMessage(messageId);
+  const cloudDeleted = await deleteCloudMessage(messageId);
   const state = await deleteStoredMessage(ticket.id, messageId);
   const next = findTicketInState(state, ticket.id) || { ...ticket, messages: (ticket.messages || []).filter((m) => m.id !== messageId) };
   req.app.get('io')?.emit('whatsapp:inbox', next);
-  return res.json({ success: true, ticket: next });
+  return res.json({
+    success: true,
+    cloudDeleted,
+    ticket: next,
+    message: cloudDeleted
+      ? undefined
+      : 'Im Postfach gelöscht. Bei WhatsApp ging das Löschen nicht (nur eigene Nachrichten, max. 2 Tage).'
+  });
 }
 
 export async function patchWhatsAppTicketHandler(req, res) {

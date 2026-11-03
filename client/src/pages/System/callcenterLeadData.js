@@ -907,6 +907,8 @@ export function leadPhoneNumber(ticket) {
   if (looksLikePhoneNumber(ruf)) return ruf;
   const handle = String(ticket?.handle || '').trim();
   if (looksLikePhoneNumber(handle)) return handle;
+  const wa = String(ticket?.waId || '').replace(/\D/g, '');
+  if (wa.length >= 8) return wa;
   return '';
 }
 

@@ -147,9 +147,18 @@ function saveBuffer(buffer, mime, kind) {
   fs.writeFileSync(path.join(dir, name), buffer);
   return {
     id: name,
-    src: `/uploads/whatsapp/${name}`,
+    src: `/api/whatsapp/files/${name}`,
     mime
   };
+}
+
+export function resolveWhatsAppFile(name) {
+  const safe = String(name || '').trim();
+  if (!safe || /[^A-Za-z0-9._-]/.test(safe) || safe.includes('..')) return null;
+  const dir = ensureMediaDir();
+  const full = path.join(dir, safe);
+  if (!full.startsWith(dir) || !fs.existsSync(full)) return null;
+  return full;
 }
 
 export async function downloadWhatsAppMedia(mediaId, kind = 'image') {
@@ -281,6 +290,21 @@ export async function deleteStoredMessage(ticketId, messageId) {
   });
 }
 
+export async function deleteStoredMessageById(messageId) {
+  const id = String(messageId || '').trim();
+  if (!id) return [];
+  const changed = [];
+  const state = await mutateWhatsAppTickets((current) => {
+    for (const ticket of current.tickets) {
+      const before = (ticket.messages || []).length;
+      ticket.messages = (ticket.messages || []).filter((m) => m.id !== id);
+      if ((ticket.messages || []).length !== before) changed.push(ticket.id);
+    }
+    return { value: { tickets: current.tickets } };
+  });
+  return (state?.tickets || []).filter((ticket) => changed.includes(ticket.id));
+}
+
 export function findWhatsAppTicket(ticketId) {
   return loadWhatsAppTickets().find((t) => t.id === ticketId) || null;
 }
@@ -381,7 +405,10 @@ export async function sendOutgoingParts(toWaId, { text = '', images = [], voices
       id,
       from: 'agent',
       text: caption,
-      images: [{ id: saved.id, src: saved.src }],
+      images: [{
+        id: saved.id,
+        src: String(pics[i].src || '').startsWith('data:') ? pics[i].src : saved.src
+      }],
       at: new Date().toISOString()
     });
   }
@@ -397,7 +424,11 @@ export async function sendOutgoingParts(toWaId, { text = '', images = [], voices
       id,
       from: 'agent',
       text: '',
-      voices: [{ id: saved.id, src: saved.src, duration: voice.duration }],
+      voices: [{
+        id: saved.id,
+        src: String(voice.src || '').startsWith('data:') ? voice.src : saved.src,
+        duration: voice.duration
+      }],
       at: new Date().toISOString()
     });
   }
