@@ -139,7 +139,7 @@ function extForMime(mime, fallback = '.bin') {
 
 function parseDataUrl(src) {
   const raw = String(src || '').trim();
-  const match = raw.match(/^data:([^;,]+);base64,(.+)$/i);
+  const match = raw.match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.+)$/i);
   if (!match) return null;
   return {
     mime: String(match[1] || 'application/octet-stream').trim(),

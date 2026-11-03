@@ -285,9 +285,10 @@ export async function sendWhatsAppTicketMessage(req, res) {
     req.app.get('io')?.emit('whatsapp:inbox', next);
     return res.json({ success: true, ticket: next });
   } catch (err) {
+    console.warn('[whatsapp] send', err?.detail || err?.message || err);
     return res.status(err?.status === 400 ? 400 : 502).json({
       success: false,
-      message: err?.detail || 'WhatsApp-Nachricht konnte nicht gesendet werden.'
+      message: err?.detail || err?.message || 'WhatsApp-Nachricht konnte nicht gesendet werden.'
     });
   }
 }

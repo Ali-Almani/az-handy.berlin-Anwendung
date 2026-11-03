@@ -4,19 +4,31 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 let lamejs = null;
 try {
+  // lamejs liest MPEGMode/Lame/BitStream als Globals (nicht per require in Encoder.js).
+  globalThis.MPEGMode = require('lamejs/src/js/MPEGMode.js');
+  globalThis.Lame = require('lamejs/src/js/Lame.js');
+  globalThis.BitStream = require('lamejs/src/js/BitStream.js');
   lamejs = require('lamejs');
 } catch {
   lamejs = null;
 }
 
-const WHATSAPP_AUDIO = new Set([
+/** Nur Formate, die WhatsApp Cloud API ohne Umwandlung akzeptiert. iOS-MP4 vom Mikro nicht durchlassen. */
+const WHATSAPP_PASSTHROUGH = new Set([
   'audio/aac',
-  'audio/mp4',
   'audio/mpeg',
   'audio/amr',
-  'audio/ogg',
-  'audio/opus'
+  'audio/ogg'
 ]);
+
+const MP3_RATE = 44100;
+
+function copyPcm16(pcm) {
+  const count = Math.floor(pcm.length / 2);
+  const samples = new Int16Array(count);
+  for (let i = 0; i < count; i += 1) samples[i] = pcm.readInt16LE(i * 2);
+  return samples;
+}
 
 function parseWavPcm(buffer) {
   if (!buffer || buffer.length < 44) return null;
@@ -42,46 +54,55 @@ function parseWavPcm(buffer) {
     }
     offset = next + (size % 2);
   }
-  if (dataStart < 0 || bits !== 16) return null;
+  if (dataStart < 0 || bits !== 16 || channels < 1) return null;
   const pcm = buffer.subarray(dataStart, Math.min(buffer.length, dataStart + dataSize));
-  let samples;
-  if (channels === 1) {
-    samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
-  } else {
-    const frames = Math.floor(pcm.length / 2 / channels);
-    samples = new Int16Array(frames);
+  let samples = copyPcm16(pcm);
+  if (channels > 1) {
+    const frames = Math.floor(samples.length / channels);
+    const mono = new Int16Array(frames);
     for (let i = 0; i < frames; i += 1) {
       let sum = 0;
-      for (let c = 0; c < channels; c += 1) sum += pcm.readInt16LE((i * channels + c) * 2);
-      samples[i] = Math.max(-32768, Math.min(32767, Math.round(sum / channels)));
+      for (let c = 0; c < channels; c += 1) sum += samples[i * channels + c];
+      mono[i] = Math.max(-32768, Math.min(32767, Math.round(sum / channels)));
     }
+    samples = mono;
   }
   return { samples, sampleRate };
 }
 
+function resamplePcm(samples, fromRate, toRate) {
+  if (fromRate === toRate) {
+    const copy = new Int16Array(samples.length);
+    copy.set(samples);
+    return copy;
+  }
+  const outLen = Math.max(1, Math.round(samples.length * (toRate / fromRate)));
+  const next = new Int16Array(outLen);
+  const ratio = samples.length / outLen;
+  for (let i = 0; i < outLen; i += 1) next[i] = samples[Math.min(samples.length - 1, Math.floor(i * ratio))];
+  return next;
+}
+
 function pcmToMp3(samples, sampleRate) {
-  if (!lamejs?.Mp3Encoder) return null;
-  const rate = sampleRate >= 32000 ? 44100 : 16000;
-  let pcm = samples;
-  if (sampleRate !== rate) {
-    const outLen = Math.max(1, Math.round(samples.length * (rate / sampleRate)));
-    const next = new Int16Array(outLen);
-    const ratio = samples.length / outLen;
-    for (let i = 0; i < outLen; i += 1) next[i] = samples[Math.min(samples.length - 1, Math.floor(i * ratio))];
-    pcm = next;
+  if (!lamejs?.Mp3Encoder || !samples?.length) return null;
+  try {
+    const pcm = resamplePcm(samples, sampleRate, MP3_RATE);
+    const encoder = new lamejs.Mp3Encoder(1, MP3_RATE, 64);
+    const chunk = 1152;
+    const parts = [];
+    for (let i = 0; i < pcm.length; i += chunk) {
+      const slice = new Int16Array(pcm.subarray(i, i + chunk));
+      const buf = encoder.encodeBuffer(slice);
+      if (buf?.length) parts.push(Buffer.from(buf));
+    }
+    const end = encoder.flush();
+    if (end?.length) parts.push(Buffer.from(end));
+    if (!parts.length) return null;
+    return Buffer.concat(parts);
+  } catch (err) {
+    console.warn('[whatsapp] lamejs', err?.message || err);
+    return null;
   }
-  const encoder = new lamejs.Mp3Encoder(1, rate, 32);
-  const chunk = 1152;
-  const parts = [];
-  for (let i = 0; i < pcm.length; i += chunk) {
-    const slice = pcm.subarray(i, i + chunk);
-    const buf = encoder.encodeBuffer(slice);
-    if (buf?.length) parts.push(Buffer.from(buf));
-  }
-  const end = encoder.flush();
-  if (end?.length) parts.push(Buffer.from(end));
-  if (!parts.length) return null;
-  return Buffer.concat(parts);
 }
 
 function runFfmpeg(buffer, args) {
@@ -101,17 +122,17 @@ function runFfmpeg(buffer, args) {
 
 export async function prepareWhatsAppAudio(buffer, mime) {
   const type = String(mime || '').split(';')[0].trim().toLowerCase();
-  if (WHATSAPP_AUDIO.has(type) && type !== 'audio/opus') {
-    return { buffer, mime: type === 'audio/opus' ? 'audio/ogg' : type };
+  if (WHATSAPP_PASSTHROUGH.has(type)) {
+    return { buffer, mime: type };
   }
-  if (type === 'audio/wav' || type === 'audio/x-wav' || type === 'audio/wave') {
+  if (type === 'audio/wav' || type === 'audio/x-wav' || type === 'audio/wave' || type === 'audio/vnd.wave') {
     const parsed = parseWavPcm(buffer);
     const mp3 = parsed ? pcmToMp3(parsed.samples, parsed.sampleRate) : null;
     if (mp3?.length) return { buffer: mp3, mime: 'audio/mpeg' };
   }
   const ogg = await runFfmpeg(buffer, ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-ac', '1', '-ar', '16000', '-c:a', 'libopus', '-f', 'ogg', 'pipe:1']);
   if (ogg?.length) return { buffer: ogg, mime: 'audio/ogg' };
-  const mp3 = await runFfmpeg(buffer, ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-ac', '1', '-ar', '16000', '-c:a', 'libmp3lame', '-b:a', '32k', '-f', 'mp3', 'pipe:1']);
+  const mp3 = await runFfmpeg(buffer, ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '64k', '-f', 'mp3', 'pipe:1']);
   if (mp3?.length) return { buffer: mp3, mime: 'audio/mpeg' };
   const parsed = parseWavPcm(buffer);
   const encoded = parsed ? pcmToMp3(parsed.samples, parsed.sampleRate) : null;

@@ -205,25 +205,34 @@ function readBlobAsDataUrl(blob) {
   });
 }
 
-async function blobToVoice(blob, duration) {
-  let wav = blob;
+async function blobToVoice(blob, duration, sharedCtx) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ownCtx = !sharedCtx && Ctx ? new Ctx() : null;
+  const ctx = sharedCtx || ownCtx;
+  if (!ctx || !blob) throw new Error('Sprachnachrichten werden in diesem Browser nicht unterstützt.');
   try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (Ctx && blob) {
-      const ctx = new Ctx();
-      const audioBuf = await ctx.decodeAudioData(await blob.arrayBuffer());
-      wav = floatToWavBlob(downsampleMono(audioBuf, 16000), 16000);
-      await ctx.close().catch(() => {});
-    }
-  } catch {
-    wav = blob;
+    if (ctx.state === 'suspended') await ctx.resume();
+    const raw = await blob.arrayBuffer();
+    const audioBuf = await ctx.decodeAudioData(raw.slice(0));
+    const wav = floatToWavBlob(downsampleMono(audioBuf, 16000), 16000);
+    const src = await readBlobAsDataUrl(wav);
+    return {
+      id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      src,
+      duration
+    };
+  } finally {
+    if (ownCtx) await ownCtx.close().catch(() => {});
   }
-  const src = await readBlobAsDataUrl(wav);
-  return {
-    id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    src,
-    duration
-  };
+}
+
+function whatsappSendError(err) {
+  return String(
+    err?.response?.data?.message
+    || err?.response?.data?.error?.message
+    || err?.message
+    || ''
+  ).trim() || 'WhatsApp-Nachricht konnte nicht gesendet werden.';
 }
 
 function VoicePlayer({ voice }) {
@@ -543,6 +552,7 @@ const CallcenterNachrichten = ({
   const recordTimerRef = useRef(null);
   const recordSecsRef = useRef(0);
   const ignoreRecordRef = useRef(false);
+  const audioCtxRef = useRef(null);
   const draftRef = useRef('');
   const sendTextRef = useRef(() => false);
   draftRef.current = draft;
@@ -738,6 +748,8 @@ const CallcenterNachrichten = ({
       window.clearTimeout(customerTypingTimer.current);
       window.clearInterval(recordTimerRef.current);
       mediaRecorderRef.current?.stream?.getTracks?.().forEach((track) => track.stop());
+      audioCtxRef.current?.close?.().catch(() => {});
+      audioCtxRef.current = null;
     };
   }, []);
 
@@ -1133,6 +1145,15 @@ const CallcenterNachrichten = ({
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+          audioCtxRef.current = new Ctx();
+        }
+        if (audioCtxRef.current.state === 'suspended') {
+          await audioCtxRef.current.resume();
+        }
+      }
       const mime = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(
         (type) => MediaRecorder.isTypeSupported(type)
       );
@@ -1159,7 +1180,7 @@ const CallcenterNachrichten = ({
         }
         setVoiceBusy(true);
         try {
-          const voice = await blobToVoice(blob, recordSecsRef.current);
+          const voice = await blobToVoice(blob, recordSecsRef.current, audioCtxRef.current);
           setPendingVoice(voice);
           noteAgentTyping();
           const sent = sendTextRef.current?.(draftRef.current, { voice });
@@ -1240,7 +1261,7 @@ const CallcenterNachrichten = ({
         setPendingVoice(null);
       })()
         .catch((err) => {
-          window.alert(err?.response?.data?.message || 'WhatsApp-Nachricht konnte nicht gesendet werden.');
+          window.alert(whatsappSendError(err));
         })
         .finally(() => {
           setSending(false);
