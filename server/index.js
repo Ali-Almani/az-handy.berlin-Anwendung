@@ -69,7 +69,7 @@ app.get('/api/health', (req, res) => {
     geminiConfigured: !!(process.env.GEMINI_API_KEY && String(process.env.GEMINI_API_KEY).trim().replace(/^["']|["']$/g, '')),
     whatsappConfigured: !!(process.env.WHATSAPP_TOKEN && String(process.env.WHATSAPP_TOKEN).trim()
       && process.env.WHATSAPP_PHONE_NUMBER_ID && String(process.env.WHATSAPP_PHONE_NUMBER_ID).trim()),
-    apiPatchLevel: 14,
+    apiPatchLevel: 15,
     copyHistoryRetentionDays: parseInt(process.env.COPY_HISTORY_RETENTION_DAYS || '4', 10) || 4,
     cluster: {
       pid: process.pid,
@@ -118,6 +118,11 @@ const startServer = async () => {
   const { setupSocketClusterAdapter } = await import('./utils/socketCluster.js');
   const socketInfo = await setupSocketClusterAdapter(io);
   app.set('socketClusterInfo', socketInfo);
+  const { setWhatsAppInboxEmitter, resumeDelayedAutoQuestions } = await import('./utils/whatsappInbox.js');
+  setWhatsAppInboxEmitter((ticket) => io.emit('whatsapp:inbox', ticket));
+  resumeDelayedAutoQuestions().catch((err) => {
+    console.warn('[whatsapp] resume delayed questions', err?.message || err);
+  });
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);

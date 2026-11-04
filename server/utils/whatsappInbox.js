@@ -8,6 +8,7 @@ import {
   WHATSAPP_FILE_MAX_BYTES,
   WHATSAPP_NATIVE_VIDEO_MAX_BYTES
 } from '../middleware/whatsappMediaUpload.js';
+import { normalizeTicketLanguage } from '../constants/ticketLanguage.js';
 
 export { WHATSAPP_FILE_MAX_BYTES, WHATSAPP_NATIVE_VIDEO_MAX_BYTES };
 
@@ -15,34 +16,155 @@ const FILE = 'whatsapp-inbox.json';
 const DEFAULT = () => ({ tickets: [] });
 const MEDIA_DIR = () => path.join(getDataDir(), 'uploads', 'whatsapp');
 
-export const FIRST_CUSTOMER_AUTO_REPLY = `أهلاً بك في AZ Handy Berlin! 
+const WELCOME_BRANCHES = `Sonnenallee 16, 12047
+Karl-Marx-Straße 50, 12043
+Karl-Marx-Straße 127, 12043
+Karl-Marx-Straße 169, 12043
+Badstraße 12, 13357
+Turmstraße 47, 10551
+Hauptstraße 156, 10827`;
+
+const WELCOME_BY_LOCALE = {
+  ar: `أهلاً بك في AZ Handy Berlin! 
 استلمنا رسالتك، وسيرد عليك أحد زملائنا شخصياً بأقرب وقت خلال ساعات العمل.
 
 📞 للاستفسارات : 03076767089
 🕙 الإثنين–السبت: 10 صباحاً–6 مساءً
 
 📍 فروعنا في برلين:
-Sonnenallee 16, 12047
-Karl-Marx-Straße 50, 12043
-Karl-Marx-Straße 127, 12043
-Karl-Marx-Straße 169, 12043
-Badstraße 12, 13357
-Turmstraße 47, 10551
-Hauptstraße 156, 10827
+${WELCOME_BRANCHES}
 
 🌐 أحدث عروضنا:
 az-handy.berlin
 
-شكراً جزيلاً، يسعدنا مساعدتك! 🌟`;
+شكراً جزيلاً، يسعدنا مساعدتك! 🌟`,
+  de: `Willkommen bei AZ Handy Berlin!
+Wir haben Ihre Nachricht erhalten. Ein Kollege antwortet Ihnen persönlich so schnell wie möglich während der Öffnungszeiten.
 
-const ASK_O2_TEXT = `هل أنت عميل O2؟
-Sind Sie O2-Kunde?`;
+📞 Fragen: 03076767089
+🕙 Mo–Sa: 10–18 Uhr
 
-const ASK_STADT_TEXT = `من أي مدينة؟
-In welcher Stadt sind Sie?`;
+📍 Unsere Filialen in Berlin:
+${WELCOME_BRANCHES}
 
-const ASK_STADT_TYPING_TEXT = `يرجى كتابة اسم المدينة.
-Bitte schreiben Sie den Städtenamen.`;
+🌐 Aktuelle Angebote:
+az-handy.berlin
+
+Vielen Dank, wir helfen Ihnen gerne! 🌟`,
+  en: `Welcome to AZ Handy Berlin!
+We received your message. A colleague will reply personally as soon as possible during opening hours.
+
+📞 Inquiries: 03076767089
+🕙 Mon–Sat: 10am–6pm
+
+📍 Our shops in Berlin:
+${WELCOME_BRANCHES}
+
+🌐 Latest offers:
+az-handy.berlin
+
+Thank you, we are happy to help! 🌟`
+};
+
+export const FIRST_CUSTOMER_AUTO_REPLY = WELCOME_BY_LOCALE.ar;
+
+const ASK_O2 = {
+  ar: 'هل أنت عميل O2 حالياً؟',
+  de: 'Sind Sie bereits O2-Kunde?',
+  en: 'Are you already an O2 customer?'
+};
+
+const ASK_STADT = {
+  ar: 'في أي مدينة أنت؟',
+  de: 'In welcher Stadt sind Sie?',
+  en: 'Which city are you in?'
+};
+
+const ASK_STADT_TYPING = {
+  ar: 'يرجى كتابة اسم المدينة.',
+  de: 'Bitte schreiben Sie den Städtenamen.',
+  en: 'Please type the city name.'
+};
+
+const O2_BUTTONS = {
+  ar: [{ id: 'o2:Ja', title: 'نعم' }, { id: 'o2:Nein', title: 'لا' }],
+  de: [{ id: 'o2:Ja', title: 'Ja' }, { id: 'o2:Nein', title: 'Nein' }],
+  en: [{ id: 'o2:Ja', title: 'Yes' }, { id: 'o2:Nein', title: 'No' }]
+};
+
+const STADT_LIST = {
+  ar: {
+    button: 'اختيار',
+    rows: [
+      { id: 'stadt:Berlin', title: 'Berlin' },
+      { id: 'stadt:out', title: 'خارج برلين' },
+      { id: 'stadt:custom', title: 'اكتب بنفسك' }
+    ]
+  },
+  de: {
+    button: 'Auswählen',
+    rows: [
+      { id: 'stadt:Berlin', title: 'Berlin' },
+      { id: 'stadt:out', title: 'außerhalb Berlin' },
+      { id: 'stadt:custom', title: 'selbst schreiben' }
+    ]
+  },
+  en: {
+    button: 'Choose',
+    rows: [
+      { id: 'stadt:Berlin', title: 'Berlin' },
+      { id: 'stadt:out', title: 'outside Berlin' },
+      { id: 'stadt:custom', title: 'type yourself' }
+    ]
+  }
+};
+
+const O2_YES = new Set(['o2:Ja', 'Ja', 'Yes', 'نعم']);
+const O2_NO = new Set(['o2:Nein', 'Nein', 'No', 'لا']);
+const STADT_CUSTOM = new Set(['stadt:custom', 'selbst schreiben', 'type yourself', 'اكتب بنفسك']);
+const STADT_BERLIN = new Set(['stadt:Berlin', 'Berlin']);
+const STADT_OUT = new Set(['stadt:out', 'außerhalb Berlin', 'outside Berlin', 'خارج برلين']);
+
+const QUESTION_PAUSE_MS = 60_000;
+const pendingQuestionTimers = new Map();
+let inboxEmitter = null;
+
+export function setWhatsAppInboxEmitter(fn) {
+  inboxEmitter = typeof fn === 'function' ? fn : null;
+}
+
+function emitInbox(ticket) {
+  if (!ticket || !inboxEmitter) return;
+  try {
+    inboxEmitter(ticket);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function detectCustomerLanguage(text) {
+  const t = String(text || '').trim();
+  if (!t) return 'Deutsch';
+  if (/[\u0600-\u06FF]/.test(t)) return 'Arabisch';
+  const lower = t.toLowerCase();
+  const de = /[äöüß]/.test(lower)
+    || /\b(hallo|guten\s*(tag|morgen|abend)|bitte|danke|ich|und|nicht|möchte|haben|bin|für|oder|kein|keine|schon|kunde|handy|angebot|vertrag)\b/.test(lower);
+  const en = /\b(hello|hi|hey|please|thanks|thank you|want|have|already|customer|phone|yes|no|the|you|are|offer|contract)\b/.test(lower);
+  if (en && !de) return 'Englisch';
+  return 'Deutsch';
+}
+
+function localeFromSprache(sprache) {
+  const n = normalizeTicketLanguage(sprache);
+  if (n === 'Arabisch') return 'ar';
+  if (n === 'Englisch') return 'en';
+  return 'de';
+}
+
+function copyForLocale(map, sprache) {
+  const locale = localeFromSprache(sprache);
+  return map[locale] || map.de;
+}
 
 export function whatsappToken() {
   return String(process.env.WHATSAPP_TOKEN || '').trim().replace(/^["']|["']$/g, '');
@@ -109,6 +231,8 @@ function emptyTicket(waId, name, at) {
     unread: true,
     welcomeAutoSent: false,
     autoQuestionField: '',
+    autoQuestionDueAt: '',
+    sprache: '',
     mitarbeiterName: '',
     createdAt: at,
     messages: []
@@ -354,6 +478,8 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (extra.mitarbeiterName) ticket.mitarbeiterName = extra.mitarbeiterName;
     if (extra.welcomeAutoSent) ticket.welcomeAutoSent = true;
     if (extra.autoQuestionField !== undefined) ticket.autoQuestionField = extra.autoQuestionField;
+    if (extra.autoQuestionDueAt !== undefined) ticket.autoQuestionDueAt = extra.autoQuestionDueAt;
+    if (extra.sprache !== undefined) ticket.sprache = extra.sprache;
     return { value: { tickets: state.tickets } };
   });
 }
@@ -366,7 +492,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
-      'welcomeAutoSent', 'autoQuestionField'
+      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt'
     ];
     for (const key of allowed) {
       if (patch[key] !== undefined) ticket[key] = patch[key];
@@ -657,46 +783,53 @@ export async function sendWelcomeIfNeeded(ticket) {
     return ticketFromState(state, ticket.id, ticket.waId) || ticket;
   }
   try {
-    const waMessageId = await sendWhatsAppText(ticket.waId, FIRST_CUSTOMER_AUTO_REPLY);
+    const firstText = messages.find((m) => m?.from === 'customer')?.text || '';
+    const sprache = detectCustomerLanguage(firstText);
+    const locale = localeFromSprache(sprache);
+    const text = WELCOME_BY_LOCALE[locale] || WELCOME_BY_LOCALE.de;
+    const waMessageId = await sendWhatsAppText(ticket.waId, text);
     const state = await appendOutgoingMessage(ticket.id, {
       id: waMessageId,
       from: 'agent',
       auto: 'welcome',
-      locale: 'ar',
-      text: FIRST_CUSTOMER_AUTO_REPLY,
+      locale,
+      text,
       at: new Date().toISOString()
-    }, { keepUnread: true, welcomeAutoSent: true });
-    const welcomed = ticketFromState(state, ticket.id, ticket.waId) || ticket;
-    return sendO2KundeQuestion(welcomed);
+    }, { keepUnread: true, welcomeAutoSent: true, sprache });
+    const welcomed = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, sprache };
+    return startQuestionPause(welcomed, 'o2Wait');
   } catch (err) {
     console.warn('[whatsapp] welcome', err?.detail || err?.message || err);
     return ticket;
   }
 }
 
-async function appendAutoQuestion(ticket, { waMessageId, text, auto, autoQuestionField }) {
+async function appendAutoQuestion(ticket, { waMessageId, text, auto, autoQuestionField, locale }) {
+  const extra = { keepUnread: true, autoQuestionField };
+  if (autoQuestionField === 'stadt' || autoQuestionField === 'o2Kunde') extra.autoQuestionDueAt = '';
   const state = await appendOutgoingMessage(ticket.id, {
     id: waMessageId,
     from: 'agent',
     auto,
+    locale: locale || localeFromSprache(ticket.sprache),
     text,
     at: new Date().toISOString()
-  }, { keepUnread: true, autoQuestionField });
+  }, extra);
   return ticketFromState(state, ticket.id, ticket.waId) || ticket;
 }
 
 export async function sendO2KundeQuestion(ticket) {
   if (!ticket?.id || !ticket.waId) return ticket;
+  const locale = localeFromSprache(ticket.sprache);
+  const text = copyForLocale(ASK_O2, ticket.sprache);
   try {
-    const waMessageId = await sendWhatsAppButtons(ticket.waId, ASK_O2_TEXT, [
-      { id: 'o2:Ja', title: 'Ja' },
-      { id: 'o2:Nein', title: 'Nein' }
-    ]);
+    const waMessageId = await sendWhatsAppButtons(ticket.waId, text, copyForLocale(O2_BUTTONS, ticket.sprache));
     return appendAutoQuestion(ticket, {
       waMessageId,
-      text: ASK_O2_TEXT,
+      text,
       auto: 'ask-o2',
-      autoQuestionField: 'o2Kunde'
+      autoQuestionField: 'o2Kunde',
+      locale
     });
   } catch (err) {
     console.warn('[whatsapp] ask-o2', err?.detail || err?.message || err);
@@ -706,17 +839,17 @@ export async function sendO2KundeQuestion(ticket) {
 
 export async function sendStadtQuestion(ticket) {
   if (!ticket?.id || !ticket.waId) return ticket;
+  const locale = localeFromSprache(ticket.sprache);
+  const text = copyForLocale(ASK_STADT, ticket.sprache);
+  const list = copyForLocale(STADT_LIST, ticket.sprache);
   try {
-    const waMessageId = await sendWhatsAppList(ticket.waId, ASK_STADT_TEXT, 'Auswählen', [
-      { id: 'stadt:Berlin', title: 'Berlin' },
-      { id: 'stadt:out', title: 'außerhalb Berlin' },
-      { id: 'stadt:custom', title: 'selbst schreiben' }
-    ]);
+    const waMessageId = await sendWhatsAppList(ticket.waId, text, list.button, list.rows);
     return appendAutoQuestion(ticket, {
       waMessageId,
-      text: ASK_STADT_TEXT,
+      text,
       auto: 'ask-stadt',
-      autoQuestionField: 'stadt'
+      autoQuestionField: 'stadt',
+      locale
     });
   } catch (err) {
     console.warn('[whatsapp] ask-stadt', err?.detail || err?.message || err);
@@ -726,13 +859,16 @@ export async function sendStadtQuestion(ticket) {
 
 export async function sendStadtTypingPrompt(ticket) {
   if (!ticket?.id || !ticket.waId) return ticket;
+  const locale = localeFromSprache(ticket.sprache);
+  const text = copyForLocale(ASK_STADT_TYPING, ticket.sprache);
   try {
-    const waMessageId = await sendWhatsAppText(ticket.waId, ASK_STADT_TYPING_TEXT);
+    const waMessageId = await sendWhatsAppText(ticket.waId, text);
     return appendAutoQuestion(ticket, {
       waMessageId,
-      text: ASK_STADT_TYPING_TEXT,
+      text,
       auto: 'ask-stadt-text',
-      autoQuestionField: 'stadtText'
+      autoQuestionField: 'stadtText',
+      locale
     });
   } catch (err) {
     console.warn('[whatsapp] ask-stadt-text', err?.detail || err?.message || err);
@@ -740,33 +876,131 @@ export async function sendStadtTypingPrompt(ticket) {
   }
 }
 
+const DELAYED_QUESTIONS = {
+  o2Wait: {
+    waitField: 'o2Wait',
+    sendingField: 'o2Sending',
+    successField: 'o2Kunde',
+    send: sendO2KundeQuestion
+  },
+  stadtWait: {
+    waitField: 'stadtWait',
+    sendingField: 'stadtSending',
+    successField: 'stadt',
+    send: sendStadtQuestion
+  }
+};
+
+function specForWaitField(field) {
+  if (field === 'o2Wait' || field === 'o2Sending') return DELAYED_QUESTIONS.o2Wait;
+  if (field === 'stadtWait' || field === 'stadtSending') return DELAYED_QUESTIONS.stadtWait;
+  return null;
+}
+
+async function startQuestionPause(ticket, waitField) {
+  const dueAt = new Date(Date.now() + QUESTION_PAUSE_MS).toISOString();
+  const state = await patchWhatsAppTicket(ticket.id, {
+    autoQuestionField: waitField,
+    autoQuestionDueAt: dueAt
+  });
+  const next = ticketFromState(state, ticket.id, ticket.waId)
+    || { ...ticket, autoQuestionField: waitField, autoQuestionDueAt: dueAt };
+  const spec = specForWaitField(waitField);
+  if (spec) scheduleDelayedQuestion(next, spec);
+  return next;
+}
+
+async function claimDelayedQuestion(ticketId, spec) {
+  let claimed = false;
+  const state = await mutateWhatsAppTickets((current) => {
+    const found = current.tickets.find((t) => t.id === ticketId);
+    if (!found || String(found.autoQuestionField || '') !== spec.waitField) {
+      return { value: { tickets: current.tickets } };
+    }
+    found.autoQuestionField = spec.sendingField;
+    claimed = true;
+    return { value: { tickets: current.tickets } };
+  });
+  return { claimed, ticket: ticketFromState(state, ticketId) };
+}
+
+function scheduleDelayedQuestion(ticket, spec) {
+  if (!ticket?.id || !spec) return;
+  const key = `${spec.waitField}:${ticket.id}`;
+  const prev = pendingQuestionTimers.get(key);
+  if (prev) clearTimeout(prev);
+  const due = Date.parse(ticket.autoQuestionDueAt || '') || (Date.now() + QUESTION_PAUSE_MS);
+  const wait = Math.max(0, due - Date.now());
+  const timer = setTimeout(() => {
+    pendingQuestionTimers.delete(key);
+    sendScheduledQuestion(ticket.id, spec);
+  }, wait);
+  pendingQuestionTimers.set(key, timer);
+}
+
+async function sendScheduledQuestion(ticketId, spec) {
+  const { claimed, ticket } = await claimDelayedQuestion(ticketId, spec);
+  if (!claimed || !ticket) return;
+  const sent = await spec.send(ticket);
+  if (String(sent?.autoQuestionField || '') !== spec.successField) {
+    const dueAt = new Date(Date.now() + 15000).toISOString();
+    await patchWhatsAppTicket(ticketId, { autoQuestionField: spec.waitField, autoQuestionDueAt: dueAt });
+    scheduleDelayedQuestion({ ...ticket, autoQuestionField: spec.waitField, autoQuestionDueAt: dueAt }, spec);
+    return;
+  }
+  emitInbox(sent);
+}
+
+export async function resumeDelayedAutoQuestions() {
+  const tickets = loadWhatsAppTickets();
+  for (const ticket of tickets) {
+    const field = String(ticket.autoQuestionField || '');
+    const spec = specForWaitField(field);
+    if (!spec) continue;
+    if (field === spec.sendingField) {
+      const dueAt = new Date().toISOString();
+      await patchWhatsAppTicket(ticket.id, { autoQuestionField: spec.waitField, autoQuestionDueAt: dueAt });
+      scheduleDelayedQuestion({ ...ticket, autoQuestionField: spec.waitField, autoQuestionDueAt: dueAt }, spec);
+    } else {
+      scheduleDelayedQuestion(ticket, spec);
+    }
+  }
+}
+
 export async function handleAutoQuestionReply(ticket, message) {
   if (!ticket?.id) return ticket;
   const field = String(ticket.autoQuestionField || '').trim();
-  if (!field) return ticket;
+  if (!field || field === 'o2Wait' || field === 'o2Sending' || field === 'stadtWait' || field === 'stadtSending') return ticket;
 
   const replyId = String(message?.interactiveId || '').trim();
   const text = String(message?.text || '').trim();
 
   if (field === 'o2Kunde') {
     let value = '';
-    if (replyId === 'o2:Ja' || text === 'Ja') value = 'Ja';
-    else if (replyId === 'o2:Nein' || text === 'Nein') value = 'Nein';
+    if (O2_YES.has(replyId) || O2_YES.has(text)) value = 'Ja';
+    else if (O2_NO.has(replyId) || O2_NO.has(text)) value = 'Nein';
     else return ticket;
-    const state = await patchWhatsAppTicket(ticket.id, { o2Kunde: value, autoQuestionField: 'stadt' });
-    const next = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, o2Kunde: value, autoQuestionField: 'stadt' };
-    return sendStadtQuestion(next);
+    const dueAt = new Date(Date.now() + QUESTION_PAUSE_MS).toISOString();
+    const state = await patchWhatsAppTicket(ticket.id, {
+      o2Kunde: value,
+      autoQuestionField: 'stadtWait',
+      autoQuestionDueAt: dueAt
+    });
+    const next = ticketFromState(state, ticket.id, ticket.waId)
+      || { ...ticket, o2Kunde: value, autoQuestionField: 'stadtWait', autoQuestionDueAt: dueAt };
+    scheduleDelayedQuestion(next, DELAYED_QUESTIONS.stadtWait);
+    return next;
   }
 
   if (field === 'stadt') {
-    if (replyId === 'stadt:custom' || text === 'selbst schreiben') {
+    if (STADT_CUSTOM.has(replyId) || STADT_CUSTOM.has(text)) {
       const state = await patchWhatsAppTicket(ticket.id, { autoQuestionField: 'stadtText' });
       const next = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, autoQuestionField: 'stadtText' };
       return sendStadtTypingPrompt(next);
     }
     let value = '';
-    if (replyId === 'stadt:Berlin' || text === 'Berlin') value = 'Berlin';
-    else if (replyId === 'stadt:out' || text === 'außerhalb Berlin') value = 'außerhalb Berlin';
+    if (STADT_BERLIN.has(replyId) || STADT_BERLIN.has(text)) value = 'Berlin';
+    else if (STADT_OUT.has(replyId) || STADT_OUT.has(text)) value = 'außerhalb Berlin';
     else return ticket;
     const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
     return ticketFromState(state, ticket.id, ticket.waId) || ticket;
