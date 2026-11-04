@@ -18,6 +18,7 @@ import {
   sendOutgoingParts,
   sendOutgoingSavedFile,
   sendWelcomeIfNeeded,
+  handleAutoQuestionReply,
   downloadWhatsAppMedia,
   resolveWhatsAppFile,
   normalizeWaId
@@ -153,6 +154,11 @@ async function messageFromWhatsApp(item) {
     } else if (!message.text) {
       message.text = String(media.filename || '[Datei]').trim();
     }
+  } else if (type === 'interactive') {
+    const interactive = item?.interactive || {};
+    const reply = interactive.button_reply || interactive.list_reply || {};
+    message.text = String(reply.title || '').trim();
+    message.interactiveId = String(reply.id || '').trim();
   } else if (type === 'location') {
     message.text = '[Standort]';
   } else if (type === 'reaction' || type === 'unsupported') {
@@ -162,6 +168,7 @@ async function messageFromWhatsApp(item) {
   }
   if (
     !message.text
+    && !message.interactiveId
     && !(message.images || []).length
     && !(message.voices || []).length
     && !(message.videos || []).length
@@ -188,7 +195,11 @@ export async function receiveWhatsAppWebhook(req, io) {
         if (!message) continue;
         const state = await upsertIncomingMessage({ waId, name, message });
         let ticket = findTicketInState(state, null, waId);
+        const wasWelcomed = Boolean(ticket?.welcomeAutoSent);
         ticket = await sendWelcomeIfNeeded(ticket);
+        if (wasWelcomed) {
+          ticket = await handleAutoQuestionReply(ticket, message);
+        }
         if (ticket && io) io.emit('whatsapp:inbox', ticket);
       }
       const statuses = Array.isArray(value.statuses) ? value.statuses : [];

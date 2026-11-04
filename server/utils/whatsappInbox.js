@@ -35,6 +35,15 @@ az-handy.berlin
 
 شكراً جزيلاً، يسعدنا مساعدتك! 🌟`;
 
+const ASK_O2_TEXT = `هل أنت عميل O2؟
+Sind Sie O2-Kunde?`;
+
+const ASK_STADT_TEXT = `من أي مدينة؟
+In welcher Stadt sind Sie?`;
+
+const ASK_STADT_TYPING_TEXT = `يرجى كتابة اسم المدينة.
+Bitte schreiben Sie den Städtenamen.`;
+
 export function whatsappToken() {
   return String(process.env.WHATSAPP_TOKEN || '').trim().replace(/^["']|["']$/g, '');
 }
@@ -99,6 +108,7 @@ function emptyTicket(waId, name, at) {
     nachrichtArt: 'angebot',
     unread: true,
     welcomeAutoSent: false,
+    autoQuestionField: '',
     mitarbeiterName: '',
     createdAt: at,
     messages: []
@@ -343,6 +353,7 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (!extra.keepUnread) ticket.unread = false;
     if (extra.mitarbeiterName) ticket.mitarbeiterName = extra.mitarbeiterName;
     if (extra.welcomeAutoSent) ticket.welcomeAutoSent = true;
+    if (extra.autoQuestionField !== undefined) ticket.autoQuestionField = extra.autoQuestionField;
     return { value: { tickets: state.tickets } };
   });
 }
@@ -355,7 +366,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
-      'welcomeAutoSent'
+      'welcomeAutoSent', 'autoQuestionField'
     ];
     for (const key of allowed) {
       if (patch[key] !== undefined) ticket[key] = patch[key];
@@ -424,6 +435,38 @@ export async function sendWhatsAppText(toWaId, text) {
     to: normalizeWaId(toWaId),
     type: 'text',
     text: { body: String(text || '').trim(), preview_url: true }
+  });
+}
+
+async function sendWhatsAppButtons(toWaId, bodyText, buttons) {
+  return sendGraphMessage({
+    to: normalizeWaId(toWaId),
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      body: { text: bodyText },
+      action: {
+        buttons: buttons.map((button) => ({
+          type: 'reply',
+          reply: { id: button.id, title: button.title }
+        }))
+      }
+    }
+  });
+}
+
+async function sendWhatsAppList(toWaId, bodyText, buttonLabel, rows) {
+  return sendGraphMessage({
+    to: normalizeWaId(toWaId),
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      body: { text: bodyText },
+      action: {
+        button: buttonLabel,
+        sections: [{ title: 'Stadt', rows }]
+      }
+    }
   });
 }
 
@@ -623,9 +666,118 @@ export async function sendWelcomeIfNeeded(ticket) {
       text: FIRST_CUSTOMER_AUTO_REPLY,
       at: new Date().toISOString()
     }, { keepUnread: true, welcomeAutoSent: true });
-    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+    const welcomed = ticketFromState(state, ticket.id, ticket.waId) || ticket;
+    return sendO2KundeQuestion(welcomed);
   } catch (err) {
     console.warn('[whatsapp] welcome', err?.detail || err?.message || err);
     return ticket;
   }
+}
+
+async function appendAutoQuestion(ticket, { waMessageId, text, auto, autoQuestionField }) {
+  const state = await appendOutgoingMessage(ticket.id, {
+    id: waMessageId,
+    from: 'agent',
+    auto,
+    text,
+    at: new Date().toISOString()
+  }, { keepUnread: true, autoQuestionField });
+  return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+}
+
+export async function sendO2KundeQuestion(ticket) {
+  if (!ticket?.id || !ticket.waId) return ticket;
+  try {
+    const waMessageId = await sendWhatsAppButtons(ticket.waId, ASK_O2_TEXT, [
+      { id: 'o2:Ja', title: 'Ja' },
+      { id: 'o2:Nein', title: 'Nein' }
+    ]);
+    return appendAutoQuestion(ticket, {
+      waMessageId,
+      text: ASK_O2_TEXT,
+      auto: 'ask-o2',
+      autoQuestionField: 'o2Kunde'
+    });
+  } catch (err) {
+    console.warn('[whatsapp] ask-o2', err?.detail || err?.message || err);
+    return ticket;
+  }
+}
+
+export async function sendStadtQuestion(ticket) {
+  if (!ticket?.id || !ticket.waId) return ticket;
+  try {
+    const waMessageId = await sendWhatsAppList(ticket.waId, ASK_STADT_TEXT, 'Auswählen', [
+      { id: 'stadt:Berlin', title: 'Berlin' },
+      { id: 'stadt:out', title: 'außerhalb Berlin' },
+      { id: 'stadt:custom', title: 'selbst schreiben' }
+    ]);
+    return appendAutoQuestion(ticket, {
+      waMessageId,
+      text: ASK_STADT_TEXT,
+      auto: 'ask-stadt',
+      autoQuestionField: 'stadt'
+    });
+  } catch (err) {
+    console.warn('[whatsapp] ask-stadt', err?.detail || err?.message || err);
+    return ticket;
+  }
+}
+
+export async function sendStadtTypingPrompt(ticket) {
+  if (!ticket?.id || !ticket.waId) return ticket;
+  try {
+    const waMessageId = await sendWhatsAppText(ticket.waId, ASK_STADT_TYPING_TEXT);
+    return appendAutoQuestion(ticket, {
+      waMessageId,
+      text: ASK_STADT_TYPING_TEXT,
+      auto: 'ask-stadt-text',
+      autoQuestionField: 'stadtText'
+    });
+  } catch (err) {
+    console.warn('[whatsapp] ask-stadt-text', err?.detail || err?.message || err);
+    return ticket;
+  }
+}
+
+export async function handleAutoQuestionReply(ticket, message) {
+  if (!ticket?.id) return ticket;
+  const field = String(ticket.autoQuestionField || '').trim();
+  if (!field) return ticket;
+
+  const replyId = String(message?.interactiveId || '').trim();
+  const text = String(message?.text || '').trim();
+
+  if (field === 'o2Kunde') {
+    let value = '';
+    if (replyId === 'o2:Ja' || text === 'Ja') value = 'Ja';
+    else if (replyId === 'o2:Nein' || text === 'Nein') value = 'Nein';
+    else return ticket;
+    const state = await patchWhatsAppTicket(ticket.id, { o2Kunde: value, autoQuestionField: 'stadt' });
+    const next = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, o2Kunde: value, autoQuestionField: 'stadt' };
+    return sendStadtQuestion(next);
+  }
+
+  if (field === 'stadt') {
+    if (replyId === 'stadt:custom' || text === 'selbst schreiben') {
+      const state = await patchWhatsAppTicket(ticket.id, { autoQuestionField: 'stadtText' });
+      const next = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, autoQuestionField: 'stadtText' };
+      return sendStadtTypingPrompt(next);
+    }
+    let value = '';
+    if (replyId === 'stadt:Berlin' || text === 'Berlin') value = 'Berlin';
+    else if (replyId === 'stadt:out' || text === 'außerhalb Berlin') value = 'außerhalb Berlin';
+    else return ticket;
+    const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
+    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+  }
+
+  if (field === 'stadtText') {
+    if (replyId || !text) return ticket;
+    const value = text.slice(0, 80);
+    const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
+    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+  }
+
+  return ticket;
 }
