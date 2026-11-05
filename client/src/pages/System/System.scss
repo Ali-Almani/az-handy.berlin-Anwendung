@@ -1452,6 +1452,9 @@
 
   .form-input,
   select.form-input {
+    width: 16rem;
+    max-width: 100%;
+    align-self: flex-start;
     font-size: 0.78rem;
     padding: 0.28rem 0.5rem;
   }
@@ -1513,13 +1516,22 @@
   gap: 0.2rem;
 }
 
+.auto-flow-card > .form-input {
+  width: 28rem;
+}
+
+.auto-flow-card > select.form-input {
+  width: 12rem;
+}
+
 .auto-flow-card__head .form-input:first-of-type {
-  flex: 1 1 18rem;
-  min-width: 0;
+  flex: 0 0 16rem;
+  width: 16rem;
 }
 
 .auto-flow-card__head select.form-input {
   flex: 0 0 8.5rem;
+  width: 8.5rem;
 }
 
 .auto-flow-options {
@@ -1533,13 +1545,13 @@
 }
 
 .auto-flow-option .form-input {
-  flex: 1 1 16rem;
-  min-width: 0;
+  flex: 0 0 14rem;
+  width: 14rem;
 }
 
 .auto-flow-option select.form-input {
-  flex: 0 1 16rem;
-  min-width: 8rem;
+  flex: 0 0 12rem;
+  width: 12rem;
 }
 
 @media (max-width: $breakpoint-md) {
