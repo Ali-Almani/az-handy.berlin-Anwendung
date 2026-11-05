@@ -1366,11 +1366,6 @@ const CallcenterNachrichten = ({
     if (!window.confirm('Diese Nachricht wirklich löschen?')) return;
     const ticket = (tickets || []).find((t) => t.id === ticketId);
     if (isLiveWhatsAppTicket(ticket)) {
-      onTicketsChange?.((prev) => prev.map((t) => (
-        t.id === ticketId
-          ? { ...t, messages: (t.messages || []).filter((m) => m.id !== message.id) }
-          : t
-      )));
       deleteWhatsAppMessageApi(ticketId, message.id)
         .then((data) => {
           const next = data?.ticket;

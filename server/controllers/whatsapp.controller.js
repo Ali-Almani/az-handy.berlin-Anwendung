@@ -190,6 +190,13 @@ export async function receiveWhatsAppWebhook(req, io) {
       for (const item of messages) {
         const waId = normalizeWaId(item.from);
         if (!waId) continue;
+        if (String(item?.type || '') === 'revoke') {
+          const originalId = String(item?.revoke?.original_message_id || '').trim();
+          if (!originalId) continue;
+          const revoked = await deleteStoredMessageById(originalId);
+          if (io) revoked.forEach((ticket) => io.emit('whatsapp:inbox', ticket));
+          continue;
+        }
         const name = String(contacts.find((c) => normalizeWaId(c.wa_id) === waId)?.profile?.name || '').trim();
         const message = await messageFromWhatsApp(item);
         if (!message) continue;
@@ -378,18 +385,20 @@ export async function deleteWhatsAppMessageHandler(req, res) {
   if (message.from !== 'agent') {
     return res.status(400).json({ success: false, message: 'Nur eigene Nachrichten können gelöscht werden.' });
   }
-  const cloudDeleted = await deleteCloudMessage(messageId);
+  const sentToWhatsApp = messageId.startsWith('wamid.');
+  const cloudDeleted = sentToWhatsApp ? await deleteCloudMessage(messageId) : true;
+  if (sentToWhatsApp && !cloudDeleted) {
+    return res.json({
+      success: true,
+      cloudDeleted: false,
+      ticket,
+      message: 'Bei WhatsApp ging das Löschen nicht (nur eigene Nachrichten, max. 2 Tage). Die Nachricht bleibt im Chat.'
+    });
+  }
   const state = await deleteStoredMessage(ticket.id, messageId);
   const next = findTicketInState(state, ticket.id) || { ...ticket, messages: (ticket.messages || []).filter((m) => m.id !== messageId) };
   req.app.get('io')?.emit('whatsapp:inbox', next);
-  return res.json({
-    success: true,
-    cloudDeleted,
-    ticket: next,
-    message: cloudDeleted
-      ? undefined
-      : 'Im Postfach gelöscht. Bei WhatsApp ging das Löschen nicht (nur eigene Nachrichten, max. 2 Tage).'
-  });
+  return res.json({ success: true, cloudDeleted: true, ticket: next });
 }
 
 export async function patchWhatsAppTicketHandler(req, res) {
