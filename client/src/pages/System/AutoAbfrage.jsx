@@ -148,21 +148,21 @@ export default function AutoAbfrage() {
               }}
             />
             Sekunden
+            <span className="auto-flow-langs" role="group" aria-label="Sprache">
+              {LOCALES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`auto-flow-lang${locale === item.id ? ' auto-flow-lang--active' : ''}`}
+                  aria-pressed={locale === item.id}
+                  onClick={() => setLocale(item.id)}
+                >
+                  {item.short}
+                </button>
+              ))}
+            </span>
           </span>
         </label>
-        <div className="auto-flow-langs" role="group" aria-label="Sprache">
-          {LOCALES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`auto-flow-lang${locale === item.id ? ' auto-flow-lang--active' : ''}`}
-              aria-pressed={locale === item.id}
-              onClick={() => setLocale(item.id)}
-            >
-              {item.short}
-            </button>
-          ))}
-        </div>
       </div>
 
       {questions.map((question, index) => (

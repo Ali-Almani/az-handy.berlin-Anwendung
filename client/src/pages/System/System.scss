@@ -1470,9 +1470,10 @@
 }
 
 .auto-flow-langs {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   gap: 0.35rem;
-  margin-left: auto;
+  margin-left: 0.35rem;
 }
 
 .auto-flow-lang {
