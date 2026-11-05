@@ -127,7 +127,9 @@ const STADT_BERLIN = new Set(['stadt:Berlin', 'Berlin', 'برلين', 'بيرل�
 const STADT_OUT = new Set(['stadt:out', 'außerhalb Berlin', 'outside Berlin', 'خارج برلين', 'خارج بيرلين']);
 
 const QUESTION_PAUSE_MS = 60_000;
+const TYPING_PULSE_MS = 20_000;
 const pendingQuestionTimers = new Map();
+const pendingTypingTimers = new Map();
 let inboxEmitter = null;
 
 export function setWhatsAppInboxEmitter(fn) {
@@ -561,6 +563,78 @@ async function sendGraphMessage(body) {
   return String(payload?.messages?.[0]?.id || `wa-out-${Date.now()}`);
 }
 
+function lastCustomerWaMessageId(ticket) {
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const id = String(messages[i]?.id || '').trim();
+    if (messages[i]?.from === 'customer' && id.startsWith('wamid.')) return id;
+  }
+  return '';
+}
+
+async function sendWhatsAppTyping(messageId) {
+  const id = String(messageId || '').trim();
+  if (!id.startsWith('wamid.') || !whatsappConfigured()) return;
+  const token = whatsappToken();
+  const phoneId = whatsappPhoneNumberId();
+  const res = await fetch(graphUrl(`${encodeURIComponent(phoneId)}/messages`), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      status: 'read',
+      message_id: id,
+      typing_indicator: { type: 'text' }
+    })
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw graphError(payload, 'whatsapp_typing');
+  }
+}
+
+function pulseQuestionTyping(ticket) {
+  const current = findWhatsAppTicket(ticket?.id) || ticket;
+  const messageId = lastCustomerWaMessageId(current);
+  if (!messageId) return;
+  sendWhatsAppTyping(messageId).catch((err) => {
+    console.warn('[whatsapp] typing', err?.detail || err?.message || err);
+  });
+}
+
+function stopQuestionTyping(ticketId, spec) {
+  const key = `${spec.waitField}:${ticketId}`;
+  const timer = pendingTypingTimers.get(key);
+  if (timer) clearInterval(timer);
+  pendingTypingTimers.delete(key);
+}
+
+function startQuestionTyping(ticket, spec) {
+  if (!ticket?.id || !spec) return;
+  const key = `${spec.waitField}:${ticket.id}`;
+  const prev = pendingTypingTimers.get(key);
+  if (prev) clearInterval(prev);
+  const due = Date.parse(ticket.autoQuestionDueAt || '') || (Date.now() + QUESTION_PAUSE_MS);
+  if (due - Date.now() < 3000) {
+    pendingTypingTimers.delete(key);
+    return;
+  }
+  pulseQuestionTyping(ticket);
+  const timer = setInterval(() => {
+    const current = findWhatsAppTicket(ticket.id);
+    if (String(current?.autoQuestionField || '') !== spec.waitField) {
+      clearInterval(timer);
+      pendingTypingTimers.delete(key);
+      return;
+    }
+    pulseQuestionTyping(current);
+  }, TYPING_PULSE_MS);
+  pendingTypingTimers.set(key, timer);
+}
+
 export async function sendWhatsAppText(toWaId, text) {
   return sendGraphMessage({
     to: normalizeWaId(toWaId),
@@ -941,9 +1015,11 @@ function scheduleDelayedQuestion(ticket, spec) {
     sendScheduledQuestion(ticket.id, spec);
   }, wait);
   pendingQuestionTimers.set(key, timer);
+  startQuestionTyping(ticket, spec);
 }
 
 async function sendScheduledQuestion(ticketId, spec) {
+  stopQuestionTyping(ticketId, spec);
   const { claimed, ticket } = await claimDelayedQuestion(ticketId, spec);
   if (!claimed || !ticket) return;
   const sent = await spec.send(ticket);
