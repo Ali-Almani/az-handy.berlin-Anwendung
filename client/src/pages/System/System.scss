@@ -1493,7 +1493,13 @@
   gap: 0.5rem;
 }
 
-.auto-flow-card__head .form-input:first-child {
+.auto-flow-order {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.auto-flow-card__head .form-input:first-of-type {
   flex: 1 1 14rem;
 }
 

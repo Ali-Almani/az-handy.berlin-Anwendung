@@ -21,6 +21,10 @@ function blankOption(value = '') {
   };
 }
 
+function withStart(questions, flow) {
+  return { ...flow, questions, startId: questions[0]?.id || '' };
+}
+
 function newQuestion() {
   return {
     id: `q${Date.now().toString(36)}`,
@@ -65,7 +69,13 @@ export default function AutoAbfrage() {
     let on = true;
     getAutoQuestionFlowApi()
       .then((res) => {
-        if (on) setFlow(res?.flow || null);
+        if (!on || !res?.flow) return;
+        const questions = res.flow.questions || [];
+        const startAt = questions.findIndex((q) => q.id === res.flow.startId);
+        const ordered = startAt > 0
+          ? [questions[startAt], ...questions.filter((_, index) => index !== startAt)]
+          : questions;
+        setFlow(withStart(ordered, res.flow));
       })
       .catch((err) => {
         if (on) setError(err?.response?.data?.message || 'Ablauf konnte nicht geladen werden.');
@@ -104,7 +114,8 @@ export default function AutoAbfrage() {
     setError('');
     setSaved(false);
     try {
-      const res = await saveAutoQuestionFlowApi(flow);
+      const payload = withStart(flow.questions || [], flow);
+      const res = await saveAutoQuestionFlowApi(payload);
       setFlow(res?.flow || flow);
       setSaved(true);
     } catch (err) {
@@ -139,21 +150,6 @@ export default function AutoAbfrage() {
             Sekunden
           </span>
         </label>
-        <label className="auto-flow__wait">
-          Erste Frage
-          <select
-            className="form-input"
-            value={flow.startId || ''}
-            onChange={(ev) => {
-              setSaved(false);
-              setFlow((prev) => ({ ...prev, startId: ev.target.value }));
-            }}
-          >
-            {questions.map((q) => (
-              <option key={q.id} value={q.id}>{q.label || q.id}</option>
-            ))}
-          </select>
-        </label>
         <div className="auto-flow-langs" role="group" aria-label="Sprache">
           {LOCALES.map((item) => (
             <button
@@ -169,9 +165,45 @@ export default function AutoAbfrage() {
         </div>
       </div>
 
-      {questions.map((question) => (
+      {questions.map((question, index) => (
         <article key={question.id} className="auto-flow-card">
           <div className="auto-flow-card__head">
+            <div className="auto-flow-order">
+              <button
+                type="button"
+                className="btn btn--secondary btn--small"
+                aria-label="Frage nach oben"
+                disabled={index === 0}
+                onClick={() => {
+                  setSaved(false);
+                  setFlow((prev) => {
+                    const list = prev.questions.slice();
+                    const [item] = list.splice(index, 1);
+                    list.splice(index - 1, 0, item);
+                    return withStart(list, prev);
+                  });
+                }}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="btn btn--secondary btn--small"
+                aria-label="Frage nach unten"
+                disabled={index === questions.length - 1}
+                onClick={() => {
+                  setSaved(false);
+                  setFlow((prev) => {
+                    const list = prev.questions.slice();
+                    const [item] = list.splice(index, 1);
+                    list.splice(index + 1, 0, item);
+                    return withStart(list, prev);
+                  });
+                }}
+              >
+                ↓
+              </button>
+            </div>
             <input
               className="form-input"
               value={question.label}
@@ -199,18 +231,14 @@ export default function AutoAbfrage() {
                 setSaved(false);
                 setFlow((prev) => {
                   const nextQuestions = prev.questions.filter((q) => q.id !== question.id);
-                  return {
-                    ...prev,
-                    startId: prev.startId === question.id ? (nextQuestions[0]?.id || '') : prev.startId,
-                    questions: nextQuestions.map((q) => ({
+                  return withStart(nextQuestions.map((q) => ({
                       ...q,
                       next: (q.next || []).filter((id) => id !== question.id),
                       options: (q.options || []).map((opt) => ({
                         ...opt,
                         next: (opt.next || []).filter((id) => id !== question.id)
                       }))
-                    }))
-                  };
+                    })), prev);
                 });
               }}
             >
@@ -304,7 +332,7 @@ export default function AutoAbfrage() {
           className="btn btn--secondary"
           onClick={() => {
             setSaved(false);
-            setFlow((prev) => ({ ...prev, questions: [...prev.questions, newQuestion()] }));
+            setFlow((prev) => withStart([...prev.questions, newQuestion()], prev));
           }}
         >
           Frage hinzufügen
