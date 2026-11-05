@@ -36,6 +36,7 @@ import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/eins
 import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
 import CallcenterNachrichten from './CallcenterNachrichten';
+import AutoAbfrage from './AutoAbfrage';
 import {
   countUnreadLeadTickets,
   isLeadArchived,
@@ -66,6 +67,7 @@ function TicketingSectionMenu({
   offenCount,
   archivCount,
   anweisungUnread,
+  canEditFragen,
   onOpenOffen
 }) {
   const [open, setOpen] = useState(false);
@@ -113,6 +115,11 @@ function TicketingSectionMenu({
           {canManage ? (
             <button type="button" role="menuitem" className={itemClass('archiv')} onClick={() => choose('archiv')}>
               Archiv ({archivCount})
+            </button>
+          ) : null}
+          {canEditFragen ? (
+            <button type="button" role="menuitem" className={itemClass('auto')} onClick={() => choose('auto')}>
+              Automatisierte Abfrage
             </button>
           ) : null}
         </div>
@@ -355,6 +362,7 @@ const System = () => {
     const allowed =
       listTab === 'nachrichten' ||
       (listTab === 'offen' && canViewTicketingOffen(user)) ||
+      (listTab === 'auto' && canEditTicketingFragen(user)) ||
       ((listTab === 'erstellen' || listTab === 'archiv') && canManageTicketingSystem(user));
     if (!allowed) setListTab('nachrichten');
   }, [user, listTab]);
@@ -629,6 +637,7 @@ const System = () => {
     offenCount,
     archivCount,
     anweisungUnread,
+    canEditFragen,
     onOpenOffen: () => {
       setListTab('offen');
       setArchivSearch('');
@@ -673,6 +682,17 @@ const System = () => {
             onClick={() => setListTab('archiv')}
           >
             Archiv ({archivCount})
+          </button>
+        ) : null}
+        {canEditFragen ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listTab === 'auto'}
+            className={`system-tab${listTab === 'auto' ? ' system-tab--active' : ''}`}
+            onClick={() => setListTab('auto')}
+          >
+            Automatisierte Abfrage
           </button>
         ) : null}
       </div>
@@ -754,6 +774,8 @@ const System = () => {
           onOpenArchiv={() => setListTab('archiv')}
         />
       ) : null}
+
+      {listTab === 'auto' && canEditFragen ? <AutoAbfrage /> : null}
 
       {listTab === 'erstellen' && showForm ? (
         <div ref={formRef}>

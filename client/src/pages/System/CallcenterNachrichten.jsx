@@ -2562,6 +2562,20 @@ const CallcenterNachrichten = ({
               onQuestionUpdate={updateQuestion}
             />
             ) : null}
+            {active && Object.keys(active.autoAnswers || {}).length ? (
+              <div className="sz-auto-answers">
+                {Object.entries(active.autoAnswers).map(([id, entry]) => {
+                  const value = String(entry?.value || '').trim();
+                  if (!value) return null;
+                  return (
+                    <p key={id} className="sz-auto-answers__row">
+                      <span>{entry?.label || id}</span>
+                      {value}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : null}
           </aside>
       </div>
       {lightboxSrc ? (

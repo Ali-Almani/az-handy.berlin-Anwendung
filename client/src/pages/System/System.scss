@@ -1408,6 +1408,94 @@
   font-size: 0.9rem;
 }
 
+.auto-flow {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  max-width: 52rem;
+  margin-bottom: $spacing-xl;
+
+  &__hint,
+  &__label {
+    margin: 0;
+    color: $text-light;
+    font-size: 0.9rem;
+  }
+
+  &__wait,
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-weight: 600;
+  }
+
+  &__wait span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+  }
+
+  &__wait input[type='number'] {
+    width: 6rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  .btn--small {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.85rem;
+  }
+}
+
+.auto-flow-card,
+.auto-flow-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: $spacing-md;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+}
+
+.auto-flow-card__head,
+.auto-flow-next__row,
+.auto-flow__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auto-flow-card__head .form-input:first-child {
+  flex: 1 1 14rem;
+}
+
+.auto-flow-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.auto-flow-option__prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.auto-flow-next {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .vorvertrag-geraet-picker {
   display: flex;
   flex-direction: column;

@@ -50,3 +50,13 @@ export const deleteWhatsAppMessageApi = async (ticketId, messageId) => {
   });
   return res.data;
 };
+
+export const getAutoQuestionFlowApi = async () => {
+  const res = await api.get('/whatsapp/auto-flow');
+  return res.data;
+};
+
+export const saveAutoQuestionFlowApi = async (flow) => {
+  const res = await api.put('/whatsapp/auto-flow', { flow });
+  return res.data;
+};

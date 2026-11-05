@@ -23,6 +23,7 @@ import {
   resolveWhatsAppFile,
   normalizeWaId
 } from '../utils/whatsappInbox.js';
+import { loadAutoQuestionFlow, saveAutoQuestionFlow } from '../utils/autoQuestionFlow.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -76,6 +77,23 @@ async function requireTicketingAccess(req, res) {
     return false;
   }
   return true;
+}
+
+async function requireTicketingManager(req, res) {
+  const userId = req.user?.userId ?? req.user?.id;
+  if (!userId) {
+    res.status(403).json({ success: false, message: 'Kein Zugriff auf das Ticketing-System.' });
+    return false;
+  }
+  try {
+    const u = await User.findByPk(normalizeUserId(userId) ?? userId);
+    const role = roleText(u);
+    if (isAdminRole(role) || isTeamleiterSocialMediaRole(role)) return true;
+  } catch {
+    /* kein Zugriff */
+  }
+  res.status(403).json({ success: false, message: 'Kein Zugriff auf das Ticketing-System.' });
+  return false;
 }
 
 export function verifyWhatsAppSignature(req) {
@@ -415,4 +433,16 @@ export async function deleteWhatsAppTicketHandler(req, res) {
   await deleteWhatsAppTicket(req.params.id);
   req.app.get('io')?.emit('whatsapp:deleted', { id: req.params.id });
   return res.json({ success: true });
+}
+
+export async function getAutoQuestionFlowHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  return res.json({ success: true, flow: loadAutoQuestionFlow() });
+}
+
+export async function saveAutoQuestionFlowHandler(req, res) {
+  if (!(await requireTicketingManager(req, res))) return;
+  const { flow, error } = saveAutoQuestionFlow(req.body?.flow || req.body || {});
+  if (error) return res.status(400).json({ success: false, message: error });
+  return res.json({ success: true, flow });
 }

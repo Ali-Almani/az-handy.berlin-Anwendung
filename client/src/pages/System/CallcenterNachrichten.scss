@@ -1758,6 +1758,25 @@
   padding: $spacing-sm $spacing-md $spacing-md;
 }
 
+.sz-auto-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 $spacing-md $spacing-md;
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    font-size: 0.92rem;
+
+    span {
+      color: $text-light;
+      font-size: 0.78rem;
+    }
+  }
+}
+
 .sz-question {
   position: relative;
   margin-bottom: 0.15rem;

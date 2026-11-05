@@ -634,7 +634,7 @@ export function preserveOpenTicketEdits(prev, hydrated) {
 export function formFromLead(entry) {
   return {
     rufnummer: entry?.rufnummer || '',
-    o2Kunde: entry?.o2Kunde === 'Ja' || entry?.o2Kunde === 'Nein' ? entry.o2Kunde : '',
+    o2Kunde: String(entry?.o2Kunde || '').trim(),
     angebot: entry?.angebot || '',
     produktNotiz: entry?.produktNotiz || '',
     stadt: entry?.stadt || '',

@@ -427,6 +427,9 @@ export default function LeadFragenForm({
   }
 
   const o2Options = questionDropdownOptions('o2Kunde', questionConfig) || [];
+  const o2Shown = answers?.o2Kunde && !o2Options.includes(answers.o2Kunde)
+    ? [...o2Options, answers.o2Kunde]
+    : o2Options;
   const angebotOptions = questionDropdownOptions('angebot', questionConfig) || [];
 
   const fieldNodes = {
@@ -475,7 +478,7 @@ export default function LeadFragenForm({
           onChange={(ev) => patch('o2Kunde', ev.target.value)}
         >
           <option value="">{labelFor('o2Kunde', 'O2 Kunde?')}</option>
-          {o2Options.map((opt) => (
+          {o2Shown.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>

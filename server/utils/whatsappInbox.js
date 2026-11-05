@@ -9,7 +9,16 @@ import {
   WHATSAPP_NATIVE_VIDEO_MAX_BYTES
 } from '../middleware/whatsappMediaUpload.js';
 import { normalizeTicketLanguage } from '../constants/ticketLanguage.js';
-import { stadtForTicket } from './stadtDeutsch.js';
+import {
+  findFlowQuestion,
+  flowWaitMs,
+  loadAutoQuestionFlow,
+  matchFlowOption,
+  normalizeFlowAnswer,
+  queueAfter,
+  resolvedOptionTitle,
+  savesCity
+} from './autoQuestionFlow.js';
 
 export { WHATSAPP_FILE_MAX_BYTES, WHATSAPP_NATIVE_VIDEO_MAX_BYTES };
 
@@ -69,64 +78,6 @@ Thank you, we are happy to help! 🌟`
 
 export const FIRST_CUSTOMER_AUTO_REPLY = WELCOME_BY_LOCALE.ar;
 
-const ASK_O2 = {
-  ar: 'هل أنت عميل O2 حالياً؟',
-  de: 'Sind Sie bereits O2-Kunde?',
-  en: 'Are you already an O2 customer?'
-};
-
-const ASK_STADT = {
-  ar: 'في أي مدينة أنت؟',
-  de: 'In welcher Stadt sind Sie?',
-  en: 'Which city are you in?'
-};
-
-const ASK_STADT_TYPING = {
-  ar: 'يرجى كتابة اسم المدينة.',
-  de: 'Bitte schreiben Sie den Städtenamen.',
-  en: 'Please type the city name.'
-};
-
-const O2_BUTTONS = {
-  ar: [{ id: 'o2:Ja', title: 'نعم' }, { id: 'o2:Nein', title: 'لا' }],
-  de: [{ id: 'o2:Ja', title: 'Ja' }, { id: 'o2:Nein', title: 'Nein' }],
-  en: [{ id: 'o2:Ja', title: 'Yes' }, { id: 'o2:Nein', title: 'No' }]
-};
-
-const STADT_LIST = {
-  ar: {
-    button: 'اختيار',
-    rows: [
-      { id: 'stadt:Berlin', title: 'برلين' },
-      { id: 'stadt:out', title: 'خارج برلين' },
-      { id: 'stadt:custom', title: 'اكتب بنفسك' }
-    ]
-  },
-  de: {
-    button: 'Auswählen',
-    rows: [
-      { id: 'stadt:Berlin', title: 'Berlin' },
-      { id: 'stadt:out', title: 'außerhalb Berlin' },
-      { id: 'stadt:custom', title: 'selbst schreiben' }
-    ]
-  },
-  en: {
-    button: 'Choose',
-    rows: [
-      { id: 'stadt:Berlin', title: 'Berlin' },
-      { id: 'stadt:out', title: 'outside Berlin' },
-      { id: 'stadt:custom', title: 'type yourself' }
-    ]
-  }
-};
-
-const O2_YES = new Set(['o2:Ja', 'Ja', 'Yes', 'نعم']);
-const O2_NO = new Set(['o2:Nein', 'Nein', 'No', 'لا']);
-const STADT_CUSTOM = new Set(['stadt:custom', 'selbst schreiben', 'type yourself', 'اكتب بنفسك']);
-const STADT_BERLIN = new Set(['stadt:Berlin', 'Berlin', 'برلين', 'بيرلين']);
-const STADT_OUT = new Set(['stadt:out', 'außerhalb Berlin', 'outside Berlin', 'خارج برلين', 'خارج بيرلين']);
-
-const QUESTION_PAUSE_MS = 60_000;
 const TYPING_PULSE_MS = 20_000;
 const pendingQuestionTimers = new Map();
 const pendingTypingTimers = new Map();
@@ -162,11 +113,6 @@ function localeFromSprache(sprache) {
   if (n === 'Arabisch') return 'ar';
   if (n === 'Englisch') return 'en';
   return 'de';
-}
-
-function copyForLocale(map, sprache) {
-  const locale = localeFromSprache(sprache);
-  return map[locale] || map.de;
 }
 
 export function whatsappToken() {
@@ -235,6 +181,8 @@ function emptyTicket(waId, name, at) {
     welcomeAutoSent: false,
     autoQuestionField: '',
     autoQuestionDueAt: '',
+    autoQuestionQueue: [],
+    autoAnswers: {},
     sprache: '',
     mitarbeiterName: '',
     createdAt: at,
@@ -482,6 +430,7 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (extra.welcomeAutoSent) ticket.welcomeAutoSent = true;
     if (extra.autoQuestionField !== undefined) ticket.autoQuestionField = extra.autoQuestionField;
     if (extra.autoQuestionDueAt !== undefined) ticket.autoQuestionDueAt = extra.autoQuestionDueAt;
+    if (extra.autoQuestionQueue !== undefined) ticket.autoQuestionQueue = extra.autoQuestionQueue;
     if (extra.sprache !== undefined) ticket.sprache = extra.sprache;
     return { value: { tickets: state.tickets } };
   });
@@ -495,14 +444,36 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
-      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt',
+      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers',
       'kundenbesuch1Bearbeiter', 'kundenbesuch2Bearbeiter', 'kundenbesuch3Bearbeiter',
       'kontakt1ShopNotiz', 'kontakt1Datum', 'kontakt1Zeit',
       'kontakt2Bearbeiter', 'kontakt2ShopNotiz', 'kontakt2Datum', 'kontakt2Zeit',
       'kontakt3Bearbeiter', 'kontakt3ShopNotiz', 'kontakt3Datum', 'kontakt3Zeit'
     ];
     for (const key of allowed) {
-      if (patch[key] !== undefined) ticket[key] = patch[key];
+      if (patch[key] === undefined) continue;
+      if (key === 'autoQuestionQueue') {
+        ticket.autoQuestionQueue = (Array.isArray(patch[key]) ? patch[key] : [])
+          .map((id) => String(id || '').trim())
+          .filter(Boolean)
+          .slice(0, 20);
+        continue;
+      }
+      if (key === 'autoAnswers') {
+        const src = patch[key] && typeof patch[key] === 'object' && !Array.isArray(patch[key]) ? patch[key] : {};
+        const next = {};
+        for (const [id, entry] of Object.entries(src).slice(0, 30)) {
+          const value = String(entry?.value ?? entry ?? '').trim().slice(0, 80);
+          if (!value) continue;
+          next[String(id).slice(0, 40)] = {
+            label: String(entry?.label || id).trim().slice(0, 80),
+            value
+          };
+        }
+        ticket.autoAnswers = next;
+        continue;
+      }
+      ticket[key] = patch[key];
     }
     return { value: { tickets: state.tickets } };
   });
@@ -617,7 +588,7 @@ function startQuestionTyping(ticket, spec) {
   const key = `${spec.waitField}:${ticket.id}`;
   const prev = pendingTypingTimers.get(key);
   if (prev) clearInterval(prev);
-  const due = Date.parse(ticket.autoQuestionDueAt || '') || (Date.now() + QUESTION_PAUSE_MS);
+  const due = Date.parse(ticket.autoQuestionDueAt || '') || (Date.now() + flowWaitMs());
   if (due - Date.now() < 3000) {
     pendingTypingTimers.delete(key);
     return;
@@ -660,7 +631,7 @@ async function sendWhatsAppButtons(toWaId, bodyText, buttons) {
   });
 }
 
-async function sendWhatsAppList(toWaId, bodyText, buttonLabel, rows) {
+async function sendWhatsAppList(toWaId, bodyText, buttonLabel, rows, sectionTitle = 'Auswahl') {
   return sendGraphMessage({
     to: normalizeWaId(toWaId),
     type: 'interactive',
@@ -669,7 +640,7 @@ async function sendWhatsAppList(toWaId, bodyText, buttonLabel, rows) {
       body: { text: bodyText },
       action: {
         button: buttonLabel,
-        sections: [{ title: 'Stadt', rows }]
+        sections: [{ title: String(sectionTitle || 'Auswahl').slice(0, 24), rows }]
       }
     }
   });
@@ -876,7 +847,7 @@ export async function sendWelcomeIfNeeded(ticket) {
       at: new Date().toISOString()
     }, { keepUnread: true, welcomeAutoSent: true, sprache });
     const welcomed = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, sprache };
-    return startQuestionPause(welcomed, 'o2Wait');
+    return startFlowPause(welcomed, loadAutoQuestionFlow().startId);
   } catch (err) {
     console.warn('[whatsapp] welcome', err?.detail || err?.message || err);
     return ticket;
@@ -884,8 +855,6 @@ export async function sendWelcomeIfNeeded(ticket) {
 }
 
 async function appendAutoQuestion(ticket, { waMessageId, text, auto, autoQuestionField, locale }) {
-  const extra = { keepUnread: true, autoQuestionField };
-  if (autoQuestionField === 'stadt' || autoQuestionField === 'o2Kunde') extra.autoQuestionDueAt = '';
   const state = await appendOutgoingMessage(ticket.id, {
     id: waMessageId,
     from: 'agent',
@@ -893,100 +862,165 @@ async function appendAutoQuestion(ticket, { waMessageId, text, auto, autoQuestio
     locale: locale || localeFromSprache(ticket.sprache),
     text,
     at: new Date().toISOString()
-  }, extra);
+  }, { keepUnread: true, autoQuestionField, autoQuestionDueAt: '' });
   return ticketFromState(state, ticket.id, ticket.waId) || ticket;
 }
 
-export async function sendO2KundeQuestion(ticket) {
+const LIST_BUTTON = { de: 'Auswählen', ar: 'اختيار', en: 'Choose' };
+
+function clipTitle(value, max) {
+  return String(value || '').trim().slice(0, max);
+}
+
+async function sendFlowQuestion(ticket, questionId) {
   if (!ticket?.id || !ticket.waId) return ticket;
+  const flow = loadAutoQuestionFlow();
+  const question = findFlowQuestion(flow, questionId);
+  if (!question) return ticket;
   const locale = localeFromSprache(ticket.sprache);
-  const text = copyForLocale(ASK_O2, ticket.sprache);
+  const text = question.text?.[locale] || question.text?.de || question.label;
+  const options = question.kind === 'choice' ? question.options : [];
   try {
-    const waMessageId = await sendWhatsAppButtons(ticket.waId, text, copyForLocale(O2_BUTTONS, ticket.sprache));
+    let waMessageId = '';
+    if (!options.length) {
+      waMessageId = await sendWhatsAppText(ticket.waId, text);
+    } else if (options.length <= 3) {
+      waMessageId = await sendWhatsAppButtons(ticket.waId, text, options.map((opt, index) => ({
+        id: opt.replyId || `opt:${question.id}:${index}`,
+        title: clipTitle(resolvedOptionTitle(opt, locale), 20)
+      })));
+    } else {
+      waMessageId = await sendWhatsAppList(
+        ticket.waId,
+        text,
+        LIST_BUTTON[locale] || LIST_BUTTON.de,
+        options.map((opt, index) => ({
+          id: opt.replyId || `opt:${question.id}:${index}`,
+          title: clipTitle(resolvedOptionTitle(opt, locale), 24)
+        })),
+        clipTitle(question.label, 24) || 'Auswahl'
+      );
+    }
     return appendAutoQuestion(ticket, {
       waMessageId,
       text,
-      auto: 'ask-o2',
-      autoQuestionField: 'o2Kunde',
+      auto: `ask-${question.id}`,
+      autoQuestionField: question.id,
       locale
     });
   } catch (err) {
-    console.warn('[whatsapp] ask-o2', err?.detail || err?.message || err);
+    console.warn('[whatsapp] ask', question.id, err?.detail || err?.message || err);
     return ticket;
   }
 }
 
-export async function sendStadtQuestion(ticket) {
-  if (!ticket?.id || !ticket.waId) return ticket;
-  const locale = localeFromSprache(ticket.sprache);
-  const text = copyForLocale(ASK_STADT, ticket.sprache);
-  const list = copyForLocale(STADT_LIST, ticket.sprache);
-  try {
-    const waMessageId = await sendWhatsAppList(ticket.waId, text, list.button, list.rows);
-    return appendAutoQuestion(ticket, {
-      waMessageId,
-      text,
-      auto: 'ask-stadt',
-      autoQuestionField: 'stadt',
-      locale
-    });
-  } catch (err) {
-    console.warn('[whatsapp] ask-stadt', err?.detail || err?.message || err);
-    return ticket;
+function specForQuestion(questionId, legacy = '') {
+  const send = (ticket) => sendFlowQuestion(ticket, questionId);
+  if (legacy === 'o2') {
+    return {
+      waitField: 'o2Wait',
+      sendingField: 'o2Sending',
+      successField: questionId,
+      questionId,
+      send
+    };
   }
+  if (legacy === 'stadt') {
+    return {
+      waitField: 'stadtWait',
+      sendingField: 'stadtSending',
+      successField: questionId,
+      questionId,
+      send
+    };
+  }
+  return {
+    waitField: `wait:${questionId}`,
+    sendingField: `sending:${questionId}`,
+    successField: questionId,
+    questionId,
+    send
+  };
 }
-
-export async function sendStadtTypingPrompt(ticket) {
-  if (!ticket?.id || !ticket.waId) return ticket;
-  const locale = localeFromSprache(ticket.sprache);
-  const text = copyForLocale(ASK_STADT_TYPING, ticket.sprache);
-  try {
-    const waMessageId = await sendWhatsAppText(ticket.waId, text);
-    return appendAutoQuestion(ticket, {
-      waMessageId,
-      text,
-      auto: 'ask-stadt-text',
-      autoQuestionField: 'stadtText',
-      locale
-    });
-  } catch (err) {
-    console.warn('[whatsapp] ask-stadt-text', err?.detail || err?.message || err);
-    return ticket;
-  }
-}
-
-const DELAYED_QUESTIONS = {
-  o2Wait: {
-    waitField: 'o2Wait',
-    sendingField: 'o2Sending',
-    successField: 'o2Kunde',
-    send: sendO2KundeQuestion
-  },
-  stadtWait: {
-    waitField: 'stadtWait',
-    sendingField: 'stadtSending',
-    successField: 'stadt',
-    send: sendStadtQuestion
-  }
-};
 
 function specForWaitField(field) {
-  if (field === 'o2Wait' || field === 'o2Sending') return DELAYED_QUESTIONS.o2Wait;
-  if (field === 'stadtWait' || field === 'stadtSending') return DELAYED_QUESTIONS.stadtWait;
-  return null;
+  if (field === 'o2Wait' || field === 'o2Sending') {
+    return specForQuestion(loadAutoQuestionFlow().startId || 'o2Kunde', 'o2');
+  }
+  if (field === 'stadtWait' || field === 'stadtSending') return specForQuestion('stadt', 'stadt');
+  const wait = field.startsWith('wait:') ? field.slice(5) : '';
+  const sending = field.startsWith('sending:') ? field.slice(8) : '';
+  const id = wait || sending;
+  if (!id) return null;
+  return specForQuestion(id);
 }
 
-async function startQuestionPause(ticket, waitField) {
-  const dueAt = new Date(Date.now() + QUESTION_PAUSE_MS).toISOString();
+function isPauseField(field) {
+  return field === 'o2Wait'
+    || field === 'o2Sending'
+    || field === 'stadtWait'
+    || field === 'stadtSending'
+    || field.startsWith('wait:')
+    || field.startsWith('sending:');
+}
+
+async function startFlowPause(ticket, questionId, queue = []) {
+  const id = String(questionId || '').trim();
+  if (!ticket?.id || !id) return ticket;
+  const dueAt = new Date(Date.now() + flowWaitMs()).toISOString();
+  const rest = (Array.isArray(queue) ? queue : []).filter((item) => item && item !== id);
   const state = await patchWhatsAppTicket(ticket.id, {
-    autoQuestionField: waitField,
-    autoQuestionDueAt: dueAt
+    autoQuestionField: `wait:${id}`,
+    autoQuestionDueAt: dueAt,
+    autoQuestionQueue: rest
   });
   const next = ticketFromState(state, ticket.id, ticket.waId)
-    || { ...ticket, autoQuestionField: waitField, autoQuestionDueAt: dueAt };
-  const spec = specForWaitField(waitField);
-  if (spec) scheduleDelayedQuestion(next, spec);
+    || { ...ticket, autoQuestionField: `wait:${id}`, autoQuestionDueAt: dueAt, autoQuestionQueue: rest };
+  scheduleDelayedQuestion(next, specForQuestion(id));
   return next;
+}
+
+async function finishOrPause(ticket, patch, queued) {
+  const [nextId, ...rest] = queued;
+  if (!nextId) {
+    const state = await patchWhatsAppTicket(ticket.id, {
+      ...patch,
+      autoQuestionField: '',
+      autoQuestionDueAt: '',
+      autoQuestionQueue: []
+    });
+    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+  }
+  const dueAt = new Date(Date.now() + flowWaitMs()).toISOString();
+  const state = await patchWhatsAppTicket(ticket.id, {
+    ...patch,
+    autoQuestionField: `wait:${nextId}`,
+    autoQuestionDueAt: dueAt,
+    autoQuestionQueue: rest
+  });
+  const next = ticketFromState(state, ticket.id, ticket.waId) || {
+    ...ticket,
+    ...patch,
+    autoQuestionField: `wait:${nextId}`,
+    autoQuestionDueAt: dueAt,
+    autoQuestionQueue: rest
+  };
+  scheduleDelayedQuestion(next, specForQuestion(nextId));
+  return next;
+}
+
+function answerPatch(ticket, question, value) {
+  const patch = {};
+  if (!value) return patch;
+  if (question.saveAs) patch[question.saveAs] = value;
+  else {
+    const prev = ticket.autoAnswers && typeof ticket.autoAnswers === 'object' ? ticket.autoAnswers : {};
+    patch.autoAnswers = {
+      ...prev,
+      [question.id]: { label: question.label || question.id, value }
+    };
+  }
+  return patch;
 }
 
 async function claimDelayedQuestion(ticketId, spec) {
@@ -1008,7 +1042,7 @@ function scheduleDelayedQuestion(ticket, spec) {
   const key = `${spec.waitField}:${ticket.id}`;
   const prev = pendingQuestionTimers.get(key);
   if (prev) clearTimeout(prev);
-  const due = Date.parse(ticket.autoQuestionDueAt || '') || (Date.now() + QUESTION_PAUSE_MS);
+  const due = Date.parse(ticket.autoQuestionDueAt || '') || (Date.now() + flowWaitMs());
   const wait = Math.max(0, due - Date.now());
   const timer = setTimeout(() => {
     pendingQuestionTimers.delete(key);
@@ -1020,6 +1054,10 @@ function scheduleDelayedQuestion(ticket, spec) {
 
 async function sendScheduledQuestion(ticketId, spec) {
   stopQuestionTyping(ticketId, spec);
+  if (spec.questionId && !findFlowQuestion(loadAutoQuestionFlow(), spec.questionId)) {
+    await patchWhatsAppTicket(ticketId, { autoQuestionField: '', autoQuestionDueAt: '', autoQuestionQueue: [] });
+    return;
+  }
   const { claimed, ticket } = await claimDelayedQuestion(ticketId, spec);
   if (!claimed || !ticket) return;
   const sent = await spec.send(ticket);
@@ -1051,49 +1089,35 @@ export async function resumeDelayedAutoQuestions() {
 export async function handleAutoQuestionReply(ticket, message) {
   if (!ticket?.id) return ticket;
   const field = String(ticket.autoQuestionField || '').trim();
-  if (!field || field === 'o2Wait' || field === 'o2Sending' || field === 'stadtWait' || field === 'stadtSending') return ticket;
+  if (!field || isPauseField(field)) return ticket;
+  const question = findFlowQuestion(loadAutoQuestionFlow(), field);
+  if (!question) return ticket;
 
   const replyId = String(message?.interactiveId || '').trim();
   const text = String(message?.text || '').trim();
+  const remaining = Array.isArray(ticket.autoQuestionQueue) ? ticket.autoQuestionQueue : [];
 
-  if (field === 'o2Kunde') {
-    let value = '';
-    if (O2_YES.has(replyId) || O2_YES.has(text)) value = 'Ja';
-    else if (O2_NO.has(replyId) || O2_NO.has(text)) value = 'Nein';
-    else return ticket;
-    const dueAt = new Date(Date.now() + QUESTION_PAUSE_MS).toISOString();
-    const state = await patchWhatsAppTicket(ticket.id, {
-      o2Kunde: value,
-      autoQuestionField: 'stadtWait',
-      autoQuestionDueAt: dueAt
-    });
-    const next = ticketFromState(state, ticket.id, ticket.waId)
-      || { ...ticket, o2Kunde: value, autoQuestionField: 'stadtWait', autoQuestionDueAt: dueAt };
-    scheduleDelayedQuestion(next, DELAYED_QUESTIONS.stadtWait);
-    return next;
-  }
-
-  if (field === 'stadt') {
-    if (STADT_CUSTOM.has(replyId) || STADT_CUSTOM.has(text)) {
-      const state = await patchWhatsAppTicket(ticket.id, { autoQuestionField: 'stadtText' });
-      const next = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, autoQuestionField: 'stadtText' };
-      return sendStadtTypingPrompt(next);
-    }
-    let value = '';
-    if (STADT_BERLIN.has(replyId) || STADT_BERLIN.has(text)) value = 'Berlin';
-    else if (STADT_OUT.has(replyId) || STADT_OUT.has(text)) value = 'außerhalb Berlin';
-    else value = stadtForTicket(text) || '';
-    if (!value) return ticket;
-    const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
-    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
-  }
-
-  if (field === 'stadtText') {
+  if (question.kind === 'text' || !question.options.length) {
     if (replyId || !text) return ticket;
-    const value = (stadtForTicket(text) || text).slice(0, 80);
-    const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
-    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+    const value = normalizeFlowAnswer(question, text);
+    if (!value) return ticket;
+    return finishOrPause(ticket, answerPatch(ticket, question, value), queueAfter(question.next, remaining));
   }
 
-  return ticket;
+  let option = matchFlowOption(question, replyId, text);
+  if (!option && savesCity(question) && text) {
+    const mapped = normalizeFlowAnswer(question, text);
+    option = (question.options || []).find((opt) => !opt.prompt && opt.value === mapped) || null;
+    if (mapped && !option) {
+      return finishOrPause(ticket, answerPatch(ticket, question, mapped), queueAfter(question.next, remaining));
+    }
+  }
+  if (!option) return ticket;
+  if (option.prompt) {
+    return finishOrPause(ticket, {}, queueAfter(option.next, remaining));
+  }
+  const value = savesCity(question)
+    ? (normalizeFlowAnswer(question, option.value) || option.value)
+    : option.value;
+  return finishOrPause(ticket, answerPatch(ticket, question, value), queueAfter(option.next, remaining));
 }
