@@ -15,7 +15,7 @@ import {
   updateVorvertragTicketStatusApi,
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
-import { listWhatsAppTicketsApi } from '../../services/whatsapp.service';
+import { listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -46,6 +46,7 @@ import {
   loadLeadTickets,
   mergeWhatsAppTickets,
   migrateLeadTicketStatus,
+  offenFollowupFieldKeys,
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withMitarbeiter,
@@ -461,6 +462,15 @@ const System = () => {
     setFormKind('vorvertrag');
   };
 
+  const persistLiveTicket = (ticket) => {
+    if (!isLiveWhatsAppTicket(ticket)) return;
+    const payload = { ticketStatus: ticket.ticketStatus || '' };
+    for (const key of offenFollowupFieldKeys()) {
+      payload[key] = ticket[key] || '';
+    }
+    patchWhatsAppTicketApi(ticket.id, payload).catch(() => {});
+  };
+
   const patchLeadAnswer = (field, value) => {
     if (!leadEditId) return;
     setLeadTickets((prev) =>
@@ -468,33 +478,14 @@ const System = () => {
         if (t.id !== leadEditId) return t;
         const change = leadFieldChange(t, field, value);
         const next = withMitarbeiter({ ...t, [field]: value }, defaultMitarbeiter);
-        if (!change) return next;
-        return appendLeadEditLog(next, {
-          editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
-          changes: [change]
-        });
-      })
-    );
-  };
-
-  const clearLeadAnswers = (fields) => {
-    if (!leadEditId || !Array.isArray(fields) || fields.length === 0) return;
-    setLeadTickets((prev) =>
-      prev.map((t) => {
-        if (t.id !== leadEditId) return t;
-        const changes = [];
-        const cleared = {};
-        fields.forEach((field) => {
-          const change = leadFieldChange(t, field, '');
-          if (change) changes.push(change);
-          cleared[field] = '';
-        });
-        if (!changes.length) return t;
-        const next = withMitarbeiter({ ...t, ...cleared }, defaultMitarbeiter);
-        return appendLeadEditLog(next, {
-          editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
-          changes
-        });
+        const saved = change
+          ? appendLeadEditLog(next, {
+              editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
+              changes: [change]
+            })
+          : next;
+        persistLiveTicket(saved);
+        return saved;
       })
     );
   };
@@ -583,13 +574,15 @@ const System = () => {
                   ticketStatus: nextLead
                 }, nextName);
                 const change = leadFieldChange(t, 'ticketStatus', nextLead);
-                return change
+                const saved = change
                   ? appendLeadEditLog(next, {
                       editorName: nextName,
                       action: 'status_changed',
                       changes: [change]
                     })
                   : next;
+                persistLiveTicket(saved);
+                return saved;
               })()
             : t
         )
@@ -604,11 +597,15 @@ const System = () => {
 
     setStatusSavingId(id);
     setError('');
+    setEntries((prev) => prev.map((item) => (
+      item.id === id ? { ...item, ticketStatus: nextStatus } : item
+    )));
     try {
       await updateVorvertragTicketStatusApi(id, nextStatus);
       await loadList({ silent: true });
       goToStatusTab(nextStatus === 'Erledigt' ? 'archiv' : 'offen');
     } catch (err) {
+      await loadList({ silent: true });
       setError(err.response?.data?.message || err.message || 'Status konnte nicht gespeichert werden.');
     } finally {
       setStatusSavingId('');
@@ -803,7 +800,6 @@ const System = () => {
             onClose={() => setLeadEditId('')}
             editLog={editingLead.editLog}
             onAnswerChange={patchLeadAnswer}
-            onClearFields={clearLeadAnswers}
             bearbeiterName={defaultMitarbeiter}
           />
         </div>

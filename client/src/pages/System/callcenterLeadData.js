@@ -162,7 +162,7 @@ export function mergeWhatsAppTickets(local, remote) {
     const hydrated = hydrateLeadTicket({ ...raw, liveWhatsApp: true });
     const prev = prevById.get(hydrated.id);
     if (!prev) return hydrated;
-    return {
+    return preserveOpenTicketEdits(prev, {
       ...hydrated,
       messages: (hydrated.messages || []).map((message) => {
         const old = (prev.messages || []).find((item) => item.id === message.id);
@@ -174,7 +174,7 @@ export function mergeWhatsAppTickets(local, remote) {
           translationSourceLang: old.translationSourceLang
         };
       })
-    };
+    });
   })];
 }
 
@@ -578,7 +578,7 @@ export function emptyLeadForm() {
 
 export const OFFEN_FOLLOWUP_GROUPS = [
   {
-    title: 'Kundenbesuch 1',
+    title: 'Kontaktversuch 1',
     fields: [
       { key: 'kundenbesuch1Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt1ShopNotiz', label: 'Shop Notiz', type: 'text' },
@@ -587,7 +587,7 @@ export const OFFEN_FOLLOWUP_GROUPS = [
     ]
   },
   {
-    title: 'Kundenbesuch 2',
+    title: 'Kontaktversuch 2',
     fields: [
       { key: 'kontakt2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt2ShopNotiz', label: 'Shop Notiz', type: 'text' },
@@ -596,7 +596,7 @@ export const OFFEN_FOLLOWUP_GROUPS = [
     ]
   },
   {
-    title: 'Kundenbesuch 3',
+    title: 'Kontaktversuch 3',
     fields: [
       { key: 'kontakt3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
       { key: 'kontakt3ShopNotiz', label: 'Shop Notiz', type: 'text' },
@@ -605,6 +605,31 @@ export const OFFEN_FOLLOWUP_GROUPS = [
     ]
   }
 ];
+
+export function offenFollowupFieldKeys() {
+  return OFFEN_FOLLOWUP_GROUPS.flatMap((group) => group.fields.map((field) => field.key));
+}
+
+/** WhatsApp-Abruf darf einen gerade gesetzten Status oder Kontaktversuch nicht zurücksetzen. */
+export function preserveOpenTicketEdits(prev, hydrated) {
+  if (!prev) return hydrated;
+  const next = { ...hydrated };
+  const prevLog = Array.isArray(prev.editLog) ? prev.editLog : [];
+  const remoteLog = Array.isArray(hydrated?.editLog) ? hydrated.editLog : [];
+  next.editLog = prevLog.length >= remoteLog.length ? prevLog : remoteLog;
+  for (const key of offenFollowupFieldKeys()) {
+    const remote = String(hydrated?.[key] ?? '').trim();
+    const local = String(prev?.[key] ?? '').trim();
+    if (!remote && local) next[key] = prev[key];
+  }
+  if (normalizeLeadStatus(hydrated?.ticketStatus)) {
+    const localStatus = migrateLeadTicketStatus(prev.ticketStatus);
+    if (localStatus && localStatus !== VORVERTRAG_TICKET_STATUS_DEFAULT) {
+      next.ticketStatus = localStatus;
+    }
+  }
+  return next;
+}
 
 export function formFromLead(entry) {
   return {
@@ -633,9 +658,9 @@ const LEAD_FIELD_LABELS = {
   marketingNotiz: 'Marketing Notiz',
   terminDatum: 'Termin Datum',
   terminZeit: 'Termin Zeit',
-  kundenbesuch1Bearbeiter: 'Kundenbesuch 1 Bearbeiter',
-  kundenbesuch2Bearbeiter: 'Kundenbesuch 2 Bearbeiter',
-  kundenbesuch3Bearbeiter: 'Kundenbesuch 3 Bearbeiter',
+  kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
+  kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
+  kundenbesuch3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
   kontakt1ShopNotiz: 'Kontaktversuch 1 Shop Notiz',
   kontakt1Datum: 'Kontaktversuch 1 Datum',
   kontakt1Zeit: 'Kontaktversuch 1 Zeit bis Aktion',

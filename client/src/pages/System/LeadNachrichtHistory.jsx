@@ -1,41 +1,49 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
-import { formFromLead, OFFEN_FOLLOWUP_GROUPS } from './callcenterLeadData';
+import { formFromLead, OFFEN_FOLLOWUP_GROUPS, offenFollowupFieldKeys } from './callcenterLeadData';
+
+function followupSnapshot(ticket) {
+  const snapshot = {};
+  for (const key of offenFollowupFieldKeys()) {
+    snapshot[key] = ticket?.[key] || '';
+  }
+  return snapshot;
+}
+
+function draftFromTicket(ticket, bearbeiterName) {
+  const draft = followupSnapshot(ticket);
+  const name = String(bearbeiterName || '').trim();
+  if (!name) return draft;
+  const next = OFFEN_FOLLOWUP_GROUPS
+    .flatMap((group) => group.fields)
+    .find((field) => field.autoName && !String(draft[field.key] || '').trim());
+  if (next) draft[next.key] = name;
+  return draft;
+}
 
 export default function LeadNachrichtHistory({
   ticket,
   onClose,
   editLog = [],
   onAnswerChange,
-  onClearFields,
   bearbeiterName = ''
 }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
-  const filledForTicket = useRef('');
-  const skipAutoFill = useRef(false);
-  const onAnswerChangeRef = useRef(onAnswerChange);
-  onAnswerChangeRef.current = onAnswerChange;
+  const [saved, setSaved] = useState(() => followupSnapshot(ticket));
+  const [draft, setDraft] = useState(() => draftFromTicket(ticket, bearbeiterName));
 
   useEffect(() => {
-    const name = String(bearbeiterName || '').trim();
-    if (skipAutoFill.current || !ticket?.id || !name || filledForTicket.current === ticket.id) return;
-    const next = OFFEN_FOLLOWUP_GROUPS
-      .flatMap((group) => group.fields)
-      .find((field) => field.autoName && !String(ticket[field.key] || '').trim());
-    filledForTicket.current = ticket.id;
-    if (next) onAnswerChangeRef.current?.(next.key, name);
-  }, [ticket, bearbeiterName]);
+    setSaved(followupSnapshot(ticket));
+    setDraft(draftFromTicket(ticket, bearbeiterName));
+  }, [ticket?.id, bearbeiterName]);
 
-  const clearCurrentAttempt = () => {
-    const group = [...OFFEN_FOLLOWUP_GROUPS].reverse().find((item) =>
-      item.fields.some((field) => String(ticket?.[field.key] || '').trim())
-    );
-    if (!group) return;
-    skipAutoFill.current = true;
-    filledForTicket.current = ticket?.id || filledForTicket.current;
-    onClearFields?.(group.fields.map((field) => field.key));
+  const commitAndClose = () => {
+    for (const key of offenFollowupFieldKeys()) {
+      if (String(draft[key] || '') === String(saved[key] || '')) continue;
+      onAnswerChange?.(key, draft[key] || '');
+    }
     onClose?.();
   };
 
@@ -52,12 +60,12 @@ export default function LeadNachrichtHistory({
           <button
             type="button"
             className="btn btn--outline btn--small"
-            onClick={clearCurrentAttempt}
+            onClick={() => onClose?.()}
           >
             Abbrechen
           </button>
           {onClose ? (
-            <button type="button" className="btn btn--secondary btn--small" onClick={onClose}>
+            <button type="button" className="btn btn--secondary btn--small" onClick={commitAndClose}>
               Fertig
             </button>
           ) : null}
@@ -75,7 +83,7 @@ export default function LeadNachrichtHistory({
           <h3 className="vorvertrag-section-title">{group.title}</h3>
           <div className="lead-fragen-grid">
             {group.fields.map((field) => {
-              const value = ticket?.[field.key] || '';
+              const value = draft[field.key] || '';
               const inputType = field.type === 'date' && value ? 'date' : 'text';
               return (
                 <div key={field.key} className="form-group">
@@ -91,7 +99,7 @@ export default function LeadNachrichtHistory({
                     onBlur={(ev) => {
                       if (field.type === 'date' && !ev.target.value) ev.target.type = 'text';
                     }}
-                    onChange={(ev) => onAnswerChange?.(field.key, ev.target.value)}
+                    onChange={(ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
                   />
                 </div>
               );

@@ -36,11 +36,7 @@ import {
   templateFieldMatchingDraft,
   isLeadArchived,
   isLiveWhatsAppTicket,
-  leadPhoneNumber,
-  mergeWhatsAppTickets,
-  looksLikePhoneNumber,
-  telHrefFromPhone,
-  whatsappHrefFromPhone
+  mergeWhatsAppTickets
 } from './callcenterLeadData';
 import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
 import {
@@ -625,14 +621,6 @@ const CallcenterNachrichten = ({
     () => localizedTemplateQuestions(chatLocale, questionConfig),
     [chatLocale, questionConfig]
   );
-  const contactPhone = useMemo(() => {
-    if (!active) return '';
-    const fromForm = String(answers?.rufnummer || '').trim();
-    if (looksLikePhoneNumber(fromForm)) return fromForm;
-    const fromLead = leadPhoneNumber(active);
-    if (fromLead) return fromLead;
-    return String(active.waId || '').trim();
-  }, [active, answers?.rufnummer]);
   const mitarbeiterLabel = sanitizeMitarbeiterName(agentName)
     || collectMitarbeiterNames(active)[0]
     || '—';
@@ -1858,31 +1846,6 @@ const CallcenterNachrichten = ({
                   </button>
                   {chatMenuOpen ? (
                     <div className="sz-chat-more-menu" role="menu">
-                      {telHrefFromPhone(contactPhone) ? (
-                        <a role="menuitem" className="sz-chat-more-item" href={telHrefFromPhone(contactPhone)} onClick={() => setChatMenuOpen(false)}>
-                          Anruf
-                        </a>
-                      ) : (
-                        <button type="button" role="menuitem" className="sz-chat-more-item" disabled>
-                          Anruf
-                        </button>
-                      )}
-                      {whatsappHrefFromPhone(contactPhone) ? (
-                        <a
-                          role="menuitem"
-                          className="sz-chat-more-item"
-                          href={whatsappHrefFromPhone(contactPhone)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setChatMenuOpen(false)}
-                        >
-                          WhatsApp
-                        </a>
-                      ) : (
-                        <button type="button" role="menuitem" className="sz-chat-more-item" disabled>
-                          WhatsApp
-                        </button>
-                      )}
                       {canOpenOffen ? (
                         <button
                           type="button"

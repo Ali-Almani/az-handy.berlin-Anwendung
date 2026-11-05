@@ -492,7 +492,11 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
-      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt'
+      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt',
+      'kundenbesuch1Bearbeiter', 'kundenbesuch2Bearbeiter', 'kundenbesuch3Bearbeiter',
+      'kontakt1ShopNotiz', 'kontakt1Datum', 'kontakt1Zeit',
+      'kontakt2Bearbeiter', 'kontakt2ShopNotiz', 'kontakt2Datum', 'kontakt2Zeit',
+      'kontakt3Bearbeiter', 'kontakt3ShopNotiz', 'kontakt3Datum', 'kontakt3Zeit'
     ];
     for (const key of allowed) {
       if (patch[key] !== undefined) ticket[key] = patch[key];

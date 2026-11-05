@@ -568,7 +568,7 @@ export async function updateVorvertrag(req, res) {
 }
 
 export async function updateVorvertragTicketStatus(req, res) {
-  if (!(await requireTicketingManager(req, res))) return;
+  if (!(await requireTicketingAccess(req, res))) return;
   const id = String(req.params.id || '').trim();
   const ticketStatus = normalizeVorvertragTicketStatus(req.body?.ticketStatus);
   if (!String(req.body?.ticketStatus ?? '').trim()) {
