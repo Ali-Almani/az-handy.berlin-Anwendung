@@ -1495,7 +1495,10 @@
 .auto-flow-card {
   display: flex;
   flex-direction: column;
+  align-self: flex-start;
   gap: 0.4rem;
+  width: fit-content;
+  max-width: 100%;
   padding: 0.55rem 0.7rem;
   border: 1px solid $border-color;
   border-radius: 8px;
@@ -1510,6 +1513,22 @@
   gap: 0.5rem;
 }
 
+.auto-flow-card__head {
+  align-items: flex-start;
+}
+
+.auto-flow-card__head .form-input,
+.auto-flow-card__head select.form-input,
+.auto-flow-card__head > .btn {
+  box-sizing: border-box;
+  height: 30px;
+}
+
+.auto-flow-card__head > .btn {
+  padding: 0 0.55rem;
+  line-height: 28px;
+}
+
 .auto-flow-order {
   display: flex;
   flex-direction: column;
@@ -1517,7 +1536,7 @@
 }
 
 .auto-flow-card > .form-input {
-  width: 448px;
+  width: 256px;
 }
 
 .auto-flow-card > select.form-input {
@@ -1537,6 +1556,7 @@
 .auto-flow-options {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.35rem;
 }
 
