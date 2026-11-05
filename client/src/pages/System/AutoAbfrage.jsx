@@ -289,17 +289,6 @@ export default function AutoAbfrage() {
                     selfId={question.id}
                     onChange={(next) => updateOption(question.id, index, { next })}
                   />
-                  <label className="auto-flow-option__prompt">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(opt.prompt)}
-                      onChange={(ev) => updateOption(question.id, index, {
-                        prompt: ev.target.checked,
-                        value: ev.target.checked ? '' : (opt.value || opt.title?.de || '')
-                      })}
-                    />
-                    schreibt selbst
-                  </label>
                   <button
                     type="button"
                     className="btn btn--secondary btn--small"
