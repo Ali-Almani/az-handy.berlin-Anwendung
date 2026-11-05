@@ -9,6 +9,7 @@ import {
   WHATSAPP_NATIVE_VIDEO_MAX_BYTES
 } from '../middleware/whatsappMediaUpload.js';
 import { normalizeTicketLanguage } from '../constants/ticketLanguage.js';
+import { stadtForTicket } from './stadtDeutsch.js';
 
 export { WHATSAPP_FILE_MAX_BYTES, WHATSAPP_NATIVE_VIDEO_MAX_BYTES };
 
@@ -96,7 +97,7 @@ const STADT_LIST = {
   ar: {
     button: 'اختيار',
     rows: [
-      { id: 'stadt:Berlin', title: 'Berlin' },
+      { id: 'stadt:Berlin', title: 'برلين' },
       { id: 'stadt:out', title: 'خارج برلين' },
       { id: 'stadt:custom', title: 'اكتب بنفسك' }
     ]
@@ -122,8 +123,8 @@ const STADT_LIST = {
 const O2_YES = new Set(['o2:Ja', 'Ja', 'Yes', 'نعم']);
 const O2_NO = new Set(['o2:Nein', 'Nein', 'No', 'لا']);
 const STADT_CUSTOM = new Set(['stadt:custom', 'selbst schreiben', 'type yourself', 'اكتب بنفسك']);
-const STADT_BERLIN = new Set(['stadt:Berlin', 'Berlin']);
-const STADT_OUT = new Set(['stadt:out', 'außerhalb Berlin', 'outside Berlin', 'خارج برلين']);
+const STADT_BERLIN = new Set(['stadt:Berlin', 'Berlin', 'برلين', 'بيرلين']);
+const STADT_OUT = new Set(['stadt:out', 'außerhalb Berlin', 'outside Berlin', 'خارج برلين', 'خارج بيرلين']);
 
 const QUESTION_PAUSE_MS = 60_000;
 const pendingQuestionTimers = new Map();
@@ -1005,14 +1006,15 @@ export async function handleAutoQuestionReply(ticket, message) {
     let value = '';
     if (STADT_BERLIN.has(replyId) || STADT_BERLIN.has(text)) value = 'Berlin';
     else if (STADT_OUT.has(replyId) || STADT_OUT.has(text)) value = 'außerhalb Berlin';
-    else return ticket;
+    else value = stadtForTicket(text) || '';
+    if (!value) return ticket;
     const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
     return ticketFromState(state, ticket.id, ticket.waId) || ticket;
   }
 
   if (field === 'stadtText') {
     if (replyId || !text) return ticket;
-    const value = text.slice(0, 80);
+    const value = (stadtForTicket(text) || text).slice(0, 80);
     const state = await patchWhatsAppTicket(ticket.id, { stadt: value, autoQuestionField: '' });
     return ticketFromState(state, ticket.id, ticket.waId) || ticket;
   }
