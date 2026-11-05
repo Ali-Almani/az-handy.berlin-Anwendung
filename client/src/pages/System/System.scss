@@ -1413,9 +1413,9 @@
   flex-direction: column;
   gap: 0.55rem;
   width: 100%;
-  max-width: none;
+  max-width: 1352px;
   margin-bottom: $spacing-xl;
-  font-size: 0.78rem;
+  font-size: 12.5px;
 
   &__bar {
     display: flex;
@@ -1428,7 +1428,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    font-size: 0.78rem;
+    font-size: 12.5px;
     font-weight: 600;
   }
 
@@ -1440,7 +1440,7 @@
   }
 
   &__wait input[type='number'] {
-    width: 4.5rem;
+    width: 72px;
   }
 
   &__actions {
@@ -1452,16 +1452,16 @@
 
   .form-input,
   select.form-input {
-    width: 16rem;
+    width: 256px;
     max-width: 100%;
     align-self: flex-start;
-    font-size: 0.78rem;
+    font-size: 12.5px;
     padding: 0.28rem 0.5rem;
   }
 
   .btn,
   .btn--small {
-    font-size: 0.75rem;
+    font-size: 12px;
   }
 
   .btn--small {
@@ -1481,7 +1481,7 @@
   border-radius: 6px;
   padding: 0.22rem 0.45rem;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
 
@@ -1517,21 +1517,21 @@
 }
 
 .auto-flow-card > .form-input {
-  width: 28rem;
+  width: 448px;
 }
 
 .auto-flow-card > select.form-input {
-  width: 12rem;
+  width: 192px;
 }
 
 .auto-flow-card__head .form-input:first-of-type {
-  flex: 0 0 16rem;
-  width: 16rem;
+  flex: 0 0 256px;
+  width: 256px;
 }
 
 .auto-flow-card__head select.form-input {
-  flex: 0 0 8.5rem;
-  width: 8.5rem;
+  flex: 0 0 136px;
+  width: 136px;
 }
 
 .auto-flow-options {
@@ -1545,13 +1545,13 @@
 }
 
 .auto-flow-option .form-input {
-  flex: 0 0 14rem;
-  width: 14rem;
+  flex: 0 0 224px;
+  width: 224px;
 }
 
 .auto-flow-option select.form-input {
-  flex: 0 0 12rem;
-  width: 12rem;
+  flex: 0 0 192px;
+  width: 192px;
 }
 
 @media (max-width: $breakpoint-md) {

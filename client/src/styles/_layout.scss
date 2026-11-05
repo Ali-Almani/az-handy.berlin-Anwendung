@@ -19,25 +19,25 @@
 
 /*
  * az-schnelltest.berlin:
- * - Navbar + Footer: 1600px (unverändert breiter wie bisher)
- * - Hauptinhalt: 1400px (Projekt-Standard)
- * - Nur Startseite (.home): weiterhin 1600px Breite
+ * - Navbar + Footer: 1800px
+ * - Hauptinhalt: 1600px
+ * - Nur Startseite (.home): 1800px Breite
  */
 body.layout-host--schnelltest .navbar .container,
 body.layout-host--schnelltest .footer .container {
-  max-width: 1600px;
+  max-width: 1800px;
 }
 
 body.layout-host--schnelltest .main > .container {
-  max-width: 1400px;
+  max-width: 1600px;
 }
 
 body.layout-host--schnelltest .main > .container:has(.home) {
-  max-width: 1600px;
+  max-width: 1800px;
 }
 
 body.layout-host--schnelltest .main .home {
-  max-width: 1600px;
+  max-width: 1800px;
 }
 
 /* Startseite: etwas weniger vertikaler Außenabstand, damit Kennzahlen/NEWS eher ohne Seiten-Scroll passen */
