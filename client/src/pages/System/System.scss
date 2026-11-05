@@ -1415,15 +1415,14 @@
   max-width: 52rem;
   margin-bottom: $spacing-xl;
 
-  &__hint,
-  &__label {
-    margin: 0;
-    color: $text-light;
-    font-size: 0.9rem;
+  &__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: $spacing-md;
   }
 
-  &__wait,
-  &__text {
+  &__wait {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -1454,8 +1453,29 @@
   }
 }
 
-.auto-flow-card,
-.auto-flow-option {
+.auto-flow-langs {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.auto-flow-lang {
+  border: 1px solid $border-color;
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+
+  &--active {
+    background: $primary-color;
+    border-color: $primary-color;
+    color: #fff;
+  }
+}
+
+.auto-flow-card {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -1465,7 +1485,7 @@
 }
 
 .auto-flow-card__head,
-.auto-flow-next__row,
+.auto-flow-option,
 .auto-flow__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1483,17 +1503,16 @@
   gap: $spacing-sm;
 }
 
+.auto-flow-option .form-input {
+  flex: 1 1 10rem;
+}
+
 .auto-flow-option__prompt {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
-}
-
-.auto-flow-next {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .vorvertrag-geraet-picker {
