@@ -67,6 +67,32 @@ export function defaultAutoQuestionFlow() {
         next: []
       },
       {
+        id: 'angebot',
+        label: 'Produkt?',
+        kind: 'choice',
+        saveAs: 'angebot',
+        text: {
+          de: 'Welches Angebot oder Produkt möchten Sie?',
+          ar: 'أي عرض أو منتج ترغب به؟',
+          en: 'Which offer or product would you like?'
+        },
+        options: [
+          'Gold',
+          'Sonstiges',
+          'S26 Ultra',
+          'IP 17 Pro Max',
+          'DSL',
+          'SIM Only'
+        ].map((name) => ({
+          value: name,
+          replyId: `angebot:${name.replace(/[^A-Za-z0-9]+/g, '')}`,
+          prompt: false,
+          title: { de: name, ar: name, en: name },
+          next: []
+        })),
+        next: []
+      },
+      {
         id: 'stadt',
         label: 'Stadt?',
         kind: 'choice',

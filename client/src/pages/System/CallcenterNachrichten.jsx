@@ -38,6 +38,7 @@ import {
   isLiveWhatsAppTicket,
   mergeWhatsAppTickets
 } from './callcenterLeadData';
+import { syncProduktQuestion, ticketProduktNames } from './produktFrageSync';
 import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
 import {
   getInboxAnweisungApi,
@@ -752,6 +753,18 @@ const CallcenterNachrichten = ({
   useEffect(() => {
     saveQuestionConfig(questionConfig);
   }, [questionConfig]);
+
+  const angebotSyncKey = useRef(null);
+  useEffect(() => {
+    if (!canEditFragen) return undefined;
+    const names = ticketProduktNames(questionConfig);
+    const key = names.join('\n');
+    if (angebotSyncKey.current === key) return undefined;
+    const first = angebotSyncKey.current === null;
+    angebotSyncKey.current = key;
+    syncProduktQuestion(names, { onlyIfMissing: first }).catch(() => {});
+    return undefined;
+  }, [questionConfig, canEditFragen]);
 
   useEffect(() => {
     if (canEditFragen) return;

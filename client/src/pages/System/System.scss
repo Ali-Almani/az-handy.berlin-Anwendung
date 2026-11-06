@@ -1598,6 +1598,10 @@
 .auto-flow-option .form-input {
   flex: 0 0 224px;
   width: 224px;
+
+  &[readonly] {
+    background: $bg-light;
+  }
 }
 
 .auto-flow-option select.form-input {

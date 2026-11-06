@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getAutoQuestionFlowApi, saveAutoQuestionFlowApi } from '../../services/whatsapp.service';
+import { loadQuestionConfig } from './callcenterLeadData';
+import {
+  applyProduktOptions,
+  isProduktQuestion,
+  produktOptionKey,
+  ticketProduktNames
+} from './produktFrageSync';
 
 const LOCALES = [
   { id: 'de', short: 'DE' },
@@ -71,12 +78,17 @@ export default function AutoAbfrage() {
     getAutoQuestionFlowApi()
       .then((res) => {
         if (!on || !res?.flow) return;
-        const questions = res.flow.questions || [];
-        const startAt = questions.findIndex((q) => q.id === res.flow.startId);
+        const names = ticketProduktNames(loadQuestionConfig());
+        const synced = applyProduktOptions(res.flow, names);
+        if (produktOptionKey(res.flow) !== produktOptionKey(synced)) {
+          saveAutoQuestionFlowApi(synced).catch(() => {});
+        }
+        const questions = synced.questions || [];
+        const startAt = questions.findIndex((q) => q.id === synced.startId);
         const ordered = startAt > 0
           ? [questions[startAt], ...questions.filter((_, index) => index !== startAt)]
           : questions;
-        setFlow(withStart(ordered, res.flow));
+        setFlow(withStart(ordered, synced));
         setOpenId(ordered[0]?.id || '');
       })
       .catch((err) => {
@@ -116,7 +128,10 @@ export default function AutoAbfrage() {
     setError('');
     setSaved(false);
     try {
-      const payload = withStart(flow.questions || [], flow);
+      const payload = applyProduktOptions(
+        withStart(flow.questions || [], flow),
+        ticketProduktNames(loadQuestionConfig())
+      );
       const res = await saveAutoQuestionFlowApi(payload);
       setFlow(res?.flow || flow);
       setSaved(true);
@@ -170,6 +185,7 @@ export default function AutoAbfrage() {
       <div className="auto-flow-list">
       {questions.map((question, index) => {
         const open = question.id === (questions.some((q) => q.id === openId) ? openId : questions[0]?.id);
+        const linked = isProduktQuestion(question);
         return (
         <article key={question.id} className={`auto-flow-card${open ? ' auto-flow-card--open' : ''}`}>
           <button
@@ -230,6 +246,7 @@ export default function AutoAbfrage() {
               className="form-input"
               value={question.kind}
               aria-label="Art"
+              disabled={linked}
               onChange={(ev) => updateQuestion(question.id, {
                 kind: ev.target.value,
                 options: ev.target.value === 'choice' && !question.options.length
@@ -240,6 +257,7 @@ export default function AutoAbfrage() {
               <option value="choice">Dropdown</option>
               <option value="text">Freitext</option>
             </select>
+            {linked ? null : (
             <button
               type="button"
               className="btn btn--secondary btn--small"
@@ -262,6 +280,7 @@ export default function AutoAbfrage() {
             >
               Löschen
             </button>
+            )}
           </div>
 
           <input
@@ -288,9 +307,11 @@ export default function AutoAbfrage() {
                 <div key={`${question.id}-${index}`} className="auto-flow-option">
                   <input
                     className="form-input"
-                    value={opt.title?.[locale] || ''}
+                    value={linked ? (opt.value || opt.title?.[locale] || '') : (opt.title?.[locale] || '')}
                     placeholder="Antwort"
                     aria-label="Antwort"
+                    readOnly={linked}
+                    title={linked ? 'Kommt aus Ticket erstellen' : undefined}
                     dir={locale === 'ar' ? 'rtl' : undefined}
                     onChange={(ev) => {
                       const title = { ...opt.title, [locale]: ev.target.value };
@@ -307,6 +328,7 @@ export default function AutoAbfrage() {
                     selfId={question.id}
                     onChange={(next) => updateOption(question.id, index, { next })}
                   />
+                  {linked ? null : (
                   <button
                     type="button"
                     className="btn btn--secondary btn--small"
@@ -317,9 +339,10 @@ export default function AutoAbfrage() {
                   >
                     ×
                   </button>
+                  )}
                 </div>
               ))}
-              {(question.options || []).length < 10 ? (
+              {!linked && (question.options || []).length < 10 ? (
                 <button
                   type="button"
                   className="btn btn--secondary btn--small"
