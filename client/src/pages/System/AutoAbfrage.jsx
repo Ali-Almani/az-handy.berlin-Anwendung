@@ -64,6 +64,7 @@ export default function AutoAbfrage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [openId, setOpenId] = useState('');
 
   useEffect(() => {
     let on = true;
@@ -76,6 +77,7 @@ export default function AutoAbfrage() {
           ? [questions[startAt], ...questions.filter((_, index) => index !== startAt)]
           : questions;
         setFlow(withStart(ordered, res.flow));
+        setOpenId(ordered[0]?.id || '');
       })
       .catch((err) => {
         if (on) setError(err?.response?.data?.message || 'Ablauf konnte nicht geladen werden.');
@@ -165,8 +167,22 @@ export default function AutoAbfrage() {
         </label>
       </div>
 
-      {questions.map((question, index) => (
-        <article key={question.id} className="auto-flow-card">
+      <div className="auto-flow-list">
+      {questions.map((question, index) => {
+        const open = question.id === (questions.some((q) => q.id === openId) ? openId : questions[0]?.id);
+        return (
+        <article key={question.id} className={`auto-flow-card${open ? ' auto-flow-card--open' : ''}`}>
+          <button
+            type="button"
+            className="auto-flow-card__toggle"
+            aria-expanded={open}
+            onClick={() => setOpenId(question.id)}
+          >
+            <span>{question.label || 'Frage'}</span>
+            <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+          </button>
+          {open ? (
+          <>
           <div className="auto-flow-card__head">
             <div className="auto-flow-order">
               <button
@@ -229,6 +245,8 @@ export default function AutoAbfrage() {
               className="btn btn--secondary btn--small"
               onClick={() => {
                 setSaved(false);
+                const fallback = questions[index + 1]?.id || questions[index - 1]?.id || '';
+                setOpenId((current) => (current === question.id ? fallback : current));
                 setFlow((prev) => {
                   const nextQuestions = prev.questions.filter((q) => q.id !== question.id);
                   return withStart(nextQuestions.map((q) => ({
@@ -312,16 +330,22 @@ export default function AutoAbfrage() {
               ) : null}
             </div>
           )}
+          </>
+          ) : null}
         </article>
-      ))}
+        );
+      })}
+      </div>
 
       <div className="auto-flow__actions">
         <button
           type="button"
           className="btn btn--secondary"
           onClick={() => {
+            const created = newQuestion();
             setSaved(false);
-            setFlow((prev) => withStart([...prev.questions, newQuestion()], prev));
+            setOpenId(created.id);
+            setFlow((prev) => withStart([...prev.questions, created], prev));
           }}
         >
           Frage hinzufügen
