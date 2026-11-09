@@ -1648,3 +1648,33 @@
     }
   }
 }
+
+.wa-gruppen {
+  &__hint {
+    margin: 0 0 0.35rem;
+    color: $text-light;
+    font-weight: 500;
+    max-width: 52rem;
+  }
+}
+
+.wa-gruppen-staff {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+
+  &__item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+
+    span {
+      color: $text-light;
+      font-weight: 400;
+      font-size: 11.5px;
+    }
+  }
+}

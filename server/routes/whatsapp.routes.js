@@ -12,7 +12,9 @@ import {
   deleteWhatsAppTicketHandler,
   deleteWhatsAppMessageHandler,
   getAutoQuestionFlowHandler,
-  saveAutoQuestionFlowHandler
+  saveAutoQuestionFlowHandler,
+  getInboxGroupsHandler,
+  saveInboxGroupsHandler
 } from '../controllers/whatsapp.controller.js';
 
 const router = Router();
@@ -43,6 +45,8 @@ router.use(authenticateToken);
 router.get('/tickets', listWhatsAppTickets);
 router.get('/auto-flow', getAutoQuestionFlowHandler);
 router.put('/auto-flow', saveAutoQuestionFlowHandler);
+router.get('/inbox-groups', getInboxGroupsHandler);
+router.put('/inbox-groups', saveInboxGroupsHandler);
 router.post('/tickets/:id/messages', sendWhatsAppTicketMessage);
 router.post('/tickets/:id/media', whatsappFileUpload, sendWhatsAppTicketMedia);
 router.post('/tickets/:id/messages/delete', deleteWhatsAppMessageHandler);

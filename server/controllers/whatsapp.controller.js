@@ -24,6 +24,13 @@ import {
   normalizeWaId
 } from '../utils/whatsappInbox.js';
 import { loadAutoQuestionFlow, saveAutoQuestionFlow } from '../utils/autoQuestionFlow.js';
+import {
+  filterInboxTickets,
+  loadInboxGroups,
+  presentInboxGroups,
+  saveInboxGroups,
+  userCanViewInboxTicket
+} from '../utils/whatsappInboxGroups.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -94,6 +101,54 @@ async function requireTicketingManager(req, res) {
   }
   res.status(403).json({ success: false, message: 'Kein Zugriff auf das Ticketing-System.' });
   return false;
+}
+
+async function loadTicketingUser(req) {
+  const userId = req.user?.userId ?? req.user?.id;
+  if (!userId) return null;
+  try {
+    return await User.findByPk(normalizeUserId(userId) ?? userId);
+  } catch {
+    return null;
+  }
+}
+
+async function requireInboxTicketAccess(req, res, ticket) {
+  if (!ticket) {
+    res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+    return false;
+  }
+  const user = await loadTicketingUser(req);
+  if (!user) {
+    res.status(403).json({ success: false, message: 'Kein Zugriff auf das Ticketing-System.' });
+    return false;
+  }
+  if (!userCanViewInboxTicket(user, ticket, loadInboxGroups().groups)) {
+    res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+    return false;
+  }
+  return true;
+}
+
+async function listTicketingStaff() {
+  try {
+    const usersRaw = User.findAll ? await User.findAll() : [];
+    const list = Array.isArray(usersRaw) ? usersRaw : (usersRaw.rows || []);
+    return list
+      .map((entry) => (entry.toJSON ? entry.toJSON() : entry))
+      .filter((entry) => {
+        const role = roleText(entry);
+        return isAdminRole(role) || isTeamleiterSocialMediaRole(role) || isSocialMediaRole(role);
+      })
+      .map((entry) => ({
+        id: String(entry.id ?? ''),
+        name: String(entry.name || entry.email || '').trim(),
+        role: roleText(entry)
+      }))
+      .filter((entry) => entry.id);
+  } catch {
+    return [];
+  }
 }
 
 export function verifyWhatsAppSignature(req) {
@@ -315,10 +370,11 @@ export async function listWhatsAppTickets(req, res) {
   if (!whatsappConfigured()) {
     return res.json({ success: true, configured: false, tickets: [] });
   }
+  const user = await loadTicketingUser(req);
   return res.json({
     success: true,
     configured: true,
-    tickets: loadWhatsAppTickets()
+    tickets: filterInboxTickets(loadWhatsAppTickets(), user, loadInboxGroups().groups)
   });
 }
 
@@ -328,7 +384,7 @@ export async function sendWhatsAppTicketMessage(req, res) {
     return res.status(503).json({ success: false, message: 'WhatsApp ist nicht eingerichtet.' });
   }
   const ticket = findWhatsAppTicket(req.params.id);
-  if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  if (!(await requireInboxTicketAccess(req, res, ticket))) return;
   const text = String(req.body?.text ?? '').trim();
   const images = Array.isArray(req.body?.images) ? req.body.images : [];
   const voices = Array.isArray(req.body?.voices) ? req.body.voices : [];
@@ -365,7 +421,7 @@ export async function sendWhatsAppTicketMedia(req, res) {
     return res.status(503).json({ success: false, message: 'WhatsApp ist nicht eingerichtet.' });
   }
   const ticket = findWhatsAppTicket(req.params.id);
-  if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  if (!(await requireInboxTicketAccess(req, res, ticket))) return;
   if (!req.file?.path) {
     return res.status(400).json({ success: false, message: 'Keine Datei empfangen.' });
   }
@@ -396,7 +452,7 @@ export async function sendWhatsAppTicketMedia(req, res) {
 export async function deleteWhatsAppMessageHandler(req, res) {
   if (!(await requireTicketingAccess(req, res))) return;
   const ticket = findWhatsAppTicket(req.params.id);
-  if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  if (!(await requireInboxTicketAccess(req, res, ticket))) return;
   const messageId = String(req.body?.messageId || req.params.messageId || '').trim();
   const message = (ticket.messages || []).find((m) => m.id === messageId);
   if (!message) return res.status(404).json({ success: false, message: 'Nachricht nicht gefunden.' });
@@ -421,7 +477,11 @@ export async function deleteWhatsAppMessageHandler(req, res) {
 
 export async function patchWhatsAppTicketHandler(req, res) {
   if (!(await requireTicketingAccess(req, res))) return;
-  const state = await patchWhatsAppTicket(req.params.id, req.body || {});
+  const current = findWhatsAppTicket(req.params.id);
+  if (!(await requireInboxTicketAccess(req, res, current))) return;
+  const body = { ...(req.body || {}) };
+  delete body.inboxGroup;
+  const state = await patchWhatsAppTicket(req.params.id, body);
   const ticket = (state?.tickets || []).find((t) => t.id === req.params.id);
   if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
   req.app.get('io')?.emit('whatsapp:inbox', ticket);
@@ -430,9 +490,35 @@ export async function patchWhatsAppTicketHandler(req, res) {
 
 export async function deleteWhatsAppTicketHandler(req, res) {
   if (!(await requireTicketingAccess(req, res))) return;
+  const current = findWhatsAppTicket(req.params.id);
+  if (!(await requireInboxTicketAccess(req, res, current))) return;
   await deleteWhatsAppTicket(req.params.id);
   req.app.get('io')?.emit('whatsapp:deleted', { id: req.params.id });
   return res.json({ success: true });
+}
+
+export async function getInboxGroupsHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const user = await loadTicketingUser(req);
+  const payload = presentInboxGroups(user);
+  const manager = user && (isAdminRole(roleText(user)) || isTeamleiterSocialMediaRole(roleText(user)));
+  return res.json({
+    success: true,
+    ...payload,
+    staff: manager ? await listTicketingStaff() : []
+  });
+}
+
+export async function saveInboxGroupsHandler(req, res) {
+  if (!(await requireTicketingManager(req, res))) return;
+  const { config, error } = saveInboxGroups(req.body || {});
+  if (error) return res.status(400).json({ success: false, message: error });
+  const user = await loadTicketingUser(req);
+  return res.json({
+    success: true,
+    ...presentInboxGroups(user, config),
+    staff: await listTicketingStaff()
+  });
 }
 
 export async function getAutoQuestionFlowHandler(req, res) {

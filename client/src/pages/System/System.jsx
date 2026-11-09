@@ -15,7 +15,7 @@ import {
   updateVorvertragTicketStatusApi,
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
-import { listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
+import { getInboxGroupsApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -37,6 +37,7 @@ import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvert
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
 import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
+import WhatsAppGruppen from './WhatsAppGruppen';
 import {
   countUnreadLeadTickets,
   isLeadArchived,
@@ -122,6 +123,11 @@ function TicketingSectionMenu({
               Automatisierte Abfrage
             </button>
           ) : null}
+          {canEditFragen ? (
+            <button type="button" role="menuitem" className={itemClass('gruppen')} onClick={() => choose('gruppen')}>
+              Gruppe
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -149,6 +155,9 @@ const System = () => {
   const [archivSearch, setArchivSearch] = useState('');
   const [statusSavingId, setStatusSavingId] = useState('');
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
+  const [inboxGroups, setInboxGroups] = useState([]);
+  const inboxGroupsRef = useRef([]);
+  inboxGroupsRef.current = inboxGroups;
   const [openLeadId, setOpenLeadId] = useState('');
   const [leadEditId, setLeadEditId] = useState('');
   const [anweisungUnread, setAnweisungUnread] = useState(false);
@@ -163,18 +172,27 @@ const System = () => {
     [user?.einsatz_ort]
   );
 
+  const visibleLeadTickets = useMemo(
+    () => leadTickets.filter((ticket) => {
+      const gid = String(ticket?.inboxGroup || '').trim();
+      if (!gid) return true;
+      return inboxGroups.some((group) => group.id === gid && group.canView);
+    }),
+    [leadTickets, inboxGroups]
+  );
+
   const leadUnread = useMemo(
-    () => countUnreadLeadTickets(leadTickets),
-    [leadTickets]
+    () => countUnreadLeadTickets(visibleLeadTickets),
+    [visibleLeadTickets]
   );
 
   const leadOffenEntries = useMemo(
-    () => leadTickets.filter(isLeadInNeu).map(leadToNeuEntry),
-    [leadTickets]
+    () => visibleLeadTickets.filter(isLeadInNeu).map(leadToNeuEntry),
+    [visibleLeadTickets]
   );
   const leadArchivEntries = useMemo(
-    () => leadTickets.filter(isLeadArchived).map(leadToNeuEntry),
-    [leadTickets]
+    () => visibleLeadTickets.filter(isLeadArchived).map(leadToNeuEntry),
+    [visibleLeadTickets]
   );
 
   const filteredEntries = useMemo(() => {
@@ -239,7 +257,11 @@ const System = () => {
     };
     const load = async () => {
       try {
-        const res = await listWhatsAppTicketsApi();
+        const [res, groupsRes] = await Promise.all([
+          listWhatsAppTicketsApi(),
+          getInboxGroupsApi().catch(() => null)
+        ]);
+        if (groupsRes?.groups) setInboxGroups(groupsRes.groups);
         if (!res?.configured) return;
         applyRemote(res.tickets || []);
       } catch {
@@ -251,6 +273,8 @@ const System = () => {
     const socket = getSocket();
     const onInbox = (ticket) => {
       if (!ticket?.id) return;
+      const gid = String(ticket.inboxGroup || '').trim();
+      if (gid && !inboxGroupsRef.current.some((group) => group.id === gid && group.canView)) return;
       setLeadTickets((prev) => {
         const cloud = [
           ticket,
@@ -695,6 +719,17 @@ const System = () => {
             Automatisierte Abfrage
           </button>
         ) : null}
+        {canEditFragen ? (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listTab === 'gruppen'}
+            className={`system-tab${listTab === 'gruppen' ? ' system-tab--active' : ''}`}
+            onClick={() => setListTab('gruppen')}
+          >
+            Gruppe
+          </button>
+        ) : null}
       </div>
 
       {listTab !== 'nachrichten' ? (
@@ -750,7 +785,8 @@ const System = () => {
       {listTab === 'nachrichten' ? (
         <CallcenterNachrichten
           agentName={defaultMitarbeiter}
-          tickets={leadTickets}
+          tickets={visibleLeadTickets}
+          inboxGroups={inboxGroups}
           onTicketsChange={setLeadTickets}
           openTicketId={openLeadId}
           filialeOptions={filialeOptions}
@@ -776,6 +812,7 @@ const System = () => {
       ) : null}
 
       {listTab === 'auto' && canEditFragen ? <AutoAbfrage /> : null}
+      {listTab === 'gruppen' && canEditFragen ? <WhatsAppGruppen /> : null}
 
       {listTab === 'erstellen' && showForm ? (
         <div ref={formRef}>

@@ -9,6 +9,7 @@ import {
   WHATSAPP_NATIVE_VIDEO_MAX_BYTES
 } from '../middleware/whatsappMediaUpload.js';
 import { normalizeTicketLanguage } from '../constants/ticketLanguage.js';
+import { loadInboxGroups, matchInboxGroup } from './whatsappInboxGroups.js';
 import {
   findFlowQuestion,
   flowWaitMs,
@@ -183,6 +184,7 @@ function emptyTicket(waId, name, at) {
     autoQuestionDueAt: '',
     autoQuestionQueue: [],
     autoAnswers: {},
+    inboxGroup: '',
     sprache: '',
     mitarbeiterName: '',
     createdAt: at,
@@ -415,6 +417,13 @@ export async function upsertIncomingMessage({ waId, name, message }) {
       ticket.messages = [...(ticket.messages || []), message];
       ticket.unread = true;
       state.tickets = [ticket, ...state.tickets.filter((t) => t !== ticket)];
+      if (!ticket.inboxGroup && message?.from === 'customer') {
+        const customerCount = (ticket.messages || []).filter((item) => item?.from === 'customer').length;
+        if (customerCount === 1) {
+          const group = matchInboxGroup(message.text, loadInboxGroups().groups);
+          if (group) ticket.inboxGroup = group.id;
+        }
+      }
     }
     return { value: { tickets: state.tickets } };
   });

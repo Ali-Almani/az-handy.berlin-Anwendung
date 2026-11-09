@@ -60,3 +60,13 @@ export const saveAutoQuestionFlowApi = async (flow) => {
   const res = await api.put('/whatsapp/auto-flow', { flow });
   return res.data;
 };
+
+export const getInboxGroupsApi = async () => {
+  const res = await api.get('/whatsapp/inbox-groups');
+  return res.data;
+};
+
+export const saveInboxGroupsApi = async (payload) => {
+  const res = await api.put('/whatsapp/inbox-groups', payload);
+  return res.data;
+};

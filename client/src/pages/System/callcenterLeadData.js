@@ -1126,7 +1126,8 @@ function hydrateLeadTicket(t) {
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],
     liveWhatsApp: Boolean(t?.liveWhatsApp || t?.waId),
-    waId: String(t?.waId || '').trim()
+    waId: String(t?.waId || '').trim(),
+    inboxGroup: String(t?.inboxGroup || '').trim()
   };
 }
 
