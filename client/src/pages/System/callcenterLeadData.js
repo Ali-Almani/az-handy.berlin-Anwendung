@@ -877,18 +877,26 @@ function compressLeadDateKey(dateKey) {
 
 function parseLeadId(id) {
   const s = String(id ?? '').trim();
-  let m = s.match(/^(FB|IG|TT|CC|WA)(\d{6})(\d{3,})$/i);
+  let m = s.match(/^(FB|FA|IG|TT|TK|CC|WA)-(\d{6})-(\d{1,3})$/i);
   if (m) {
     return {
-      prefix: m[1].toUpperCase(),
+      prefix: m[1].toUpperCase() === 'FA' ? 'FB' : m[1].toUpperCase(),
       dateKey: m[2],
       seq: Number.parseInt(m[3], 10)
     };
   }
-  m = s.match(/^(CC|WA|FB|IG|TT)-(\d{8})-(\d+)$/i);
+  m = s.match(/^(FB|FA|IG|TT|TK|CC|WA)(\d{6})(\d{3,})$/i);
   if (m) {
     return {
-      prefix: m[1].toUpperCase(),
+      prefix: m[1].toUpperCase() === 'FA' ? 'FB' : m[1].toUpperCase(),
+      dateKey: m[2],
+      seq: Number.parseInt(m[3], 10)
+    };
+  }
+  m = s.match(/^(CC|WA|FB|FA|IG|TT|TK)-(\d{8})-(\d+)$/i);
+  if (m) {
+    return {
+      prefix: m[1].toUpperCase() === 'FA' ? 'FB' : m[1].toUpperCase(),
       dateKey: compressLeadDateKey(m[2]),
       seq: Number.parseInt(m[3], 10)
     };
@@ -897,7 +905,16 @@ function parseLeadId(id) {
 }
 
 function formatLeadId(prefix, dateKey, seq) {
-  return `${String(prefix).toUpperCase()}${compressLeadDateKey(dateKey)}${pad3(seq)}`;
+  const p = String(prefix).toUpperCase() === 'FA' ? 'FB' : String(prefix).toUpperCase();
+  return `${p}-${compressLeadDateKey(dateKey)}-${pad3(seq)}`;
+}
+
+export function displayTicketId(ticket) {
+  const nr = String(ticket?.ticketNr || '').trim();
+  if (parseLeadId(nr)) return nr;
+  const parsed = parseLeadId(ticket?.id);
+  if (parsed) return formatLeadId(parsed.prefix, parsed.dateKey, parsed.seq);
+  return String(ticket?.id || '');
 }
 
 export function normalizeSocialChannel(value) {
@@ -1081,6 +1098,7 @@ export function leadToNeuEntry(lead) {
   const channel = normalizeSocialChannel(lead.channel);
   return {
     id: migrateLeadId({ ...lead, channel }),
+    ticketNr: String(lead?.ticketNr || '').trim(),
     source: 'lead',
     channel,
     customerName: lead.customerName,
@@ -1115,6 +1133,7 @@ function hydrateLeadTicket(t) {
     ...emptyLeadForm(),
     ...withChannel,
     id: migrateLeadId(withChannel),
+    ticketNr: String(t?.ticketNr || '').trim(),
     channel,
     messages: (Array.isArray(t?.messages) ? t.messages : []).map(hydrateVoiceMessage),
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),

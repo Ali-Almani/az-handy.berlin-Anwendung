@@ -16,6 +16,7 @@ export function customerKey(entry) {
 
 function archiveSearchHaystack(entry) {
   const id = String(entry?.id ?? '').trim();
+  const ticketNr = String(entry?.ticketNr ?? '').trim();
   return [
     customerLabel(entry),
     entry?.kundeVorname,
@@ -27,7 +28,9 @@ function archiveSearchHaystack(entry) {
     entry?.angebot,
     entry?.shop,
     id,
-    id.replace(/[^a-zA-Z0-9]/g, '')
+    ticketNr,
+    id.replace(/[^a-zA-Z0-9]/g, ''),
+    ticketNr.replace(/[^a-zA-Z0-9]/g, '')
   ]
     .filter(Boolean)
     .join(' ')

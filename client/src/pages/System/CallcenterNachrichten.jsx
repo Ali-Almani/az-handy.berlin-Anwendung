@@ -36,7 +36,8 @@ import {
   templateFieldMatchingDraft,
   isLeadArchived,
   isLiveWhatsAppTicket,
-  mergeWhatsAppTickets
+  mergeWhatsAppTickets,
+  displayTicketId
 } from './callcenterLeadData';
 import { syncProduktQuestion, ticketProduktNames } from './produktFrageSync';
 import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
@@ -587,6 +588,8 @@ const CallcenterNachrichten = ({
         if (!q) return true;
         const hay = [
           t.id,
+          t.ticketNr,
+          displayTicketId(t),
           t.customerName,
           t.handle,
           t.rufnummer,
@@ -1796,7 +1799,7 @@ const CallcenterNachrichten = ({
                           </time>
                         </span>
                         <span className="sz-ticket-meta">
-                          <span className="sz-ticket-id">{t.id}</span>
+                          <span className="sz-ticket-id">{displayTicketId(t)}</span>
                         </span>
                         <span className="sz-ticket-preview">
                           {ticketTyping(t.id, 'customer')
@@ -1833,7 +1836,7 @@ const CallcenterNachrichten = ({
                 <div className="sz-chat-head-text">
                   <h2 className="sz-chat-title">{active.customerName || active.rufnummer || 'Nachricht'}</h2>
                   <p className="sz-chat-sub">
-                    <span className="sz-ticket-id">{active.id}</span>
+                    <span className="sz-ticket-id">{displayTicketId(active)}</span>
                   </p>
                 </div>
                 <div className="sz-chat-more">

@@ -9,6 +9,7 @@ import {
   WHATSAPP_NATIVE_VIDEO_MAX_BYTES
 } from '../middleware/whatsappMediaUpload.js';
 import { normalizeTicketLanguage } from '../constants/ticketLanguage.js';
+import { ensureDailyTicketNrs, nextDailyTicketNr } from './dailyTicketNr.js';
 import {
   findFlowQuestion,
   flowWaitMs,
@@ -160,11 +161,12 @@ export function ticketIdForWa(waId) {
   return `WA-${normalizeWaId(waId)}`;
 }
 
-function emptyTicket(waId, name, at) {
+function emptyTicket(waId, name, at, existingTickets = []) {
   const id = ticketIdForWa(waId);
   const handle = formatWaHandle(waId);
   return {
     id,
+    ticketNr: nextDailyTicketNr(existingTickets, 'whatsapp', at),
     liveWhatsApp: true,
     waId: normalizeWaId(waId),
     channel: 'whatsapp',
@@ -391,7 +393,15 @@ export async function sendOutgoingSavedFile(toWaId, { filePath, mime, name, kind
 
 export function loadWhatsAppTickets() {
   const raw = readJsonStore(FILE, DEFAULT());
-  return Array.isArray(raw?.tickets) ? raw.tickets : [];
+  const tickets = Array.isArray(raw?.tickets) ? raw.tickets : [];
+  const ensured = ensureDailyTicketNrs(tickets, 'whatsapp');
+  if (!ensured.changed) return tickets;
+  updateJsonStore(FILE, DEFAULT(), (state) => {
+    const current = Array.isArray(state.tickets) ? state.tickets : [];
+    const next = ensureDailyTicketNrs(current, 'whatsapp');
+    if (next.changed) state.tickets = next.tickets;
+  });
+  return ensureDailyTicketNrs(readJsonStore(FILE, DEFAULT()).tickets || [], 'whatsapp').tickets;
 }
 
 export async function mutateWhatsAppTickets(updater) {
@@ -411,7 +421,7 @@ export async function upsertIncomingMessage({ waId, name, message }) {
   return mutateWhatsAppTickets((state) => {
     let ticket = state.tickets.find((t) => t.id === id || t.waId === normalizeWaId(waId));
     if (!ticket) {
-      ticket = emptyTicket(waId, name, at);
+      ticket = emptyTicket(waId, name, at, state.tickets);
       state.tickets.unshift(ticket);
     }
     if (name && (!ticket.customerName || ticket.customerName === ticket.handle || ticket.customerName === ticket.waId)) {
@@ -458,7 +468,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
     const ticket = state.tickets.find((t) => t.id === ticketId);
     if (!ticket) return { value: { tickets: state.tickets } };
     const allowed = [
-      'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName',
+      'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName', 'ticketNr',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers',
