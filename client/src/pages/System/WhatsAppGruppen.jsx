@@ -114,7 +114,8 @@ export default function WhatsAppGruppen() {
   return (
     <section className="auto-flow wa-gruppen" aria-label="WhatsApp-Gruppen">
       <p className="wa-gruppen__hint">
-        Sublink auf der Nummer +49 30 585812888. Der Kunde sendet den Gruppennamen als erste Nachricht.
+        Sublink auf der Nummer +49 30 585812888. Sendet der Kunde den Gruppennamen (auch in einem bestehenden Chat),
+        landet das Ticket in der Gruppe — ohne Willkommen und ohne automatisierte Fragen.
         Administrator sieht alle Gruppen.
       </p>
       <div className="auto-flow__bar">
