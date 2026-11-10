@@ -133,10 +133,8 @@ export function userCanViewGroup(user, group) {
   return (group.viewerIds || []).some((id) => String(id) === uid);
 }
 
-export function userCanViewInboxTicket(user, ticket, groups = loadInboxGroups().groups) {
-  const gid = String(ticket?.inboxGroup || '').trim();
-  if (!gid) return true;
-  return userCanViewGroup(user, findInboxGroup(groups, gid));
+export function userCanViewInboxTicket() {
+  return true;
 }
 
 export function filterInboxTickets(tickets, user, groups = loadInboxGroups().groups) {

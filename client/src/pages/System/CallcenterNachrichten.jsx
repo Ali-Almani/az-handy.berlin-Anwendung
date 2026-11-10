@@ -417,19 +417,8 @@ function formatChatTime(iso) {
   });
 }
 
-function ticketInboxGroup(ticket) {
-  return String(ticket?.inboxGroup || '').trim();
-}
-
 function ticketMatchesChannel(ticket, channel) {
   if (channel === 'all') return true;
-  const groupId = ticketInboxGroup(ticket);
-  if (channel === 'whatsapp') {
-    return normalizeSocialChannel(ticket.channel) === 'whatsapp' && !groupId;
-  }
-  if (String(channel).startsWith('group:')) {
-    return groupId === String(channel).slice(6);
-  }
   return normalizeSocialChannel(ticket.channel) === channel;
 }
 
@@ -525,8 +514,7 @@ const CallcenterNachrichten = ({
   offenCount = 0,
   archivCount = 0,
   onOpenOffen,
-  onOpenArchiv,
-  inboxGroups = []
+  onOpenArchiv
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
@@ -794,27 +782,11 @@ const CallcenterNachrichten = ({
     threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [active?.id, active?.messages?.length, agentTyping, customerTyping]);
 
-  const visibleInboxGroups = useMemo(
-    () => (inboxGroups || []).filter((group) => group?.canView && group.id),
-    [inboxGroups]
-  );
-
-  useEffect(() => {
-    if (!String(channel).startsWith('group:')) return;
-    const id = String(channel).slice(6);
-    if (!visibleInboxGroups.some((group) => group.id === id)) setChannel('all');
-  }, [channel, visibleInboxGroups]);
-
   const unreadByChannel = useMemo(() => {
     const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
     list.forEach((t) => {
       if (!t.unread) return;
       counts.all += 1;
-      const groupId = ticketInboxGroup(t);
-      if (groupId) {
-        counts[`group:${groupId}`] = (counts[`group:${groupId}`] || 0) + 1;
-        return;
-      }
       const ch = normalizeSocialChannel(t.channel);
       counts[ch] = (counts[ch] || 0) + 1;
     });
@@ -1730,24 +1702,6 @@ const CallcenterNachrichten = ({
                       ) : null}
                     </button>
                   ))}
-                  {visibleInboxGroups.map((group) => {
-                    const id = `group:${group.id}`;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        role="tab"
-                        aria-selected={channel === id}
-                        className={`sz-chip sz-chip--whatsapp${channel === id ? ' sz-chip--active' : ''}`}
-                        onClick={() => setChannel(id)}
-                      >
-                        {group.name}
-                        {unreadByChannel[id] > 0 ? (
-                          <span className="sz-chip-count">{unreadByChannel[id]}</span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
                 </div>
                 <label className="visually-hidden" htmlFor="sz-search">Posteingang suchen</label>
                 <input

@@ -19,7 +19,6 @@ import {
   sendOutgoingSavedFile,
   sendWelcomeIfNeeded,
   handleAutoQuestionReply,
-  skipAutoFlowForInboxGroup,
   cancelTextFollowup,
   downloadWhatsAppMedia,
   resolveWhatsAppFile,
@@ -29,7 +28,6 @@ import { loadAutoQuestionFlow, saveAutoQuestionFlow } from '../utils/autoQuestio
 import {
   filterInboxTickets,
   loadInboxGroups,
-  matchInboxGroup,
   presentInboxGroups,
   saveInboxGroups,
   userCanViewInboxTicket
@@ -279,11 +277,6 @@ export async function receiveWhatsAppWebhook(req, io) {
         const state = await upsertIncomingMessage({ waId, name, message });
         let ticket = findTicketInState(state, null, waId);
         if (ticket?.id) cancelTextFollowup(ticket.id);
-        if (matchInboxGroup(message.text)) {
-          ticket = await skipAutoFlowForInboxGroup(ticket);
-          if (ticket && io) io.emit('whatsapp:inbox', ticket);
-          continue;
-        }
         const wasWelcomed = Boolean(ticket?.welcomeAutoSent);
         ticket = await sendWelcomeIfNeeded(ticket);
         if (wasWelcomed) {

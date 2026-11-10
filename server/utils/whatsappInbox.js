@@ -9,7 +9,6 @@ import {
   WHATSAPP_NATIVE_VIDEO_MAX_BYTES
 } from '../middleware/whatsappMediaUpload.js';
 import { normalizeTicketLanguage } from '../constants/ticketLanguage.js';
-import { loadInboxGroups, matchInboxGroup } from './whatsappInboxGroups.js';
 import {
   findFlowQuestion,
   flowWaitMs,
@@ -426,8 +425,6 @@ export async function upsertIncomingMessage({ waId, name, message }) {
       if (message?.from === 'customer') {
         ticket.textFollowupDueAt = '';
         ticket.textFollowupSent = false;
-        const group = matchInboxGroup(message.text, loadInboxGroups().groups);
-        if (group) ticket.inboxGroup = group.id;
       }
     }
     return { value: { tickets: state.tickets } };
@@ -836,32 +833,6 @@ export async function sendOutgoingParts(toWaId, { text = '', images = [], voices
   }
 
   return sent;
-}
-
-function clearDelayedQuestionTimers(ticketId) {
-  const suffix = `:${ticketId}`;
-  for (const [key, timer] of pendingQuestionTimers) {
-    if (!key.endsWith(suffix)) continue;
-    clearTimeout(timer);
-    pendingQuestionTimers.delete(key);
-  }
-  for (const [key, timer] of pendingTypingTimers) {
-    if (!key.endsWith(suffix)) continue;
-    clearInterval(timer);
-    pendingTypingTimers.delete(key);
-  }
-}
-
-export async function skipAutoFlowForInboxGroup(ticket) {
-  if (!ticket?.id) return ticket;
-  clearDelayedQuestionTimers(ticket.id);
-  const state = await patchWhatsAppTicket(ticket.id, {
-    welcomeAutoSent: true,
-    autoQuestionField: '',
-    autoQuestionDueAt: '',
-    autoQuestionQueue: []
-  });
-  return ticketFromState(state, ticket.id, ticket.waId) || ticket;
 }
 
 export async function sendWelcomeIfNeeded(ticket) {
