@@ -149,70 +149,78 @@ export default function AutoAbfrage() {
 
   return (
     <section className="auto-flow" aria-label="Automatisierte Abfrage">
-      <div className="auto-flow__bar">
-        <label className="auto-flow__wait">
-          Wartezeit
-          <span>
-            <input
-              className="form-input"
-              type="number"
-              min={5}
-              max={600}
-              value={flow.waitSeconds}
+      <div className="auto-flow-settings">
+        <div className="auto-flow-settings__top">
+          <span className="auto-flow-langs" role="group" aria-label="Sprache">
+            {LOCALES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`auto-flow-lang${locale === item.id ? ' auto-flow-lang--active' : ''}`}
+                aria-pressed={locale === item.id}
+                onClick={() => setLocale(item.id)}
+              >
+                {item.short}
+              </button>
+            ))}
+          </span>
+        </div>
+        <div className="auto-flow-settings__grid">
+          <article className="auto-flow-setting">
+            <h3 className="auto-flow-setting__title">Wartezeit</h3>
+            <p className="auto-flow-setting__hint">Pause zwischen den Fragen</p>
+            <label className="auto-flow-setting__row">
+              <input
+                className="form-input"
+                type="number"
+                min={5}
+                max={600}
+                value={flow.waitSeconds}
+                aria-label="Wartezeit in Sekunden"
+                onChange={(ev) => {
+                  setSaved(false);
+                  setFlow((prev) => ({ ...prev, waitSeconds: ev.target.value }));
+                }}
+              />
+              Sekunden
+            </label>
+          </article>
+          <article className="auto-flow-setting">
+            <h3 className="auto-flow-setting__title">Erinnerung</h3>
+            <p className="auto-flow-setting__hint">Wenn der Kunde nicht antwortet. Leer = aus. Maximal 23 Stunden.</p>
+            <label className="auto-flow-setting__row">
+              <input
+                className="form-input"
+                type="number"
+                min={1}
+                max={23}
+                value={flow.followupWaitHours ?? 23}
+                aria-label="Erinnerung in Stunden"
+                onChange={(ev) => {
+                  setSaved(false);
+                  setFlow((prev) => ({ ...prev, followupWaitHours: ev.target.value }));
+                }}
+              />
+              Stunden
+            </label>
+            <textarea
+              className="form-input auto-flow-setting__text"
+              value={flow.followupText?.[locale] || ''}
+              placeholder="Erinnerungstext"
+              aria-label="Erinnerungstext"
+              rows={3}
+              dir={locale === 'ar' ? 'rtl' : undefined}
               onChange={(ev) => {
                 setSaved(false);
-                setFlow((prev) => ({ ...prev, waitSeconds: ev.target.value }));
+                setFlow((prev) => ({
+                  ...prev,
+                  followupText: { ...(prev.followupText || {}), [locale]: ev.target.value }
+                }));
               }}
             />
-            Sekunden
-            <span className="auto-flow-langs" role="group" aria-label="Sprache">
-              {LOCALES.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`auto-flow-lang${locale === item.id ? ' auto-flow-lang--active' : ''}`}
-                  aria-pressed={locale === item.id}
-                  onClick={() => setLocale(item.id)}
-                >
-                  {item.short}
-                </button>
-              ))}
-            </span>
-          </span>
-        </label>
-        <label className="auto-flow__wait">
-          Erinnerung nach
-          <span>
-            <input
-              className="form-input"
-              type="number"
-              min={1}
-              max={23}
-              value={flow.followupWaitHours ?? 23}
-              onChange={(ev) => {
-                setSaved(false);
-                setFlow((prev) => ({ ...prev, followupWaitHours: ev.target.value }));
-              }}
-            />
-            Stunden
-          </span>
-        </label>
+          </article>
+        </div>
       </div>
-      <textarea
-        className="form-input auto-flow__followup"
-        value={flow.followupText?.[locale] || ''}
-        placeholder="Erinnerungstext wenn der Kunde nicht antwortet (leer = aus)"
-        aria-label="Erinnerungstext"
-        rows={3}
-        dir={locale === 'ar' ? 'rtl' : undefined}
-        onChange={(ev) => {
-          setSaved(false);
-          setFlow((prev) => ({
-            ...prev,
-            followupText: { ...(prev.followupText || {}), [locale]: ev.target.value }
-          }));
-        }}
-      />
 
       <div className="auto-flow-list">
       {questions.map((question, index) => {
