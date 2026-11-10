@@ -41,27 +41,12 @@ const resolveManufacturerFromValue = (valueStr) => {
   return valueStr;
 };
 
-function prepaidTabKey(value) {
-  return String(value ?? '')
+export const isPrepaidOrO2PrepaidImei = (item) => {
+  const tab = String(getManufacturer(item) || '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
-}
-
-export const isPrepaidManufacturerTab = (value) => {
-  const n = prepaidTabKey(value);
-  if (!n) return false;
-  if (n === 'prepaid') return true;
-  if (n === 'o2' || n === 'o2 prepaid' || n === 'o2prepaid') return true;
-  if (/\bo2\b/.test(n) && n.includes('prepaid')) return true;
-  if (/\bo2\b/.test(n)) return true;
-  return false;
-};
-
-export const isPrepaidOrO2PrepaidImei = (item) => {
-  if (!item) return false;
-  if (isPrepaidManufacturerTab(item.sheet)) return true;
-  return isPrepaidManufacturerTab(getManufacturer(item));
+  return tab === 'prepaid' || tab === 'o2 prepaid';
 };
 
 export const getManufacturer = (item) => {

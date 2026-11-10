@@ -80,53 +80,97 @@ export function imeiListHerstellerAppleAliasChanged(before, after) {
   return false;
 }
 
-function prepaidLabelKey(value) {
-  return String(value ?? '')
+const KNOWN_MANUFACTURERS = [
+  'apple', 'google', 'huawei', 'samsung', 'xiaomi', 'oneplus', 'oppo', 'vivo',
+  'realme', 'motorola', 'nokia', 'sony', 'lg', 'honor', 'o2', 'nothing'
+];
+const KNOWN_CARRIERS = [
+  'vodafone', 'telekom', 't-mobile', 'e-plus', 'base', 'otelo', 'blau', 'simyo', 'congstar'
+];
+
+function tryMatchManufacturer(valueStr, lowerValue) {
+  const matched = KNOWN_MANUFACTURERS.find(
+    (m) => lowerValue === m || lowerValue.includes(m) || m.includes(lowerValue)
+  );
+  if (matched) {
+    if (matched === 'o2') return 'o2 Prepaid';
+    if (lowerValue === matched) return valueStr;
+    if (lowerValue.includes(matched)) return matched.charAt(0).toUpperCase() + matched.slice(1);
+  }
+  return null;
+}
+
+function resolveManufacturerFromValue(valueStr) {
+  if (getIphoneVersionForArticleCode(valueStr)) return 'Apple';
+  const result = tryMatchManufacturer(valueStr, valueStr.toLowerCase());
+  if (result) return result;
+  return valueStr;
+}
+
+/** Gleicher Hersteller-Tab wie in der IMEI-Liste (nicht Excel-Blattname). */
+export function getImeiManufacturerTab(item) {
+  if (!item?.rowData) return '';
+  const keysToCheck =
+    item.columnOrder?.length > 0 ? item.columnOrder : Object.keys(item.rowData);
+  const manufacturerKeys = keysToCheck.filter(isManufacturerColumnKey);
+  if (manufacturerKeys.length > 0) {
+    const value = item.rowData[manufacturerKeys[0]];
+    if (value != null && value !== '') {
+      const valueStr = String(value).trim();
+      const lowerValue = valueStr.toLowerCase();
+      if (lowerValue !== 'datum' && !KNOWN_CARRIERS.some((c) => lowerValue.includes(c))) {
+        return resolveManufacturerFromValue(valueStr);
+      }
+    }
+  }
+  const markeKey = keysToCheck.find((key) => key && String(key).toLowerCase().trim() === 'marke');
+  if (markeKey) {
+    const markeValue = item.rowData[markeKey];
+    if (markeValue != null && markeValue !== '') {
+      const markeValueStr = String(markeValue).trim();
+      const lowerMarkeValue = markeValueStr.toLowerCase();
+      if (lowerMarkeValue !== 'datum' && !KNOWN_CARRIERS.some((c) => lowerMarkeValue.includes(c))) {
+        return resolveManufacturerFromValue(markeValueStr);
+      }
+    }
+  }
+  const skipKeys = [...['provider', 'netzbetreiber', 'carrier', 'imei', 'datum', 'date'], ...KNOWN_CARRIERS];
+  const alreadyChecked = new Set(
+    [
+      ...manufacturerKeys.map((k) => String(k).toLowerCase().trim()),
+      markeKey && String(markeKey).toLowerCase().trim()
+    ].filter(Boolean)
+  );
+  for (const key of keysToCheck) {
+    if (
+      !key
+      || alreadyChecked.has(String(key).toLowerCase().trim())
+      || skipKeys.some((skip) => String(key).toLowerCase().includes(skip))
+    ) continue;
+    const value = item.rowData[key];
+    if (value == null || value === '') continue;
+    const valueStr = String(value).trim();
+    if (valueStr === '' || valueStr.toLowerCase() === 'datum') continue;
+    const lowerValue = valueStr.toLowerCase();
+    const result = tryMatchManufacturer(valueStr, lowerValue);
+    if (result) return result;
+    if (getIphoneVersionForArticleCode(valueStr)) return 'Apple';
+    const isCarrier = KNOWN_CARRIERS.some((c) => lowerValue.includes(c));
+    const isImeiColumn = String(key).toLowerCase().includes('imei');
+    if (!isCarrier && !isImeiColumn && valueStr.length >= 2 && valueStr.length <= 50 && !/^\d+$/.test(valueStr)) {
+      return valueStr;
+    }
+  }
+  return '';
+}
+
+/** Nur die sichtbaren Tabs „Prepaid“ und „o2 Prepaid“, keine anderen Hersteller. */
+export function isPrepaidOrO2PrepaidImeiRow(item) {
+  const tab = String(getImeiManufacturerTab(item) || '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
-}
-
-/** UI-Tabs „Prepaid“ und „o2 Prepaid“ (o2 wird in der Liste als o2 Prepaid angezeigt). */
-export function isPrepaidManufacturerTabLabel(value) {
-  const n = prepaidLabelKey(value);
-  if (!n) return false;
-  if (n === 'prepaid') return true;
-  if (n === 'o2' || n === 'o2 prepaid' || n === 'o2prepaid') return true;
-  if (/\bo2\b/.test(n) && n.includes('prepaid')) return true;
-  if (/\bo2\b/.test(n)) return true;
-  return false;
-}
-
-function manufacturerLikeValues(item) {
-  const values = [];
-  const row = item?.rowData && typeof item.rowData === 'object' ? item.rowData : {};
-  const keys =
-    Array.isArray(item?.columnOrder) && item.columnOrder.length > 0
-      ? item.columnOrder
-      : Object.keys(row);
-  for (const key of keys) {
-    if (!key) continue;
-    const lowerKey = String(key).toLowerCase().trim();
-    if (
-      lowerKey.includes('hersteller') ||
-      lowerKey.includes('manufacturer') ||
-      lowerKey.includes('make') ||
-      lowerKey === 'marke' ||
-      (lowerKey.includes('brand') && !lowerKey.includes('marke'))
-    ) {
-      values.push(row[key]);
-    }
-  }
-  const mk = getManufacturerColumnKey(item);
-  if (mk) values.push(row[mk]);
-  return values;
-}
-
-export function isPrepaidOrO2PrepaidImeiRow(item) {
-  if (!item) return false;
-  if (isPrepaidManufacturerTabLabel(item.sheet)) return true;
-  return manufacturerLikeValues(item).some((value) => isPrepaidManufacturerTabLabel(value));
+  return tab === 'prepaid' || tab === 'o2 prepaid';
 }
 
 export function stripPrepaidAndO2PrepaidImeis(imeis) {

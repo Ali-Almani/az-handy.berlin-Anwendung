@@ -595,7 +595,6 @@ export const processExcelFile = async (req, res) => {
 
     workbook.eachSheet((worksheet, sheetId) => {
       const sheetName = worksheet.name;
-      if (isPrepaidOrO2PrepaidImeiRow({ sheet: sheetName, rowData: {} })) return;
       const sheetRows = collectNonEmptySheetRows(worksheet);
       const cfg = bestSheetParseConfig(sheetRows);
       if (!cfg) return;
