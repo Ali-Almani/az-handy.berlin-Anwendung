@@ -31,7 +31,8 @@ import { getImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 import {
   normalizeImeiListHerstellerAppleAlias,
   normalizeImeiRowHerstellerAppleAlias,
-  imeiListHerstellerAppleAliasChanged
+  imeiListHerstellerAppleAliasChanged,
+  stripPrepaidAndO2PrepaidImeis
 } from '../utils/imeiAppleArticleAlias.js';
 import {
   normalizeImeiKey,
@@ -1010,6 +1011,9 @@ async function getVerlaufHiddenImeiKeySet() {
 export async function applyImeiListVisibilityFilters(imeis) {
   let list = Array.isArray(imeis) ? imeis : [];
   let excludedCount = 0;
+  const prepaid = stripPrepaidAndO2PrepaidImeis(list);
+  list = prepaid.filtered;
+  excludedCount += prepaid.excludedCount;
   const archive = filterImeisExcludingAcceptedArchive(list);
   list = archive.filtered;
   excludedCount += archive.excludedCount;
@@ -1059,8 +1063,10 @@ async function normalizeAndPersistHerstellerAppleAliases(dataUserId, imeis) {
 }
 
 async function stripHiddenImeisFromUserDataResponse(payload) {
-  /** Cache-Einträge wurden beim Schreiben bereits gefiltert – kein erneuter Team-Verlauf-Merge pro Request. */
-  return payload;
+  if (!payload || !Array.isArray(payload.imeis)) return payload;
+  const prepaid = stripPrepaidAndO2PrepaidImeis(payload.imeis);
+  if (!prepaid.excludedCount) return payload;
+  return { ...payload, imeis: prepaid.filtered };
 }
 
 async function reconcileSharedImeiListAfterVerlaufChange(app) {

@@ -9,6 +9,7 @@ import {
 import { getAcceptedImeiKeySet } from '../utils/acceptedImeiStore.js';
 import { isBüroMitarbeiter, isAdmin, getUserRole } from '../utils/imeiOfficeRoles.js';
 import { canonicalImeiString } from '../utils/imeiKey.js';
+import { isPrepaidOrO2PrepaidImeiRow } from '../utils/imeiAppleArticleAlias.js';
 import User from '../models/User.js';
 import * as VoucherManualRequest from '../models/VoucherManualRequest.memory.js';
 import { saveJson, loadJson } from '../utils/filePersistence.js';
@@ -560,7 +561,7 @@ export const processExcelFile = async (req, res) => {
           imeiValue = p.rowArray[0].toString().trim();
         }
         if (imeiValue) {
-          imeis.push({
+          const row = {
             imei: canonicalImeiString(imeiValue),
             row: p.row,
             sheet: 'Sheet1',
@@ -569,7 +570,8 @@ export const processExcelFile = async (req, res) => {
             rowData: p.rowData,
             rowDataFormats: {},
             columnOrder: headers
-          });
+          };
+          if (!isPrepaidOrO2PrepaidImeiRow(row)) imeis.push(row);
         }
       }
 
@@ -593,6 +595,7 @@ export const processExcelFile = async (req, res) => {
 
     workbook.eachSheet((worksheet, sheetId) => {
       const sheetName = worksheet.name;
+      if (isPrepaidOrO2PrepaidImeiRow({ sheet: sheetName, rowData: {} })) return;
       const sheetRows = collectNonEmptySheetRows(worksheet);
       const cfg = bestSheetParseConfig(sheetRows);
       if (!cfg) return;
@@ -608,7 +611,7 @@ export const processExcelFile = async (req, res) => {
         if (!imeiValue) continue;
         if (!cellLooksLikeImeiString(imeiValue)) continue;
         const { rowData, rowDataFormats } = buildRowDataFromHeaders(headers, e.rowArray, e.fmtByCol);
-        imeis.push({
+        const row = {
           imei: canonicalImeiString(imeiValue),
           row: e.rowNumber,
           sheet: sheetName,
@@ -617,7 +620,8 @@ export const processExcelFile = async (req, res) => {
           rowData,
           rowDataFormats,
           columnOrder: headers
-        });
+        };
+        if (!isPrepaidOrO2PrepaidImeiRow(row)) imeis.push(row);
       }
     });
 

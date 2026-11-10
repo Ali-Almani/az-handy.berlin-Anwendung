@@ -79,3 +79,66 @@ export function imeiListHerstellerAppleAliasChanged(before, after) {
   }
   return false;
 }
+
+function prepaidLabelKey(value) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/** UI-Tabs „Prepaid“ und „o2 Prepaid“ (o2 wird in der Liste als o2 Prepaid angezeigt). */
+export function isPrepaidManufacturerTabLabel(value) {
+  const n = prepaidLabelKey(value);
+  if (!n) return false;
+  if (n === 'prepaid') return true;
+  if (n === 'o2' || n === 'o2 prepaid' || n === 'o2prepaid') return true;
+  if (/\bo2\b/.test(n) && n.includes('prepaid')) return true;
+  if (/\bo2\b/.test(n)) return true;
+  return false;
+}
+
+function manufacturerLikeValues(item) {
+  const values = [];
+  const row = item?.rowData && typeof item.rowData === 'object' ? item.rowData : {};
+  const keys =
+    Array.isArray(item?.columnOrder) && item.columnOrder.length > 0
+      ? item.columnOrder
+      : Object.keys(row);
+  for (const key of keys) {
+    if (!key) continue;
+    const lowerKey = String(key).toLowerCase().trim();
+    if (
+      lowerKey.includes('hersteller') ||
+      lowerKey.includes('manufacturer') ||
+      lowerKey.includes('make') ||
+      lowerKey === 'marke' ||
+      (lowerKey.includes('brand') && !lowerKey.includes('marke'))
+    ) {
+      values.push(row[key]);
+    }
+  }
+  const mk = getManufacturerColumnKey(item);
+  if (mk) values.push(row[mk]);
+  return values;
+}
+
+export function isPrepaidOrO2PrepaidImeiRow(item) {
+  if (!item) return false;
+  if (isPrepaidManufacturerTabLabel(item.sheet)) return true;
+  return manufacturerLikeValues(item).some((value) => isPrepaidManufacturerTabLabel(value));
+}
+
+export function stripPrepaidAndO2PrepaidImeis(imeis) {
+  const list = Array.isArray(imeis) ? imeis : [];
+  const filtered = [];
+  let excludedCount = 0;
+  for (const row of list) {
+    if (isPrepaidOrO2PrepaidImeiRow(row)) {
+      excludedCount += 1;
+      continue;
+    }
+    filtered.push(row);
+  }
+  return { filtered, excludedCount };
+}
