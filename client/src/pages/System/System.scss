@@ -1443,6 +1443,13 @@
     width: 72px;
   }
 
+  &__followup {
+    width: 100%;
+    max-width: 520px;
+    min-height: 4.4rem;
+    resize: vertical;
+  }
+
   &__actions {
     display: flex;
     flex-wrap: wrap;

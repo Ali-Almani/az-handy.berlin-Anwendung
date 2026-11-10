@@ -19,6 +19,7 @@ import {
   sendOutgoingSavedFile,
   sendWelcomeIfNeeded,
   handleAutoQuestionReply,
+  cancelTextFollowup,
   downloadWhatsAppMedia,
   resolveWhatsAppFile,
   normalizeWaId
@@ -275,6 +276,7 @@ export async function receiveWhatsAppWebhook(req, io) {
         if (!message) continue;
         const state = await upsertIncomingMessage({ waId, name, message });
         let ticket = findTicketInState(state, null, waId);
+        if (ticket?.id) cancelTextFollowup(ticket.id);
         const wasWelcomed = Boolean(ticket?.welcomeAutoSent);
         ticket = await sendWelcomeIfNeeded(ticket);
         if (wasWelcomed) {

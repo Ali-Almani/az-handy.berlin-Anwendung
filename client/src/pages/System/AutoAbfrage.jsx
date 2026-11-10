@@ -180,7 +180,39 @@ export default function AutoAbfrage() {
             </span>
           </span>
         </label>
+        <label className="auto-flow__wait">
+          Erinnerung nach
+          <span>
+            <input
+              className="form-input"
+              type="number"
+              min={1}
+              max={23}
+              value={flow.followupWaitHours ?? 23}
+              onChange={(ev) => {
+                setSaved(false);
+                setFlow((prev) => ({ ...prev, followupWaitHours: ev.target.value }));
+              }}
+            />
+            Stunden
+          </span>
+        </label>
       </div>
+      <textarea
+        className="form-input auto-flow__followup"
+        value={flow.followupText?.[locale] || ''}
+        placeholder="Erinnerungstext wenn der Kunde nicht antwortet (leer = aus)"
+        aria-label="Erinnerungstext"
+        rows={3}
+        dir={locale === 'ar' ? 'rtl' : undefined}
+        onChange={(ev) => {
+          setSaved(false);
+          setFlow((prev) => ({
+            ...prev,
+            followupText: { ...(prev.followupText || {}), [locale]: ev.target.value }
+          }));
+        }}
+      />
 
       <div className="auto-flow-list">
       {questions.map((question, index) => {

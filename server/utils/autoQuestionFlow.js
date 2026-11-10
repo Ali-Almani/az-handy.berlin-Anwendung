@@ -33,9 +33,20 @@ function textPack(raw, fallback = '') {
   };
 }
 
+function optionalTextPack(raw) {
+  const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return {
+    de: clip(src.de, 1000),
+    ar: clip(src.ar, 1000),
+    en: clip(src.en, 1000)
+  };
+}
+
 export function defaultAutoQuestionFlow() {
   return {
     waitSeconds: 60,
+    followupWaitHours: 23,
+    followupText: { de: '', ar: '', en: '' },
     startId: 'o2Kunde',
     questions: [
       {
@@ -268,13 +279,21 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
   }
   waitSeconds = Math.min(600, Math.max(5, waitSeconds));
 
+  let followupWaitHours = Math.round(Number(source.followupWaitHours));
+  if (!Number.isFinite(followupWaitHours)) followupWaitHours = 23;
+  if (strict && (followupWaitHours < 1 || followupWaitHours > 23)) {
+    return { flow: null, error: 'Erinnerung zwischen 1 und 23 Stunden.' };
+  }
+  followupWaitHours = Math.min(23, Math.max(1, followupWaitHours));
+  const followupText = optionalTextPack(source.followupText);
+
   let startId = String(source.startId || '').trim();
   if (!ids.has(startId)) startId = questions[0].id;
   if (strict && !ids.has(String(source.startId || '').trim())) {
     return { flow: null, error: 'Die erste Frage fehlt.' };
   }
 
-  return { flow: { waitSeconds, startId, questions }, error: '' };
+  return { flow: { waitSeconds, followupWaitHours, followupText, startId, questions }, error: '' };
 }
 
 export function loadAutoQuestionFlow() {
@@ -299,6 +318,18 @@ export function flowWaitMs(flow = loadAutoQuestionFlow()) {
   const n = Math.round(Number(flow?.waitSeconds));
   const seconds = Number.isFinite(n) ? Math.min(600, Math.max(5, n)) : 60;
   return seconds * 1000;
+}
+
+export function followupWaitMs(flow = loadAutoQuestionFlow()) {
+  const n = Math.round(Number(flow?.followupWaitHours));
+  const hours = Number.isFinite(n) ? Math.min(23, Math.max(1, n)) : 23;
+  return hours * 60 * 60 * 1000;
+}
+
+export function followupTextForLocale(flow, locale) {
+  const pack = flow?.followupText && typeof flow.followupText === 'object' ? flow.followupText : {};
+  const loc = LOCALES.includes(locale) ? locale : 'de';
+  return String(pack[loc] || pack.de || pack.ar || pack.en || '').trim();
 }
 
 export function findFlowQuestion(flow, id) {

@@ -13,6 +13,8 @@ import { loadInboxGroups, matchInboxGroup } from './whatsappInboxGroups.js';
 import {
   findFlowQuestion,
   flowWaitMs,
+  followupTextForLocale,
+  followupWaitMs,
   loadAutoQuestionFlow,
   matchFlowOption,
   normalizeFlowAnswer,
@@ -81,6 +83,8 @@ export const FIRST_CUSTOMER_AUTO_REPLY = WELCOME_BY_LOCALE.ar;
 
 const TYPING_PULSE_MS = 20_000;
 const pendingQuestionTimers = new Map();
+const pendingFollowupTimers = new Map();
+const WHATSAPP_SESSION_MS = 24 * 60 * 60 * 1000;
 const pendingTypingTimers = new Map();
 let inboxEmitter = null;
 
@@ -185,6 +189,8 @@ function emptyTicket(waId, name, at) {
     autoQuestionQueue: [],
     autoAnswers: {},
     inboxGroup: '',
+    textFollowupDueAt: '',
+    textFollowupSent: false,
     sprache: '',
     mitarbeiterName: '',
     createdAt: at,
@@ -417,6 +423,10 @@ export async function upsertIncomingMessage({ waId, name, message }) {
       ticket.messages = [...(ticket.messages || []), message];
       ticket.unread = true;
       state.tickets = [ticket, ...state.tickets.filter((t) => t !== ticket)];
+      if (message?.from === 'customer') {
+        ticket.textFollowupDueAt = '';
+        ticket.textFollowupSent = false;
+      }
       if (!ticket.inboxGroup && message?.from === 'customer') {
         const customerCount = (ticket.messages || []).filter((item) => item?.from === 'customer').length;
         if (customerCount === 1) {
@@ -442,6 +452,12 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (extra.autoQuestionQueue !== undefined) ticket.autoQuestionQueue = extra.autoQuestionQueue;
     if (extra.sprache !== undefined) ticket.sprache = extra.sprache;
     return { value: { tickets: state.tickets } };
+  }).then((state) => {
+    const ticket = ticketFromState(state, ticketId);
+    if (message?.from === 'agent' && message?.auto !== 'followup') {
+      armTextFollowup(ticket);
+    }
+    return state;
   });
 }
 
@@ -454,6 +470,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers',
+      'textFollowupDueAt', 'textFollowupSent',
       'kundenbesuch1Bearbeiter', 'kundenbesuch2Bearbeiter', 'kundenbesuch3Bearbeiter',
       'kontakt1ShopNotiz', 'kontakt1Datum', 'kontakt1Zeit',
       'kontakt2Bearbeiter', 'kontakt2ShopNotiz', 'kontakt2Datum', 'kontakt2Zeit',
@@ -1079,8 +1096,103 @@ async function sendScheduledQuestion(ticketId, spec) {
   emitInbox(sent);
 }
 
+function lastCustomerMessageAt(ticket) {
+  const times = (ticket?.messages || [])
+    .filter((item) => item?.from === 'customer')
+    .map((item) => Date.parse(item.at || ''))
+    .filter((value) => Number.isFinite(value));
+  return times.length ? Math.max(...times) : 0;
+}
+
+function clearFollowupTimer(ticketId) {
+  const prev = pendingFollowupTimers.get(ticketId);
+  if (prev) clearTimeout(prev);
+  pendingFollowupTimers.delete(ticketId);
+}
+
+function scheduleTextFollowup(ticket) {
+  if (!ticket?.id) return;
+  clearFollowupTimer(ticket.id);
+  const due = Date.parse(ticket.textFollowupDueAt || '');
+  if (!Number.isFinite(due)) return;
+  const wait = Math.max(0, due - Date.now());
+  const timer = setTimeout(() => {
+    pendingFollowupTimers.delete(ticket.id);
+    sendScheduledTextFollowup(ticket.id);
+  }, wait);
+  pendingFollowupTimers.set(ticket.id, timer);
+}
+
+function armTextFollowup(ticket) {
+  if (!ticket?.id) return;
+  const flow = loadAutoQuestionFlow();
+  const locale = localeFromSprache(ticket.sprache);
+  if (!followupTextForLocale(flow, locale)) {
+    clearFollowupTimer(ticket.id);
+    patchWhatsAppTicket(ticket.id, { textFollowupDueAt: '', textFollowupSent: false }).catch(() => {});
+    return;
+  }
+  const dueAt = new Date(Date.now() + followupWaitMs(flow)).toISOString();
+  patchWhatsAppTicket(ticket.id, { textFollowupDueAt: dueAt, textFollowupSent: false })
+    .then((state) => {
+      const next = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, textFollowupDueAt: dueAt, textFollowupSent: false };
+      scheduleTextFollowup(next);
+    })
+    .catch((err) => {
+      console.warn('[whatsapp] followup-arm', err?.message || err);
+    });
+}
+
+export function cancelTextFollowup(ticketId) {
+  if (!ticketId) return;
+  clearFollowupTimer(ticketId);
+}
+
+async function sendScheduledTextFollowup(ticketId) {
+  const flow = loadAutoQuestionFlow();
+  let claimed = false;
+  let ticket = null;
+  const state = await mutateWhatsAppTickets((current) => {
+    const found = current.tickets.find((item) => item.id === ticketId);
+    if (!found || found.textFollowupSent || !found.textFollowupDueAt) {
+      return { value: { tickets: current.tickets } };
+    }
+    found.textFollowupSent = true;
+    found.textFollowupDueAt = '';
+    claimed = true;
+    ticket = found;
+    return { value: { tickets: current.tickets } };
+  });
+  ticket = ticketFromState(state, ticketId) || ticket;
+  if (!claimed || !ticket?.waId) return;
+  const locale = localeFromSprache(ticket.sprache);
+  const text = followupTextForLocale(flow, locale);
+  const lastCustomer = lastCustomerMessageAt(ticket);
+  if (!text || !lastCustomer || Date.now() - lastCustomer >= WHATSAPP_SESSION_MS - 60_000) return;
+  try {
+    const waMessageId = await sendWhatsAppText(ticket.waId, text);
+    const nextState = await appendOutgoingMessage(ticket.id, {
+      id: waMessageId,
+      from: 'agent',
+      auto: 'followup',
+      locale,
+      text,
+      at: new Date().toISOString()
+    }, { keepUnread: true });
+    emitInbox(ticketFromState(nextState, ticket.id, ticket.waId) || ticket);
+  } catch (err) {
+    console.warn('[whatsapp] followup', err?.detail || err?.message || err);
+    await patchWhatsAppTicket(ticketId, { textFollowupSent: false });
+  }
+}
+
 export async function resumeDelayedAutoQuestions() {
   const tickets = loadWhatsAppTickets();
+  for (const ticket of tickets) {
+    if (ticket?.textFollowupDueAt && !ticket.textFollowupSent) {
+      scheduleTextFollowup(ticket);
+    }
+  }
   for (const ticket of tickets) {
     const field = String(ticket.autoQuestionField || '');
     const spec = specForWaitField(field);
