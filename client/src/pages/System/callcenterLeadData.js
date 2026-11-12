@@ -356,16 +356,42 @@ export function ticketFormFieldOrder(config) {
   return [...VORLAGE_QUESTION_ORDER, ...saved, ...rest];
 }
 
+export const TICKET_FORM_LABELS = {
+  rufnummer: 'WhatsApp-Nummer?',
+  angebot: 'Angebote?',
+  terminDatum: 'Gewünschtes Datum?',
+  terminZeit: 'Gewünschte Rückrufzeit?'
+};
+
+const LEGACY_TICKET_FORM_LABELS = {
+  rufnummer: ['rufnummer', 'telefonnummer des kunden', 'telefonnummer'],
+  angebot: ['produkt', 'angebot / produkt'],
+  terminDatum: ['termin datum'],
+  terminZeit: ['termin zeit']
+};
+
+function normalizeTicketFormLabel(value) {
+  return String(value || '').trim().replace(/\?+$/, '').toLowerCase();
+}
+
+export function ticketFormFieldLabel(field, fallback, config, locale = 'de') {
+  let custom = String(config?.labels?.[field]?.[locale] || '').trim();
+  const legacy = LEGACY_TICKET_FORM_LABELS[field];
+  if (legacy && legacy.includes(normalizeTicketFormLabel(custom))) custom = '';
+  const text = custom || TICKET_FORM_LABELS[field] || fallback;
+  return text.endsWith('?') ? text : `${text}?`;
+}
+
 export const AUTO_QUESTION_TICKET_FIELDS = [
   { id: '', label: 'Kein Ticketfeld' },
   { id: 'o2Kunde', label: 'O2 Kunde?' },
-  { id: 'rufnummer', label: 'Rufnummer?' },
+  { id: 'rufnummer', label: TICKET_FORM_LABELS.rufnummer },
   { id: 'stadt', label: 'Stadt?' },
-  { id: 'angebot', label: 'Produkt?' },
+  { id: 'angebot', label: TICKET_FORM_LABELS.angebot },
   { id: 'produktNotiz', label: 'Produkt Notiz?' },
   { id: 'marketingNotiz', label: 'Marketing Notiz?' },
-  { id: 'terminDatum', label: 'Termin Datum?' },
-  { id: 'terminZeit', label: 'Termin Zeit?' },
+  { id: 'terminDatum', label: TICKET_FORM_LABELS.terminDatum },
+  { id: 'terminZeit', label: TICKET_FORM_LABELS.terminZeit },
   { id: 'customerName', label: 'Name' }
 ];
 
@@ -459,7 +485,8 @@ export function filterAngebotMentions(config, query, locale = 'de') {
 function storedQuestionLabel(field, locale, config) {
   const custom = String(config?.labels?.[field]?.[locale] || '').trim();
   if (!custom) return '';
-  if (field === 'angebot' && (custom === 'Angebot / Produkt?' || custom === 'Angebot / Produkt')) return '';
+  const legacy = LEGACY_TICKET_FORM_LABELS[field];
+  if (legacy && legacy.includes(normalizeTicketFormLabel(custom))) return '';
   return custom;
 }
 
@@ -691,14 +718,14 @@ export function formFromLead(entry) {
 }
 
 const LEAD_FIELD_LABELS = {
-  rufnummer: 'Rufnummer',
+  rufnummer: 'WhatsApp-Nummer',
   o2Kunde: 'O2 Kunde',
-  angebot: 'Angebot / Produkt',
+  angebot: 'Angebote',
   produktNotiz: 'Produkt Notiz',
   stadt: 'Stadt',
   marketingNotiz: 'Marketing Notiz',
-  terminDatum: 'Termin Datum',
-  terminZeit: 'Termin Zeit',
+  terminDatum: 'Gewünschtes Datum',
+  terminZeit: 'Gewünschte Rückrufzeit',
   kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
   kundenbesuch3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',

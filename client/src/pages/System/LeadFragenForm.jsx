@@ -9,6 +9,7 @@ import {
   questionDropdownOptions,
   questionOptionLinks,
   templateQuestionText,
+  ticketFormFieldLabel,
   ticketFormFieldOrder,
   visibleQuestionOrder
 } from './callcenterLeadData';
@@ -19,14 +20,14 @@ import StadtPicker from './StadtPicker';
 const FIELD_META = {
   priority: { label: 'Priorität?', hasText: false },
   sprache: { label: 'Sprache?', hasText: false },
-  rufnummer: { label: 'Rufnummer?', hasText: true },
+  rufnummer: { label: 'WhatsApp-Nummer?', hasText: true },
   o2Kunde: { label: 'O2 Kunde?', hasText: true },
-  angebot: { label: 'Produkt?', hasText: true },
+  angebot: { label: 'Angebote?', hasText: true },
   produktNotiz: { label: 'Produkt Notiz?', hasText: true },
   stadt: { label: 'Stadt?', hasText: true },
   marketingNotiz: { label: 'Marketing Notiz?', hasText: true },
-  terminDatum: { label: 'Termin Datum?', hasText: true },
-  terminZeit: { label: 'Termin Zeit?', hasText: true }
+  terminDatum: { label: 'Gewünschtes Datum?', hasText: true },
+  terminZeit: { label: 'Gewünschte Rückrufzeit?', hasText: true }
 };
 
 function QuestionField({ id, label, children }) {
@@ -418,12 +419,7 @@ export default function LeadFragenForm({
   onQuestionAdd
 }) {
   const patch = (field, value) => onChange?.(field, value);
-  const labelFor = (field, fallback) => {
-    let custom = String(questionConfig?.labels?.[field]?.[questionLocale] || '').trim();
-    if (field === 'angebot' && (custom === 'Angebot / Produkt?' || custom === 'Angebot / Produkt')) custom = '';
-    const text = custom || fallback;
-    return text.endsWith('?') ? text : `${text}?`;
-  };
+  const labelFor = (field, fallback) => ticketFormFieldLabel(field, fallback, questionConfig, questionLocale);
   const order = ticketFormFieldOrder(questionConfig);
 
   if (templateEditing) {
@@ -469,13 +465,13 @@ export default function LeadFragenForm({
       />
     ),
     rufnummer: (
-      <QuestionField key="rufnummer" id={`${idPrefix}-rufnummer`} label={labelFor('rufnummer', 'Rufnummer?')}>
+      <QuestionField key="rufnummer" id={`${idPrefix}-rufnummer`} label={labelFor('rufnummer', 'WhatsApp-Nummer?')}>
         <input
           id={`${idPrefix}-rufnummer`}
           className="form-input"
           type="tel"
           value={answers?.rufnummer || ''}
-          aria-label={labelFor('rufnummer', 'Rufnummer?')}
+          aria-label={labelFor('rufnummer', 'WhatsApp-Nummer?')}
           onChange={(ev) => patch('rufnummer', ev.target.value)}
         />
       </QuestionField>
@@ -497,12 +493,12 @@ export default function LeadFragenForm({
       </QuestionField>
     ),
     angebot: (
-      <QuestionField key="angebot" id={`${idPrefix}-angebot`} label={labelFor('angebot', 'Produkt?')}>
+      <QuestionField key="angebot" id={`${idPrefix}-angebot`} label={labelFor('angebot', 'Angebote?')}>
         <select
           id={`${idPrefix}-angebot`}
           className="form-input"
           value={answers?.angebot || ''}
-          aria-label={labelFor('angebot', 'Produkt?')}
+          aria-label={labelFor('angebot', 'Angebote?')}
           onChange={(ev) => patch('angebot', ev.target.value)}
         >
           <option value="" />
@@ -544,13 +540,13 @@ export default function LeadFragenForm({
       </QuestionField>
     ),
     terminDatum: (
-      <QuestionField key="terminDatum" id={`${idPrefix}-datum`} label={labelFor('terminDatum', 'Termin Datum?')}>
+      <QuestionField key="terminDatum" id={`${idPrefix}-datum`} label={labelFor('terminDatum', 'Gewünschtes Datum?')}>
         <input
           id={`${idPrefix}-datum`}
           className="form-input"
           type={answers?.terminDatum ? 'date' : 'text'}
           value={answers?.terminDatum || ''}
-          aria-label={labelFor('terminDatum', 'Termin Datum?')}
+          aria-label={labelFor('terminDatum', 'Gewünschtes Datum?')}
           onFocus={(ev) => { ev.target.type = 'date'; }}
           onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminDatum', ev.target.value)}
@@ -558,13 +554,13 @@ export default function LeadFragenForm({
       </QuestionField>
     ),
     terminZeit: (
-      <QuestionField key="terminZeit" id={`${idPrefix}-zeit`} label={labelFor('terminZeit', 'Termin Zeit?')}>
+      <QuestionField key="terminZeit" id={`${idPrefix}-zeit`} label={labelFor('terminZeit', 'Gewünschte Rückrufzeit?')}>
         <input
           id={`${idPrefix}-zeit`}
           className="form-input"
           type={answers?.terminZeit ? 'time' : 'text'}
           value={answers?.terminZeit || ''}
-          aria-label={labelFor('terminZeit', 'Termin Zeit?')}
+          aria-label={labelFor('terminZeit', 'Gewünschte Rückrufzeit?')}
           onFocus={(ev) => { ev.target.type = 'time'; }}
           onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminZeit', ev.target.value)}
