@@ -35,6 +35,8 @@ import { isMnpOnlyEntry } from './vorvertragEntryType';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
+import { TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
+import { TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
 import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
 import {
@@ -54,7 +56,8 @@ import {
   appendLeadEditLog,
   leadFieldChange,
   isCustomTicketField,
-  liveTicketFormPatch
+  liveTicketFormPatch,
+  shopOptionsForTicketing
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -130,6 +133,33 @@ function TicketingSectionMenu({
   );
 }
 
+const EMPTY_OFFEN_FILTER = {
+  datum: '',
+  filiale: '',
+  typ: '',
+  priority: '',
+  sprache: ''
+};
+
+function entryTypLabel(entry) {
+  if (isLeadEntry(entry)) return String(entry?.angebot || '').trim() || 'Nachricht';
+  if (isMnpOnlyEntry(entry)) return 'MNP';
+  return 'Vorvertrag';
+}
+
+function entryFilialeValue(entry) {
+  return String(entry?.filiale || entry?.shop || '').trim();
+}
+
+function matchesOffenFilter(entry, filter) {
+  if (filter.datum && String(entry?.datum || '').slice(0, 10) !== filter.datum) return false;
+  if (filter.filiale && entryFilialeValue(entry) !== filter.filiale) return false;
+  if (filter.typ && entryTypLabel(entry) !== filter.typ) return false;
+  if (filter.priority && normalizeTicketPriority(entry?.priority) !== filter.priority) return false;
+  if (filter.sprache && normalizeTicketLanguage(entry?.sprache) !== filter.sprache) return false;
+  return true;
+}
+
 const System = () => {
   const { user } = useAuth();
   const formRef = useRef(null);
@@ -149,6 +179,7 @@ const System = () => {
   const [formKind, setFormKind] = useState('vorvertrag');
   const [listTab, setListTab] = useState('nachrichten');
   const [archivSearch, setArchivSearch] = useState('');
+  const [offenFilter, setOffenFilter] = useState(EMPTY_OFFEN_FILTER);
   const [statusSavingId, setStatusSavingId] = useState('');
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
@@ -189,7 +220,9 @@ const System = () => {
       }
       return true;
     });
-    if (listTab === 'offen') return [...leadOffenEntries, ...vv];
+    if (listTab === 'offen') {
+      return [...leadOffenEntries, ...vv].filter((entry) => matchesOffenFilter(entry, offenFilter));
+    }
     if (listTab === 'archiv') {
       const leads = archivSearch.trim()
         ? leadArchivEntries.filter((entry) => entryMatchesCustomerNameSearch(entry, archivSearch))
@@ -197,7 +230,24 @@ const System = () => {
       return [...leads, ...vv];
     }
     return vv;
-  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries]);
+  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries, offenFilter]);
+
+  const offenFilialeOptions = useMemo(() => {
+    const set = new Set([...shopOptionsForTicketing(), ...filialeOptions]);
+    [...leadOffenEntries, ...entries.filter((entry) => !isVorvertragArchived(entry))].forEach((entry) => {
+      const value = entryFilialeValue(entry);
+      if (value) set.add(value);
+    });
+    return [...set];
+  }, [filialeOptions, leadOffenEntries, entries]);
+
+  const offenTypOptions = useMemo(() => {
+    const set = new Set(['Nachricht', 'MNP', 'Vorvertrag']);
+    [...leadOffenEntries, ...entries.filter((entry) => !isVorvertragArchived(entry))].forEach((entry) => {
+      set.add(entryTypLabel(entry));
+    });
+    return [...set];
+  }, [leadOffenEntries, entries]);
 
   const offenCount = useMemo(
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadOffenEntries.length,
@@ -837,6 +887,76 @@ const System = () => {
 
       {listTab === 'offen' || listTab === 'archiv' ? (
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
+        {listTab === 'offen' ? (
+          <div className="system-offen-filters" aria-label="Geöffnete Tickets filtern">
+            <label htmlFor="offen-filter-datum">
+              Datum
+              <input
+                id="offen-filter-datum"
+                className="form-input"
+                type="date"
+                value={offenFilter.datum}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, datum: ev.target.value }))}
+              />
+            </label>
+            <label htmlFor="offen-filter-filiale">
+              Filiale
+              <select
+                id="offen-filter-filiale"
+                className="form-input"
+                value={offenFilter.filiale}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, filiale: ev.target.value }))}
+              >
+                <option value="">Alle</option>
+                {offenFilialeOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-typ">
+              Typ
+              <select
+                id="offen-filter-typ"
+                className="form-input"
+                value={offenFilter.typ}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, typ: ev.target.value }))}
+              >
+                <option value="">Alle</option>
+                {offenTypOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-priority">
+              Priorität
+              <select
+                id="offen-filter-priority"
+                className="form-input"
+                value={offenFilter.priority}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, priority: ev.target.value }))}
+              >
+                <option value="">Alle</option>
+                {TICKET_PRIORITY_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-sprache">
+              Sprache
+              <select
+                id="offen-filter-sprache"
+                className="form-input"
+                value={offenFilter.sprache}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, sprache: ev.target.value }))}
+              >
+                <option value="">Alle</option>
+                {TICKET_LANGUAGE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : null}
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
             <label htmlFor="archiv-kunde-suche" className="form-label">Kunde oder ID suchen</label>
@@ -859,7 +979,9 @@ const System = () => {
               ? 'Keine Treffer für diesen Kundenname oder diese ID im Archiv.'
               : listTab === 'archiv'
                 ? 'Keine Einträge im Archiv.'
-                : 'Keine offenen Einträge.'}
+                : Object.values(offenFilter).some(Boolean)
+                  ? 'Keine offenen Einträge für diese Filter.'
+                  : 'Keine offenen Einträge.'}
           </p>
         ) : (
           <div className="vorvertrag-table-wrapper">

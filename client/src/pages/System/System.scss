@@ -334,6 +334,28 @@
   margin-bottom: $spacing-md;
 }
 
+.system-offen-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: $text-light;
+  }
+
+  .form-input {
+    font-weight: 400;
+    font-size: 0.85rem;
+  }
+}
+
 .system-toast {
   display: flex;
   align-items: center;
