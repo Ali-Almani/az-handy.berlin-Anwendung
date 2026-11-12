@@ -20,7 +20,7 @@ export default function TicketLanguageField({
   const choices = Array.isArray(options) && options.length ? options : TICKET_LANGUAGE_OPTIONS;
   const current = selectedOption(value, choices, normalizeTicketLanguage);
 
-  const shownLabel = label || (questionStyle ? 'Sprache?' : 'Sprache');
+  const shownLabel = String(label || 'Sprache').replace(/\?+$/, '');
 
   return (
     <div className={`form-group${questionStyle ? ' sz-qfield' : ''}`}>

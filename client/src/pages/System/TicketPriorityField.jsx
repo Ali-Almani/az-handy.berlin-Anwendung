@@ -20,7 +20,7 @@ export default function TicketPriorityField({
   const choices = Array.isArray(options) && options.length ? options : TICKET_PRIORITY_OPTIONS;
   const current = selectedOption(value, choices, normalizeTicketPriority);
 
-  const shownLabel = label || (questionStyle ? 'Priorität?' : 'Priorität');
+  const shownLabel = String(label || 'Priorität').replace(/\?+$/, '');
 
   return (
     <div className={`form-group${questionStyle ? ' sz-qfield' : ''}`}>

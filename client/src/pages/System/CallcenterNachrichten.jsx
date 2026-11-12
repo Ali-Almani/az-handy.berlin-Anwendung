@@ -2538,25 +2538,25 @@ const CallcenterNachrichten = ({
             {active && answers && !templateEditing ? (
               <div className="sz-questions-meta">
                 <div className="form-group sz-qfield">
-                  <label htmlFor="sz-ticket-mitarbeiter" className="sz-qfield__label">Mitarbeiter?</label>
+                  <label htmlFor="sz-ticket-mitarbeiter" className="sz-qfield__label">Mitarbeiter</label>
                   <input
                     id="sz-ticket-mitarbeiter"
                     className="form-input"
                     value={mitarbeiterLabel === '—' ? '' : mitarbeiterLabel}
                     readOnly
                     aria-readonly="true"
-                    aria-label="Mitarbeiter?"
+                    aria-label="Mitarbeiter"
                   />
                 </div>
                 <div className="form-group sz-qfield">
-                  <label htmlFor="sz-ticket-filiale" className="sz-qfield__label">Filiale?</label>
+                  <label htmlFor="sz-ticket-filiale" className="sz-qfield__label">Filiale</label>
                   <StatusShopSelect
                     id="sz-ticket-filiale"
                     shop={active.shop}
                     ticketStatus={active.ticketStatus}
                     shops={nachrichtShops}
                     onChange={(value) => handleStatusOrShop(active.id, value)}
-                    ariaLabel="Filiale?"
+                    ariaLabel="Filiale"
                     disabled={!filialeReady}
                   />
                 </div>

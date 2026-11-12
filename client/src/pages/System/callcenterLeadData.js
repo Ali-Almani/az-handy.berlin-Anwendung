@@ -357,16 +357,22 @@ export function ticketFormFieldOrder(config) {
 }
 
 export const TICKET_FORM_LABELS = {
-  rufnummer: 'WhatsApp-Nummer?',
-  angebot: 'Angebote?',
-  terminDatum: 'Gewünschtes Datum?',
-  terminZeit: 'Gewünschte Rückrufzeit?'
+  priority: 'Priorität',
+  sprache: 'Sprache',
+  rufnummer: 'WhatsApp-Nummer',
+  o2Kunde: 'O2 Kunde',
+  stadt: 'Stadt',
+  angebot: 'Angebote',
+  produktNotiz: 'Produkt Notiz',
+  marketingNotiz: 'Marketing Notiz',
+  terminDatum: 'Gewünschte Datum',
+  terminZeit: 'Gewünschte Rückrufzeit'
 };
 
 const LEGACY_TICKET_FORM_LABELS = {
   rufnummer: ['rufnummer', 'telefonnummer des kunden', 'telefonnummer'],
   angebot: ['produkt', 'angebot / produkt'],
-  terminDatum: ['termin datum'],
+  terminDatum: ['termin datum', 'gewünschtes datum'],
   terminZeit: ['termin zeit']
 };
 
@@ -374,22 +380,26 @@ function normalizeTicketFormLabel(value) {
   return String(value || '').trim().replace(/\?+$/, '').toLowerCase();
 }
 
+function withoutQuestionMark(value) {
+  return String(value || '').trim().replace(/\?+$/, '').trim();
+}
+
 export function ticketFormFieldLabel(field, fallback, config, locale = 'de') {
+  if (TICKET_FORM_LABELS[field]) return TICKET_FORM_LABELS[field];
   let custom = String(config?.labels?.[field]?.[locale] || '').trim();
   const legacy = LEGACY_TICKET_FORM_LABELS[field];
   if (legacy && legacy.includes(normalizeTicketFormLabel(custom))) custom = '';
-  const text = custom || TICKET_FORM_LABELS[field] || fallback;
-  return text.endsWith('?') ? text : `${text}?`;
+  return withoutQuestionMark(custom || fallback);
 }
 
 export const AUTO_QUESTION_TICKET_FIELDS = [
   { id: '', label: 'Kein Ticketfeld' },
-  { id: 'o2Kunde', label: 'O2 Kunde?' },
+  { id: 'o2Kunde', label: TICKET_FORM_LABELS.o2Kunde },
   { id: 'rufnummer', label: TICKET_FORM_LABELS.rufnummer },
-  { id: 'stadt', label: 'Stadt?' },
+  { id: 'stadt', label: TICKET_FORM_LABELS.stadt },
   { id: 'angebot', label: TICKET_FORM_LABELS.angebot },
-  { id: 'produktNotiz', label: 'Produkt Notiz?' },
-  { id: 'marketingNotiz', label: 'Marketing Notiz?' },
+  { id: 'produktNotiz', label: TICKET_FORM_LABELS.produktNotiz },
+  { id: 'marketingNotiz', label: TICKET_FORM_LABELS.marketingNotiz },
   { id: 'terminDatum', label: TICKET_FORM_LABELS.terminDatum },
   { id: 'terminZeit', label: TICKET_FORM_LABELS.terminZeit },
   { id: 'customerName', label: 'Name' }
@@ -724,7 +734,7 @@ const LEAD_FIELD_LABELS = {
   produktNotiz: 'Produkt Notiz',
   stadt: 'Stadt',
   marketingNotiz: 'Marketing Notiz',
-  terminDatum: 'Gewünschtes Datum',
+  terminDatum: 'Gewünschte Datum',
   terminZeit: 'Gewünschte Rückrufzeit',
   kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',

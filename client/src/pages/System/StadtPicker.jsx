@@ -3,7 +3,7 @@ import { filterStadtOptions, isKnownStadt } from './deutscheStaedte';
 
 export default function StadtPicker({
   id,
-  label = 'Stadt?',
+  label = 'Stadt',
   value = '',
   onChange
 }) {
