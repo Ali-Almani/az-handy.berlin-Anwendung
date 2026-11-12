@@ -196,6 +196,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     sprache: '',
     mitarbeiterName: '',
     shopMitarbeiter: '',
+    kontaktversuchCount: 4,
     createdAt: at,
     messages: []
   };
@@ -474,11 +475,14 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
-      'textFollowupDueAt', 'textFollowupSent',
-      'kundenbesuch1Bearbeiter', 'kundenbesuch2Bearbeiter', 'kundenbesuch3Bearbeiter',
-      'kontakt1ShopNotiz', 'kontakt1Datum', 'kontakt1Zeit',
-      'kontakt2Bearbeiter', 'kontakt2ShopNotiz', 'kontakt2Datum', 'kontakt2Zeit',
-      'kontakt3Bearbeiter', 'kontakt3ShopNotiz', 'kontakt3Datum', 'kontakt3Zeit'
+      'textFollowupDueAt', 'textFollowupSent', 'kontaktversuchCount',
+      ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
+        `kundenbesuch${n}Bearbeiter`,
+        `kontakt${n}Bearbeiter`,
+        `kontakt${n}ShopNotiz`,
+        `kontakt${n}Datum`,
+        `kontakt${n}Zeit`
+      ]))
     ];
     for (const key of allowed) {
       if (patch[key] === undefined) continue;
@@ -513,6 +517,11 @@ export async function patchWhatsAppTicket(ticketId, patch) {
           ticket[fieldId] = next[fieldId];
         }
         ticket.customAnswers = next;
+        continue;
+      }
+      if (key === 'kontaktversuchCount') {
+        const n = parseInt(patch[key], 10);
+        ticket.kontaktversuchCount = Number.isFinite(n) ? Math.min(20, Math.max(4, n)) : 4;
         continue;
       }
       ticket[key] = patch[key];

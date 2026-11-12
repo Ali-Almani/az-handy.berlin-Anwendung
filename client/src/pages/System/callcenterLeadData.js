@@ -646,6 +646,90 @@ export function leadStatusBadge(status) {
   return normalizeLeadStatus(status) === 'Orten' ? 'orten' : 'callcenter';
 }
 
+export const KONTAKTVERSUCH_MIN = 4;
+export const KONTAKTVERSUCH_MAX = 20;
+
+export function kontaktversuchBearbeiterKey(n) {
+  return n === 1 ? 'kundenbesuch1Bearbeiter' : `kontakt${n}Bearbeiter`;
+}
+
+export function kontaktversuchGroup(n) {
+  const zeitLabel = n === 1 ? 'Zeit bis Aktion' : 'Zeit bis Aktion des letzten Versuchs';
+  return {
+    n,
+    title: `Kontaktversuch ${n}`,
+    fields: [
+      { key: kontaktversuchBearbeiterKey(n), label: 'Bearbeiter', type: 'text', autoName: true },
+      { key: `kontakt${n}ShopNotiz`, label: 'Shop Notiz', type: 'text' },
+      { key: `kontakt${n}Datum`, label: 'Datum', type: 'date' },
+      { key: `kontakt${n}Zeit`, label: zeitLabel, type: 'text' }
+    ]
+  };
+}
+
+export function offenFollowupGroups(count = KONTAKTVERSUCH_MIN) {
+  const n = Math.min(
+    KONTAKTVERSUCH_MAX,
+    Math.max(KONTAKTVERSUCH_MIN, Number(count) || KONTAKTVERSUCH_MIN)
+  );
+  return Array.from({ length: n }, (_, i) => kontaktversuchGroup(i + 1));
+}
+
+export const OFFEN_FOLLOWUP_GROUPS = offenFollowupGroups(KONTAKTVERSUCH_MIN);
+
+export function isKontaktversuchField(key) {
+  const k = String(key || '');
+  return k === 'kontaktversuchCount'
+    || /^kundenbesuch\d+Bearbeiter$/.test(k)
+    || /^kontakt\d+(Bearbeiter|ShopNotiz|Datum|Zeit)$/.test(k);
+}
+
+export function kontaktversuchCountFor(ticket) {
+  const stored = parseInt(ticket?.kontaktversuchCount, 10);
+  let highest = KONTAKTVERSUCH_MIN;
+  if (Number.isFinite(stored)) highest = Math.max(highest, stored);
+  for (let n = KONTAKTVERSUCH_MIN + 1; n <= KONTAKTVERSUCH_MAX; n += 1) {
+    const filled = kontaktversuchGroup(n).fields.some((field) => String(ticket?.[field.key] || '').trim());
+    if (filled) highest = n;
+  }
+  return Math.min(KONTAKTVERSUCH_MAX, highest);
+}
+
+export function offenFollowupGroupsForTicket(ticket) {
+  return offenFollowupGroups(kontaktversuchCountFor(ticket));
+}
+
+export function offenFollowupFieldKeys(ticket) {
+  return offenFollowupGroupsForTicket(ticket).flatMap((group) => group.fields.map((field) => field.key));
+}
+
+export function kontaktversuchFieldLabel(key) {
+  if (key === 'kontaktversuchCount') return 'Kontaktversuche';
+  const visit = String(key || '').match(/^kundenbesuch(\d+)Bearbeiter$/);
+  if (visit) return `Kontaktversuch ${visit[1]} Bearbeiter`;
+  const match = String(key || '').match(/^kontakt(\d+)(Bearbeiter|ShopNotiz|Datum|Zeit)$/);
+  if (!match) return '';
+  const labels = {
+    Bearbeiter: 'Bearbeiter',
+    ShopNotiz: 'Shop Notiz',
+    Datum: 'Datum',
+    Zeit: match[1] === '1' ? 'Zeit bis Aktion' : 'Zeit bis Aktion des letzten Versuchs'
+  };
+  return `Kontaktversuch ${match[1]} ${labels[match[2]]}`;
+}
+
+function emptyKontaktversuchFields() {
+  const fields = {
+    kundenbesuch2Bearbeiter: '',
+    kundenbesuch3Bearbeiter: '',
+    kontaktversuchCount: KONTAKTVERSUCH_MIN
+  };
+  for (const field of offenFollowupGroups(KONTAKTVERSUCH_MIN).flatMap((group) => group.fields)) {
+    fields[field.key] = '';
+  }
+  return fields;
+}
+
 export function emptyLeadForm() {
   return {
     rufnummer: '',
@@ -656,20 +740,7 @@ export function emptyLeadForm() {
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
-    kundenbesuch1Bearbeiter: '',
-    kundenbesuch2Bearbeiter: '',
-    kundenbesuch3Bearbeiter: '',
-    kontakt1ShopNotiz: '',
-    kontakt1Datum: '',
-    kontakt1Zeit: '',
-    kontakt2Bearbeiter: '',
-    kontakt2ShopNotiz: '',
-    kontakt2Datum: '',
-    kontakt2Zeit: '',
-    kontakt3Bearbeiter: '',
-    kontakt3ShopNotiz: '',
-    kontakt3Datum: '',
-    kontakt3Zeit: '',
+    ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
@@ -678,40 +749,6 @@ export function emptyLeadForm() {
     nachrichtArt: '',
     editLog: []
   };
-}
-
-export const OFFEN_FOLLOWUP_GROUPS = [
-  {
-    title: 'Kontaktversuch 1',
-    fields: [
-      { key: 'kundenbesuch1Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
-      { key: 'kontakt1ShopNotiz', label: 'Shop Notiz', type: 'text' },
-      { key: 'kontakt1Datum', label: 'Datum', type: 'date' },
-      { key: 'kontakt1Zeit', label: 'Zeit bis Aktion', type: 'text' }
-    ]
-  },
-  {
-    title: 'Kontaktversuch 2',
-    fields: [
-      { key: 'kontakt2Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
-      { key: 'kontakt2ShopNotiz', label: 'Shop Notiz', type: 'text' },
-      { key: 'kontakt2Datum', label: 'Datum', type: 'date' },
-      { key: 'kontakt2Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
-    ]
-  },
-  {
-    title: 'Kontaktversuch 3',
-    fields: [
-      { key: 'kontakt3Bearbeiter', label: 'Bearbeiter', type: 'text', autoName: true },
-      { key: 'kontakt3ShopNotiz', label: 'Shop Notiz', type: 'text' },
-      { key: 'kontakt3Datum', label: 'Datum', type: 'date' },
-      { key: 'kontakt3Zeit', label: 'Zeit bis Aktion des letzten Versuchs', type: 'text' }
-    ]
-  }
-];
-
-export function offenFollowupFieldKeys() {
-  return OFFEN_FOLLOWUP_GROUPS.flatMap((group) => group.fields.map((field) => field.key));
 }
 
 const TICKET_FORM_PRESERVE_KEYS = [
@@ -728,7 +765,8 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'priority',
   'nachrichtArt',
   'shop',
-  'shopMitarbeiter'
+  'shopMitarbeiter',
+  'kontaktversuchCount'
 ];
 
 function mergeCustomAnswers(prev, hydrated) {
@@ -754,11 +792,19 @@ export function preserveOpenTicketEdits(prev, hydrated) {
   const prevLog = Array.isArray(prev.editLog) ? prev.editLog : [];
   const remoteLog = Array.isArray(hydrated?.editLog) ? hydrated.editLog : [];
   next.editLog = prevLog.length >= remoteLog.length ? prevLog : remoteLog;
-  for (const key of [...offenFollowupFieldKeys(), ...TICKET_FORM_PRESERVE_KEYS]) {
+  const followupKeys = new Set([
+    ...offenFollowupFieldKeys(prev),
+    ...offenFollowupFieldKeys(hydrated),
+    ...Object.keys(prev || {}).filter(isKontaktversuchField),
+    ...Object.keys(hydrated || {}).filter(isKontaktversuchField)
+  ]);
+  for (const key of [...followupKeys, ...TICKET_FORM_PRESERVE_KEYS]) {
+    if (key === 'kontaktversuchCount') continue;
     const remote = String(hydrated?.[key] ?? '').trim();
     const local = String(prev?.[key] ?? '').trim();
     if (!remote && local) next[key] = prev[key];
   }
+  next.kontaktversuchCount = Math.max(kontaktversuchCountFor(prev), kontaktversuchCountFor(next));
   Object.keys(prev).forEach((key) => {
     if (!isCustomTicketField(key)) return;
     const remote = String(hydrated?.[key] ?? '').trim();
@@ -835,17 +881,7 @@ const LEAD_FIELD_LABELS = {
   kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
   kundenbesuch3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
-  kontakt1ShopNotiz: 'Kontaktversuch 1 Shop Notiz',
-  kontakt1Datum: 'Kontaktversuch 1 Datum',
-  kontakt1Zeit: 'Kontaktversuch 1 Zeit bis Aktion',
-  kontakt2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
-  kontakt2ShopNotiz: 'Kontaktversuch 2 Shop Notiz',
-  kontakt2Datum: 'Kontaktversuch 2 Datum',
-  kontakt2Zeit: 'Kontaktversuch 2 Zeit bis Aktion des letzten Versuchs',
-  kontakt3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
-  kontakt3ShopNotiz: 'Kontaktversuch 3 Shop Notiz',
-  kontakt3Datum: 'Kontaktversuch 3 Datum',
-  kontakt3Zeit: 'Kontaktversuch 3 Zeit bis Aktion des letzten Versuchs',
+  kontaktversuchCount: 'Kontaktversuche',
   shop: 'Shop',
   ticketStatus: 'Status',
   priority: 'Priorität',
@@ -863,7 +899,7 @@ export function leadFieldChange(ticket, field, nextValue) {
   const from = formatLeadLogValue(ticket?.[field]);
   const to = formatLeadLogValue(nextValue);
   if (from === to) return null;
-  return { field: LEAD_FIELD_LABELS[field] || field, from, to };
+  return { field: LEAD_FIELD_LABELS[field] || kontaktversuchFieldLabel(field) || field, from, to };
 }
 
 export function appendLeadEditLog(ticket, { editorName, action = 'updated', changes }) {
@@ -1319,6 +1355,7 @@ function hydrateLeadTicket(t) {
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
     shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
+    kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],
     liveWhatsApp: Boolean(t?.liveWhatsApp || t?.waId),

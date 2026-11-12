@@ -2,16 +2,20 @@ import { useEffect, useMemo, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
 import {
-  OFFEN_FOLLOWUP_GROUPS,
+  KONTAKTVERSUCH_MAX,
+  kontaktversuchBearbeiterKey,
+  kontaktversuchCountFor,
+  kontaktversuchGroup,
   offenFollowupFieldKeys,
+  offenFollowupGroupsForTicket,
   loadQuestionConfig,
   ticketFormAnswers,
   sanitizeMitarbeiterName
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
-  const snapshot = {};
-  for (const key of offenFollowupFieldKeys()) {
+  const snapshot = { kontaktversuchCount: kontaktversuchCountFor(ticket) };
+  for (const key of offenFollowupFieldKeys(ticket)) {
     snapshot[key] = ticket?.[key] || '';
   }
   return snapshot;
@@ -21,7 +25,7 @@ function draftFromTicket(ticket, bearbeiterName) {
   const draft = followupSnapshot(ticket);
   const name = String(bearbeiterName || '').trim();
   if (!name) return draft;
-  const next = OFFEN_FOLLOWUP_GROUPS
+  const next = offenFollowupGroupsForTicket(ticket)
     .flatMap((group) => group.fields)
     .find((field) => field.autoName && !String(draft[field.key] || '').trim());
   if (next) draft[next.key] = name;
@@ -44,6 +48,10 @@ export default function LeadNachrichtHistory({
   );
   const [saved, setSaved] = useState(() => followupSnapshot(ticket));
   const [draft, setDraft] = useState(() => draftFromTicket(ticket, bearbeiterName));
+  const groups = useMemo(
+    () => offenFollowupGroupsForTicket({ ...ticket, ...draft }),
+    [ticket, draft]
+  );
 
   useEffect(() => {
     setSaved(followupSnapshot(ticket));
@@ -56,10 +64,28 @@ export default function LeadNachrichtHistory({
     onAnswerChange?.('shopMitarbeiter', name);
   }, [ticket?.id, bearbeiterName]);
 
+  const addKontaktversuch = () => {
+    const nextN = kontaktversuchCountFor({ ...ticket, ...draft }) + 1;
+    if (nextN > KONTAKTVERSUCH_MAX) return;
+    const name = sanitizeMitarbeiterName(bearbeiterName);
+    const group = kontaktversuchGroup(nextN);
+    setDraft((prev) => {
+      const next = { ...prev, kontaktversuchCount: nextN };
+      for (const field of group.fields) {
+        next[field.key] = field.autoName && name ? name : '';
+      }
+      return next;
+    });
+    onAnswerChange?.('kontaktversuchCount', nextN);
+    if (name) onAnswerChange?.(kontaktversuchBearbeiterKey(nextN), name);
+  };
+
   const commitAndClose = () => {
-    for (const key of offenFollowupFieldKeys()) {
-      if (String(draft[key] || '') === String(saved[key] || '')) continue;
-      onAnswerChange?.(key, draft[key] || '');
+    const merged = { ...ticket, ...draft };
+    const keys = new Set([...offenFollowupFieldKeys(merged), 'kontaktversuchCount']);
+    for (const key of keys) {
+      if (String(draft[key] ?? '') === String(saved[key] ?? '')) continue;
+      onAnswerChange?.(key, draft[key] ?? '');
     }
     onClose?.();
   };
@@ -109,7 +135,7 @@ export default function LeadNachrichtHistory({
         questionConfig={questionConfig}
         idPrefix="offen-q"
       />
-      {OFFEN_FOLLOWUP_GROUPS.map((group) => (
+      {groups.map((group) => (
         <section key={group.title} className="offen-followup">
           <h3 className="vorvertrag-section-title">{group.title}</h3>
           <div className="lead-fragen-grid">
@@ -139,6 +165,17 @@ export default function LeadNachrichtHistory({
           </div>
         </section>
       ))}
+      {groups.length < KONTAKTVERSUCH_MAX ? (
+        <div className="offen-followup-add">
+          <button
+            type="button"
+            className="btn btn--outline btn--small"
+            onClick={addKontaktversuch}
+          >
+            Kontaktversuch erstellen
+          </button>
+        </div>
+      ) : null}
       {logItems.length > 0 ? (
         <VorvertragEditLog items={logItems} />
       ) : (

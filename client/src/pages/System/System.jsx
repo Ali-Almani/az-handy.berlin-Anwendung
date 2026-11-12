@@ -50,6 +50,7 @@ import {
   mergeWhatsAppTickets,
   migrateLeadTicketStatus,
   offenFollowupFieldKeys,
+  kontaktversuchCountFor,
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withMitarbeiter,
@@ -522,7 +523,8 @@ const System = () => {
       ticketStatus: ticket.ticketStatus || '',
       ...liveTicketFormPatch(ticket)
     };
-    for (const key of offenFollowupFieldKeys()) {
+    payload.kontaktversuchCount = kontaktversuchCountFor(ticket);
+    for (const key of offenFollowupFieldKeys(ticket)) {
       payload[key] = ticket[key] || '';
     }
     patchWhatsAppTicketApi(ticket.id, payload).catch(() => {});
@@ -538,7 +540,7 @@ const System = () => {
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
           : {};
         const patched = { ...t, [field]: value, ...extra };
-        const next = field === 'shopMitarbeiter'
+        const next = field === 'shopMitarbeiter' || field === 'kontaktversuchCount'
           ? patched
           : withMitarbeiter(patched, defaultMitarbeiter);
         const saved = change
