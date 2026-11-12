@@ -440,6 +440,10 @@ export default function LeadFragenForm({
     ? [...o2Options, answers.o2Kunde]
     : o2Options;
   const angebotOptions = questionDropdownOptions('angebot', questionConfig) || [];
+  const zeitOptions = questionDropdownOptions('terminZeit', questionConfig) || [];
+  const zeitShown = answers?.terminZeit && !zeitOptions.includes(answers.terminZeit)
+    ? [...zeitOptions, answers.terminZeit]
+    : zeitOptions;
 
   const fieldNodes = {
     priority: (
@@ -544,27 +548,27 @@ export default function LeadFragenForm({
         <input
           id={`${idPrefix}-datum`}
           className="form-input"
-          type={answers?.terminDatum ? 'date' : 'text'}
+          type="date"
           value={answers?.terminDatum || ''}
           aria-label={labelFor('terminDatum', 'Gewünschte Datum')}
-          onFocus={(ev) => { ev.target.type = 'date'; }}
-          onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminDatum', ev.target.value)}
         />
       </QuestionField>
     ),
     terminZeit: (
       <QuestionField key="terminZeit" id={`${idPrefix}-zeit`} label={labelFor('terminZeit', 'Gewünschte Rückrufzeit')}>
-        <input
+        <select
           id={`${idPrefix}-zeit`}
           className="form-input"
-          type={answers?.terminZeit ? 'time' : 'text'}
           value={answers?.terminZeit || ''}
           aria-label={labelFor('terminZeit', 'Gewünschte Rückrufzeit')}
-          onFocus={(ev) => { ev.target.type = 'time'; }}
-          onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminZeit', ev.target.value)}
-        />
+        >
+          <option value="" />
+          {zeitShown.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
       </QuestionField>
     )
   };
@@ -594,22 +598,14 @@ export default function LeadFragenForm({
       );
     }
     const inputType = added.type === 'date' || added.type === 'time' || added.type === 'tel' ? added.type : 'text';
-    const hasValue = Boolean(answers?.[field]);
-    const shownType = (added.type === 'date' || added.type === 'time') && !hasValue ? 'text' : inputType;
     return (
       <QuestionField key={field} id={inputId} label={label}>
         <input
           id={inputId}
           className="form-input"
-          type={shownType}
+          type={inputType}
           value={answers?.[field] || ''}
           aria-label={label}
-          onFocus={(ev) => {
-            if (added.type === 'date' || added.type === 'time') ev.target.type = added.type;
-          }}
-          onBlur={(ev) => {
-            if ((added.type === 'date' || added.type === 'time') && !ev.target.value) ev.target.type = 'text';
-          }}
           onChange={(ev) => patch(field, ev.target.value)}
         />
       </QuestionField>

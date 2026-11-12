@@ -266,11 +266,23 @@ export function isVorlageQuestionField(field) {
   return VORLAGE_QUESTION_ORDER.includes(field);
 }
 
+export const RUECKRUFZEIT_OPTIONS = [
+  '09:00 bis 12:00',
+  '10:00 bis 13:00',
+  '11:00 bis 14:00',
+  '12:00 bis 15:00',
+  '13:00 bis 16:00',
+  '14:00 bis 17:00',
+  '15:00 bis 18:00',
+  '16:00 bis 19:00'
+];
+
 const DROPDOWN_DEFAULTS = {
   priority: TICKET_PRIORITY_OPTIONS,
   sprache: TICKET_LANGUAGE_OPTIONS,
   o2Kunde: LEAD_O2_OPTIONS,
-  angebot: LEAD_ANGEBOT_OPTIONS
+  angebot: LEAD_ANGEBOT_OPTIONS,
+  terminZeit: RUECKRUFZEIT_OPTIONS
 };
 
 export const QUESTION_FIELD_TYPES = [
@@ -688,14 +700,30 @@ export function offenFollowupFieldKeys() {
   return OFFEN_FOLLOWUP_GROUPS.flatMap((group) => group.fields.map((field) => field.key));
 }
 
-/** WhatsApp-Abruf darf einen gerade gesetzten Status oder Kontaktversuch nicht zurücksetzen. */
+const TICKET_FORM_PRESERVE_KEYS = [
+  'sprache',
+  'rufnummer',
+  'customerName',
+  'o2Kunde',
+  'angebot',
+  'produktNotiz',
+  'stadt',
+  'marketingNotiz',
+  'terminDatum',
+  'terminZeit',
+  'priority',
+  'nachrichtArt',
+  'shop'
+];
+
+/** WhatsApp-Abruf darf einen gerade gesetzten Status, Ticketfelder oder Kontaktversuch nicht zurücksetzen. */
 export function preserveOpenTicketEdits(prev, hydrated) {
   if (!prev) return hydrated;
   const next = { ...hydrated };
   const prevLog = Array.isArray(prev.editLog) ? prev.editLog : [];
   const remoteLog = Array.isArray(hydrated?.editLog) ? hydrated.editLog : [];
   next.editLog = prevLog.length >= remoteLog.length ? prevLog : remoteLog;
-  for (const key of offenFollowupFieldKeys()) {
+  for (const key of [...offenFollowupFieldKeys(), ...TICKET_FORM_PRESERVE_KEYS]) {
     const remote = String(hydrated?.[key] ?? '').trim();
     const local = String(prev?.[key] ?? '').trim();
     if (!remote && local) next[key] = prev[key];
