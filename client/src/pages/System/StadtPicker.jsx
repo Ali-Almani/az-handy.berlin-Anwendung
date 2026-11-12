@@ -38,7 +38,8 @@ export default function StadtPicker({
   };
 
   return (
-    <div className="form-group original-anbieter-picker" ref={rootRef}>
+    <div className="form-group original-anbieter-picker sz-qfield" ref={rootRef}>
+      <label htmlFor={id} className="sz-qfield__label">{label}</label>
       <input
         id={id}
         type="text"
@@ -50,7 +51,6 @@ export default function StadtPicker({
         aria-autocomplete="list"
         aria-label={label}
         autoComplete="off"
-        placeholder={label}
         onFocus={() => setOpen(true)}
         onChange={(ev) => {
           const next = ev.target.value;

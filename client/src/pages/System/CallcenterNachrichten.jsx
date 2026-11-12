@@ -490,7 +490,7 @@ function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel, 
       disabled={disabled}
       title={disabled ? 'Zuerst Sprache, Rufnummer, O2 Kunde und Produkt wählen.' : undefined}
     >
-      <option value="">Filiale?</option>
+      <option value="" />
       {shops.map((opt) => (
         <option key={opt} value={opt}>
           {opt === NACHRICHTEN_ERLEDIGT ? opt : shopOptionLabel(opt)}
@@ -2537,24 +2537,29 @@ const CallcenterNachrichten = ({
             </div>
             {active && answers && !templateEditing ? (
               <div className="sz-questions-meta">
-                <input
-                  id="sz-ticket-mitarbeiter"
-                  className="form-input"
-                  value={mitarbeiterLabel === '—' ? '' : mitarbeiterLabel}
-                  readOnly
-                  aria-readonly="true"
-                  aria-label="Mitarbeiter"
-                  placeholder="Mitarbeiter?"
-                />
-                <StatusShopSelect
-                  id="sz-ticket-filiale"
-                  shop={active.shop}
-                  ticketStatus={active.ticketStatus}
-                  shops={nachrichtShops}
-                  onChange={(value) => handleStatusOrShop(active.id, value)}
-                  ariaLabel="Filiale wählen"
-                  disabled={!filialeReady}
-                />
+                <div className="form-group sz-qfield">
+                  <label htmlFor="sz-ticket-mitarbeiter" className="sz-qfield__label">Mitarbeiter?</label>
+                  <input
+                    id="sz-ticket-mitarbeiter"
+                    className="form-input"
+                    value={mitarbeiterLabel === '—' ? '' : mitarbeiterLabel}
+                    readOnly
+                    aria-readonly="true"
+                    aria-label="Mitarbeiter?"
+                  />
+                </div>
+                <div className="form-group sz-qfield">
+                  <label htmlFor="sz-ticket-filiale" className="sz-qfield__label">Filiale?</label>
+                  <StatusShopSelect
+                    id="sz-ticket-filiale"
+                    shop={active.shop}
+                    ticketStatus={active.ticketStatus}
+                    shops={nachrichtShops}
+                    onChange={(value) => handleStatusOrShop(active.id, value)}
+                    ariaLabel="Filiale?"
+                    disabled={!filialeReady}
+                  />
+                </div>
               </div>
             ) : null}
             {active && answers ? (

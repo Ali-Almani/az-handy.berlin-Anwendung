@@ -29,6 +29,15 @@ const FIELD_META = {
   terminZeit: { label: 'Termin Zeit?', hasText: true }
 };
 
+function QuestionField({ id, label, children }) {
+  return (
+    <div className="form-group sz-qfield">
+      <label htmlFor={id} className="sz-qfield__label">{label}</label>
+      {children}
+    </div>
+  );
+}
+
 function readOfferImage(file) {
   return new Promise((resolve, reject) => {
     if (!file || !String(file.type || '').startsWith('image/')) {
@@ -460,20 +469,19 @@ export default function LeadFragenForm({
       />
     ),
     rufnummer: (
-      <div className="form-group" key="rufnummer">
+      <QuestionField key="rufnummer" id={`${idPrefix}-rufnummer`} label={labelFor('rufnummer', 'Rufnummer?')}>
         <input
           id={`${idPrefix}-rufnummer`}
           className="form-input"
           type="tel"
           value={answers?.rufnummer || ''}
-          placeholder={labelFor('rufnummer', 'Rufnummer?')}
           aria-label={labelFor('rufnummer', 'Rufnummer?')}
           onChange={(ev) => patch('rufnummer', ev.target.value)}
         />
-      </div>
+      </QuestionField>
     ),
     o2Kunde: (
-      <div className="form-group" key="o2Kunde">
+      <QuestionField key="o2Kunde" id={`${idPrefix}-o2`} label={labelFor('o2Kunde', 'O2 Kunde?')}>
         <select
           id={`${idPrefix}-o2`}
           className="form-input"
@@ -481,15 +489,15 @@ export default function LeadFragenForm({
           aria-label={labelFor('o2Kunde', 'O2 Kunde?')}
           onChange={(ev) => patch('o2Kunde', ev.target.value)}
         >
-          <option value="">{labelFor('o2Kunde', 'O2 Kunde?')}</option>
+          <option value="" />
           {o2Shown.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
-      </div>
+      </QuestionField>
     ),
     angebot: (
-      <div className="form-group" key="angebot">
+      <QuestionField key="angebot" id={`${idPrefix}-angebot`} label={labelFor('angebot', 'Produkt?')}>
         <select
           id={`${idPrefix}-angebot`}
           className="form-input"
@@ -497,24 +505,23 @@ export default function LeadFragenForm({
           aria-label={labelFor('angebot', 'Produkt?')}
           onChange={(ev) => patch('angebot', ev.target.value)}
         >
-          <option value="">{labelFor('angebot', 'Produkt?')}</option>
+          <option value="" />
           {angebotOptions.map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
-      </div>
+      </QuestionField>
     ),
     produktNotiz: (
-      <div className="form-group" key="produktNotiz">
+      <QuestionField key="produktNotiz" id={`${idPrefix}-produkt`} label={labelFor('produktNotiz', 'Produkt Notiz?')}>
         <input
           id={`${idPrefix}-produkt`}
           className="form-input"
           value={answers?.produktNotiz || ''}
-          placeholder={labelFor('produktNotiz', 'Produkt Notiz?')}
           aria-label={labelFor('produktNotiz', 'Produkt Notiz?')}
           onChange={(ev) => patch('produktNotiz', ev.target.value)}
         />
-      </div>
+      </QuestionField>
     ),
     stadt: (
       <StadtPicker
@@ -526,46 +533,43 @@ export default function LeadFragenForm({
       />
     ),
     marketingNotiz: (
-      <div className="form-group" key="marketingNotiz">
+      <QuestionField key="marketingNotiz" id={`${idPrefix}-marketing`} label={labelFor('marketingNotiz', 'Marketing Notiz?')}>
         <input
           id={`${idPrefix}-marketing`}
           className="form-input"
           value={answers?.marketingNotiz || ''}
-          placeholder={labelFor('marketingNotiz', 'Marketing Notiz?')}
           aria-label={labelFor('marketingNotiz', 'Marketing Notiz?')}
           onChange={(ev) => patch('marketingNotiz', ev.target.value)}
         />
-      </div>
+      </QuestionField>
     ),
     terminDatum: (
-      <div className="form-group" key="terminDatum">
+      <QuestionField key="terminDatum" id={`${idPrefix}-datum`} label={labelFor('terminDatum', 'Termin Datum?')}>
         <input
           id={`${idPrefix}-datum`}
           className="form-input"
           type={answers?.terminDatum ? 'date' : 'text'}
           value={answers?.terminDatum || ''}
-          placeholder={labelFor('terminDatum', 'Termin Datum?')}
           aria-label={labelFor('terminDatum', 'Termin Datum?')}
           onFocus={(ev) => { ev.target.type = 'date'; }}
           onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminDatum', ev.target.value)}
         />
-      </div>
+      </QuestionField>
     ),
     terminZeit: (
-      <div className="form-group" key="terminZeit">
+      <QuestionField key="terminZeit" id={`${idPrefix}-zeit`} label={labelFor('terminZeit', 'Termin Zeit?')}>
         <input
           id={`${idPrefix}-zeit`}
           className="form-input"
           type={answers?.terminZeit ? 'time' : 'text'}
           value={answers?.terminZeit || ''}
-          placeholder={labelFor('terminZeit', 'Termin Zeit?')}
           aria-label={labelFor('terminZeit', 'Termin Zeit?')}
           onFocus={(ev) => { ev.target.type = 'time'; }}
           onBlur={(ev) => { if (!ev.target.value) ev.target.type = 'text'; }}
           onChange={(ev) => patch('terminZeit', ev.target.value)}
         />
-      </div>
+      </QuestionField>
     )
   };
 
@@ -577,7 +581,7 @@ export default function LeadFragenForm({
     if (added.type === 'dropdown') {
       const options = questionDropdownOptions(field, questionConfig) || [];
       return (
-        <div className="form-group" key={field}>
+        <QuestionField key={field} id={inputId} label={label}>
           <select
             id={inputId}
             className="form-input"
@@ -585,25 +589,24 @@ export default function LeadFragenForm({
             aria-label={label}
             onChange={(ev) => patch(field, ev.target.value)}
           >
-            <option value="">{label}</option>
+            <option value="" />
             {options.map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
-        </div>
+        </QuestionField>
       );
     }
     const inputType = added.type === 'date' || added.type === 'time' || added.type === 'tel' ? added.type : 'text';
     const hasValue = Boolean(answers?.[field]);
     const shownType = (added.type === 'date' || added.type === 'time') && !hasValue ? 'text' : inputType;
     return (
-      <div className="form-group" key={field}>
+      <QuestionField key={field} id={inputId} label={label}>
         <input
           id={inputId}
           className="form-input"
           type={shownType}
           value={answers?.[field] || ''}
-          placeholder={label}
           aria-label={label}
           onFocus={(ev) => {
             if (added.type === 'date' || added.type === 'time') ev.target.type = added.type;
@@ -613,7 +616,7 @@ export default function LeadFragenForm({
           }}
           onChange={(ev) => patch(field, ev.target.value)}
         />
-      </div>
+      </QuestionField>
     );
   };
 

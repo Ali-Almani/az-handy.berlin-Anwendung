@@ -86,12 +86,13 @@ export default function LeadNachrichtHistory({
               const value = draft[field.key] || '';
               const inputType = field.type === 'date' && value ? 'date' : 'text';
               return (
-                <div key={field.key} className="form-group">
+                <div key={field.key} className="form-group sz-qfield">
+                  <label htmlFor={`offen-${field.key}`} className="sz-qfield__label">{field.label}</label>
                   <input
+                    id={`offen-${field.key}`}
                     className="form-input"
                     type={inputType}
                     value={value}
-                    placeholder={field.label}
                     aria-label={`${group.title} ${field.label}`}
                     onFocus={(ev) => {
                       if (field.type === 'date') ev.target.type = 'date';

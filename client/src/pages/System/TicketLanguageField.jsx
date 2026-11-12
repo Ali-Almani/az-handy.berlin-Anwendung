@@ -20,24 +20,25 @@ export default function TicketLanguageField({
   const choices = Array.isArray(options) && options.length ? options : TICKET_LANGUAGE_OPTIONS;
   const current = selectedOption(value, choices, normalizeTicketLanguage);
 
+  const shownLabel = label || (questionStyle ? 'Sprache?' : 'Sprache');
+
   return (
-    <div className="form-group">
-      {questionStyle ? null : (
-        <label htmlFor={id} className={`form-label${required ? ' form-label--required' : ''}`}>
-          {label || 'Sprache'}
-        </label>
-      )}
+    <div className={`form-group${questionStyle ? ' sz-qfield' : ''}`}>
+      <label
+        htmlFor={id}
+        className={questionStyle ? 'sz-qfield__label' : `form-label${required ? ' form-label--required' : ''}`}
+      >
+        {shownLabel}
+      </label>
       <select
         id={id}
         className="form-input"
         value={questionStyle && !String(value ?? '').trim() ? '' : current}
         onChange={(ev) => onChange?.(ev.target.value)}
         required={required}
-        aria-label={label || (questionStyle ? 'Sprache?' : 'Sprache')}
+        aria-label={shownLabel}
       >
-        {questionStyle ? (
-          <option value="">{label || 'Sprache?'}</option>
-        ) : null}
+        {questionStyle ? <option value="" /> : null}
         {choices.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}

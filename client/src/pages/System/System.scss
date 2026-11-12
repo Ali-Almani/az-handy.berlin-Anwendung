@@ -263,6 +263,21 @@
   margin-bottom: 0;
 }
 
+.sz-qfield {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.sz-qfield__label {
+  display: block;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 500;
+  color: $text-light;
+}
+
 .lead-fragen-panel .lead-fragen-grid {
   margin-bottom: $spacing-md;
 }
@@ -270,6 +285,10 @@
 .lead-fragen-panel .form-input,
 .lead-fragen-panel select.form-input {
   font-size: 0.62rem;
+}
+
+.lead-fragen-panel .sz-qfield__label {
+  font-size: 0.68rem;
 }
 
 .lead-fragen-panel .form-input::placeholder {

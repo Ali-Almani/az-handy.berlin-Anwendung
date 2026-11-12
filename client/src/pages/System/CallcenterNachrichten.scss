@@ -1848,12 +1848,15 @@
   }
 }
 
-.sz-questions-form .form-group {
+.sz-questions-form .form-group,
+.sz-questions-meta .form-group {
   margin-bottom: 0.4rem;
 }
 
-.sz-questions-form .form-label {
-  font-size: 0.75rem;
+.sz-questions-form .form-label,
+.sz-questions-form .sz-qfield__label,
+.sz-questions-meta .sz-qfield__label {
+  font-size: 0.72rem;
 }
 
 .sz-questions-form .form-input,
