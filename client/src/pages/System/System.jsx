@@ -57,7 +57,10 @@ import {
   leadFieldChange,
   isCustomTicketField,
   liveTicketFormPatch,
-  shopOptionsForTicketing
+  shopOptionsForTicketing,
+  loadQuestionConfig,
+  questionDropdownOptions,
+  LEAD_ANGEBOT_OPTIONS
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -141,12 +144,6 @@ const EMPTY_OFFEN_FILTER = {
   sprache: ''
 };
 
-function entryTypLabel(entry) {
-  if (isLeadEntry(entry)) return String(entry?.angebot || '').trim() || 'Nachricht';
-  if (isMnpOnlyEntry(entry)) return 'MNP';
-  return 'Vorvertrag';
-}
-
 function entryFilialeValue(entry) {
   return String(entry?.filiale || entry?.shop || '').trim();
 }
@@ -154,7 +151,7 @@ function entryFilialeValue(entry) {
 function matchesOffenFilter(entry, filter) {
   if (filter.datum && String(entry?.datum || '').slice(0, 10) !== filter.datum) return false;
   if (filter.filiale && entryFilialeValue(entry) !== filter.filiale) return false;
-  if (filter.typ && entryTypLabel(entry) !== filter.typ) return false;
+  if (filter.typ && String(entry?.angebot || '').trim() !== filter.typ) return false;
   if (filter.priority && normalizeTicketPriority(entry?.priority) !== filter.priority) return false;
   if (filter.sprache && normalizeTicketLanguage(entry?.sprache) !== filter.sprache) return false;
   return true;
@@ -238,16 +235,13 @@ const System = () => {
       const value = entryFilialeValue(entry);
       if (value) set.add(value);
     });
-    return [...set];
+    return [...set].filter((opt) => String(opt).trim().toLowerCase() !== 'zentrale');
   }, [filialeOptions, leadOffenEntries, entries]);
 
-  const offenTypOptions = useMemo(() => {
-    const set = new Set(['Nachricht', 'MNP', 'Vorvertrag']);
-    [...leadOffenEntries, ...entries.filter((entry) => !isVorvertragArchived(entry))].forEach((entry) => {
-      set.add(entryTypLabel(entry));
-    });
-    return [...set];
-  }, [leadOffenEntries, entries]);
+  const offenTypOptions = useMemo(
+    () => questionDropdownOptions('angebot', loadQuestionConfig()) || [...LEAD_ANGEBOT_OPTIONS],
+    [listTab]
+  );
 
   const offenCount = useMemo(
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadOffenEntries.length,
@@ -914,7 +908,7 @@ const System = () => {
               </select>
             </label>
             <label htmlFor="offen-filter-typ">
-              Typ
+              Angebote
               <select
                 id="offen-filter-typ"
                 className="form-input"
