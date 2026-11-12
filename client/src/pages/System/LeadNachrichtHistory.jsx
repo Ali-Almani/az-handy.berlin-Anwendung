@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
-import { formFromLead, OFFEN_FOLLOWUP_GROUPS, offenFollowupFieldKeys } from './callcenterLeadData';
+import {
+  OFFEN_FOLLOWUP_GROUPS,
+  offenFollowupFieldKeys,
+  loadQuestionConfig,
+  ticketFormAnswers
+} from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
   const snapshot = {};
@@ -31,6 +36,11 @@ export default function LeadNachrichtHistory({
 }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
+  const questionConfig = useMemo(() => loadQuestionConfig(), [ticket?.id]);
+  const answers = useMemo(
+    () => ticketFormAnswers(ticket, questionConfig),
+    [ticket, questionConfig]
+  );
   const [saved, setSaved] = useState(() => followupSnapshot(ticket));
   const [draft, setDraft] = useState(() => draftFromTicket(ticket, bearbeiterName));
 
@@ -74,8 +84,9 @@ export default function LeadNachrichtHistory({
       <h3 className="vorvertrag-section-title">Informationen</h3>
       <LeadFragenForm
         fieldsOnly
-        answers={formFromLead(ticket)}
+        answers={answers}
         onChange={onAnswerChange}
+        questionConfig={questionConfig}
         idPrefix="offen-q"
       />
       {OFFEN_FOLLOWUP_GROUPS.map((group) => (

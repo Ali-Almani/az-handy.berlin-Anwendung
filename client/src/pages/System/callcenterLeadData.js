@@ -778,6 +778,30 @@ export function preserveOpenTicketEdits(prev, hydrated) {
   return next;
 }
 
+export function ticketFormAnswers(ticket, config) {
+  const base = formFromLead(ticket);
+  customQuestions(config).forEach((item) => {
+    base[item.id] = ticket?.[item.id] || ticket?.customAnswers?.[item.id] || '';
+  });
+  return base;
+}
+
+export function liveTicketFormPatch(ticket) {
+  const payload = {};
+  for (const key of TICKET_FORM_PRESERVE_KEYS) {
+    if (ticket?.[key] !== undefined && ticket?.[key] !== null) payload[key] = ticket[key];
+  }
+  const customAnswers = {
+    ...(ticket?.customAnswers && typeof ticket.customAnswers === 'object' ? ticket.customAnswers : {})
+  };
+  Object.keys(ticket || {}).forEach((key) => {
+    if (!isCustomTicketField(key)) return;
+    customAnswers[key] = ticket[key] ?? customAnswers[key] ?? '';
+  });
+  if (Object.keys(customAnswers).length) payload.customAnswers = customAnswers;
+  return payload;
+}
+
 export function formFromLead(entry) {
   return {
     rufnummer: entry?.rufnummer || '',

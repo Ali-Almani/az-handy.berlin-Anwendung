@@ -52,7 +52,9 @@ import {
   sanitizeMitarbeiterName,
   withMitarbeiter,
   appendLeadEditLog,
-  leadFieldChange
+  leadFieldChange,
+  isCustomTicketField,
+  liveTicketFormPatch
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -472,7 +474,10 @@ const System = () => {
 
   const persistLiveTicket = (ticket) => {
     if (!isLiveWhatsAppTicket(ticket)) return;
-    const payload = { ticketStatus: ticket.ticketStatus || '' };
+    const payload = {
+      ticketStatus: ticket.ticketStatus || '',
+      ...liveTicketFormPatch(ticket)
+    };
     for (const key of offenFollowupFieldKeys()) {
       payload[key] = ticket[key] || '';
     }
@@ -485,7 +490,10 @@ const System = () => {
       prev.map((t) => {
         if (t.id !== leadEditId) return t;
         const change = leadFieldChange(t, field, value);
-        const next = withMitarbeiter({ ...t, [field]: value }, defaultMitarbeiter);
+        const extra = isCustomTicketField(field)
+          ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
+          : {};
+        const next = withMitarbeiter({ ...t, [field]: value, ...extra }, defaultMitarbeiter);
         const saved = change
           ? appendLeadEditLog(next, {
               editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
