@@ -537,7 +537,10 @@ const System = () => {
         const extra = isCustomTicketField(field)
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
           : {};
-        const next = withMitarbeiter({ ...t, [field]: value, ...extra }, defaultMitarbeiter);
+        const patched = { ...t, [field]: value, ...extra };
+        const next = field === 'shopMitarbeiter'
+          ? patched
+          : withMitarbeiter(patched, defaultMitarbeiter);
         const saved = change
           ? appendLeadEditLog(next, {
               editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
@@ -990,7 +993,8 @@ const System = () => {
                   {listTab !== 'archiv' ? <th>Priorität</th> : null}
                   {listTab !== 'archiv' ? <th>Sprache</th> : null}
                   <th>Status</th>
-                  <th>Mitarbeiter</th>
+                  <th>Marketing Mitarbeiter</th>
+                  <th>Shop Mitarbeiter</th>
                   <th>Aktion</th>
                 </tr>
               </thead>

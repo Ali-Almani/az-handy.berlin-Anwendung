@@ -195,6 +195,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     textFollowupSent: false,
     sprache: '',
     mitarbeiterName: '',
+    shopMitarbeiter: '',
     createdAt: at,
     messages: []
   };
@@ -471,7 +472,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
     const allowed = [
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName', 'ticketNr',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
-      'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
+      'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
       'textFollowupDueAt', 'textFollowupSent',
       'kundenbesuch1Bearbeiter', 'kundenbesuch2Bearbeiter', 'kundenbesuch3Bearbeiter',

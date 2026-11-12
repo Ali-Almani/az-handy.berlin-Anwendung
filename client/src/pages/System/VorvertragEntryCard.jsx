@@ -44,7 +44,7 @@ function MitarbeiterNamesSelect({ names }) {
     <select
       className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
       defaultValue={names[0]}
-      aria-label="Mitarbeiter"
+      aria-label="Marketing Mitarbeiter"
       onClick={(ev) => ev.stopPropagation()}
     >
       {names.map((name) => (
@@ -180,6 +180,9 @@ export default function VorvertragEntryCard({
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">
         <MitarbeiterNamesSelect names={mitarbeiter} />
+      </td>
+      <td className="vorvertrag-ticket-row__shop-mitarbeiter">
+        {sanitizeMitarbeiterName(entry?.shopMitarbeiter) || '—'}
       </td>
       <td className="vorvertrag-ticket-row__actions">
         <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>

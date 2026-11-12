@@ -5,7 +5,8 @@ import {
   OFFEN_FOLLOWUP_GROUPS,
   offenFollowupFieldKeys,
   loadQuestionConfig,
-  ticketFormAnswers
+  ticketFormAnswers,
+  sanitizeMitarbeiterName
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -49,6 +50,12 @@ export default function LeadNachrichtHistory({
     setDraft(draftFromTicket(ticket, bearbeiterName));
   }, [ticket?.id, bearbeiterName]);
 
+  useEffect(() => {
+    const name = sanitizeMitarbeiterName(bearbeiterName);
+    if (!name || sanitizeMitarbeiterName(ticket?.shopMitarbeiter)) return;
+    onAnswerChange?.('shopMitarbeiter', name);
+  }, [ticket?.id, bearbeiterName]);
+
   const commitAndClose = () => {
     for (const key of offenFollowupFieldKeys()) {
       if (String(draft[key] || '') === String(saved[key] || '')) continue;
@@ -82,6 +89,19 @@ export default function LeadNachrichtHistory({
         </div>
       </div>
       <h3 className="vorvertrag-section-title">Informationen</h3>
+      <div className="lead-fragen-grid">
+        <div className="form-group sz-qfield">
+          <label htmlFor="offen-shop-mitarbeiter" className="sz-qfield__label">Shop Mitarbeiter</label>
+          <input
+            id="offen-shop-mitarbeiter"
+            className="form-input"
+            value={ticket?.shopMitarbeiter || ''}
+            onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
+            autoComplete="off"
+            aria-label="Shop Mitarbeiter"
+          />
+        </div>
+      </div>
       <LeadFragenForm
         fieldsOnly
         answers={answers}

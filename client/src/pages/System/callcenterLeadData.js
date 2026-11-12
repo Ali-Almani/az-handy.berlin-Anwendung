@@ -670,6 +670,7 @@ export function emptyLeadForm() {
     kontakt3ShopNotiz: '',
     kontakt3Datum: '',
     kontakt3Zeit: '',
+    shopMitarbeiter: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
@@ -726,7 +727,8 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'terminZeit',
   'priority',
   'nachrichtArt',
-  'shop'
+  'shop',
+  'shopMitarbeiter'
 ];
 
 function mergeCustomAnswers(prev, hydrated) {
@@ -848,7 +850,8 @@ const LEAD_FIELD_LABELS = {
   ticketStatus: 'Status',
   priority: 'Priorität',
   sprache: 'Sprache',
-  mitarbeiterName: 'Mitarbeiter'
+  mitarbeiterName: 'Marketing Mitarbeiter',
+  shopMitarbeiter: 'Shop Mitarbeiter'
 };
 
 function formatLeadLogValue(value) {
@@ -1294,6 +1297,7 @@ export function leadToNeuEntry(lead) {
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
     mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
     mitarbeiterNames: collectMitarbeiterNames(lead),
+    shopMitarbeiter: sanitizeMitarbeiterName(lead.shopMitarbeiter),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
   };
 }
@@ -1314,6 +1318,7 @@ function hydrateLeadTicket(t) {
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
+    shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],
     liveWhatsApp: Boolean(t?.liveWhatsApp || t?.waId),
