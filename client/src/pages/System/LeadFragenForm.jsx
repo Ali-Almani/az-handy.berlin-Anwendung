@@ -11,7 +11,9 @@ import {
   templateQuestionText,
   ticketFormFieldLabel,
   ticketFormFieldOrder,
-  visibleQuestionOrder
+  visibleQuestionOrder,
+  parseRueckrufzeit,
+  formatRueckrufzeit
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
@@ -35,6 +37,32 @@ function QuestionField({ id, label, children }) {
     <div className="form-group sz-qfield">
       <label htmlFor={id} className="sz-qfield__label">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function RueckrufzeitRange({ id, label, value, onChange }) {
+  const { von, bis } = parseRueckrufzeit(value);
+  const patchRange = (nextVon, nextBis) => onChange?.(formatRueckrufzeit(nextVon, nextBis));
+  return (
+    <div className="sz-qfield__range">
+      <input
+        id={id}
+        className="form-input"
+        type="time"
+        value={von}
+        aria-label={`${label} von`}
+        onChange={(ev) => patchRange(ev.target.value, bis)}
+      />
+      <span>bis</span>
+      <input
+        id={`${id}-bis`}
+        className="form-input"
+        type="time"
+        value={bis}
+        aria-label={`${label} bis`}
+        onChange={(ev) => patchRange(von, ev.target.value)}
+      />
     </div>
   );
 }
@@ -440,10 +468,6 @@ export default function LeadFragenForm({
     ? [...o2Options, answers.o2Kunde]
     : o2Options;
   const angebotOptions = questionDropdownOptions('angebot', questionConfig) || [];
-  const zeitOptions = questionDropdownOptions('terminZeit', questionConfig) || [];
-  const zeitShown = answers?.terminZeit && !zeitOptions.includes(answers.terminZeit)
-    ? [...zeitOptions, answers.terminZeit]
-    : zeitOptions;
 
   const fieldNodes = {
     priority: (
@@ -557,18 +581,12 @@ export default function LeadFragenForm({
     ),
     terminZeit: (
       <QuestionField key="terminZeit" id={`${idPrefix}-zeit`} label={labelFor('terminZeit', 'Gewünschte Rückrufzeit')}>
-        <select
+        <RueckrufzeitRange
           id={`${idPrefix}-zeit`}
-          className="form-input"
+          label={labelFor('terminZeit', 'Gewünschte Rückrufzeit')}
           value={answers?.terminZeit || ''}
-          aria-label={labelFor('terminZeit', 'Gewünschte Rückrufzeit')}
-          onChange={(ev) => patch('terminZeit', ev.target.value)}
-        >
-          <option value="" />
-          {zeitShown.map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
+          onChange={(value) => patch('terminZeit', value)}
+        />
       </QuestionField>
     )
   };

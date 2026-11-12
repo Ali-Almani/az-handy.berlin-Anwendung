@@ -266,23 +266,35 @@ export function isVorlageQuestionField(field) {
   return VORLAGE_QUESTION_ORDER.includes(field);
 }
 
-export const RUECKRUFZEIT_OPTIONS = [
-  '09:00 bis 12:00',
-  '10:00 bis 13:00',
-  '11:00 bis 14:00',
-  '12:00 bis 15:00',
-  '13:00 bis 16:00',
-  '14:00 bis 17:00',
-  '15:00 bis 18:00',
-  '16:00 bis 19:00'
-];
+function padClock(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return '';
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
+}
+
+export function parseRueckrufzeit(value) {
+  const raw = String(value || '').trim();
+  const range = raw.match(/^(\d{1,2}:\d{2})\s*(?:bis|-|–|—)\s*(\d{1,2}:\d{2})$/i);
+  if (range) return { von: padClock(range[1]), bis: padClock(range[2]) };
+  return { von: padClock(raw), bis: '' };
+}
+
+export function formatRueckrufzeit(von, bis) {
+  const from = padClock(von);
+  const to = padClock(bis);
+  if (from && to) return `${from} bis ${to}`;
+  return from || to;
+}
+
+export function isCustomTicketField(field) {
+  return /^cq-/.test(String(field || ''));
+}
 
 const DROPDOWN_DEFAULTS = {
   priority: TICKET_PRIORITY_OPTIONS,
   sprache: TICKET_LANGUAGE_OPTIONS,
   o2Kunde: LEAD_O2_OPTIONS,
-  angebot: LEAD_ANGEBOT_OPTIONS,
-  terminZeit: RUECKRUFZEIT_OPTIONS
+  angebot: LEAD_ANGEBOT_OPTIONS
 };
 
 export const QUESTION_FIELD_TYPES = [
@@ -716,6 +728,22 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'shop'
 ];
 
+function mergeCustomAnswers(prev, hydrated) {
+  const local = prev?.customAnswers && typeof prev.customAnswers === 'object' ? prev.customAnswers : {};
+  const remote = hydrated?.customAnswers && typeof hydrated.customAnswers === 'object' ? hydrated.customAnswers : {};
+  const next = { ...local };
+  Object.entries(remote).forEach(([id, value]) => {
+    if (String(value ?? '').trim()) next[id] = value;
+  });
+  Object.keys(prev || {}).forEach((key) => {
+    if (!isCustomTicketField(key)) return;
+    const remoteVal = String(hydrated?.[key] ?? next[key] ?? '').trim();
+    const localVal = String(prev[key] ?? '').trim();
+    if (!remoteVal && localVal) next[key] = prev[key];
+  });
+  return next;
+}
+
 /** WhatsApp-Abruf darf einen gerade gesetzten Status, Ticketfelder oder Kontaktversuch nicht zurücksetzen. */
 export function preserveOpenTicketEdits(prev, hydrated) {
   if (!prev) return hydrated;
@@ -727,6 +755,19 @@ export function preserveOpenTicketEdits(prev, hydrated) {
     const remote = String(hydrated?.[key] ?? '').trim();
     const local = String(prev?.[key] ?? '').trim();
     if (!remote && local) next[key] = prev[key];
+  }
+  Object.keys(prev).forEach((key) => {
+    if (!isCustomTicketField(key)) return;
+    const remote = String(hydrated?.[key] ?? '').trim();
+    const local = String(prev[key] ?? '').trim();
+    if (!remote && local) next[key] = prev[key];
+  });
+  const customAnswers = mergeCustomAnswers(prev, hydrated);
+  if (Object.keys(customAnswers).length) {
+    next.customAnswers = customAnswers;
+    Object.entries(customAnswers).forEach(([id, value]) => {
+      if (!String(next[id] ?? '').trim() && String(value ?? '').trim()) next[id] = value;
+    });
   }
   if (normalizeLeadStatus(hydrated?.ticketStatus)) {
     const localStatus = migrateLeadTicketStatus(prev.ticketStatus);
@@ -1252,7 +1293,10 @@ function hydrateLeadTicket(t) {
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],
     liveWhatsApp: Boolean(t?.liveWhatsApp || t?.waId),
     waId: String(t?.waId || '').trim(),
-    inboxGroup: String(t?.inboxGroup || '').trim()
+    inboxGroup: String(t?.inboxGroup || '').trim(),
+    customAnswers: t?.customAnswers && typeof t.customAnswers === 'object' && !Array.isArray(t.customAnswers)
+      ? t.customAnswers
+      : {}
   };
 }
 

@@ -278,6 +278,24 @@
   color: $text-light;
 }
 
+.sz-qfield__range {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+
+  .form-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  span {
+    flex: 0 0 auto;
+    color: $text-light;
+    font-size: 0.75rem;
+  }
+}
+
 .lead-fragen-panel .lead-fragen-grid {
   margin-bottom: $spacing-md;
 }

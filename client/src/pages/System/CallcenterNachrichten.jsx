@@ -37,7 +37,8 @@ import {
   isLeadArchived,
   isLiveWhatsAppTicket,
   mergeWhatsAppTickets,
-  displayTicketId
+  displayTicketId,
+  isCustomTicketField
 } from './callcenterLeadData';
 import { syncProduktQuestion, ticketProduktNames } from './produktFrageSync';
 import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
@@ -611,7 +612,7 @@ const CallcenterNachrichten = ({
     if (!active) return null;
     const base = formFromLead(active);
     customQuestions(questionConfig).forEach((item) => {
-      base[item.id] = active[item.id] || '';
+      base[item.id] = active[item.id] || active.customAnswers?.[item.id] || '';
     });
     return base;
   }, [active, questionConfig]);
@@ -813,6 +814,10 @@ const CallcenterNachrichten = ({
       const next = withFirstMessageAutoReply(updater(t));
       if (isLiveWhatsAppTicket(next)) {
         window.clearTimeout(waPatchTimer.current);
+        const customAnswers = { ...(next.customAnswers && typeof next.customAnswers === 'object' ? next.customAnswers : {}) };
+        customQuestions(questionConfig).forEach((item) => {
+          customAnswers[item.id] = next[item.id] ?? customAnswers[item.id] ?? '';
+        });
         const payload = {
           shop: next.shop,
           unread: next.unread,
@@ -829,7 +834,8 @@ const CallcenterNachrichten = ({
           terminZeit: next.terminZeit,
           nachrichtArt: next.nachrichtArt,
           mitarbeiterName: next.mitarbeiterName,
-          priority: next.priority
+          priority: next.priority,
+          customAnswers
         };
         waPatchTimer.current = window.setTimeout(() => {
           patchWhatsAppTicketApi(id, payload).catch(() => {});
@@ -1014,6 +1020,9 @@ const CallcenterNachrichten = ({
         if (!name || name === MANUAL_TICKET_NAME) {
           extra.customerName = String(value || '').trim() || MANUAL_TICKET_NAME;
         }
+      }
+      if (isCustomTicketField(field)) {
+        extra.customAnswers = { ...(t.customAnswers || {}), [field]: value };
       }
       const next = withMitarbeiter({ ...t, [field]: value, ...extra }, agentName);
       if (!change) return next;

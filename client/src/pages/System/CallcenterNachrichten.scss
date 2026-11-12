@@ -1868,6 +1868,10 @@
   font-size: 0.82rem;
 }
 
+.sz-questions-form .sz-qfield__range .form-input {
+  min-width: 0;
+}
+
 .sz-questions-form select.form-input:has(option[value=""]:checked),
 .sz-questions-meta select.form-input:has(option[value=""]:checked) {
   color: $text-light;

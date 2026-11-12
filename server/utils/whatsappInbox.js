@@ -189,6 +189,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     autoQuestionDueAt: '',
     autoQuestionQueue: [],
     autoAnswers: {},
+    customAnswers: {},
     inboxGroup: '',
     textFollowupDueAt: '',
     textFollowupSent: false,
@@ -471,7 +472,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName', 'ticketNr',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'nachrichtArt', 'mitarbeiterName', 'priority',
-      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers',
+      'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
       'textFollowupDueAt', 'textFollowupSent',
       'kundenbesuch1Bearbeiter', 'kundenbesuch2Bearbeiter', 'kundenbesuch3Bearbeiter',
       'kontakt1ShopNotiz', 'kontakt1Datum', 'kontakt1Zeit',
@@ -499,6 +500,18 @@ export async function patchWhatsAppTicket(ticketId, patch) {
           };
         }
         ticket.autoAnswers = next;
+        continue;
+      }
+      if (key === 'customAnswers') {
+        const src = patch[key] && typeof patch[key] === 'object' && !Array.isArray(patch[key]) ? patch[key] : {};
+        const next = { ...(ticket.customAnswers && typeof ticket.customAnswers === 'object' ? ticket.customAnswers : {}) };
+        for (const [id, entry] of Object.entries(src).slice(0, 40)) {
+          const fieldId = String(id).slice(0, 40);
+          if (!/^cq-/.test(fieldId)) continue;
+          next[fieldId] = String(entry ?? '').slice(0, 500);
+          ticket[fieldId] = next[fieldId];
+        }
+        ticket.customAnswers = next;
         continue;
       }
       ticket[key] = patch[key];
