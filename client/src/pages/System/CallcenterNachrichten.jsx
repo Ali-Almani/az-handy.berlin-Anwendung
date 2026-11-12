@@ -832,6 +832,7 @@ const CallcenterNachrichten = ({
           marketingNotiz: next.marketingNotiz,
           terminDatum: next.terminDatum,
           terminZeit: next.terminZeit,
+          mocKn: next.mocKn,
           nachrichtArt: next.nachrichtArt,
           mitarbeiterName: next.mitarbeiterName,
           priority: next.priority,

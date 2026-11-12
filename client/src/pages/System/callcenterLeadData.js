@@ -369,6 +369,12 @@ export function visibleQuestionOrder(config) {
   return [...saved, ...rest].filter((field) => !isQuestionHidden(config, field));
 }
 
+function isKundenTelefonnummerField(config, field) {
+  const added = customQuestions(config).find((item) => item.id === field);
+  const label = String(added?.label || '').trim().replace(/\?+$/, '').toLowerCase();
+  return label === 'telefonnummer des kunden' || label === 'telefonnummer';
+}
+
 /** Ticket erstellen: Vorlagenfelder bleiben immer sichtbar, auch wenn sie im Fragen-Bereich gelöscht sind. */
 export function ticketFormFieldOrder(config) {
   const custom = customQuestions(config)
@@ -378,7 +384,10 @@ export function ticketFormFieldOrder(config) {
     ? config.order.filter((field) => custom.includes(field))
     : [];
   const rest = custom.filter((field) => !saved.includes(field));
-  return [...VORLAGE_QUESTION_ORDER, ...saved, ...rest];
+  const order = [...VORLAGE_QUESTION_ORDER, ...saved, ...rest];
+  const phoneAt = order.findIndex((field) => isKundenTelefonnummerField(config, field));
+  order.splice(phoneAt >= 0 ? phoneAt + 1 : order.length, 0, 'mocKn');
+  return order;
 }
 
 export const TICKET_FORM_LABELS = {
@@ -391,7 +400,8 @@ export const TICKET_FORM_LABELS = {
   produktNotiz: 'Produkt Notiz',
   marketingNotiz: 'Marketing Notiz',
   terminDatum: 'Gewünschte Datum',
-  terminZeit: 'Gewünschte Rückrufzeit'
+  terminZeit: 'Gewünschte Rückrufzeit',
+  mocKn: 'Moc KN'
 };
 
 const LEGACY_TICKET_FORM_LABELS = {
@@ -740,6 +750,7 @@ export function emptyLeadForm() {
     marketingNotiz: '',
     terminDatum: '',
     terminZeit: '',
+    mocKn: '',
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shop: '',
@@ -762,6 +773,7 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'marketingNotiz',
   'terminDatum',
   'terminZeit',
+  'mocKn',
   'priority',
   'nachrichtArt',
   'shop',
@@ -861,6 +873,7 @@ export function formFromLead(entry) {
     marketingNotiz: entry?.marketingNotiz || '',
     terminDatum: entry?.terminDatum || '',
     terminZeit: entry?.terminZeit || '',
+    mocKn: entry?.mocKn || '',
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
     priority: String(entry?.priority ?? '').trim() ? normalizeTicketPriority(entry.priority) : '',
@@ -878,6 +891,7 @@ const LEAD_FIELD_LABELS = {
   marketingNotiz: 'Marketing Notiz',
   terminDatum: 'Gewünschte Datum',
   terminZeit: 'Gewünschte Rückrufzeit',
+  mocKn: 'Moc KN',
   kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
   kundenbesuch3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
@@ -1355,6 +1369,7 @@ function hydrateLeadTicket(t) {
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
     shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
+    mocKn: String(t?.mocKn || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],

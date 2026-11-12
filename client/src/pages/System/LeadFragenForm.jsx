@@ -29,7 +29,8 @@ const FIELD_META = {
   stadt: { label: 'Stadt', hasText: true },
   marketingNotiz: { label: 'Marketing Notiz', hasText: true },
   terminDatum: { label: 'Gewünschte Datum', hasText: true },
-  terminZeit: { label: 'Gewünschte Rückrufzeit', hasText: true }
+  terminZeit: { label: 'Gewünschte Rückrufzeit', hasText: true },
+  mocKn: { label: 'Moc KN', hasText: true }
 };
 
 function QuestionField({ id, label, children }) {
@@ -586,6 +587,18 @@ export default function LeadFragenForm({
           label={labelFor('terminZeit', 'Gewünschte Rückrufzeit')}
           value={answers?.terminZeit || ''}
           onChange={(value) => patch('terminZeit', value)}
+        />
+      </QuestionField>
+    ),
+    mocKn: (
+      <QuestionField key="mocKn" id={`${idPrefix}-moc-kn`} label={labelFor('mocKn', 'Moc KN')}>
+        <input
+          id={`${idPrefix}-moc-kn`}
+          className="form-input"
+          value={answers?.mocKn || ''}
+          aria-label={labelFor('mocKn', 'Moc KN')}
+          onChange={(ev) => patch('mocKn', ev.target.value)}
+          autoComplete="off"
         />
       </QuestionField>
     )
