@@ -5,9 +5,11 @@ import {
   customQuestions,
   normalizeOfferEntry,
   normalizeOfferUrl,
+  isVorlageQuestionField,
   questionDropdownOptions,
   questionOptionLinks,
   templateQuestionText,
+  ticketFormFieldOrder,
   visibleQuestionOrder
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
@@ -316,17 +318,19 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
                 aria-label="Frage"
                 onChange={(ev) => save({ label: ev.target.value })}
               />
-              <button
-                type="button"
-                className="sz-question-icon sz-question-icon--delete"
-                onClick={() => onDelete?.(field, label)}
-                aria-label="Frage löschen"
-                title="Löschen"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden>
-                  <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                </svg>
-              </button>
+              {isVorlageQuestionField(field) ? null : (
+                <button
+                  type="button"
+                  className="sz-question-icon sz-question-icon--delete"
+                  onClick={() => onDelete?.(field, label)}
+                  aria-label="Frage löschen"
+                  title="Löschen"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden>
+                    <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                  </svg>
+                </button>
+              )}
             </div>
             {field === 'angebot' ? (
               <label className="sz-template-options-label">
@@ -411,7 +415,7 @@ export default function LeadFragenForm({
     const text = custom || fallback;
     return text.endsWith('?') ? text : `${text}?`;
   };
-  const order = visibleQuestionOrder(questionConfig);
+  const order = ticketFormFieldOrder(questionConfig);
 
   if (templateEditing) {
     return (

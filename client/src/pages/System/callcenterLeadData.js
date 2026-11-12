@@ -234,21 +234,37 @@ const PREVIOUS_VORLAGE_QUESTION_ORDERS = [
     'marketingNotiz',
     'terminDatum',
     'terminZeit'
+  ],
+  [
+    'priority',
+    'sprache',
+    'o2Kunde',
+    'rufnummer',
+    'angebot',
+    'produktNotiz',
+    'marketingNotiz',
+    'stadt',
+    'terminDatum',
+    'terminZeit'
   ]
 ];
 
 export const VORLAGE_QUESTION_ORDER = [
   'priority',
   'sprache',
-  'o2Kunde',
   'rufnummer',
+  'o2Kunde',
+  'stadt',
   'angebot',
   'produktNotiz',
   'marketingNotiz',
-  'stadt',
   'terminDatum',
   'terminZeit'
 ];
+
+export function isVorlageQuestionField(field) {
+  return VORLAGE_QUESTION_ORDER.includes(field);
+}
 
 const DROPDOWN_DEFAULTS = {
   priority: TICKET_PRIORITY_OPTIONS,
@@ -327,6 +343,31 @@ export function visibleQuestionOrder(config) {
   const rest = known.filter((field) => !saved.includes(field));
   return [...saved, ...rest].filter((field) => !isQuestionHidden(config, field));
 }
+
+/** Ticket erstellen: Vorlagenfelder bleiben immer sichtbar, auch wenn sie im Fragen-Bereich gelöscht sind. */
+export function ticketFormFieldOrder(config) {
+  const custom = customQuestions(config)
+    .map((item) => item.id)
+    .filter((id) => id && !isQuestionHidden(config, id));
+  const saved = Array.isArray(config?.order)
+    ? config.order.filter((field) => custom.includes(field))
+    : [];
+  const rest = custom.filter((field) => !saved.includes(field));
+  return [...VORLAGE_QUESTION_ORDER, ...saved, ...rest];
+}
+
+export const AUTO_QUESTION_TICKET_FIELDS = [
+  { id: '', label: 'Kein Ticketfeld' },
+  { id: 'o2Kunde', label: 'O2 Kunde?' },
+  { id: 'rufnummer', label: 'Rufnummer?' },
+  { id: 'stadt', label: 'Stadt?' },
+  { id: 'angebot', label: 'Produkt?' },
+  { id: 'produktNotiz', label: 'Produkt Notiz?' },
+  { id: 'marketingNotiz', label: 'Marketing Notiz?' },
+  { id: 'terminDatum', label: 'Termin Datum?' },
+  { id: 'terminZeit', label: 'Termin Zeit?' },
+  { id: 'customerName', label: 'Name' }
+];
 
 export function normalizeOfferUrl(raw) {
   const url = String(raw || '').trim();

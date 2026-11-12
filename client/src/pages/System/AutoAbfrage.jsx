@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAutoQuestionFlowApi, saveAutoQuestionFlowApi } from '../../services/whatsapp.service';
-import { loadQuestionConfig } from './callcenterLeadData';
+import { AUTO_QUESTION_TICKET_FIELDS, loadQuestionConfig } from './callcenterLeadData';
 import {
   applyProduktOptions,
   isProduktQuestion,
@@ -296,6 +296,18 @@ export default function AutoAbfrage() {
             >
               <option value="choice">Dropdown</option>
               <option value="text">Freitext</option>
+            </select>
+            <select
+              className="form-input"
+              value={question.saveAs || ''}
+              aria-label="Ticketfeld"
+              title="Antwort ins Ticket schreiben"
+              disabled={linked}
+              onChange={(ev) => updateQuestion(question.id, { saveAs: ev.target.value })}
+            >
+              {AUTO_QUESTION_TICKET_FIELDS.map((item) => (
+                <option key={item.id || 'none'} value={item.id}>{item.label}</option>
+              ))}
             </select>
             {linked ? null : (
             <button
