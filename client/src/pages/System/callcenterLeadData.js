@@ -19,6 +19,7 @@ export const LEAD_ANGEBOT_OPTIONS = [
 ];
 
 export const ORTEN_SHOP_OPTIONS = [
+  'Kitzingstraße',
   'Sonnenallee 16',
   'Karl-Marx-Straße 50',
   'Karl-Marx-Straße 169',
