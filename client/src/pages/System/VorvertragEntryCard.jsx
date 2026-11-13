@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef, useState } from 'react';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
@@ -75,43 +74,19 @@ function formatGeoeffnetZeit(value) {
   });
 }
 
-const STATUS_SELECT_CHROME_PX = 56;
-
-function longestStatusLabel() {
-  return VORVERTRAG_TICKET_STATUS_OPTIONS.reduce(
-    (longest, opt) => (opt.length > longest.length ? opt : longest),
-    ''
-  );
-}
-
 function StatusSelect({ value, name, disabled, onChange }) {
-  const sizerRef = useRef(null);
-  const [widthPx, setWidthPx] = useState(null);
-
-  useLayoutEffect(() => {
-    const el = sizerRef.current;
-    if (!el) return;
-    setWidthPx(Math.ceil(el.getBoundingClientRect().width) + STATUS_SELECT_CHROME_PX);
-  }, [value]);
-
   return (
-    <>
-      <span ref={sizerRef} className="vorvertrag-ticket-row__status-sizer" aria-hidden>
-        {longestStatusLabel()}
-      </span>
-      <select
-        className="form-input vorvertrag-ticket-row__status-select"
-        value={value}
-        disabled={disabled}
-        onChange={onChange}
-        aria-label={`Status für ${name}`}
-        style={widthPx ? { width: `${widthPx}px` } : undefined}
-      >
-        {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
-    </>
+    <select
+      className="form-input vorvertrag-ticket-row__status-select"
+      value={value}
+      disabled={disabled}
+      onChange={onChange}
+      aria-label={`Status für ${name}`}
+    >
+      {VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => (
+        <option key={opt} value={opt}>{opt}</option>
+      ))}
+    </select>
   );
 }
 
