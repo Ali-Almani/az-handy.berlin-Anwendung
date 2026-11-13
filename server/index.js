@@ -69,7 +69,7 @@ app.get('/api/health', (req, res) => {
     geminiConfigured: !!(process.env.GEMINI_API_KEY && String(process.env.GEMINI_API_KEY).trim().replace(/^["']|["']$/g, '')),
     whatsappConfigured: !!(process.env.WHATSAPP_TOKEN && String(process.env.WHATSAPP_TOKEN).trim()
       && process.env.WHATSAPP_PHONE_NUMBER_ID && String(process.env.WHATSAPP_PHONE_NUMBER_ID).trim()),
-    apiPatchLevel: 27,
+    apiPatchLevel: 28,
     copyHistoryRetentionDays: parseInt(process.env.COPY_HISTORY_RETENTION_DAYS || '4', 10) || 4,
     cluster: {
       pid: process.pid,

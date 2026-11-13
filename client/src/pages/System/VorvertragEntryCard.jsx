@@ -107,6 +107,7 @@ export default function VorvertragEntryCard({
   entry,
   onEdit,
   onStatusChange,
+  onKundenbesuchDatumChange,
   statusSaving = false,
   highlighted = false,
   fallbackMitarbeiter = '',
@@ -172,12 +173,28 @@ export default function VorvertragEntryCard({
           >
             {ticketStatus}
           </span>
-          <StatusSelect
-            value={ticketStatus}
-            name={name}
-            disabled={statusSaving}
-            onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
-          />
+          <div className="vorvertrag-ticket-row__status-controls">
+            <StatusSelect
+              value={ticketStatus}
+              name={name}
+              disabled={statusSaving}
+              onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
+            />
+            {ticketStatus === 'Kundenbesuch' ? (
+              <label className="vorvertrag-ticket-row__kundenbesuch-datum">
+                Datum erreicht
+                <input
+                  className="form-input"
+                  type="date"
+                  value={String(entry?.kundenbesuchDatum || '').trim()}
+                  disabled={statusSaving}
+                  aria-label={`Datum erreicht für ${name}`}
+                  onClick={(ev) => ev.stopPropagation()}
+                  onChange={(ev) => onKundenbesuchDatumChange?.(entry, ev.target.value)}
+                />
+              </label>
+            ) : null}
+          </div>
         </div>
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">

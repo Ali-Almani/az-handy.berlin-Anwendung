@@ -595,9 +595,14 @@ export async function updateVorvertragTicketStatus(req, res) {
       snapshot: entrySnapshot({ ...prev, ticketStatus })
     });
 
+    const kundenbesuchDatum = String(
+      req.body?.kundenbesuchDatum ?? prev.kundenbesuchDatum ?? ''
+    ).trim().slice(0, 10);
+
     updated = {
       ...prev,
       ticketStatus,
+      kundenbesuchDatum,
       updatedAt: now,
       lastEditedBy: editor,
       editHistory: history.slice(0, 200)

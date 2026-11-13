@@ -601,6 +601,34 @@
   gap: 0.2rem;
 }
 
+.vorvertrag-ticket-row__status-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.vorvertrag-ticket-row__kundenbesuch-datum {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: $text-light;
+
+  .form-input {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 9.5rem;
+    height: 2rem;
+    min-height: 2rem;
+    padding: 0 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+}
+
 .vorvertrag-ticket-row__status-sizer {
   position: absolute;
   visibility: hidden;

@@ -680,6 +680,48 @@ const System = () => {
     }
   };
 
+  const handleKundenbesuchDatumChange = async (entry, value) => {
+    const id = entry?.id;
+    if (!id) return;
+    const datum = String(value || '').trim().slice(0, 10);
+
+    if (isLeadEntry(entry)) {
+      setLeadTickets((prev) =>
+        prev.map((t) => {
+          if (t.id !== id) return t;
+          if (String(t.kundenbesuchDatum || '') === datum) return t;
+          const next = { ...t, kundenbesuchDatum: datum };
+          const change = leadFieldChange(t, 'kundenbesuchDatum', datum);
+          const saved = change
+            ? appendLeadEditLog(next, {
+                editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
+                changes: [change]
+              })
+            : next;
+          persistLiveTicket(saved);
+          return saved;
+        })
+      );
+      return;
+    }
+
+    if (String(entry?.kundenbesuchDatum || '') === datum) return;
+    setStatusSavingId(id);
+    setError('');
+    setEntries((prev) => prev.map((item) => (
+      item.id === id ? { ...item, kundenbesuchDatum: datum } : item
+    )));
+    try {
+      await updateVorvertragTicketStatusApi(id, entry.ticketStatus, { kundenbesuchDatum: datum });
+      await loadList({ silent: true });
+    } catch (err) {
+      await loadList({ silent: true });
+      setError(err.response?.data?.message || err.message || 'Datum konnte nicht gespeichert werden.');
+    } finally {
+      setStatusSavingId('');
+    }
+  };
+
   if (!user || !canAccessTicketingSystem(user)) {
     return <Navigate to="/" replace />;
   }
@@ -1010,6 +1052,7 @@ const System = () => {
                     entry={entry}
                     onEdit={startEdit}
                     onStatusChange={handleStatusChange}
+                    onKundenbesuchDatumChange={handleKundenbesuchDatumChange}
                     statusSaving={statusSavingId === entry.id}
                     highlighted={highlightedId === entry.id || leadEditId === entry.id}
                     fallbackMitarbeiter={defaultMitarbeiter}

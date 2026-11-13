@@ -755,6 +755,7 @@ export function emptyLeadForm() {
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
+    kundenbesuchDatum: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
@@ -781,6 +782,7 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'shop',
   'shopMitarbeiter',
   'shopMitarbeiterNames',
+  'kundenbesuchDatum',
   'kontaktversuchCount'
 ];
 
@@ -913,6 +915,7 @@ const LEAD_FIELD_LABELS = {
   kontaktversuchCount: 'Kontaktversuche',
   shop: 'Shop',
   ticketStatus: 'Status',
+  kundenbesuchDatum: 'Datum erreicht',
   priority: 'Priorität',
   sprache: 'Sprache',
   mitarbeiterName: 'Marketing Mitarbeiter',
@@ -1386,6 +1389,7 @@ export function leadToNeuEntry(lead) {
     mitarbeiterNames: collectMitarbeiterNames(lead),
     shopMitarbeiter: sanitizeMitarbeiterName(lead.shopMitarbeiter),
     shopMitarbeiterNames: collectShopMitarbeiterNames(lead),
+    kundenbesuchDatum: String(lead?.kundenbesuchDatum || '').trim(),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
   };
 }
@@ -1409,6 +1413,7 @@ function hydrateLeadTicket(t) {
     shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
     shopMitarbeiterNames: collectShopMitarbeiterNames(t),
     mocKn: String(t?.mocKn || '').trim(),
+    kundenbesuchDatum: String(t?.kundenbesuchDatum || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],
