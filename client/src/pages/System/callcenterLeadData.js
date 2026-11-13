@@ -671,6 +671,10 @@ export function kontaktversuchDatumKey(n) {
   return `kontakt${n}Datum`;
 }
 
+export function kontaktversuchUhrzeitKey(n) {
+  return `kontakt${n}Uhrzeit`;
+}
+
 export function kontaktversuchZeitKey(n) {
   return `kontakt${n}Zeit`;
 }
@@ -684,6 +688,20 @@ export function berlinCalendarDate(now = new Date()) {
   return now.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
 }
 
+/** HH:MM in Europe/Berlin, für time-Inputs. */
+export function berlinClockTime(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    hourCycle: 'h23'
+  }).formatToParts(now);
+  const hour = parts.find((part) => part.type === 'hour')?.value || '00';
+  const minute = parts.find((part) => part.type === 'minute')?.value || '00';
+  return `${hour}:${minute}`;
+}
+
 export function kontaktversuchGroup(n) {
   const zeitLabel = n === 1 ? 'Zeit bis Aktion' : 'Zeit bis Aktion des letzten Versuchs';
   return {
@@ -693,6 +711,7 @@ export function kontaktversuchGroup(n) {
       { key: kontaktversuchBearbeiterKey(n), label: 'Bearbeiter', type: 'text', autoName: true },
       { key: `kontakt${n}ShopNotiz`, label: 'Shop Notiz', type: 'text' },
       { key: kontaktversuchDatumKey(n), label: 'Datum', type: 'date' },
+      { key: kontaktversuchUhrzeitKey(n), label: 'Zeit', type: 'time' },
       { key: kontaktversuchZeitKey(n), label: zeitLabel, type: 'text', autoZeit: true }
     ]
   };
@@ -712,7 +731,7 @@ export function isKontaktversuchField(key) {
   const k = String(key || '');
   return k === 'kontaktversuchCount'
     || /^kundenbesuch\d+Bearbeiter$/.test(k)
-    || /^kontakt\d+(Bearbeiter|ShopNotiz|Datum|Zeit|ZeitAt)$/.test(k);
+    || /^kontakt\d+(Bearbeiter|ShopNotiz|Datum|Uhrzeit|Zeit|ZeitAt)$/.test(k);
 }
 
 function kontaktversuchGroupHasFollowupData(ticket, n) {
@@ -747,12 +766,13 @@ export function kontaktversuchFieldLabel(key) {
   if (key === 'kontaktversuchCount') return 'Kontaktversuche';
   const visit = String(key || '').match(/^kundenbesuch(\d+)Bearbeiter$/);
   if (visit) return `Kontaktversuch ${visit[1]} Bearbeiter`;
-  const match = String(key || '').match(/^kontakt(\d+)(Bearbeiter|ShopNotiz|Datum|Zeit)$/);
+  const match = String(key || '').match(/^kontakt(\d+)(Bearbeiter|ShopNotiz|Datum|Uhrzeit|Zeit)$/);
   if (!match) return '';
   const labels = {
     Bearbeiter: 'Bearbeiter',
     ShopNotiz: 'Shop Notiz',
     Datum: 'Datum',
+    Uhrzeit: 'Zeit',
     Zeit: match[1] === '1' ? 'Zeit bis Aktion' : 'Zeit bis Aktion des letzten Versuchs'
   };
   return `Kontaktversuch ${match[1]} ${labels[match[2]]}`;

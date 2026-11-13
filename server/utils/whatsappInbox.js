@@ -488,6 +488,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
         `kontakt${n}Bearbeiter`,
         `kontakt${n}ShopNotiz`,
         `kontakt${n}Datum`,
+        `kontakt${n}Uhrzeit`,
         `kontakt${n}Zeit`,
         `kontakt${n}ZeitAt`
       ]))

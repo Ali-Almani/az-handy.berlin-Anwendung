@@ -5,10 +5,12 @@ import TicketDokumente from './TicketDokumente';
 import {
   KONTAKTVERSUCH_MAX,
   berlinCalendarDate,
+  berlinClockTime,
   kontaktversuchBearbeiterKey,
   kontaktversuchCountFor,
   kontaktversuchDatumKey,
   kontaktversuchGroup,
+  kontaktversuchUhrzeitKey,
   kontaktversuchZeitAtKey,
   kontaktversuchZeitKey,
   kontaktversuchZeitValue,
@@ -47,11 +49,18 @@ function draftFromTicket(ticket, bearbeiterName) {
   const draft = followupSnapshot(ticket);
   const name = String(bearbeiterName || '').trim();
   const today = berlinCalendarDate();
+  const clock = berlinClockTime();
   const first = kontaktversuchGroup(1).fields.find((field) => field.autoName);
   if (first && name && !String(draft[first.key] || '').trim()) draft[first.key] = name;
   for (const group of offenFollowupGroupsForTicket({ ...ticket, ...draft })) {
     const dateKey = kontaktversuchDatumKey(group.n);
+    const timeKey = kontaktversuchUhrzeitKey(group.n);
     if (!String(draft[dateKey] || '').trim()) draft[dateKey] = today;
+    if (!String(draft[timeKey] || '').trim()) {
+      const storedAt = String(draft[kontaktversuchZeitAtKey(group.n)] || ticket?.[kontaktversuchZeitAtKey(group.n)] || '').trim();
+      const parsed = Date.parse(storedAt);
+      draft[timeKey] = Number.isFinite(parsed) ? berlinClockTime(new Date(parsed)) : clock;
+    }
   }
   return fillAutoKontaktversuchZeit(ticket, draft);
 }
@@ -101,6 +110,7 @@ export default function LeadNachrichtHistory({
     if (nextN > KONTAKTVERSUCH_MAX) return;
     const name = sanitizeMitarbeiterName(bearbeiterName);
     const today = berlinCalendarDate();
+    const clock = berlinClockTime();
     const now = new Date();
     const group = kontaktversuchGroup(nextN);
     const zeit = kontaktversuchZeitValue({ ...ticket, ...draft }, nextN, now);
@@ -110,6 +120,7 @@ export default function LeadNachrichtHistory({
       for (const field of group.fields) {
         if (field.autoName && name) next[field.key] = name;
         else if (field.type === 'date') next[field.key] = today;
+        else if (field.type === 'time') next[field.key] = clock;
         else if (field.autoZeit) next[field.key] = zeit;
         else next[field.key] = '';
       }
@@ -119,6 +130,7 @@ export default function LeadNachrichtHistory({
     onAnswerChange?.('kontaktversuchCount', nextN);
     if (name) onAnswerChange?.(kontaktversuchBearbeiterKey(nextN), name);
     onAnswerChange?.(kontaktversuchDatumKey(nextN), today);
+    onAnswerChange?.(kontaktversuchUhrzeitKey(nextN), clock);
     onAnswerChange?.(kontaktversuchZeitKey(nextN), zeit);
     onAnswerChange?.(kontaktversuchZeitAtKey(nextN), zeitAt);
   };
@@ -208,7 +220,8 @@ export default function LeadNachrichtHistory({
           <div className="lead-fragen-grid">
             {group.fields.map((field) => {
               const value = draft[field.key] || '';
-              const inputType = field.type === 'date' && value ? 'date' : 'text';
+              const pickerType = field.type === 'date' || field.type === 'time' ? field.type : '';
+              const inputType = pickerType && value ? pickerType : 'text';
               return (
                 <div key={field.key} className="form-group sz-qfield">
                   <label htmlFor={`offen-${field.key}`} className="sz-qfield__label">{field.label}</label>
@@ -220,10 +233,10 @@ export default function LeadNachrichtHistory({
                     readOnly={Boolean(field.autoZeit)}
                     aria-label={`${group.title} ${field.label}`}
                     onFocus={(ev) => {
-                      if (field.type === 'date') ev.target.type = 'date';
+                      if (pickerType) ev.target.type = pickerType;
                     }}
                     onBlur={(ev) => {
-                      if (field.type === 'date' && !ev.target.value) ev.target.type = 'text';
+                      if (pickerType && !ev.target.value) ev.target.type = 'text';
                     }}
                     onChange={(ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
                   />
