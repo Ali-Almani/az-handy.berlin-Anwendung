@@ -4,6 +4,7 @@ import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
 import {
   collectMitarbeiterNames,
+  collectShopMitarbeiterNames,
   displayTicketId,
   isLeadEntry,
   migrateLeadTicketStatus,
@@ -37,14 +38,14 @@ function mitarbeiterNames(entry, fallbackName = '') {
   return names;
 }
 
-function MitarbeiterNamesSelect({ names }) {
+function MitarbeiterNamesSelect({ names, ariaLabel = 'Marketing Mitarbeiter' }) {
   if (!names.length) return '—';
   if (names.length === 1) return names[0];
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
       defaultValue={names[0]}
-      aria-label="Marketing Mitarbeiter"
+      aria-label={ariaLabel}
       onClick={(ev) => ev.stopPropagation()}
     >
       {names.map((name) => (
@@ -122,6 +123,7 @@ export default function VorvertragEntryCard({
     ? (entry?.customerName || entry?.rufnummer || entry?.angebot || 'Ohne Namen')
     : (nameFromEntry || nameFromMnp || 'Ohne Kundenname');
   const mitarbeiter = mitarbeiterNames(entry, fallbackMitarbeiter);
+  const shopMitarbeiter = collectShopMitarbeiterNames(entry);
   const ticketStatus = lead
     ? migrateLeadTicketStatus(entry?.ticketStatus)
     : normalizeVorvertragTicketStatus(entry?.ticketStatus);
@@ -182,7 +184,7 @@ export default function VorvertragEntryCard({
         <MitarbeiterNamesSelect names={mitarbeiter} />
       </td>
       <td className="vorvertrag-ticket-row__shop-mitarbeiter">
-        {sanitizeMitarbeiterName(entry?.shopMitarbeiter) || '—'}
+        <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Shop Mitarbeiter" />
       </td>
       <td className="vorvertrag-ticket-row__actions">
         <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>

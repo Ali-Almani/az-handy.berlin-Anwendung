@@ -356,8 +356,17 @@
   }
 
   .form-input {
+    box-sizing: border-box;
+    height: 2.4rem;
+    min-height: 2.4rem;
+    padding: 0 0.65rem;
     font-weight: 400;
     font-size: 0.85rem;
+    line-height: 1.25;
+  }
+
+  input[type="date"].form-input {
+    display: block;
   }
 }
 

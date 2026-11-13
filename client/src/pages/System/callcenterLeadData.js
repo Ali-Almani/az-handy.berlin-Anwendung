@@ -753,6 +753,7 @@ export function emptyLeadForm() {
     mocKn: '',
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
+    shopMitarbeiterNames: [],
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
     priority: TICKET_PRIORITY_DEFAULT,
@@ -778,6 +779,7 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'nachrichtArt',
   'shop',
   'shopMitarbeiter',
+  'shopMitarbeiterNames',
   'kontaktversuchCount'
 ];
 
@@ -811,12 +813,24 @@ export function preserveOpenTicketEdits(prev, hydrated) {
     ...Object.keys(hydrated || {}).filter(isKontaktversuchField)
   ]);
   for (const key of [...followupKeys, ...TICKET_FORM_PRESERVE_KEYS]) {
-    if (key === 'kontaktversuchCount') continue;
+    if (key === 'kontaktversuchCount' || key === 'shopMitarbeiterNames') continue;
     const remote = String(hydrated?.[key] ?? '').trim();
     const local = String(prev?.[key] ?? '').trim();
     if (!remote && local) next[key] = prev[key];
   }
   next.kontaktversuchCount = Math.max(kontaktversuchCountFor(prev), kontaktversuchCountFor(next));
+  const shopNames = collectShopMitarbeiterNames({
+    shopMitarbeiter: next.shopMitarbeiter || prev.shopMitarbeiter,
+    shopMitarbeiterNames: [
+      ...(Array.isArray(prev.shopMitarbeiterNames) ? prev.shopMitarbeiterNames : []),
+      ...(Array.isArray(next.shopMitarbeiterNames) ? next.shopMitarbeiterNames : [])
+    ]
+  });
+  next.shopMitarbeiterNames = shopNames;
+  next.shopMitarbeiter = sanitizeMitarbeiterName(next.shopMitarbeiter)
+    || sanitizeMitarbeiterName(prev.shopMitarbeiter)
+    || shopNames[0]
+    || '';
   Object.keys(prev).forEach((key) => {
     if (!isCustomTicketField(key)) return;
     const remote = String(hydrated?.[key] ?? '').trim();
@@ -1071,6 +1085,28 @@ export function withMitarbeiter(ticket, name) {
     ...ticket,
     mitarbeiterName: nextName || names[0] || sanitizeMitarbeiterName(ticket?.mitarbeiterName) || '',
     mitarbeiterNames: names
+  };
+}
+
+export function collectShopMitarbeiterNames(entry) {
+  const names = [];
+  const add = (value) => {
+    const name = sanitizeMitarbeiterName(value);
+    if (name && !names.includes(name)) names.push(name);
+  };
+  add(entry?.shopMitarbeiter);
+  (Array.isArray(entry?.shopMitarbeiterNames) ? entry.shopMitarbeiterNames : []).forEach(add);
+  return names;
+}
+
+export function withShopMitarbeiter(ticket, name) {
+  const nextName = sanitizeMitarbeiterName(name);
+  const names = collectShopMitarbeiterNames(ticket);
+  if (nextName && !names.includes(nextName)) names.push(nextName);
+  return {
+    ...ticket,
+    shopMitarbeiter: nextName || names[0] || sanitizeMitarbeiterName(ticket?.shopMitarbeiter) || '',
+    shopMitarbeiterNames: names
   };
 }
 
@@ -1348,6 +1384,7 @@ export function leadToNeuEntry(lead) {
     mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
     mitarbeiterNames: collectMitarbeiterNames(lead),
     shopMitarbeiter: sanitizeMitarbeiterName(lead.shopMitarbeiter),
+    shopMitarbeiterNames: collectShopMitarbeiterNames(lead),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
   };
 }
@@ -1369,6 +1406,7 @@ function hydrateLeadTicket(t) {
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
     shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
+    shopMitarbeiterNames: collectShopMitarbeiterNames(t),
     mocKn: String(t?.mocKn || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),

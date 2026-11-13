@@ -10,7 +10,8 @@ import {
   offenFollowupGroupsForTicket,
   loadQuestionConfig,
   ticketFormAnswers,
-  sanitizeMitarbeiterName
+  sanitizeMitarbeiterName,
+  collectShopMitarbeiterNames
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -52,6 +53,7 @@ export default function LeadNachrichtHistory({
     () => offenFollowupGroupsForTicket({ ...ticket, ...draft }),
     [ticket, draft]
   );
+  const shopNames = useMemo(() => collectShopMitarbeiterNames(ticket), [ticket]);
 
   useEffect(() => {
     setSaved(followupSnapshot(ticket));
@@ -60,7 +62,8 @@ export default function LeadNachrichtHistory({
 
   useEffect(() => {
     const name = sanitizeMitarbeiterName(bearbeiterName);
-    if (!name || sanitizeMitarbeiterName(ticket?.shopMitarbeiter)) return;
+    if (!name) return;
+    if (collectShopMitarbeiterNames(ticket).includes(name)) return;
     onAnswerChange?.('shopMitarbeiter', name);
   }, [ticket?.id, bearbeiterName]);
 
@@ -118,14 +121,28 @@ export default function LeadNachrichtHistory({
       <div className="lead-fragen-grid">
         <div className="form-group sz-qfield">
           <label htmlFor="offen-shop-mitarbeiter" className="sz-qfield__label">Shop Mitarbeiter</label>
-          <input
-            id="offen-shop-mitarbeiter"
-            className="form-input"
-            value={ticket?.shopMitarbeiter || ''}
-            onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
-            autoComplete="off"
-            aria-label="Shop Mitarbeiter"
-          />
+          {shopNames.length > 1 ? (
+            <select
+              id="offen-shop-mitarbeiter"
+              className="form-input"
+              value={ticket?.shopMitarbeiter || shopNames[0]}
+              onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
+              aria-label="Shop Mitarbeiter"
+            >
+              {shopNames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id="offen-shop-mitarbeiter"
+              className="form-input"
+              value={ticket?.shopMitarbeiter || ''}
+              onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
+              autoComplete="off"
+              aria-label="Shop Mitarbeiter"
+            />
+          )}
         </div>
       </div>
       <LeadFragenForm

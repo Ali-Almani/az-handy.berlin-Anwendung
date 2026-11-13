@@ -54,6 +54,7 @@ import {
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withMitarbeiter,
+  withShopMitarbeiter,
   appendLeadEditLog,
   leadFieldChange,
   isCustomTicketField,
@@ -540,9 +541,11 @@ const System = () => {
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
           : {};
         const patched = { ...t, [field]: value, ...extra };
-        const next = field === 'shopMitarbeiter' || field === 'kontaktversuchCount'
+        const next = field === 'kontaktversuchCount'
           ? patched
-          : withMitarbeiter(patched, defaultMitarbeiter);
+          : field === 'shopMitarbeiter'
+            ? withShopMitarbeiter(patched, value)
+            : withMitarbeiter(patched, defaultMitarbeiter);
         const saved = change
           ? appendLeadEditLog(next, {
               editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
