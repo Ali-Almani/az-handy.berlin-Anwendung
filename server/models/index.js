@@ -31,6 +31,14 @@ const initDatabase = async () => {
   await ensureUserRoleEnumValue('Social Media');
   await ensureUserRoleEnumValue('Mitarbeiter social media');
   await ensureUserRoleEnumValue('Teamleiter social media');
+  try {
+    await sequelize.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS roles JSONB DEFAULT '[]'::jsonb`);
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    if (!/does not exist|syntax|already exists/i.test(msg)) {
+      console.warn('users.roles Spalte:', msg);
+    }
+  }
   const runAlterSync =
     process.env.DB_SYNC_ALTER === 'true' ||
     (process.env.NODE_ENV !== 'production' && process.env.DB_SYNC_ALTER !== 'false');

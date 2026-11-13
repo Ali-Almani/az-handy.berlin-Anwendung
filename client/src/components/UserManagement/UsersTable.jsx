@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import UserEditModal from './UserEditModal';
 import UserResetPasswordModal from './UserResetPasswordModal';
 import { formatEinsatzOrt } from '../../constants/einsatzorte';
+import { userRoles } from '../../utils/roles';
 
 const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
   const [editingUser, setEditingUser] = useState(null);
@@ -56,7 +57,13 @@ const UsersTable = ({ users, loading, onDelete, onEdit, onResetPassword }) => {
                   <td>{formatEinsatzOrt(user.einsatz_ort)}</td>
                   <td>{user.telefon?.trim() ? user.telefon : '–'}</td>
                   <td>{user.email}</td>
-                  <td><span className={`role-badge role-badge--${user.role}`}>{user.role}</span></td>
+                  <td>
+                    <div className="role-badge-list">
+                      {userRoles(user).map((role) => (
+                        <span key={role} className={`role-badge role-badge--${role}`}>{role}</span>
+                      ))}
+                    </div>
+                  </td>
                   <td>{(user.createdAt ?? user.created_at) ? new Date(user.createdAt ?? user.created_at).toLocaleDateString('de-DE') : '-'}</td>
                   <td>
                     <div className="user-actions user-actions-dropdown">

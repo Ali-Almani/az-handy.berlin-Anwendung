@@ -16,6 +16,7 @@ import {
   ticketIdPrefixForType
 } from '../utils/vorvertragTicketId.js';
 import { buildVorvertragEditLog } from '../utils/vorvertragEditLog.js';
+import { userRoles } from '../utils/userRoles.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
@@ -143,8 +144,8 @@ async function canManageTicketing(userId) {
   try {
     const u = await User.findByPk(userId);
     if (!u) return false;
-    const role = roleText(u);
-    return isAdminRole(role) || isTeamleiterSocialMediaRole(role);
+    const roles = userRoles(u);
+    return roles.some(isAdminRole) || roles.some(isTeamleiterSocialMediaRole);
   } catch {
     return false;
   }
@@ -164,8 +165,8 @@ async function canAccessTicketing(userId) {
   try {
     const u = await User.findByPk(userId);
     if (!u) return false;
-    const role = roleText(u);
-    return isAdminRole(role) || isTeamleiterSocialMediaRole(role) || isSocialMediaRole(role);
+    const roles = userRoles(u);
+    return roles.some(isAdminRole) || roles.some(isTeamleiterSocialMediaRole) || roles.some(isSocialMediaRole);
   } catch {
     return false;
   }

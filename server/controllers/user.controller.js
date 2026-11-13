@@ -2,12 +2,26 @@ import User from '../models/User.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import { ALLOWED_EINSATZ_ORT, canonicalizeEinsatzOrt } from '../constants/einsatzorte.js';
 import { writeAuditLog } from '../utils/auditLog.js';
+import { pickPrimaryRole, sanitizeAssignedRoles, userRoles } from '../utils/userRoles.js';
 
-const isAdmin = (user) => user && (user.role === 'admin' || user.role === 'Administrator');
+const isAdmin = (user) => {
+  if (!user) return false;
+  return userRoles(user).some((role) => {
+    const r = String(role || '').trim();
+    return r === 'admin' || r === 'Administrator' || r.toLowerCase().includes('admin');
+  });
+};
+
+const publicRoles = (user) => userRoles(user);
 const ALLOWED_TSHIRT_GROESSEN = new Set(['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']);
 const TELEFON_MAX_LEN = 40;
 
-const isMitarbeiterShopUser = (role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Mitarbeiter shop';
+const isMitarbeiterShopUser = (userOrRole) => {
+  if (userOrRole && typeof userOrRole === 'object') {
+    return userRoles(userOrRole).some((role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Mitarbeiter shop');
+  }
+  return String(userOrRole || '').replace(/\u00a0/g, ' ').trim() === 'Mitarbeiter shop';
+};
 
 const isMarketingUserRole = (role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Marketing';
 
@@ -65,6 +79,7 @@ export const getProfile = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role,
+        roles: publicRoles({ ...user.toJSON?.() || user, role }),
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
@@ -88,8 +103,7 @@ export const updateProfile = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const userRole = (user.role || '').trim().toLowerCase();
-    const isAdminUser = userRole === 'admin' || userRole === 'administrator';
+    const isAdminUser = isAdmin(user);
 
     if (name) user.name = name;
     if (email && isAdminUser) {
@@ -111,7 +125,7 @@ export const updateProfile = async (req, res, next) => {
       user.telefon = normalizeTelefonInput(telefon);
     }
     if (tshirt_groesse !== undefined) {
-      if (!isMitarbeiterShopUser(user.role)) {
+      if (!isMitarbeiterShopUser(user)) {
         return res.status(403).json({ message: 'Uniform-Größe ist nur für die Rolle „Mitarbeiter shop“.' });
       }
       const tv = tshirt_groesse === null || tshirt_groesse === '' ? null : String(tshirt_groesse).trim();
@@ -131,6 +145,7 @@ export const updateProfile = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        roles: publicRoles(user),
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
@@ -150,7 +165,7 @@ export const getMitarbeiterShopTshirtGroessenForMarketing = async (req, res, nex
     if (!currentUser) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
-    if (!isMarketingUserRole(currentUser.role)) {
+    if (!userRoles(currentUser).some((role) => String(role || '').replace(/\u00a0/g, ' ').trim() === 'Marketing')) {
       return res.status(403).json({ message: 'Nur für die Rolle Marketing' });
     }
     const rows = User.findAll
@@ -252,7 +267,7 @@ export const createUserByAdmin = async (req, res, next) => {
     if (!currentUser || !isAdmin(currentUser)) {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer erstellen' });
     }
-    const { name, email, password, role, avatar, einsatz_ort, telefon } = req.body;
+    const { name, email, password, role, roles, avatar, einsatz_ort, telefon } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, E-Mail und Passwort sind erforderlich' });
     }
@@ -266,11 +281,14 @@ export const createUserByAdmin = async (req, res, next) => {
         return res.status(400).json({ message: 'Ungültiger Einsatzort' });
       }
     }
+    const assigned = sanitizeAssignedRoles(roles?.length ? roles : (role ? [role] : ['Marketing']));
+    const primaryRole = assigned[0] || role || 'Marketing';
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password,
-      role: role || 'Marketing',
+      role: primaryRole,
+      roles: assigned,
       avatar: avatar || null,
       einsatz_ort: einsatz_ort ? canonicalizeEinsatzOrt(einsatz_ort) : null,
       telefon: normalizeTelefonInput(telefon) ?? null
@@ -290,6 +308,7 @@ export const createUserByAdmin = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        roles: publicRoles(user),
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
@@ -310,7 +329,7 @@ export const updateUserByAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer bearbeiten' });
     }
     const { id } = req.params;
-    const { role, name, email, avatar, einsatz_ort, telefon } = req.body;
+    const { role, roles, name, email, avatar, einsatz_ort, telefon } = req.body;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
@@ -320,11 +339,23 @@ export const updateUserByAdmin = async (req, res, next) => {
       if (role && !['admin', 'Administrator'].includes(role)) {
         return res.status(400).json({ message: 'Die Rolle von admin@az-handy.berlin kann nicht geändert werden' });
       }
+      if (Array.isArray(roles) && !sanitizeAssignedRoles(roles).some((item) => String(item).toLowerCase().includes('admin'))) {
+        return res.status(400).json({ message: 'Die Rolle von admin@az-handy.berlin kann nicht geändert werden' });
+      }
       if (email && email.toLowerCase().trim() !== userEmail) {
         return res.status(400).json({ message: 'Die E-Mail von admin@az-handy.berlin kann nicht geändert werden' });
       }
     }
-    if (role) user.role = role;
+    if (Array.isArray(roles)) {
+      const assigned = sanitizeAssignedRoles(roles);
+      if (!assigned.length) {
+        return res.status(400).json({ message: 'Mindestens eine Rolle ist erforderlich' });
+      }
+      user.role = pickPrimaryRole(user.role, assigned);
+      user.roles = assigned;
+    } else if (role) {
+      user.role = role;
+    }
     if (name) user.name = name;
     if (email) {
       const existing = await User.findOne({ where: { email: email.toLowerCase() } });
@@ -357,6 +388,7 @@ export const updateUserByAdmin = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        roles: publicRoles(user),
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null

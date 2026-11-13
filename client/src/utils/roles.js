@@ -14,6 +14,60 @@ export const ROLES = {
   MITARBEITER_SHOP: 'Mitarbeiter shop'
 };
 
+export function parseRolesField(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return value.split(',').map((part) => part.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+/** Alle Rollen eines Benutzers (aktuelle Rolle plus zusätzliche). Bestehende Rolle bleibt erhalten. */
+export function userRoles(user) {
+  const primary = String(user?.role || '').replace(/\u00a0/g, ' ').trim();
+  const extra = parseRolesField(user?.roles);
+  const out = [];
+  const add = (raw) => {
+    const value = String(raw || '').replace(/\u00a0/g, ' ').trim();
+    if (value && !out.includes(value)) out.push(value);
+  };
+  add(primary);
+  extra.forEach(add);
+  return out;
+}
+
+function rolesEquivalent(a, b) {
+  const na = normRole(a);
+  const nb = normRole(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  return na.includes('admin') && nb.includes('admin');
+}
+
+export function selectedRoleValues(user) {
+  return userRoles(user).map((role) => {
+    if (String(role).toLowerCase().includes('admin')) return ROLES.ADMINISTRATOR;
+    const match = ROLE_OPTIONS.find((opt) => rolesEquivalent(opt.value, role));
+    return match ? match.value : role;
+  }).filter((role, index, list) => role && list.indexOf(role) === index);
+}
+
+export function pickPrimaryRole(existingRole, selected) {
+  const current = String(existingRole || '').replace(/\u00a0/g, ' ').trim();
+  const list = (Array.isArray(selected) ? selected : []).map((role) => String(role || '').trim()).filter(Boolean);
+  if (current && list.some((role) => rolesEquivalent(role, current))) return current;
+  return list[0] || current || ROLES.MARKETING;
+}
+
+function anyUserRole(user, predicate) {
+  return userRoles(user).some((role) => predicate(role, normRole(role)));
+}
+
 /** Rollen-Vergleich (analog Server): NBSP, Bindestrich, Unicode */
 const normRole = (role) => {
   const s = String(role || '')
@@ -82,19 +136,14 @@ export const ROLE_OPTIONS = [
 // Prüfe ob Benutzer Admin ist (inkl. Tippfehler "Adminstrator" und alle admin-Varianten)
 export const isAdmin = (user) => {
   if (!user) return false;
-  const role = String(user.role || '').trim();
-  const roleLower = role.toLowerCase();
-  if (roleLower.includes('admin')) return true;
   if (user.email && String(user.email).toLowerCase() === 'admin@az-handy.berlin') return true;
-  return false;
+  return anyUserRole(user, (role) => String(role || '').toLowerCase().includes('admin'));
 };
 
 // Prüfe ob Benutzer Mitarbeiter shop ist
 export const isMitarbeiterShop = (user) => {
   if (!user) return false;
-  if (user.role === ROLES.MITARBEITER_SHOP) return true;
-  const k = normRole(user.role);
-  return k === 'mitarbeiter shop';
+  return anyUserRole(user, (role, k) => role === ROLES.MITARBEITER_SHOP || k === 'mitarbeiter shop');
 };
 
 /** IMEI „Sonder IMEI“ / Freigaben: Tab nur für Rolle Mitarbeiter shop */
@@ -109,22 +158,23 @@ export const canManageSonderImeiOfficePopup = (user) => {
 /** Rolle Marketing (exakt, inkl. NBSP-Normalisierung über trim-Vergleich auf ROLES) */
 export const isMarketing = (user) => {
   if (!user) return false;
-  const r = String(user.role || '').replace(/\u00a0/g, ' ').trim();
-  return r === ROLES.MARKETING;
+  return anyUserRole(user, (role) => String(role || '').replace(/\u00a0/g, ' ').trim() === ROLES.MARKETING);
 };
 
 export const isSocialMedia = (user) => {
   if (!user) return false;
-  if (user.role === ROLES.SOCIAL_MEDIA) return true;
-  const k = normRole(user.role);
-  return k === 'mitarbeiter social media' || k === 'social media';
+  return anyUserRole(user, (role, k) => (
+    role === ROLES.SOCIAL_MEDIA || k === 'mitarbeiter social media' || k === 'social media'
+  ));
 };
 
 export const isTeamleiterSocialMedia = (user) => {
   if (!user) return false;
-  if (user.role === ROLES.TEAMLEITER_SOCIAL_MEDIA) return true;
-  const k = normRole(user.role);
-  return k === 'teamleiter social media' || (k.includes('teamleiter') && k.includes('social media'));
+  return anyUserRole(user, (role, k) => (
+    role === ROLES.TEAMLEITER_SOCIAL_MEDIA
+    || k === 'teamleiter social media'
+    || (k.includes('teamleiter') && k.includes('social media'))
+  ));
 };
 
 /** Ticketing / Nachrichten: Administrator, Mitarbeiter social media, Teamleiter social media */
@@ -154,25 +204,29 @@ export const canWriteTicketingAnweisung = canManageTicketingSystem;
 // Prüfe ob Benutzer Teamleiter shop ist
 export const isTeamleiterShop = (user) => {
   if (!user) return false;
-  if (user.role === ROLES.TEAMLEITER_SHOP) return true;
-  const k = normRole(user.role);
-  return k === 'teamleiter shop' || (k.includes('teamleiter') && k.includes('shop'));
+  return anyUserRole(user, (role, k) => (
+    role === ROLES.TEAMLEITER_SHOP
+    || k === 'teamleiter shop'
+    || (k.includes('teamleiter') && k.includes('shop'))
+  ));
 };
 
 // Prüfe ob Benutzer Büro Mitarbeiter ist
 export const isBüroMitarbeiter = (user) => {
   if (!user) return false;
-  if (user.role === ROLES.BUERO_MITARBEITER) return true;
-  const k = normRole(user.role);
-  if (k === 'buro mitarbeiter' || k === 'buro') return true;
-  return k.includes('buro') && k.includes('mitarbeiter');
+  return anyUserRole(user, (role, k) => {
+    if (role === ROLES.BUERO_MITARBEITER) return true;
+    if (k === 'buro mitarbeiter' || k === 'buro') return true;
+    return k.includes('buro') && k.includes('mitarbeiter');
+  });
 };
 
 /** Rolle Partner: in der Oberfläche nur Formular Center (plus Einstellungen). */
 export const isPartner = (user) => {
   if (!user) return false;
-  if (user.role === ROLES.PARTNER) return true;
-  return normRole(user.role) === 'partner';
+  const roles = userRoles(user);
+  if (!roles.length) return false;
+  return roles.every((role) => role === ROLES.PARTNER || normRole(role) === 'partner');
 };
 
 /**
@@ -221,11 +275,7 @@ export const canUpdateVoucherHistoryForOthers = (user) => {
 // Prüfe ob Benutzer Export und Alle löschen sehen darf (Admin, Teamleiter, Büro Mitarbeiter)
 export const canUseImeiAdvancedActions = (user) => {
   if (!user) return false;
-  const role = user.role;
-  return role === ROLES.ADMINISTRATOR ||
-         role === 'admin' ||
-         role === ROLES.TEAMLEITER_SHOP ||
-         role === ROLES.BUERO_MITARBEITER;
+  return isAdmin(user) || isTeamleiterShop(user) || isBüroMitarbeiter(user);
 };
 
 // Prüfe ob Benutzer Bestand-Button (IMEI) sehen darf – Administrator und Büro Mitarbeiter
@@ -243,7 +293,7 @@ export const canAccessDashboard = (user) => {
 // Prüfe ob Benutzer Excel-Upload sehen darf (Büro Mitarbeiter und Administrator)
 export const canShowExcelUpload = (user) => {
   if (!user) return false;
-  return user.role === ROLES.BUERO_MITARBEITER || isAdmin(user);
+  return isBüroMitarbeiter(user) || isAdmin(user);
 };
 
 // Prüfe ob Benutzer Dashboard-Notizen (TextEditor) sehen darf (nur Admin)

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import User from '../models/User.js';
 import { normalizeUserId } from '../utils/normalizeUserId.js';
+import { userRoles } from '../utils/userRoles.js';
 import {
   whatsappAppSecret,
   whatsappVerifyToken,
@@ -72,8 +73,8 @@ async function canAccessTicketing(userId) {
   try {
     const u = await User.findByPk(normalizeUserId(userId) ?? userId);
     if (!u) return false;
-    const role = roleText(u);
-    return isAdminRole(role) || isTeamleiterSocialMediaRole(role) || isSocialMediaRole(role);
+    const roles = userRoles(u);
+    return roles.some(isAdminRole) || roles.some(isTeamleiterSocialMediaRole) || roles.some(isSocialMediaRole);
   } catch {
     return false;
   }
@@ -96,8 +97,8 @@ async function requireTicketingManager(req, res) {
   }
   try {
     const u = await User.findByPk(normalizeUserId(userId) ?? userId);
-    const role = roleText(u);
-    if (isAdminRole(role) || isTeamleiterSocialMediaRole(role)) return true;
+    const roles = userRoles(u);
+    if (roles.some(isAdminRole) || roles.some(isTeamleiterSocialMediaRole)) return true;
   } catch {
     /* kein Zugriff */
   }
@@ -139,8 +140,8 @@ async function listTicketingStaff() {
     return list
       .map((entry) => (entry.toJSON ? entry.toJSON() : entry))
       .filter((entry) => {
-        const role = roleText(entry);
-        return isAdminRole(role) || isTeamleiterSocialMediaRole(role) || isSocialMediaRole(role);
+        const roles = userRoles(entry);
+        return roles.some(isAdminRole) || roles.some(isTeamleiterSocialMediaRole) || roles.some(isSocialMediaRole);
       })
       .map((entry) => ({
         id: String(entry.id ?? ''),
@@ -524,7 +525,8 @@ export async function getInboxGroupsHandler(req, res) {
   if (!(await requireTicketingAccess(req, res))) return;
   const user = await loadTicketingUser(req);
   const payload = presentInboxGroups(user);
-  const manager = user && (isAdminRole(roleText(user)) || isTeamleiterSocialMediaRole(roleText(user)));
+  const roles = user ? userRoles(user) : [];
+  const manager = user && (roles.some(isAdminRole) || roles.some(isTeamleiterSocialMediaRole));
   return res.json({
     success: true,
     ...payload,

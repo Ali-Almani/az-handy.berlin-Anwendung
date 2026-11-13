@@ -52,6 +52,11 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM(...ROLES),
     defaultValue: 'Marketing'
   },
+  roles: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: []
+  },
   avatar: {
     type: DataTypes.TEXT,
     allowNull: true

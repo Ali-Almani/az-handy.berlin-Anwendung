@@ -84,6 +84,25 @@
     }
   }
 
+  .role-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+    gap: 0.35rem 0.75rem;
+  }
+
+  .role-checkboxes__item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: $text-color;
+    cursor: pointer;
+
+    input {
+      margin: 0;
+    }
+  }
+
   .user-form-section {
     background: $bg-light;
     border-radius: $border-radius-md;
@@ -383,6 +402,12 @@
         }
       }
 
+
+      .role-badge-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
 
       .role-badge {
         display: inline-block;

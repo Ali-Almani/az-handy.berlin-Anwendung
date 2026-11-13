@@ -12,7 +12,7 @@ const UserManagement = ({ compact = false }) => {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [newUserData, setNewUserData] = useState({
-    name: '', email: '', password: '', role: 'Marketing', einsatz_ort: '', telefon: '', avatar: null, avatarPreview: null
+    name: '', email: '', password: '', role: 'Marketing', roles: ['Marketing'], einsatz_ort: '', telefon: '', avatar: null, avatarPreview: null
   });
 
   useEffect(() => { loadUsers(); }, []);
@@ -34,7 +34,13 @@ const UserManagement = ({ compact = false }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewUserData(prev => ({ ...prev, [name]: value }));
+    setNewUserData((prev) => {
+      if (name === 'roles') {
+        const roles = Array.isArray(value) && value.length ? value : ['Marketing'];
+        return { ...prev, roles, role: roles[0] };
+      }
+      return { ...prev, [name]: value };
+    });
     setError('');
     setSuccess('');
   };
@@ -61,13 +67,22 @@ const UserManagement = ({ compact = false }) => {
       return;
     }
     try {
-      const userData = { name: newUserData.name, email: newUserData.email, password: newUserData.password, role: newUserData.role };
+      const roles = Array.isArray(newUserData.roles) && newUserData.roles.length
+        ? newUserData.roles
+        : [newUserData.role || 'Marketing'];
+      const userData = {
+        name: newUserData.name,
+        email: newUserData.email,
+        password: newUserData.password,
+        role: roles[0],
+        roles
+      };
       if (newUserData.einsatz_ort) userData.einsatz_ort = newUserData.einsatz_ort;
       if (newUserData.telefon?.trim()) userData.telefon = newUserData.telefon.trim();
       if (newUserData.avatarPreview) userData.avatar = newUserData.avatarPreview;
       await createUser(userData);
       setSuccess('Benutzer erfolgreich erstellt!');
-      setNewUserData({ name: '', email: '', password: '', role: 'Marketing', einsatz_ort: '', telefon: '', avatar: null, avatarPreview: null });
+      setNewUserData({ name: '', email: '', password: '', role: 'Marketing', roles: ['Marketing'], einsatz_ort: '', telefon: '', avatar: null, avatarPreview: null });
       setShowForm(false);
       loadUsers();
     } catch (err) {

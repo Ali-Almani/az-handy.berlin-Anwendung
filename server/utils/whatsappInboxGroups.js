@@ -1,4 +1,5 @@
 import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
+import { userRoles } from './userRoles.js';
 
 export const INBOX_GROUPS_FILE = 'whatsapp-inbox-groups.json';
 export const DEFAULT_DISPLAY_WA_ID = '4930585812888';
@@ -41,10 +42,10 @@ function userIdKey(user) {
 }
 
 function isAdminUser(user) {
-  const r = String(user?.role ?? user?.get?.('role') ?? user?.dataValues?.role ?? '')
-    .replace(/\u00a0/g, ' ')
-    .trim();
-  return r === 'Administrator' || r === 'admin' || r.toLowerCase().includes('admin');
+  return userRoles(user).some((role) => {
+    const r = String(role || '').replace(/\u00a0/g, ' ').trim();
+    return r === 'Administrator' || r === 'admin' || r.toLowerCase().includes('admin');
+  });
 }
 
 export function inboxGroupLink(displayWaId, name) {

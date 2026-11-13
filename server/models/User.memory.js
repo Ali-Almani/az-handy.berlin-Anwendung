@@ -18,6 +18,7 @@ const toPlainUser = (u) => ({
   email: u.email,
   password: u.password,
   role: u.role,
+  roles: Array.isArray(u.roles) ? u.roles : [],
   avatar: u.avatar ?? null,
   einsatz_ort: u.einsatz_ort ?? null,
   telefon: u.telefon ?? null,
@@ -31,6 +32,7 @@ const fromPlainUser = (u) => ({
   email: u.email,
   password: u.password,
   role: u.role,
+  roles: Array.isArray(u.roles) ? u.roles : [],
   avatar: u.avatar ?? null,
   einsatz_ort: u.einsatz_ort ?? null,
   telefon: u.telefon ?? null,
@@ -92,6 +94,7 @@ class InMemoryUser {
     this.email = data.email.toLowerCase().trim();
     this.password = data.password;
     this.role = data.role || 'user';
+    this.roles = Array.isArray(data.roles) ? data.roles : [];
     this.avatar = data.avatar ?? null;
     this.einsatz_ort = data.einsatz_ort ?? null;
     this.telefon = data.telefon ?? null;
@@ -112,6 +115,7 @@ class InMemoryUser {
         email: this.email,
         password: this.password,
         role: this.role,
+        roles: Array.isArray(this.roles) ? this.roles : [],
         avatar: this.avatar,
         einsatz_ort: this.einsatz_ort,
         telefon: this.telefon,

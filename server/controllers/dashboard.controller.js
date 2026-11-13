@@ -7,14 +7,17 @@ import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import { getImeiDeleteAllEnabled, saveImeiDeleteAllEnabled } from '../utils/imeiSettings.js';
 import { getVoucherDeleteAllEnabled, saveVoucherDeleteAllEnabled } from '../utils/voucherSettings.js';
 import { writeAuditLog } from '../utils/auditLog.js';
+import { userRoles } from '../utils/userRoles.js';
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
 
 const isAdminUser = (user) => {
   if (!user) return false;
-  const role = String(user.role ?? user.get?.('role') ?? '').trim();
-  return role === 'Administrator' || role === 'admin' || role.toLowerCase().includes('admin');
+  return userRoles(user).some((role) => {
+    const r = String(role || '').trim();
+    return r === 'Administrator' || r === 'admin' || r.toLowerCase().includes('admin');
+  });
 };
 
 /** Ersten Benutzer mit Rolle Administrator/admin finden (für gemeinsame Admin-Notizen) */

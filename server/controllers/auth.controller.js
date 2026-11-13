@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { normalizeUserId, coerceUserId } from '../utils/normalizeUserId.js';
 import { writeAuditLog } from '../utils/auditLog.js';
+import { userRoles } from '../utils/userRoles.js';
 
 const generateToken = (userId, role, name) => {
   const secret = process.env.JWT_SECRET;
@@ -50,7 +51,8 @@ export const register = async (req, res, next) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        roles: userRoles(user)
       }
     });
   } catch (error) {
@@ -150,6 +152,7 @@ export const login = async (req, res, next) => {
         name: user.name ?? user.get?.('name'),
         email: user.email ?? user.get?.('email'),
         role,
+        roles: userRoles({ ...(user.toJSON?.() || user), role }),
         avatar: user.avatar ?? user.get?.('avatar') ?? null,
         einsatz_ort: user.einsatz_ort ?? user.get?.('einsatz_ort') ?? null,
         telefon: user.telefon ?? user.get?.('telefon') ?? null,

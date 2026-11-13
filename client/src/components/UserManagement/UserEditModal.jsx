@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
-import { ROLE_OPTIONS, EINSATZ_ORT_OPTIONS } from '../../utils/roles';
+import { EINSATZ_ORT_OPTIONS, pickPrimaryRole, selectedRoleValues } from '../../utils/roles';
 import { normalizeEinsatzOrt } from '../../constants/einsatzorte';
+import RoleCheckboxes from './RoleCheckboxes';
 import './UserEditModal.scss';
 
 const UserEditModal = ({ user, onClose, onSave, loading }) => {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('');
+  const [roles, setRoles] = useState([]);
   const [einsatzOrt, setEinsatzOrt] = useState('');
   const [telefon, setTelefon] = useState('');
 
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
-      setRole(user.role || 'Marketing');
+      setRoles(selectedRoleValues(user));
       setEinsatzOrt(normalizeEinsatzOrt(user.einsatz_ort) || user.einsatz_ort || '');
       setTelefon(user.telefon || '');
     }
@@ -26,7 +27,10 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
     e.preventDefault();
     const updates = {};
     if (!isAdminAccount && email !== user.email) updates.email = email;
-    if (role !== user.role) updates.role = role;
+    const nextRoles = roles.length ? roles : selectedRoleValues(user);
+    const nextPrimary = pickPrimaryRole(user.role, nextRoles);
+    updates.roles = nextRoles;
+    if (nextPrimary !== user.role) updates.role = nextPrimary;
     const prevOrt = normalizeEinsatzOrt(user.einsatz_ort) || user.einsatz_ort || '';
     if (einsatzOrt !== prevOrt) updates.einsatz_ort = einsatzOrt || null;
     const prevTel = user.telefon || '';
@@ -48,12 +52,8 @@ const UserEditModal = ({ user, onClose, onSave, loading }) => {
             <input type="email" className="form-input" value={email} onChange={(e) => setEmail(e.target.value)} required readOnly={isAdminAccount} />
           </div>
           <div className="form-group">
-            <label className="form-label">Rolle</label>
-            <select className="form-input" value={role} onChange={(e) => setRole(e.target.value)}>
-              {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <span className="form-label">Rollen</span>
+            <RoleCheckboxes idPrefix="edit-role" selected={roles} onChange={setRoles} />
           </div>
           <div className="form-group">
             <label className="form-label">Einsatz Ort</label>

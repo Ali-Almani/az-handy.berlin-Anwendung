@@ -1,5 +1,6 @@
-import { ROLE_OPTIONS, EINSATZ_ORT_OPTIONS } from '../../utils/roles';
+import { EINSATZ_ORT_OPTIONS } from '../../utils/roles';
 import PasswordField from '../PasswordField/PasswordField';
+import RoleCheckboxes from './RoleCheckboxes';
 
 const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmit }) => (
   <div className="user-form-section">
@@ -30,12 +31,6 @@ const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmi
           <small className="form-help">Mindestens 6 Zeichen</small>
         </div>
         <div className="form-group">
-          <label htmlFor="new-role" className="form-label">Rolle</label>
-          <select id="new-role" name="role" className="form-input" value={newUserData.role} onChange={onInputChange} required>
-            {ROLE_OPTIONS.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
           <label htmlFor="new-einsatz-ort" className="form-label">Einsatz Ort</label>
           <select id="new-einsatz-ort" name="einsatz_ort" className="form-input" value={newUserData.einsatz_ort || ''} onChange={onInputChange}>
             {EINSATZ_ORT_OPTIONS.map(opt => <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>)}
@@ -45,6 +40,14 @@ const UserForm = ({ newUserData, loading, onInputChange, onAvatarChange, onSubmi
           <label htmlFor="new-telefon" className="form-label">Telefon (optional)</label>
           <input id="new-telefon" type="tel" name="telefon" className="form-input" value={newUserData.telefon || ''} onChange={onInputChange} maxLength={40} autoComplete="off" />
         </div>
+      </div>
+      <div className="form-group form-group--roles">
+        <span className="form-label">Rollen</span>
+        <RoleCheckboxes
+          idPrefix="new-role"
+          selected={Array.isArray(newUserData.roles) ? newUserData.roles : (newUserData.role ? [newUserData.role] : [])}
+          onChange={(roles) => onInputChange({ target: { name: 'roles', value: roles } })}
+        />
       </div>
       <div className="form-group">
         <label className="form-label">Profilbild (optional)</label>
