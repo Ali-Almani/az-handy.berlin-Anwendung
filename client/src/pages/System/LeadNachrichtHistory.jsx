@@ -26,10 +26,8 @@ function draftFromTicket(ticket, bearbeiterName) {
   const draft = followupSnapshot(ticket);
   const name = String(bearbeiterName || '').trim();
   if (!name) return draft;
-  const next = offenFollowupGroupsForTicket(ticket)
-    .flatMap((group) => group.fields)
-    .find((field) => field.autoName && !String(draft[field.key] || '').trim());
-  if (next) draft[next.key] = name;
+  const first = kontaktversuchGroup(1).fields.find((field) => field.autoName);
+  if (first && !String(draft[first.key] || '').trim()) draft[first.key] = name;
   return draft;
 }
 

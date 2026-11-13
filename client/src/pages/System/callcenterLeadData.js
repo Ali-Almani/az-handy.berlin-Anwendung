@@ -695,11 +695,17 @@ export function isKontaktversuchField(key) {
     || /^kontakt\d+(Bearbeiter|ShopNotiz|Datum|Zeit)$/.test(k);
 }
 
+function kontaktversuchGroupHasFollowupData(ticket, n) {
+  return kontaktversuchGroup(n).fields.some((field) => {
+    if (field.autoName) return false;
+    return String(ticket?.[field.key] || '').trim();
+  });
+}
+
 export function kontaktversuchCountFor(ticket) {
   let filled = KONTAKTVERSUCH_MIN;
   for (let n = KONTAKTVERSUCH_MIN + 1; n <= KONTAKTVERSUCH_MAX; n += 1) {
-    const hasValue = kontaktversuchGroup(n).fields.some((field) => String(ticket?.[field.key] || '').trim());
-    if (hasValue) filled = n;
+    if (kontaktversuchGroupHasFollowupData(ticket, n)) filled = n;
   }
   const stored = parseInt(ticket?.kontaktversuchCount, 10);
   if (Number.isFinite(stored) && stored === filled + 1) filled = stored;
