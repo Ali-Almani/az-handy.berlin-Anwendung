@@ -184,7 +184,7 @@ export default function VorvertragEntryCard({
         <MitarbeiterNamesSelect names={mitarbeiter} />
       </td>
       <td className="vorvertrag-ticket-row__shop-mitarbeiter">
-        <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Shop Mitarbeiter" />
+        <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
       </td>
       <td className="vorvertrag-ticket-row__actions">
         <button type="button" className="btn btn--secondary btn--small" onClick={() => onEdit?.(entry)}>

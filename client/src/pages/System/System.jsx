@@ -999,7 +999,7 @@ const System = () => {
                   {listTab !== 'archiv' ? <th>Sprache</th> : null}
                   <th>Status</th>
                   <th>Marketing Mitarbeiter</th>
-                  <th>Shop Mitarbeiter</th>
+                  <th>Bearbeiter</th>
                   <th>Aktion</th>
                 </tr>
               </thead>

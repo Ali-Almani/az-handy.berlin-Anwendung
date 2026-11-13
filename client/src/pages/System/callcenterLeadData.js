@@ -916,7 +916,7 @@ const LEAD_FIELD_LABELS = {
   priority: 'Priorität',
   sprache: 'Sprache',
   mitarbeiterName: 'Marketing Mitarbeiter',
-  shopMitarbeiter: 'Shop Mitarbeiter'
+  shopMitarbeiter: 'Bearbeiter'
 };
 
 function formatLeadLogValue(value) {

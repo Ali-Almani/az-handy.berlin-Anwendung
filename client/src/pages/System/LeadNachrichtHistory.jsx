@@ -120,14 +120,14 @@ export default function LeadNachrichtHistory({
       <h3 className="vorvertrag-section-title">Informationen</h3>
       <div className="lead-fragen-grid">
         <div className="form-group sz-qfield">
-          <label htmlFor="offen-shop-mitarbeiter" className="sz-qfield__label">Shop Mitarbeiter</label>
+          <label htmlFor="offen-shop-mitarbeiter" className="sz-qfield__label">Bearbeiter</label>
           {shopNames.length > 1 ? (
             <select
               id="offen-shop-mitarbeiter"
               className="form-input"
               value={ticket?.shopMitarbeiter || shopNames[0]}
               onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
-              aria-label="Shop Mitarbeiter"
+              aria-label="Bearbeiter"
             >
               {shopNames.map((name) => (
                 <option key={name} value={name}>{name}</option>
@@ -140,7 +140,7 @@ export default function LeadNachrichtHistory({
               value={ticket?.shopMitarbeiter || ''}
               onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
               autoComplete="off"
-              aria-label="Shop Mitarbeiter"
+              aria-label="Bearbeiter"
             />
           )}
         </div>
