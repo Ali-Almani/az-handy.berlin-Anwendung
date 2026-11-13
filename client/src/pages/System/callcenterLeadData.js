@@ -1182,7 +1182,13 @@ export function publicWhatsAppSrc(src) {
   if (!s) return '';
   const prefix = '/uploads/whatsapp/';
   if (s.startsWith(prefix)) return `/api/whatsapp/files/${s.slice(prefix.length)}`;
+  if (/^[A-Za-z0-9._-]+\.(jpe?g|png|gif|webp|pdf|bin)$/i.test(s)) return `/api/whatsapp/files/${s}`;
   return s;
+}
+
+function dokumentSrc(item) {
+  if (typeof item === 'string') return publicWhatsAppSrc(item);
+  return publicWhatsAppSrc(item?.src || item?.url || item?.href);
 }
 
 function dokumentKind(item) {
@@ -1197,7 +1203,7 @@ export function sanitizeTicketDokumente(list) {
   const seen = new Set();
   const out = [];
   for (const raw of Array.isArray(list) ? list : []) {
-    const src = publicWhatsAppSrc(raw?.src);
+    const src = dokumentSrc(raw);
     if (!src || seen.has(src)) continue;
     const kind = raw?.kind === 'pdf' || raw?.kind === 'image' ? raw.kind : dokumentKind(raw);
     if (kind !== 'pdf' && kind !== 'image') continue;
@@ -1227,11 +1233,23 @@ export function ticketDokumente(ticket) {
   const fromChat = [];
   for (const message of Array.isArray(ticket?.messages) ? ticket.messages : []) {
     const at = String(message?.at || '').trim();
-    for (const img of Array.isArray(message?.images) ? message.images : []) {
+    const images = Array.isArray(message?.images) ? message.images : [];
+    if (images.length) {
+      for (const img of images) {
+        fromChat.push({
+          ...(typeof img === 'object' && img ? img : { src: img }),
+          kind: 'image',
+          mime: img?.mime || 'image/jpeg',
+          source: 'chat',
+          at
+        });
+      }
+    } else if (message?.image) {
       fromChat.push({
-        ...img,
+        id: `${message.id || 'msg'}-img`,
+        src: message.image,
         kind: 'image',
-        mime: img?.mime || 'image/jpeg',
+        mime: 'image/jpeg',
         source: 'chat',
         at
       });

@@ -31,6 +31,7 @@ export default function TicketDokumente({
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [lightboxSrc, setLightboxSrc] = useState('');
   const items = useMemo(() => ticketDokumente(ticket), [ticket]);
 
   const applyDocs = (docs) => {
@@ -86,9 +87,9 @@ export default function TicketDokumente({
   };
 
   return (
-    <section className="offen-dokumente" aria-label="Dokument">
+    <section className="offen-dokumente" aria-label="Dokumente">
       <div className="offen-dokumente__head">
-        <h3 className="vorvertrag-section-title">Dokument</h3>
+        <h3 className="vorvertrag-section-title">Dokumente</h3>
         <label className="btn btn--outline btn--small offen-dokumente__upload">
           {busy ? 'Laden…' : 'Hochladen'}
           <input
@@ -106,20 +107,28 @@ export default function TicketDokumente({
         <ul className="offen-dokumente__grid">
           {items.map((item) => (
             <li key={item.id || item.src} className="offen-dokumente__item">
-              <a
-                className={`offen-dokumente__card${item.kind === 'pdf' ? ' offen-dokumente__card--pdf' : ''}`}
-                href={item.src}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={item.name}
-              >
-                {item.kind === 'image' ? (
+              {item.kind === 'image' ? (
+                <button
+                  type="button"
+                  className="offen-dokumente__card"
+                  title={item.name}
+                  onClick={() => setLightboxSrc(item.src)}
+                >
                   <img src={item.src} alt={item.name} />
-                ) : (
+                  <span className="offen-dokumente__name">{item.name}</span>
+                </button>
+              ) : (
+                <a
+                  className="offen-dokumente__card offen-dokumente__card--pdf"
+                  href={item.src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={item.name}
+                >
                   <span className="offen-dokumente__pdf">PDF</span>
-                )}
-                <span className="offen-dokumente__name">{item.name}</span>
-              </a>
+                  <span className="offen-dokumente__name">{item.name}</span>
+                </a>
+              )}
             </li>
           ))}
         </ul>
@@ -127,6 +136,16 @@ export default function TicketDokumente({
         <p className="offen-dokumente__empty">Keine PDFs oder Bilder im Gespräch.</p>
       )}
       {error ? <p className="offen-dokumente__error">{error}</p> : null}
+      {lightboxSrc ? (
+        <button
+          type="button"
+          className="offen-dokumente-lightbox"
+          onClick={() => setLightboxSrc('')}
+          aria-label="Bild schließen"
+        >
+          <img src={lightboxSrc} alt="" />
+        </button>
+      ) : null}
     </section>
   );
 }
