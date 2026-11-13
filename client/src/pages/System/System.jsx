@@ -33,13 +33,19 @@ import { useVorvertragImeiCatalog } from './useVorvertragImeiCatalog';
 import { emptyMnpDetails } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
-import { isVorvertragArchived, normalizeVorvertragTicketStatus } from './vorvertragTicketStatus';
+import {
+  isVorvertragArchived,
+  normalizeVorvertragTicketStatus,
+  VORVERTRAG_TICKET_STATUS_OPTIONS
+} from './vorvertragTicketStatus';
 import { entryMatchesCustomerNameSearch } from './vorvertragCustomerUtils';
 import { TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
 import { TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
 import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
 import {
+  collectMitarbeiterNames,
+  collectShopMitarbeiterNames,
   countUnreadLeadTickets,
   isLeadArchived,
   isLeadEntry,
@@ -145,11 +151,35 @@ const EMPTY_OFFEN_FILTER = {
   filiale: '',
   typ: '',
   priority: '',
-  sprache: ''
+  sprache: '',
+  status: '',
+  mitarbeiter: '',
+  bearbeiter: ''
 };
 
 function entryFilialeValue(entry) {
   return String(entry?.filiale || entry?.shop || '').trim();
+}
+
+function entryTicketStatus(entry) {
+  return isLeadEntry(entry)
+    ? migrateLeadTicketStatus(entry?.ticketStatus)
+    : normalizeVorvertragTicketStatus(entry?.ticketStatus);
+}
+
+function countByKeys(list, getKeys) {
+  const map = new Map();
+  for (const entry of list) {
+    const raw = getKeys(entry);
+    const keys = [...new Set((Array.isArray(raw) ? raw : [raw]).map((value) => String(value || '').trim()).filter(Boolean))];
+    const unique = keys.length ? keys : [''];
+    unique.forEach((key) => map.set(key, (map.get(key) || 0) + 1));
+  }
+  return map;
+}
+
+function withTicketCount(label, count) {
+  return `${label} (${count})`;
 }
 
 function matchesOffenFilter(entry, filter) {
@@ -158,6 +188,9 @@ function matchesOffenFilter(entry, filter) {
   if (filter.typ && String(entry?.angebot || '').trim() !== filter.typ) return false;
   if (filter.priority && normalizeTicketPriority(entry?.priority) !== filter.priority) return false;
   if (filter.sprache && normalizeTicketLanguage(entry?.sprache) !== filter.sprache) return false;
+  if (filter.status && entryTicketStatus(entry) !== filter.status) return false;
+  if (filter.mitarbeiter && !collectMitarbeiterNames(entry).includes(filter.mitarbeiter)) return false;
+  if (filter.bearbeiter && !collectShopMitarbeiterNames(entry).includes(filter.bearbeiter)) return false;
   return true;
 }
 
@@ -211,6 +244,11 @@ const System = () => {
     [leadTickets]
   );
 
+  const offenEntriesAll = useMemo(
+    () => [...leadOffenEntries, ...entries.filter((entry) => !isVorvertragArchived(entry))],
+    [leadOffenEntries, entries]
+  );
+
   const filteredEntries = useMemo(() => {
     const vv = entries.filter((entry) => {
       const archived = isVorvertragArchived(entry);
@@ -222,7 +260,7 @@ const System = () => {
       return true;
     });
     if (listTab === 'offen') {
-      return [...leadOffenEntries, ...vv]
+      return offenEntriesAll
         .filter((entry) => matchesOffenFilter(entry, offenFilter))
         .slice()
         .sort((a, b) => compareOffenEntries(a, b, leadEditId));
@@ -234,16 +272,47 @@ const System = () => {
       return [...leads, ...vv];
     }
     return vv;
-  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries, offenFilter, leadEditId]);
+  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries, offenEntriesAll, offenFilter, leadEditId]);
 
   const offenFilialeOptions = useMemo(() => {
     const set = new Set([...shopOptionsForTicketing(), ...filialeOptions]);
-    [...leadOffenEntries, ...entries.filter((entry) => !isVorvertragArchived(entry))].forEach((entry) => {
+    offenEntriesAll.forEach((entry) => {
       const value = entryFilialeValue(entry);
       if (value) set.add(value);
     });
     return [...set].filter((opt) => String(opt).trim().toLowerCase() !== 'zentrale');
-  }, [filialeOptions, leadOffenEntries, entries]);
+  }, [filialeOptions, offenEntriesAll]);
+
+  const offenStatusOptions = useMemo(() => {
+    const counts = countByKeys(offenEntriesAll, entryTicketStatus);
+    const seen = new Set();
+    const list = [];
+    for (const opt of VORVERTRAG_TICKET_STATUS_OPTIONS) {
+      if (opt === 'Erledigt') continue;
+      seen.add(opt);
+      const count = counts.get(opt) || 0;
+      if (count > 0) list.push({ value: opt, count });
+    }
+    for (const [value, count] of counts) {
+      if (!value || seen.has(value) || value === 'Erledigt' || !count) continue;
+      list.push({ value, count });
+    }
+    return list;
+  }, [offenEntriesAll]);
+
+  const offenMitarbeiterOptions = useMemo(() => (
+    [...countByKeys(offenEntriesAll, collectMitarbeiterNames).entries()]
+      .filter(([value, count]) => value && count)
+      .sort((a, b) => a[0].localeCompare(b[0], 'de'))
+      .map(([value, count]) => ({ value, count }))
+  ), [offenEntriesAll]);
+
+  const offenBearbeiterOptions = useMemo(() => (
+    [...countByKeys(offenEntriesAll, collectShopMitarbeiterNames).entries()]
+      .filter(([value, count]) => value && count)
+      .sort((a, b) => a[0].localeCompare(b[0], 'de'))
+      .map(([value, count]) => ({ value, count }))
+  ), [offenEntriesAll]);
 
   const offenTypOptions = useMemo(
     () => questionDropdownOptions('angebot', loadQuestionConfig()) || [...LEAD_ANGEBOT_OPTIONS],
@@ -974,7 +1043,7 @@ const System = () => {
               </select>
             </label>
             <label htmlFor="offen-filter-typ">
-              Angebote
+              Angebot
               <select
                 id="offen-filter-typ"
                 className="form-input"
@@ -1012,6 +1081,48 @@ const System = () => {
                 <option value="">Alle</option>
                 {TICKET_LANGUAGE_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-status">
+              Status
+              <select
+                id="offen-filter-status"
+                className="form-input"
+                value={offenFilter.status}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, status: ev.target.value }))}
+              >
+                <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
+                {offenStatusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-mitarbeiter">
+              Marketing Mitarbeiter
+              <select
+                id="offen-filter-mitarbeiter"
+                className="form-input"
+                value={offenFilter.mitarbeiter}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, mitarbeiter: ev.target.value }))}
+              >
+                <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
+                {offenMitarbeiterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-bearbeiter">
+              Bearbeiter
+              <select
+                id="offen-filter-bearbeiter"
+                className="form-input"
+                value={offenFilter.bearbeiter}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, bearbeiter: ev.target.value }))}
+              >
+                <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
+                {offenBearbeiterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
                 ))}
               </select>
             </label>
@@ -1053,7 +1164,7 @@ const System = () => {
                   <th>Datum</th>
                   <th>Zeit</th>
                   <th>Filiale</th>
-                  <th>Typ</th>
+                  <th>Angebot</th>
                   {listTab !== 'archiv' ? <th>Priorität</th> : null}
                   {listTab !== 'archiv' ? <th>Sprache</th> : null}
                   <th>Status</th>
