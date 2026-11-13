@@ -1345,18 +1345,9 @@ export function ensureTicketGeoeffnetAt(ticket, now = new Date()) {
 }
 
 export function formatDurationDe(ms) {
-  if (!Number.isFinite(ms) || ms < 0) return '—';
-  const sec = Math.max(0, Math.round(ms / 1000));
-  if (sec < 60) return `${sec} Sek`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min} Min`;
-  const hours = Math.floor(min / 60);
-  const restMin = min % 60;
-  if (hours < 24) return restMin ? `${hours} Std ${restMin} Min` : `${hours} Std`;
-  const days = Math.floor(hours / 24);
-  const restHours = hours % 24;
-  const dayLabel = days === 1 ? 'Tag' : 'Tage';
-  return restHours ? `${days} ${dayLabel} ${restHours} Std` : `${days} ${dayLabel}`;
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const hours = Math.round((ms / 3600000) * 10) / 10;
+  return String(hours);
 }
 
 function kontaktversuchAktionStartAt(ticket, n) {
@@ -1369,8 +1360,9 @@ function kontaktversuchAktionStartAt(ticket, n) {
 
 export function kontaktversuchZeitValue(ticket, n, now = new Date()) {
   const start = Date.parse(kontaktversuchAktionStartAt(ticket, n) || ensureTicketGeoeffnetAt(ticket, now));
-  const end = now.getTime ? now.getTime() : Date.now();
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return '—';
+  const endAt = validIsoTime(ticket?.[kontaktversuchZeitAtKey(n)]);
+  const end = endAt ? Date.parse(endAt) : (now.getTime ? now.getTime() : Date.now());
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '';
   return formatDurationDe(end - start);
 }
 
@@ -1378,7 +1370,7 @@ export function marketingErstkontaktValue(ticket) {
   const start = Date.parse(firstCustomerMessageAt(ticket) || '');
   const opened = firstStaffOpenAt(ticket);
   const end = opened ? Date.parse(opened) : Date.now();
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return '—';
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '';
   return formatDurationDe(end - start);
 }
 

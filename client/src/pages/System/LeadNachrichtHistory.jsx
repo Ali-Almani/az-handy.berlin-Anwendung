@@ -36,11 +36,12 @@ function fillAutoKontaktversuchZeit(ticket, draft, now = new Date()) {
   for (const group of offenFollowupGroupsForTicket(merged)) {
     const zeitKey = kontaktversuchZeitKey(group.n);
     const zeitAtKey = kontaktversuchZeitAtKey(group.n);
-    if (String(draft[zeitKey] || '').trim()) continue;
+    if (!String(draft[zeitAtKey] || '').trim()) {
+      merged[zeitAtKey] = now.toISOString();
+      draft[zeitAtKey] = merged[zeitAtKey];
+    }
     merged[zeitKey] = kontaktversuchZeitValue(merged, group.n, now);
-    if (!String(draft[zeitAtKey] || '').trim()) merged[zeitAtKey] = now.toISOString();
     draft[zeitKey] = merged[zeitKey];
-    draft[zeitAtKey] = merged[zeitAtKey];
   }
   return draft;
 }
@@ -222,24 +223,33 @@ export default function LeadNachrichtHistory({
               const value = draft[field.key] || '';
               const pickerType = field.type === 'date' || field.type === 'time' ? field.type : '';
               const inputType = pickerType && value ? pickerType : 'text';
+              const input = (
+                <input
+                  id={`offen-${field.key}`}
+                  className="form-input"
+                  type={inputType}
+                  value={value}
+                  readOnly={Boolean(field.autoZeit)}
+                  inputMode={field.autoZeit ? 'decimal' : undefined}
+                  aria-label={field.autoZeit ? `${group.title} ${field.label} in Stunden` : `${group.title} ${field.label}`}
+                  onFocus={(ev) => {
+                    if (pickerType) ev.target.type = pickerType;
+                  }}
+                  onBlur={(ev) => {
+                    if (pickerType && !ev.target.value) ev.target.type = 'text';
+                  }}
+                  onChange={(ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
+                />
+              );
               return (
                 <div key={field.key} className="form-group sz-qfield">
                   <label htmlFor={`offen-${field.key}`} className="sz-qfield__label">{field.label}</label>
-                  <input
-                    id={`offen-${field.key}`}
-                    className="form-input"
-                    type={inputType}
-                    value={value}
-                    readOnly={Boolean(field.autoZeit)}
-                    aria-label={`${group.title} ${field.label}`}
-                    onFocus={(ev) => {
-                      if (pickerType) ev.target.type = pickerType;
-                    }}
-                    onBlur={(ev) => {
-                      if (pickerType && !ev.target.value) ev.target.type = 'text';
-                    }}
-                    onChange={(ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
-                  />
+                  {field.autoZeit ? (
+                    <div className="sz-qfield__range">
+                      {input}
+                      <span>(Std)</span>
+                    </div>
+                  ) : input}
                 </div>
               );
             })}

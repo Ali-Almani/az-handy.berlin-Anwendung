@@ -610,13 +610,17 @@ export default function LeadFragenForm({
         id={`${idPrefix}-marketing-erstkontakt`}
         label={labelFor('marketingErstkontakt', 'Marketing-Kontaktzeitraum')}
       >
-        <input
-          id={`${idPrefix}-marketing-erstkontakt`}
-          className="form-input"
-          value={answers?.marketingErstkontakt || '—'}
-          aria-label={labelFor('marketingErstkontakt', 'Marketing-Kontaktzeitraum')}
-          readOnly
-        />
+        <div className="sz-qfield__range">
+          <input
+            id={`${idPrefix}-marketing-erstkontakt`}
+            className="form-input"
+            value={answers?.marketingErstkontakt || ''}
+            aria-label={`${labelFor('marketingErstkontakt', 'Marketing-Kontaktzeitraum')} in Stunden`}
+            inputMode="decimal"
+            readOnly
+          />
+          <span>(Std)</span>
+        </div>
       </QuestionField>
     )
   };
