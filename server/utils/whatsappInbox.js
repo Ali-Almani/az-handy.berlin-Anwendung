@@ -202,6 +202,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     geoeffnetAt: '',
     lastOpenedAt: '',
     dokumente: [],
+    dokumenteHidden: [],
     kontaktversuchCount: 1,
     createdAt: at,
     messages: []
@@ -575,6 +576,87 @@ export async function addTicketDokument(ticketId, { filename, mime, originalName
     ticket.dokumente = [...list.filter((item) => item?.src !== doc.src), doc].slice(-60);
     return { value: { tickets: state.tickets } };
   });
+}
+
+function normalizeDokumentSrc(src) {
+  const s = String(src || '').trim();
+  if (!s) return '';
+  const prefix = '/uploads/whatsapp/';
+  if (s.startsWith(prefix)) return `/api/whatsapp/files/${s.slice(prefix.length)}`;
+  if (/^[A-Za-z0-9._-]+\.(jpe?g|png|gif|webp|pdf|bin)$/i.test(s)) return `/api/whatsapp/files/${s}`;
+  return s;
+}
+
+function filenameFromDokumentSrc(src) {
+  const s = normalizeDokumentSrc(src);
+  const match = s.match(/\/api\/whatsapp\/files\/([^/?#]+)$/);
+  return match ? match[1] : '';
+}
+
+export function sanitizeDokumenteHidden(list) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of Array.isArray(list) ? list : []) {
+    const src = normalizeDokumentSrc(raw);
+    if (!src || seen.has(src)) continue;
+    seen.add(src);
+    out.push(src);
+  }
+  return out.slice(0, 80);
+}
+
+function dokumentMatches(item, { src, id } = {}) {
+  const itemSrc = normalizeDokumentSrc(item?.src || item);
+  const itemId = String(item?.id || '').trim();
+  const wantSrc = normalizeDokumentSrc(src);
+  const wantId = String(id || '').trim();
+  if (wantId && (itemId === wantId || itemSrc === wantId || itemSrc === normalizeDokumentSrc(wantId))) return true;
+  if (wantSrc && (itemSrc === wantSrc || itemId === wantSrc)) return true;
+  return false;
+}
+
+function ticketReferencesWhatsAppFile(ticket, filename) {
+  if (!filename) return false;
+  const hit = (value) => String(value?.src || value || '').includes(filename);
+  for (const message of Array.isArray(ticket?.messages) ? ticket.messages : []) {
+    if (hit(message?.image) || hit(message?.file)) return true;
+    if ((message?.images || []).some(hit)) return true;
+    if ((message?.files || []).some(hit)) return true;
+  }
+  return (Array.isArray(ticket?.dokumente) ? ticket.dokumente : []).some(hit);
+}
+
+export async function removeTicketDokument(ticketId, { src, id } = {}) {
+  const wantSrc = String(src || '').trim();
+  const wantId = String(id || '').trim();
+  if (!wantSrc && !wantId) return mutateWhatsAppTickets((state) => ({ value: { tickets: state.tickets } }));
+  let unlinkName = '';
+  const result = await mutateWhatsAppTickets((state) => {
+    const ticket = state.tickets.find((t) => t.id === ticketId);
+    if (!ticket) return { value: { tickets: state.tickets } };
+    const list = Array.isArray(ticket.dokumente) ? ticket.dokumente : [];
+    const removed = list.filter((item) => dokumentMatches(item, { src: wantSrc, id: wantId }));
+    ticket.dokumente = list.filter((item) => !dokumentMatches(item, { src: wantSrc, id: wantId }));
+    const hiddenSrc = normalizeDokumentSrc(wantSrc || removed[0]?.src || wantId);
+    ticket.dokumenteHidden = sanitizeDokumenteHidden([
+      ...(Array.isArray(ticket.dokumenteHidden) ? ticket.dokumenteHidden : []),
+      hiddenSrc,
+      normalizeDokumentSrc(wantId)
+    ]);
+    const candidate = filenameFromDokumentSrc(hiddenSrc);
+    const wasUpload = removed.some((item) => item?.source !== 'chat');
+    if (candidate && wasUpload && !ticketReferencesWhatsAppFile(ticket, candidate)) {
+      unlinkName = candidate;
+    }
+    return { value: { tickets: state.tickets } };
+  });
+  if (unlinkName) {
+    const full = resolveWhatsAppFile(unlinkName);
+    if (full) {
+      try { fs.unlinkSync(full); } catch { /* Datei schon weg */ }
+    }
+  }
+  return result;
 }
 
 export async function deleteWhatsAppTicket(ticketId) {

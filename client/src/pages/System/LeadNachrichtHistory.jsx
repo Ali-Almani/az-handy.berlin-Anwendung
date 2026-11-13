@@ -61,7 +61,8 @@ export default function LeadNachrichtHistory({
   onClose,
   editLog = [],
   onAnswerChange,
-  bearbeiterName = ''
+  bearbeiterName = '',
+  canDeleteDokumente = false
 }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
@@ -194,7 +195,11 @@ export default function LeadNachrichtHistory({
       <TicketDokumente
         ticket={ticket}
         uploaderName={bearbeiterName}
-        onDokumenteChange={(docs) => onAnswerChange?.('dokumente', docs)}
+        canDelete={canDeleteDokumente}
+        onDokumenteChange={(docs, hidden) => {
+          onAnswerChange?.('dokumente', docs);
+          if (hidden) onAnswerChange?.('dokumenteHidden', hidden);
+        }}
       />
       <hr className="offen-followup-rule" />
       {groups.map((group) => (

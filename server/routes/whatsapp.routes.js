@@ -9,6 +9,7 @@ import {
   sendWhatsAppTicketMessage,
   sendWhatsAppTicketMedia,
   uploadTicketDocumentHandler,
+  deleteTicketDocumentHandler,
   patchWhatsAppTicketHandler,
   deleteWhatsAppTicketHandler,
   deleteWhatsAppMessageHandler,
@@ -57,6 +58,7 @@ router.put('/inbox-groups', saveInboxGroupsHandler);
 router.post('/tickets/:id/messages', sendWhatsAppTicketMessage);
 router.post('/tickets/:id/media', whatsappFileUpload, sendWhatsAppTicketMedia);
 router.post('/tickets/:id/documents', ticketDocumentUpload, uploadTicketDocumentHandler);
+router.post('/tickets/:id/documents/delete', deleteTicketDocumentHandler);
 router.post('/tickets/:id/messages/delete', deleteWhatsAppMessageHandler);
 router.delete('/tickets/:id/messages/:messageId', deleteWhatsAppMessageHandler);
 router.patch('/tickets/:id', patchWhatsAppTicketHandler);

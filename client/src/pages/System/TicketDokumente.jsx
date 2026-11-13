@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
-import { uploadTicketDocumentApi } from '../../services/whatsapp.service';
+import { deleteTicketDocumentApi, uploadTicketDocumentApi } from '../../services/whatsapp.service';
 import {
   isLiveWhatsAppTicket,
+  sanitizeDokumenteHidden,
   sanitizeTicketDokumente,
   ticketDokumente
 } from './callcenterLeadData';
@@ -26,7 +27,8 @@ function dokumentKindFromFile(file) {
 export default function TicketDokumente({
   ticket,
   onDokumenteChange,
-  uploaderName = ''
+  uploaderName = '',
+  canDelete = false
 }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -34,8 +36,8 @@ export default function TicketDokumente({
   const [lightboxSrc, setLightboxSrc] = useState('');
   const items = useMemo(() => ticketDokumente(ticket), [ticket]);
 
-  const applyDocs = (docs) => {
-    onDokumenteChange?.(sanitizeTicketDokumente(docs));
+  const applyDocs = (docs, hidden = ticket?.dokumenteHidden) => {
+    onDokumenteChange?.(sanitizeTicketDokumente(docs), sanitizeDokumenteHidden(hidden));
   };
 
   const uploadFiles = async (fileList) => {
@@ -58,7 +60,7 @@ export default function TicketDokumente({
           });
           if (Array.isArray(res?.ticket?.dokumente)) {
             docs = res.ticket.dokumente;
-            applyDocs(docs);
+            applyDocs(docs, res.ticket.dokumenteHidden);
           }
         } else {
           const src = await readFileAsDataUrl(file);
@@ -86,6 +88,35 @@ export default function TicketDokumente({
     }
   };
 
+  const removeItem = async (item) => {
+    if (!canDelete || !item) return;
+    if (!window.confirm('Dieses Dokument löschen?')) return;
+    setError('');
+    setBusy(true);
+    try {
+      if (isLiveWhatsAppTicket(ticket)) {
+        const res = await deleteTicketDocumentApi(ticket.id, { src: item.src, id: item.id });
+        applyDocs(res?.ticket?.dokumente, res?.ticket?.dokumenteHidden);
+      } else {
+        const hidden = sanitizeDokumenteHidden([
+          ...(Array.isArray(ticket?.dokumenteHidden) ? ticket.dokumenteHidden : []),
+          item.src,
+          item.id
+        ]);
+        applyDocs(
+          (Array.isArray(ticket?.dokumente) ? ticket.dokumente : []).filter((doc) => (
+            (doc?.src || '') !== (item.src || '') && (doc?.id || '') !== (item.id || '')
+          )),
+          hidden
+        );
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Löschen fehlgeschlagen.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className="offen-dokumente" aria-label="Dokumente">
       <div className="offen-dokumente__head">
@@ -107,6 +138,18 @@ export default function TicketDokumente({
         <ul className="offen-dokumente__grid">
           {items.map((item) => (
             <li key={item.id || item.src} className="offen-dokumente__item">
+              {canDelete ? (
+                <button
+                  type="button"
+                  className="offen-dokumente__remove"
+                  disabled={busy}
+                  title="Löschen"
+                  aria-label={`${item.name} löschen`}
+                  onClick={() => removeItem(item)}
+                >
+                  ×
+                </button>
+              ) : null}
               {item.kind === 'image' ? (
                 <button
                   type="button"

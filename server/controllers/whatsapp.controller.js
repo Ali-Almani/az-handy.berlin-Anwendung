@@ -11,6 +11,7 @@ import {
   appendOutgoingMessage,
   patchWhatsAppTicket,
   addTicketDokument,
+  removeTicketDokument,
   deleteWhatsAppTicket,
   deleteStoredMessage,
   deleteStoredMessageById,
@@ -493,6 +494,22 @@ export async function uploadTicketDocumentHandler(req, res) {
     originalName: req.file.originalname || req.file.filename,
     uploadedBy
   });
+  const next = findTicketInState(state, ticket.id) || findWhatsAppTicket(ticket.id);
+  if (!next) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  req.app.get('io')?.emit('whatsapp:inbox', next);
+  return res.json({ success: true, ticket: next });
+}
+
+export async function deleteTicketDocumentHandler(req, res) {
+  if (!(await requireTicketingManager(req, res))) return;
+  const ticket = findWhatsAppTicket(req.params.id);
+  if (!(await requireInboxTicketAccess(req, res, ticket))) return;
+  const src = String(req.body?.src || req.query?.src || '').trim();
+  const id = String(req.body?.id || req.query?.id || '').trim();
+  if (!src && !id) {
+    return res.status(400).json({ success: false, message: 'Dokument fehlt.' });
+  }
+  const state = await removeTicketDokument(ticket.id, { src, id });
   const next = findTicketInState(state, ticket.id) || findWhatsAppTicket(ticket.id);
   if (!next) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
   req.app.get('io')?.emit('whatsapp:inbox', next);

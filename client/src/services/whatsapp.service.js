@@ -46,6 +46,14 @@ export const uploadTicketDocumentApi = async (ticketId, { file, uploadedBy } = {
   return res.data;
 };
 
+export const deleteTicketDocumentApi = async (ticketId, { src, id } = {}) => {
+  const res = await api.post(
+    `/whatsapp/tickets/${encodeURIComponent(ticketId)}/documents/delete`,
+    { src: src || '', id: id || '' }
+  );
+  return res.data;
+};
+
 export const patchWhatsAppTicketApi = async (ticketId, patch) => {
   const res = await api.patch(`/whatsapp/tickets/${encodeURIComponent(ticketId)}`, patch);
   return res.data;

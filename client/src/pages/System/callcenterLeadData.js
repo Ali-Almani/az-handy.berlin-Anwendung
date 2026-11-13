@@ -784,6 +784,7 @@ export function emptyLeadForm() {
     geoeffnetAt: '',
     lastOpenedAt: '',
     dokumente: [],
+    dokumenteHidden: [],
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
@@ -868,7 +869,12 @@ export function preserveOpenTicketEdits(prev, hydrated) {
     || sanitizeMitarbeiterName(prev.shopMitarbeiter)
     || shopNames[0]
     || '';
-  next.dokumente = mergeTicketDokumente(prev.dokumente, hydrated.dokumente);
+  next.dokumenteHidden = sanitizeDokumenteHidden([
+    ...(Array.isArray(prev.dokumenteHidden) ? prev.dokumenteHidden : []),
+    ...(Array.isArray(hydrated?.dokumenteHidden) ? hydrated.dokumenteHidden : [])
+  ]);
+  next.dokumente = mergeTicketDokumente(prev.dokumente, hydrated.dokumente)
+    .filter((item) => !isDokumentHidden(item, next.dokumenteHidden));
   Object.keys(prev).forEach((key) => {
     if (!isCustomTicketField(key)) return;
     const remote = String(hydrated?.[key] ?? '').trim();
@@ -1199,6 +1205,26 @@ function dokumentKind(item) {
   return '';
 }
 
+export function sanitizeDokumenteHidden(list) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of Array.isArray(list) ? list : []) {
+    const src = publicWhatsAppSrc(raw);
+    if (!src || seen.has(src)) continue;
+    seen.add(src);
+    out.push(src);
+  }
+  return out.slice(0, 80);
+}
+
+export function isDokumentHidden(item, hidden) {
+  const set = new Set(sanitizeDokumenteHidden(hidden));
+  if (!set.size) return false;
+  const src = dokumentSrc(item);
+  const id = String(item?.id || '').trim();
+  return Boolean((src && set.has(src)) || (id && (set.has(id) || set.has(publicWhatsAppSrc(id)))));
+}
+
 export function sanitizeTicketDokumente(list) {
   const seen = new Set();
   const out = [];
@@ -1261,7 +1287,7 @@ export function ticketDokumente(ticket) {
   return sanitizeTicketDokumente([
     ...fromChat,
     ...(Array.isArray(ticket?.dokumente) ? ticket.dokumente : [])
-  ]);
+  ]).filter((item) => !isDokumentHidden(item, ticket?.dokumenteHidden));
 }
 
 function validIsoTime(value) {
@@ -1634,7 +1660,9 @@ function hydrateLeadTicket(t) {
     mocKn: String(t?.mocKn || '').trim(),
     geoeffnetAt: String(t?.geoeffnetAt || '').trim(),
     lastOpenedAt: String(t?.lastOpenedAt || '').trim(),
-    dokumente: sanitizeTicketDokumente(t?.dokumente),
+    dokumente: sanitizeTicketDokumente(t?.dokumente)
+      .filter((item) => !isDokumentHidden(item, t?.dokumenteHidden)),
+    dokumenteHidden: sanitizeDokumenteHidden(t?.dokumenteHidden),
     kundenbesuchDatum: String(t?.kundenbesuchDatum || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),

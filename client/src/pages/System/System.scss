@@ -373,6 +373,40 @@
   list-style: none;
 }
 
+.offen-dokumente__item {
+  position: relative;
+}
+
+.offen-dokumente__remove {
+  position: absolute;
+  top: 0.18rem;
+  right: 0.18rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: #b42318;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
 .offen-dokumente__card {
   display: flex;
   flex-direction: column;
