@@ -671,6 +671,14 @@ export function kontaktversuchDatumKey(n) {
   return `kontakt${n}Datum`;
 }
 
+export function kontaktversuchZeitKey(n) {
+  return `kontakt${n}Zeit`;
+}
+
+export function kontaktversuchZeitAtKey(n) {
+  return `kontakt${n}ZeitAt`;
+}
+
 /** YYYY-MM-DD in Europe/Berlin, für date-Inputs. */
 export function berlinCalendarDate(now = new Date()) {
   return now.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
@@ -684,8 +692,8 @@ export function kontaktversuchGroup(n) {
     fields: [
       { key: kontaktversuchBearbeiterKey(n), label: 'Bearbeiter', type: 'text', autoName: true },
       { key: `kontakt${n}ShopNotiz`, label: 'Shop Notiz', type: 'text' },
-      { key: `kontakt${n}Datum`, label: 'Datum', type: 'date' },
-      { key: `kontakt${n}Zeit`, label: zeitLabel, type: 'text' }
+      { key: kontaktversuchDatumKey(n), label: 'Datum', type: 'date' },
+      { key: kontaktversuchZeitKey(n), label: zeitLabel, type: 'text', autoZeit: true }
     ]
   };
 }
@@ -704,7 +712,7 @@ export function isKontaktversuchField(key) {
   const k = String(key || '');
   return k === 'kontaktversuchCount'
     || /^kundenbesuch\d+Bearbeiter$/.test(k)
-    || /^kontakt\d+(Bearbeiter|ShopNotiz|Datum|Zeit)$/.test(k);
+    || /^kontakt\d+(Bearbeiter|ShopNotiz|Datum|Zeit|ZeitAt)$/.test(k);
 }
 
 function kontaktversuchGroupHasFollowupData(ticket, n) {
@@ -729,7 +737,10 @@ export function offenFollowupGroupsForTicket(ticket) {
 }
 
 export function offenFollowupFieldKeys(ticket) {
-  return offenFollowupGroupsForTicket(ticket).flatMap((group) => group.fields.map((field) => field.key));
+  return offenFollowupGroupsForTicket(ticket).flatMap((group) => [
+    ...group.fields.map((field) => field.key),
+    kontaktversuchZeitAtKey(group.n)
+  ]);
 }
 
 export function kontaktversuchFieldLabel(key) {
@@ -1189,6 +1200,21 @@ export function formatDurationDe(ms) {
   const restHours = hours % 24;
   const dayLabel = days === 1 ? 'Tag' : 'Tage';
   return restHours ? `${days} ${dayLabel} ${restHours} Std` : `${days} ${dayLabel}`;
+}
+
+function kontaktversuchAktionStartAt(ticket, n) {
+  if (n > 1) {
+    const prevAt = validIsoTime(ticket?.[kontaktversuchZeitAtKey(n - 1)]);
+    if (prevAt) return prevAt;
+  }
+  return firstStaffOpenAt(ticket) || validIsoTime(ticket?.createdAt);
+}
+
+export function kontaktversuchZeitValue(ticket, n, now = new Date()) {
+  const start = Date.parse(kontaktversuchAktionStartAt(ticket, n) || ensureTicketGeoeffnetAt(ticket, now));
+  const end = now.getTime ? now.getTime() : Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '—';
+  return formatDurationDe(end - start);
 }
 
 export function marketingErstkontaktValue(ticket) {
