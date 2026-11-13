@@ -536,12 +536,12 @@ const System = () => {
     setLeadTickets((prev) =>
       prev.map((t) => {
         if (t.id !== leadEditId) return t;
-        const change = leadFieldChange(t, field, value);
+        const change = field === 'geoeffnetAt' ? null : leadFieldChange(t, field, value);
         const extra = isCustomTicketField(field)
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
           : {};
         const patched = { ...t, [field]: value, ...extra };
-        const next = field === 'kontaktversuchCount'
+        const next = field === 'kontaktversuchCount' || field === 'geoeffnetAt'
           ? patched
           : field === 'shopMitarbeiter'
             ? withShopMitarbeiter(patched, value)

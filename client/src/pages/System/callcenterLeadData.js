@@ -388,6 +388,8 @@ export function ticketFormFieldOrder(config, { includeMocKn = false } = {}) {
   if (!includeMocKn) return order;
   const phoneAt = order.findIndex((field) => isKundenTelefonnummerField(config, field));
   order.splice(phoneAt >= 0 ? phoneAt + 1 : order.length, 0, 'mocKn');
+  const mocAt = order.indexOf('mocKn');
+  order.splice(mocAt >= 0 ? mocAt + 1 : order.length, 0, 'marketingErstkontakt');
   return order;
 }
 
@@ -402,7 +404,8 @@ export const TICKET_FORM_LABELS = {
   marketingNotiz: 'Marketing Notiz',
   terminDatum: 'Gewünschte Datum',
   terminZeit: 'Gewünschte Rückrufzeit',
-  mocKn: 'Moc KN'
+  mocKn: 'Moc KN',
+  marketingErstkontakt: 'Marketing-Erstkontakt'
 };
 
 const LEGACY_TICKET_FORM_LABELS = {
@@ -758,6 +761,7 @@ export function emptyLeadForm() {
     terminDatum: '',
     terminZeit: '',
     mocKn: '',
+    geoeffnetAt: '',
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
@@ -783,6 +787,7 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'terminDatum',
   'terminZeit',
   'mocKn',
+  'geoeffnetAt',
   'priority',
   'nachrichtArt',
   'shop',
@@ -897,6 +902,7 @@ export function formFromLead(entry) {
     terminDatum: entry?.terminDatum || '',
     terminZeit: entry?.terminZeit || '',
     mocKn: entry?.mocKn || '',
+    marketingErstkontakt: marketingErstkontaktValue(entry),
     shop: entry?.shop || '',
     ticketStatus: migrateLeadTicketStatus(entry?.ticketStatus),
     priority: String(entry?.priority ?? '').trim() ? normalizeTicketPriority(entry.priority) : '',
@@ -915,6 +921,8 @@ const LEAD_FIELD_LABELS = {
   terminDatum: 'Gewünschte Datum',
   terminZeit: 'Gewünschte Rückrufzeit',
   mocKn: 'Moc KN',
+  marketingErstkontakt: 'Marketing-Erstkontakt',
+  geoeffnetAt: 'Ticket geöffnet',
   kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
   kundenbesuch3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
@@ -1123,6 +1131,63 @@ export function withShopMitarbeiter(ticket, name) {
 export function lastMessageAt(ticket) {
   const last = ticket?.messages?.[ticket.messages.length - 1];
   return last?.at || ticket?.createdAt || '';
+}
+
+function validIsoTime(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  return Number.isNaN(Date.parse(raw)) ? '' : raw;
+}
+
+export function firstCustomerMessageAt(ticket) {
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  const first = messages.find((m) => m?.from === 'customer' && validIsoTime(m?.at));
+  return validIsoTime(first?.at) || validIsoTime(ticket?.createdAt);
+}
+
+export function firstStaffOpenAt(ticket) {
+  const stored = validIsoTime(ticket?.geoeffnetAt);
+  if (stored) return stored;
+  const log = Array.isArray(ticket?.editLog) ? ticket.editLog : [];
+  for (let i = log.length - 1; i >= 0; i -= 1) {
+    const stamp = validIsoTime(log[i]?.timestamp);
+    if (stamp) return stamp;
+  }
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  const agent = messages.find((m) => (
+    m?.from === 'agent'
+    && m?.auto !== 'welcome'
+    && m?.auto !== 'followup'
+    && validIsoTime(m?.at)
+  ));
+  return validIsoTime(agent?.at);
+}
+
+export function ensureTicketGeoeffnetAt(ticket, now = new Date()) {
+  return firstStaffOpenAt(ticket) || (now.toISOString ? now.toISOString() : new Date().toISOString());
+}
+
+export function formatDurationDe(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '—';
+  const sec = Math.max(0, Math.round(ms / 1000));
+  if (sec < 60) return `${sec} Sek`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} Min`;
+  const hours = Math.floor(min / 60);
+  const restMin = min % 60;
+  if (hours < 24) return restMin ? `${hours} Std ${restMin} Min` : `${hours} Std`;
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  const dayLabel = days === 1 ? 'Tag' : 'Tage';
+  return restHours ? `${days} ${dayLabel} ${restHours} Std` : `${days} ${dayLabel}`;
+}
+
+export function marketingErstkontaktValue(ticket) {
+  const start = Date.parse(firstCustomerMessageAt(ticket) || '');
+  const opened = firstStaffOpenAt(ticket);
+  const end = opened ? Date.parse(opened) : Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '—';
+  return formatDurationDe(end - start);
 }
 
 export function countUnreadLeadTickets(tickets) {
@@ -1420,6 +1485,7 @@ function hydrateLeadTicket(t) {
     shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
     shopMitarbeiterNames: collectShopMitarbeiterNames(t),
     mocKn: String(t?.mocKn || '').trim(),
+    geoeffnetAt: String(t?.geoeffnetAt || '').trim(),
     kundenbesuchDatum: String(t?.kundenbesuchDatum || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),

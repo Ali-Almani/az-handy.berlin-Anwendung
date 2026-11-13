@@ -11,7 +11,8 @@ import {
   loadQuestionConfig,
   ticketFormAnswers,
   sanitizeMitarbeiterName,
-  collectShopMitarbeiterNames
+  collectShopMitarbeiterNames,
+  ensureTicketGeoeffnetAt
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -64,6 +65,11 @@ export default function LeadNachrichtHistory({
     if (collectShopMitarbeiterNames(ticket).includes(name)) return;
     onAnswerChange?.('shopMitarbeiter', name);
   }, [ticket?.id, bearbeiterName]);
+
+  useEffect(() => {
+    if (String(ticket?.geoeffnetAt || '').trim()) return;
+    onAnswerChange?.('geoeffnetAt', ensureTicketGeoeffnetAt(ticket));
+  }, [ticket?.id]);
 
   const addKontaktversuch = () => {
     const nextN = kontaktversuchCountFor({ ...ticket, ...draft }) + 1;

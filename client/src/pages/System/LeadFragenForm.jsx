@@ -30,7 +30,8 @@ const FIELD_META = {
   marketingNotiz: { label: 'Marketing Notiz', hasText: true },
   terminDatum: { label: 'Gewünschte Datum', hasText: true },
   terminZeit: { label: 'Gewünschte Rückrufzeit', hasText: true },
-  mocKn: { label: 'Moc KN', hasText: true }
+  mocKn: { label: 'Moc KN', hasText: true },
+  marketingErstkontakt: { label: 'Marketing-Erstkontakt', hasText: true }
 };
 
 function QuestionField({ id, label, children }) {
@@ -600,6 +601,21 @@ export default function LeadFragenForm({
           aria-label={labelFor('mocKn', 'Moc KN')}
           onChange={(ev) => patch('mocKn', ev.target.value)}
           autoComplete="off"
+        />
+      </QuestionField>
+    ),
+    marketingErstkontakt: (
+      <QuestionField
+        key="marketingErstkontakt"
+        id={`${idPrefix}-marketing-erstkontakt`}
+        label={labelFor('marketingErstkontakt', 'Marketing-Erstkontakt')}
+      >
+        <input
+          id={`${idPrefix}-marketing-erstkontakt`}
+          className="form-input"
+          value={answers?.marketingErstkontakt || '—'}
+          aria-label={labelFor('marketingErstkontakt', 'Marketing-Erstkontakt')}
+          readOnly
         />
       </QuestionField>
     )
