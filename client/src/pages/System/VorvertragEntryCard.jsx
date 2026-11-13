@@ -182,13 +182,12 @@ export default function VorvertragEntryCard({
             />
             {ticketStatus === 'Kundenbesuch' ? (
               <label className="vorvertrag-ticket-row__kundenbesuch-datum">
-                Datum erreicht
                 <input
                   className="form-input"
                   type="date"
                   value={String(entry?.kundenbesuchDatum || '').trim()}
                   disabled={statusSaving}
-                  aria-label={`Datum erreicht für ${name}`}
+                  aria-label={`Datum für ${name}`}
                   onClick={(ev) => ev.stopPropagation()}
                   onChange={(ev) => onKundenbesuchDatumChange?.(entry, ev.target.value)}
                 />
