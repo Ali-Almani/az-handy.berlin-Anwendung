@@ -333,6 +333,101 @@
   border-top: 1px solid $border-color;
 }
 
+.offen-dokumente {
+  margin-bottom: $spacing-md;
+}
+
+.offen-dokumente__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.offen-dokumente__head .vorvertrag-section-title {
+  margin: 0;
+}
+
+.offen-dokumente__upload {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+
+.offen-dokumente__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: $spacing-sm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offen-dokumente__card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-card;
+  background: $bg-color;
+  text-decoration: none;
+  color: inherit;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 4.6rem;
+    object-fit: cover;
+    background: #f3f4f6;
+  }
+}
+
+.offen-dokumente__card--pdf {
+  .offen-dokumente__pdf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 4.6rem;
+    background: #f3f4f6;
+    color: $text-light;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+}
+
+.offen-dokumente__name {
+  display: block;
+  padding: 0.28rem 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.62rem;
+  color: $text-light;
+}
+
+.offen-dokumente__empty,
+.offen-dokumente__error {
+  margin: 0;
+  font-size: 0.72rem;
+  color: $text-light;
+}
+
+.offen-dokumente__error {
+  margin-top: 0.35rem;
+  color: #b42318;
+}
+
 .offen-followup {
   margin-bottom: $spacing-md;
 

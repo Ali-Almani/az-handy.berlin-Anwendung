@@ -34,6 +34,18 @@ export const sendWhatsAppTextApi = async (ticketId, text, authorName) => (
   sendWhatsAppMessageApi(ticketId, { text, authorName })
 );
 
+export const uploadTicketDocumentApi = async (ticketId, { file, uploadedBy } = {}) => {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('uploadedBy', uploadedBy || '');
+  const res = await api.post(
+    `/whatsapp/tickets/${encodeURIComponent(ticketId)}/documents`,
+    form,
+    { timeout: 120000 }
+  );
+  return res.data;
+};
+
 export const patchWhatsAppTicketApi = async (ticketId, patch) => {
   const res = await api.patch(`/whatsapp/tickets/${encodeURIComponent(ticketId)}`, patch);
   return res.data;

@@ -9,6 +9,7 @@ import {
   upsertIncomingMessage,
   appendOutgoingMessage,
   patchWhatsAppTicket,
+  addTicketDokument,
   deleteWhatsAppTicket,
   deleteStoredMessage,
   deleteStoredMessageById,
@@ -475,6 +476,26 @@ export async function deleteWhatsAppMessageHandler(req, res) {
   const next = findTicketInState(state, ticket.id) || { ...ticket, messages: (ticket.messages || []).filter((m) => m.id !== messageId) };
   req.app.get('io')?.emit('whatsapp:inbox', next);
   return res.json({ success: true, cloudDeleted: true, ticket: next });
+}
+
+export async function uploadTicketDocumentHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const ticket = findWhatsAppTicket(req.params.id);
+  if (!(await requireInboxTicketAccess(req, res, ticket))) return;
+  if (!req.file?.filename) {
+    return res.status(400).json({ success: false, message: 'Keine Datei empfangen.' });
+  }
+  const uploadedBy = String(req.body?.uploadedBy || req.user?.name || '').trim();
+  const state = await addTicketDokument(ticket.id, {
+    filename: req.file.filename,
+    mime: req.file.mimetype,
+    originalName: req.file.originalname || req.file.filename,
+    uploadedBy
+  });
+  const next = findTicketInState(state, ticket.id) || findWhatsAppTicket(ticket.id);
+  if (!next) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  req.app.get('io')?.emit('whatsapp:inbox', next);
+  return res.json({ success: true, ticket: next });
 }
 
 export async function patchWhatsAppTicketHandler(req, res) {

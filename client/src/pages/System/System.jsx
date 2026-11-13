@@ -550,7 +550,7 @@ const System = () => {
     setLeadTickets((prev) =>
       prev.map((t) => {
         if (t.id !== leadEditId) return t;
-        const silent = field === 'geoeffnetAt' || /ZeitAt$/.test(String(field || ''));
+        const silent = field === 'geoeffnetAt' || field === 'dokumente' || /ZeitAt$/.test(String(field || ''));
         const change = silent ? null : leadFieldChange(t, field, value);
         const extra = isCustomTicketField(field)
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }

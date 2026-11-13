@@ -201,6 +201,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     kundenbesuchDatum: '',
     geoeffnetAt: '',
     lastOpenedAt: '',
+    dokumente: [],
     kontaktversuchCount: 1,
     createdAt: at,
     messages: []
@@ -542,6 +543,36 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       }
       ticket[key] = patch[key];
     }
+    return { value: { tickets: state.tickets } };
+  });
+}
+
+function dokumentKindFromFile(mime, name) {
+  const type = String(mime || '').toLowerCase();
+  const fileName = String(name || '').toLowerCase();
+  if (type.includes('pdf') || fileName.endsWith('.pdf')) return 'pdf';
+  if (type.startsWith('image/')) return 'image';
+  return '';
+}
+
+export async function addTicketDokument(ticketId, { filename, mime, originalName, uploadedBy } = {}) {
+  const kind = dokumentKindFromFile(mime, originalName || filename);
+  if (!kind || !filename) return mutateWhatsAppTickets((state) => ({ value: { tickets: state.tickets } }));
+  return mutateWhatsAppTickets((state) => {
+    const ticket = state.tickets.find((t) => t.id === ticketId);
+    if (!ticket) return { value: { tickets: state.tickets } };
+    const doc = {
+      id: String(filename).slice(0, 120),
+      src: `/api/whatsapp/files/${filename}`,
+      name: String(originalName || filename).trim().slice(0, 120) || (kind === 'pdf' ? 'Dokument.pdf' : 'Bild'),
+      mime: String(mime || (kind === 'pdf' ? 'application/pdf' : 'image/jpeg')).slice(0, 80),
+      kind,
+      source: 'upload',
+      at: new Date().toISOString(),
+      uploadedBy: String(uploadedBy || '').trim().slice(0, 80)
+    };
+    const list = Array.isArray(ticket.dokumente) ? ticket.dokumente : [];
+    ticket.dokumente = [...list.filter((item) => item?.src !== doc.src), doc].slice(-60);
     return { value: { tickets: state.tickets } };
   });
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
+import TicketDokumente from './TicketDokumente';
 import {
   KONTAKTVERSUCH_MAX,
   berlinCalendarDate,
@@ -188,6 +189,12 @@ export default function LeadNachrichtHistory({
         questionConfig={questionConfig}
         idPrefix="offen-q"
         showMocKn
+      />
+      <hr className="offen-followup-rule" />
+      <TicketDokumente
+        ticket={ticket}
+        uploaderName={bearbeiterName}
+        onDokumenteChange={(docs) => onAnswerChange?.('dokumente', docs)}
       />
       <hr className="offen-followup-rule" />
       {groups.map((group) => (

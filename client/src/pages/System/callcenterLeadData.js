@@ -783,6 +783,7 @@ export function emptyLeadForm() {
     mocKn: '',
     geoeffnetAt: '',
     lastOpenedAt: '',
+    dokumente: [],
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
@@ -867,6 +868,7 @@ export function preserveOpenTicketEdits(prev, hydrated) {
     || sanitizeMitarbeiterName(prev.shopMitarbeiter)
     || shopNames[0]
     || '';
+  next.dokumente = mergeTicketDokumente(prev.dokumente, hydrated.dokumente);
   Object.keys(prev).forEach((key) => {
     if (!isCustomTicketField(key)) return;
     const remote = String(hydrated?.[key] ?? '').trim();
@@ -1173,6 +1175,75 @@ export function compareOffenEntries(a, b, editId = '') {
   const bo = Date.parse(b?.lastOpenedAt || '') || 0;
   if (ao !== bo) return bo - ao;
   return 0;
+}
+
+export function publicWhatsAppSrc(src) {
+  const s = String(src || '').trim();
+  if (!s) return '';
+  const prefix = '/uploads/whatsapp/';
+  if (s.startsWith(prefix)) return `/api/whatsapp/files/${s.slice(prefix.length)}`;
+  return s;
+}
+
+function dokumentKind(item) {
+  const mime = String(item?.mime || '').toLowerCase();
+  const name = `${item?.name || ''} ${item?.src || ''}`.toLowerCase();
+  if (mime.includes('pdf') || name.includes('.pdf')) return 'pdf';
+  if (mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(name)) return 'image';
+  return '';
+}
+
+export function sanitizeTicketDokumente(list) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of Array.isArray(list) ? list : []) {
+    const src = publicWhatsAppSrc(raw?.src);
+    if (!src || seen.has(src)) continue;
+    const kind = raw?.kind === 'pdf' || raw?.kind === 'image' ? raw.kind : dokumentKind(raw);
+    if (kind !== 'pdf' && kind !== 'image') continue;
+    seen.add(src);
+    out.push({
+      id: String(raw?.id || src).slice(0, 120),
+      src,
+      name: String(raw?.name || (kind === 'pdf' ? 'Dokument.pdf' : 'Bild')).trim().slice(0, 120) || (kind === 'pdf' ? 'Dokument.pdf' : 'Bild'),
+      mime: String(raw?.mime || (kind === 'pdf' ? 'application/pdf' : 'image/jpeg')).slice(0, 80),
+      kind,
+      source: raw?.source === 'chat' ? 'chat' : 'upload',
+      at: String(raw?.at || raw?.uploadedAt || '').trim(),
+      uploadedBy: String(raw?.uploadedBy || '').trim()
+    });
+  }
+  return out.slice(0, 60);
+}
+
+export function mergeTicketDokumente(prev, remote) {
+  return sanitizeTicketDokumente([
+    ...(Array.isArray(prev) ? prev : []),
+    ...(Array.isArray(remote) ? remote : [])
+  ]);
+}
+
+export function ticketDokumente(ticket) {
+  const fromChat = [];
+  for (const message of Array.isArray(ticket?.messages) ? ticket.messages : []) {
+    const at = String(message?.at || '').trim();
+    for (const img of Array.isArray(message?.images) ? message.images : []) {
+      fromChat.push({
+        ...img,
+        kind: 'image',
+        mime: img?.mime || 'image/jpeg',
+        source: 'chat',
+        at
+      });
+    }
+    for (const file of Array.isArray(message?.files) ? message.files : []) {
+      fromChat.push({ ...file, source: 'chat', at });
+    }
+  }
+  return sanitizeTicketDokumente([
+    ...fromChat,
+    ...(Array.isArray(ticket?.dokumente) ? ticket.dokumente : [])
+  ]);
 }
 
 function validIsoTime(value) {
@@ -1545,6 +1616,7 @@ function hydrateLeadTicket(t) {
     mocKn: String(t?.mocKn || '').trim(),
     geoeffnetAt: String(t?.geoeffnetAt || '').trim(),
     lastOpenedAt: String(t?.lastOpenedAt || '').trim(),
+    dokumente: sanitizeTicketDokumente(t?.dokumente),
     kundenbesuchDatum: String(t?.kundenbesuchDatum || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),
