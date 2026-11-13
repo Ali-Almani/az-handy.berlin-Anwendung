@@ -3,8 +3,10 @@ import VorvertragEditLog from './VorvertragEditLog';
 import LeadFragenForm from './LeadFragenForm';
 import {
   KONTAKTVERSUCH_MAX,
+  berlinCalendarDate,
   kontaktversuchBearbeiterKey,
   kontaktversuchCountFor,
+  kontaktversuchDatumKey,
   kontaktversuchGroup,
   offenFollowupFieldKeys,
   offenFollowupGroupsForTicket,
@@ -26,9 +28,13 @@ function followupSnapshot(ticket) {
 function draftFromTicket(ticket, bearbeiterName) {
   const draft = followupSnapshot(ticket);
   const name = String(bearbeiterName || '').trim();
-  if (!name) return draft;
+  const today = berlinCalendarDate();
   const first = kontaktversuchGroup(1).fields.find((field) => field.autoName);
-  if (first && !String(draft[first.key] || '').trim()) draft[first.key] = name;
+  if (first && name && !String(draft[first.key] || '').trim()) draft[first.key] = name;
+  for (const group of offenFollowupGroupsForTicket({ ...ticket, ...draft })) {
+    const dateKey = kontaktversuchDatumKey(group.n);
+    if (!String(draft[dateKey] || '').trim()) draft[dateKey] = today;
+  }
   return draft;
 }
 
@@ -75,16 +81,20 @@ export default function LeadNachrichtHistory({
     const nextN = kontaktversuchCountFor({ ...ticket, ...draft }) + 1;
     if (nextN > KONTAKTVERSUCH_MAX) return;
     const name = sanitizeMitarbeiterName(bearbeiterName);
+    const today = berlinCalendarDate();
     const group = kontaktversuchGroup(nextN);
     setDraft((prev) => {
       const next = { ...prev, kontaktversuchCount: nextN };
       for (const field of group.fields) {
-        next[field.key] = field.autoName && name ? name : '';
+        if (field.autoName && name) next[field.key] = name;
+        else if (field.type === 'date') next[field.key] = today;
+        else next[field.key] = '';
       }
       return next;
     });
     onAnswerChange?.('kontaktversuchCount', nextN);
     if (name) onAnswerChange?.(kontaktversuchBearbeiterKey(nextN), name);
+    onAnswerChange?.(kontaktversuchDatumKey(nextN), today);
   };
 
   const commitAndClose = () => {

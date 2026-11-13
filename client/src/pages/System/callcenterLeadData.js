@@ -667,6 +667,15 @@ export function kontaktversuchBearbeiterKey(n) {
   return n === 1 ? 'kundenbesuch1Bearbeiter' : `kontakt${n}Bearbeiter`;
 }
 
+export function kontaktversuchDatumKey(n) {
+  return `kontakt${n}Datum`;
+}
+
+/** YYYY-MM-DD in Europe/Berlin, für date-Inputs. */
+export function berlinCalendarDate(now = new Date()) {
+  return now.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+}
+
 export function kontaktversuchGroup(n) {
   const zeitLabel = n === 1 ? 'Zeit bis Aktion' : 'Zeit bis Aktion des letzten Versuchs';
   return {
