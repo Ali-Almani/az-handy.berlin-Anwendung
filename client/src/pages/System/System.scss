@@ -661,6 +661,32 @@
 
 .vorvertrag-ticket-row__actions {
   white-space: nowrap;
+  width: 1%;
+}
+
+.vorvertrag-ticket-row__edit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  background: $bg-color;
+  color: $text-color;
+  cursor: pointer;
+
+  svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  &:hover {
+    color: $primary-color;
+    border-color: $primary-color;
+  }
 }
 
 .vorvertrag-ticket-chip {
