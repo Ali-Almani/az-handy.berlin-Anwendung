@@ -200,6 +200,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     shopMitarbeiterNames: [],
     kundenbesuchDatum: '',
     geoeffnetAt: '',
+    lastOpenedAt: '',
     kontaktversuchCount: 1,
     createdAt: at,
     messages: []
@@ -477,7 +478,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
     const allowed = [
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName', 'ticketNr',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
-      'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
+      'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
       'textFollowupDueAt', 'textFollowupSent', 'kontaktversuchCount',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([

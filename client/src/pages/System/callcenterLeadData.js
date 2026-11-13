@@ -782,6 +782,7 @@ export function emptyLeadForm() {
     terminZeit: '',
     mocKn: '',
     geoeffnetAt: '',
+    lastOpenedAt: '',
     ...emptyKontaktversuchFields(),
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
@@ -808,6 +809,7 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'terminZeit',
   'mocKn',
   'geoeffnetAt',
+  'lastOpenedAt',
   'priority',
   'nachrichtArt',
   'shop',
@@ -1151,6 +1153,26 @@ export function withShopMitarbeiter(ticket, name) {
 export function lastMessageAt(ticket) {
   const last = ticket?.messages?.[ticket.messages.length - 1];
   return last?.at || ticket?.createdAt || '';
+}
+
+export function bringTicketToFront(tickets, id, at = new Date().toISOString()) {
+  const list = Array.isArray(tickets) ? tickets : [];
+  const idx = list.findIndex((t) => t.id === id);
+  if (idx < 0) return list;
+  const bumped = { ...list[idx], lastOpenedAt: at };
+  if (idx === 0 && String(list[0]?.lastOpenedAt || '') === at) return list;
+  return [bumped, ...list.filter((t) => t.id !== id)];
+}
+
+export function compareOffenEntries(a, b, editId = '') {
+  if (editId) {
+    if (a?.id === editId && b?.id !== editId) return -1;
+    if (b?.id === editId && a?.id !== editId) return 1;
+  }
+  const ao = Date.parse(a?.lastOpenedAt || '') || 0;
+  const bo = Date.parse(b?.lastOpenedAt || '') || 0;
+  if (ao !== bo) return bo - ao;
+  return 0;
 }
 
 function validIsoTime(value) {
@@ -1497,6 +1519,7 @@ export function leadToNeuEntry(lead) {
     shopMitarbeiter: sanitizeMitarbeiterName(lead.shopMitarbeiter),
     shopMitarbeiterNames: collectShopMitarbeiterNames(lead),
     kundenbesuchDatum: String(lead?.kundenbesuchDatum || '').trim(),
+    lastOpenedAt: String(lead?.lastOpenedAt || '').trim(),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
   };
 }
@@ -1521,6 +1544,7 @@ function hydrateLeadTicket(t) {
     shopMitarbeiterNames: collectShopMitarbeiterNames(t),
     mocKn: String(t?.mocKn || '').trim(),
     geoeffnetAt: String(t?.geoeffnetAt || '').trim(),
+    lastOpenedAt: String(t?.lastOpenedAt || '').trim(),
     kundenbesuchDatum: String(t?.kundenbesuchDatum || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
     mitarbeiterNames: collectMitarbeiterNames(withChannel),

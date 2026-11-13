@@ -59,6 +59,8 @@ import {
   leadFieldChange,
   isCustomTicketField,
   liveTicketFormPatch,
+  bringTicketToFront,
+  compareOffenEntries,
   shopOptionsForTicketing,
   loadQuestionConfig,
   questionDropdownOptions,
@@ -220,7 +222,10 @@ const System = () => {
       return true;
     });
     if (listTab === 'offen') {
-      return [...leadOffenEntries, ...vv].filter((entry) => matchesOffenFilter(entry, offenFilter));
+      return [...leadOffenEntries, ...vv]
+        .filter((entry) => matchesOffenFilter(entry, offenFilter))
+        .slice()
+        .sort((a, b) => compareOffenEntries(a, b, leadEditId));
     }
     if (listTab === 'archiv') {
       const leads = archivSearch.trim()
@@ -229,7 +234,7 @@ const System = () => {
       return [...leads, ...vv];
     }
     return vv;
-  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries, offenFilter]);
+  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries, offenFilter, leadEditId]);
 
   const offenFilialeOptions = useMemo(() => {
     const set = new Set([...shopOptionsForTicketing(), ...filialeOptions]);
@@ -488,9 +493,18 @@ const System = () => {
   const startEdit = (entry) => {
     if (!isLeadEntry(entry) && !canManageTicketingSystem(user)) return;
     if (isLeadEntry(entry)) {
+      const openedAt = new Date().toISOString();
       setLeadEditId(entry.id);
       setHighlightedId(entry.id);
       setShowForm(false);
+      setLeadTickets((prev) => {
+        const next = bringTicketToFront(prev, entry.id, openedAt);
+        const ticket = next.find((t) => t.id === entry.id);
+        if (ticket && isLiveWhatsAppTicket(ticket)) {
+          patchWhatsAppTicketApi(ticket.id, { lastOpenedAt: openedAt }).catch(() => {});
+        }
+        return next;
+      });
       requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       return;
     }
