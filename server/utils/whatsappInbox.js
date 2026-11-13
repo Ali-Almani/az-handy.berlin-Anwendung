@@ -199,7 +199,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
     kundenbesuchDatum: '',
-    kontaktversuchCount: 4,
+    kontaktversuchCount: 1,
     createdAt: at,
     messages: []
   };
@@ -524,7 +524,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       }
       if (key === 'kontaktversuchCount') {
         const n = parseInt(patch[key], 10);
-        ticket.kontaktversuchCount = Number.isFinite(n) ? Math.min(20, Math.max(4, n)) : 4;
+        ticket.kontaktversuchCount = Number.isFinite(n) ? Math.min(20, Math.max(1, n)) : 1;
         continue;
       }
       if (key === 'shopMitarbeiterNames') {

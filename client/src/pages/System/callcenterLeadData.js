@@ -657,7 +657,7 @@ export function leadStatusBadge(status) {
   return normalizeLeadStatus(status) === 'Orten' ? 'orten' : 'callcenter';
 }
 
-export const KONTAKTVERSUCH_MIN = 4;
+export const KONTAKTVERSUCH_MIN = 1;
 export const KONTAKTVERSUCH_MAX = 20;
 
 export function kontaktversuchBearbeiterKey(n) {
@@ -696,14 +696,14 @@ export function isKontaktversuchField(key) {
 }
 
 export function kontaktversuchCountFor(ticket) {
-  const stored = parseInt(ticket?.kontaktversuchCount, 10);
-  let highest = KONTAKTVERSUCH_MIN;
-  if (Number.isFinite(stored)) highest = Math.max(highest, stored);
+  let filled = KONTAKTVERSUCH_MIN;
   for (let n = KONTAKTVERSUCH_MIN + 1; n <= KONTAKTVERSUCH_MAX; n += 1) {
-    const filled = kontaktversuchGroup(n).fields.some((field) => String(ticket?.[field.key] || '').trim());
-    if (filled) highest = n;
+    const hasValue = kontaktversuchGroup(n).fields.some((field) => String(ticket?.[field.key] || '').trim());
+    if (hasValue) filled = n;
   }
-  return Math.min(KONTAKTVERSUCH_MAX, highest);
+  const stored = parseInt(ticket?.kontaktversuchCount, 10);
+  if (Number.isFinite(stored) && stored === filled + 1) filled = stored;
+  return Math.min(KONTAKTVERSUCH_MAX, Math.max(KONTAKTVERSUCH_MIN, filled));
 }
 
 export function offenFollowupGroupsForTicket(ticket) {
