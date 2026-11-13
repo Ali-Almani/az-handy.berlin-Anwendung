@@ -1035,6 +1035,7 @@ const System = () => {
                   <th>ID</th>
                   <th>Kunde</th>
                   <th>Datum</th>
+                  <th>Zeit</th>
                   <th>Filiale</th>
                   <th>Typ</th>
                   {listTab !== 'archiv' ? <th>Priorität</th> : null}

@@ -63,6 +63,18 @@ function formatDatum(value) {
   return raw;
 }
 
+function formatGeoeffnetZeit(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Berlin'
+  });
+}
+
 const STATUS_SELECT_CHROME_PX = 56;
 
 function longestStatusLabel() {
@@ -142,6 +154,7 @@ export default function VorvertragEntryCard({
       <td className="vorvertrag-ticket-row__id">{displayTicketId(entry) || '—'}</td>
       <td className="vorvertrag-ticket-row__kunde">{name}</td>
       <td className="vorvertrag-ticket-row__datum">{formatDatum(entry?.datum)}</td>
+      <td className="vorvertrag-ticket-row__zeit">{formatGeoeffnetZeit(entry?.createdAt)}</td>
       <td className="vorvertrag-ticket-row__filiale">
         {filiale ? <MetaChip accent>{filiale}</MetaChip> : '—'}
       </td>

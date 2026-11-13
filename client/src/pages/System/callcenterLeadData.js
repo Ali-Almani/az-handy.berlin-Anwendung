@@ -1387,6 +1387,7 @@ export function leadToNeuEntry(lead) {
     kundeVorname: lead.customerName || lead.rufnummer || lead.angebot || 'Nachricht',
     kundeNachname: '',
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
+    createdAt: lead.createdAt || (Array.isArray(lead.messages) ? lead.messages[0]?.at : '') || '',
     ticketStatus: migrateLeadTicketStatus(lead.ticketStatus),
     priority: normalizeTicketPriority(lead.priority),
     sprache: leadSprache(lead.sprache),
