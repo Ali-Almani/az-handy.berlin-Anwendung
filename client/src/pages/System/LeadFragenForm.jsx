@@ -31,7 +31,7 @@ const FIELD_META = {
   terminDatum: { label: 'Gewünschte Datum', hasText: true },
   terminZeit: { label: 'Gewünschte Rückrufzeit', hasText: true },
   mocKn: { label: 'Moc KN', hasText: true },
-  marketingErstkontakt: { label: 'Marketing-Erstkontakt', hasText: true }
+  marketingErstkontakt: { label: 'Marketing-Kontaktzeitraum', hasText: true }
 };
 
 function QuestionField({ id, label, children }) {
@@ -608,13 +608,13 @@ export default function LeadFragenForm({
       <QuestionField
         key="marketingErstkontakt"
         id={`${idPrefix}-marketing-erstkontakt`}
-        label={labelFor('marketingErstkontakt', 'Marketing-Erstkontakt')}
+        label={labelFor('marketingErstkontakt', 'Marketing-Kontaktzeitraum')}
       >
         <input
           id={`${idPrefix}-marketing-erstkontakt`}
           className="form-input"
           value={answers?.marketingErstkontakt || '—'}
-          aria-label={labelFor('marketingErstkontakt', 'Marketing-Erstkontakt')}
+          aria-label={labelFor('marketingErstkontakt', 'Marketing-Kontaktzeitraum')}
           readOnly
         />
       </QuestionField>

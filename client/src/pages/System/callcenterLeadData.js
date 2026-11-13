@@ -405,7 +405,7 @@ export const TICKET_FORM_LABELS = {
   terminDatum: 'Gewünschte Datum',
   terminZeit: 'Gewünschte Rückrufzeit',
   mocKn: 'Moc KN',
-  marketingErstkontakt: 'Marketing-Erstkontakt'
+  marketingErstkontakt: 'Marketing-Kontaktzeitraum'
 };
 
 const LEGACY_TICKET_FORM_LABELS = {
@@ -921,7 +921,7 @@ const LEAD_FIELD_LABELS = {
   terminDatum: 'Gewünschte Datum',
   terminZeit: 'Gewünschte Rückrufzeit',
   mocKn: 'Moc KN',
-  marketingErstkontakt: 'Marketing-Erstkontakt',
+  marketingErstkontakt: 'Marketing-Kontaktzeitraum',
   geoeffnetAt: 'Ticket geöffnet',
   kundenbesuch1Bearbeiter: 'Kontaktversuch 1 Bearbeiter',
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
