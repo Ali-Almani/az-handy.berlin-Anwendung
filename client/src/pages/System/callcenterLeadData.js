@@ -376,7 +376,7 @@ function isKundenTelefonnummerField(config, field) {
 }
 
 /** Ticket erstellen: Vorlagenfelder bleiben immer sichtbar, auch wenn sie im Fragen-Bereich gelöscht sind. */
-export function ticketFormFieldOrder(config) {
+export function ticketFormFieldOrder(config, { includeMocKn = false } = {}) {
   const custom = customQuestions(config)
     .map((item) => item.id)
     .filter((id) => id && !isQuestionHidden(config, id));
@@ -385,6 +385,7 @@ export function ticketFormFieldOrder(config) {
     : [];
   const rest = custom.filter((field) => !saved.includes(field));
   const order = [...VORLAGE_QUESTION_ORDER, ...saved, ...rest];
+  if (!includeMocKn) return order;
   const phoneAt = order.findIndex((field) => isKundenTelefonnummerField(config, field));
   order.splice(phoneAt >= 0 ? phoneAt + 1 : order.length, 0, 'mocKn');
   return order;

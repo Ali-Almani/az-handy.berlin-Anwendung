@@ -445,11 +445,12 @@ export default function LeadFragenForm({
   onQuestionDelete,
   onQuestionUpdate,
   onQuestionMove,
-  onQuestionAdd
+  onQuestionAdd,
+  showMocKn = false
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const labelFor = (field, fallback) => ticketFormFieldLabel(field, fallback, questionConfig, questionLocale);
-  const order = ticketFormFieldOrder(questionConfig);
+  const order = ticketFormFieldOrder(questionConfig, { includeMocKn: showMocKn });
 
   if (templateEditing) {
     return (

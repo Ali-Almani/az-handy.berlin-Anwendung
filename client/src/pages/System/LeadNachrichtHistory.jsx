@@ -151,6 +151,7 @@ export default function LeadNachrichtHistory({
         onChange={onAnswerChange}
         questionConfig={questionConfig}
         idPrefix="offen-q"
+        showMocKn
       />
       {groups.map((group) => (
         <section key={group.title} className="offen-followup">
