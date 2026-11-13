@@ -155,33 +155,26 @@ export default function VorvertragEntryCard({
         </td>
       ) : null}
       <td className="vorvertrag-ticket-row__status">
-        <div className="vorvertrag-ticket-row__status-inner">
-          <span
-            className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--${badgeMod}`}
-          >
-            {ticketStatus}
-          </span>
-          <div className="vorvertrag-ticket-row__status-controls">
-            <StatusSelect
-              value={ticketStatus}
-              name={name}
-              disabled={statusSaving}
-              onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
-            />
-            {ticketStatus === 'Kundenbesuch' ? (
-              <label className="vorvertrag-ticket-row__kundenbesuch-datum">
-                <input
-                  className="form-input"
-                  type="date"
-                  value={String(entry?.kundenbesuchDatum || '').trim()}
-                  disabled={statusSaving}
-                  aria-label={`Datum für ${name}`}
-                  onClick={(ev) => ev.stopPropagation()}
-                  onChange={(ev) => onKundenbesuchDatumChange?.(entry, ev.target.value)}
-                />
-              </label>
-            ) : null}
-          </div>
+        <div className={`vorvertrag-ticket-row__status-inner vorvertrag-ticket-row__status-inner--${badgeMod}`}>
+          <StatusSelect
+            value={ticketStatus}
+            name={name}
+            disabled={statusSaving}
+            onChange={(ev) => onStatusChange?.(entry, ev.target.value)}
+          />
+          {ticketStatus === 'Kundenbesuch' ? (
+            <label className="vorvertrag-ticket-row__kundenbesuch-datum">
+              <input
+                className="form-input"
+                type="date"
+                value={String(entry?.kundenbesuchDatum || '').trim()}
+                disabled={statusSaving}
+                aria-label={`Datum für ${name}`}
+                onClick={(ev) => ev.stopPropagation()}
+                onChange={(ev) => onKundenbesuchDatumChange?.(entry, ev.target.value)}
+              />
+            </label>
+          ) : null}
         </div>
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">
