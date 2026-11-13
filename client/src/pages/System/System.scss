@@ -229,10 +229,21 @@
 .lead-fragen-panel__head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: $spacing-sm;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $spacing-sm $spacing-md;
   margin-bottom: $spacing-md;
+}
+
+.lead-fragen-panel__identity {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.lead-fragen-panel__bearbeiter {
+  flex: 0 1 12rem;
+  min-width: 8rem;
+  margin-bottom: 0;
 }
 
 .lead-fragen-panel__actions {
@@ -240,6 +251,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-sm;
+  margin-left: auto;
 }
 
 .lead-fragen-panel__title {
@@ -311,6 +323,14 @@
 
 .lead-fragen-panel .form-input::placeholder {
   font-size: 0.62rem;
+}
+
+.offen-followup-rule {
+  display: block;
+  width: 100%;
+  margin: 0 0 $spacing-md;
+  border: 0;
+  border-top: 1px solid $border-color;
 }
 
 .offen-followup {
