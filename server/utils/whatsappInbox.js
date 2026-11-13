@@ -203,6 +203,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     lastOpenedAt: '',
     dokumente: [],
     dokumenteHidden: [],
+    editLog: [],
     kontaktversuchCount: 1,
     createdAt: at,
     messages: []
@@ -482,7 +483,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
-      'textFollowupDueAt', 'textFollowupSent', 'kontaktversuchCount',
+      'textFollowupDueAt', 'textFollowupSent', 'kontaktversuchCount', 'editLog',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
         `kundenbesuch${n}Bearbeiter`,
         `kontakt${n}Bearbeiter`,
@@ -531,6 +532,22 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       if (key === 'kontaktversuchCount') {
         const n = parseInt(patch[key], 10);
         ticket.kontaktversuchCount = Number.isFinite(n) ? Math.min(20, Math.max(1, n)) : 1;
+        continue;
+      }
+      if (key === 'editLog') {
+        const src = Array.isArray(patch[key]) ? patch[key] : [];
+        ticket.editLog = src.slice(0, 200).map((item) => ({
+          id: String(item?.id || '').slice(0, 80),
+          timestamp: String(item?.timestamp || '').slice(0, 40),
+          editorName: String(item?.editorName || '').slice(0, 80),
+          action: String(item?.action || 'updated').slice(0, 40),
+          actionLabel: String(item?.actionLabel || '').slice(0, 160),
+          changes: (Array.isArray(item?.changes) ? item.changes : []).slice(0, 40).map((change) => ({
+            field: String(change?.field || '').slice(0, 80),
+            from: String(change?.from ?? '').slice(0, 160),
+            to: String(change?.to ?? '').slice(0, 160)
+          }))
+        }));
         continue;
       }
       if (key === 'shopMitarbeiterNames') {

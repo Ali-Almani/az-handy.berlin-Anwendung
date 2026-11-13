@@ -988,14 +988,18 @@ const LEAD_FIELD_LABELS = {
 
 function formatLeadLogValue(value) {
   const text = String(value ?? '').trim();
-  return text === '' ? '—' : text;
+  return text === '' ? '—' : text.slice(0, 160);
 }
 
 export function leadFieldChange(ticket, field, nextValue) {
   const from = formatLeadLogValue(ticket?.[field]);
   const to = formatLeadLogValue(nextValue);
   if (from === to) return null;
-  return { field: LEAD_FIELD_LABELS[field] || kontaktversuchFieldLabel(field) || field, from, to };
+  const label = LEAD_FIELD_LABELS[field]
+    || kontaktversuchFieldLabel(field)
+    || ticketFormFieldLabel(field, '', loadQuestionConfig())
+    || field;
+  return { field: label, from, to };
 }
 
 export function appendLeadEditLog(ticket, { editorName, action = 'updated', changes }) {

@@ -589,6 +589,7 @@ const System = () => {
       ...liveTicketFormPatch(ticket)
     };
     payload.kontaktversuchCount = kontaktversuchCountFor(ticket);
+    payload.editLog = Array.isArray(ticket.editLog) ? ticket.editLog : [];
     for (const key of offenFollowupFieldKeys(ticket)) {
       payload[key] = ticket[key] || '';
     }

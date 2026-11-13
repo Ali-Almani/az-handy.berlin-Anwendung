@@ -1393,14 +1393,14 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  max-height: 14rem;
+  max-height: 18rem;
   overflow: auto;
 }
 
 .vorvertrag-edit-log__item {
-  padding: 0.4rem 0;
+  padding: 0.32rem 0;
   border-bottom: 1px solid mix(#fff, $border-color, 45%);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 
   &:last-child {
     border-bottom: none;
@@ -1413,8 +1413,8 @@
 }
 
 .vorvertrag-edit-log__meta {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 8.6rem 8.5rem minmax(0, 1fr);
   gap: 0.35rem 0.65rem;
   align-items: baseline;
 }
@@ -1427,21 +1427,25 @@
 .vorvertrag-edit-log__who {
   font-weight: $font-weight-bold;
   color: $text-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vorvertrag-edit-log__what {
+  color: $text-color;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .vorvertrag-edit-log__action {
   color: darken($primary-color, 6%);
 }
 
-.vorvertrag-edit-log__changes {
-  margin: 0.25rem 0 0;
-  padding-left: 1.1rem;
-  color: $text-light;
-  line-height: 1.35;
-
-  strong {
-    color: $text-color;
-    font-weight: $font-weight-medium;
+@media (max-width: 40rem) {
+  .vorvertrag-edit-log__meta {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
   }
 }
 
