@@ -44,7 +44,6 @@ import { TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLangua
 import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
 import {
-  collectMitarbeiterNames,
   collectShopMitarbeiterNames,
   countUnreadLeadTickets,
   isLeadArchived,
@@ -153,7 +152,6 @@ const EMPTY_OFFEN_FILTER = {
   priority: '',
   sprache: '',
   status: '',
-  mitarbeiter: '',
   bearbeiter: ''
 };
 
@@ -189,7 +187,6 @@ function matchesOffenFilter(entry, filter) {
   if (filter.priority && normalizeTicketPriority(entry?.priority) !== filter.priority) return false;
   if (filter.sprache && normalizeTicketLanguage(entry?.sprache) !== filter.sprache) return false;
   if (filter.status && entryTicketStatus(entry) !== filter.status) return false;
-  if (filter.mitarbeiter && !collectMitarbeiterNames(entry).includes(filter.mitarbeiter)) return false;
   if (filter.bearbeiter && !collectShopMitarbeiterNames(entry).includes(filter.bearbeiter)) return false;
   return true;
 }
@@ -285,27 +282,11 @@ const System = () => {
 
   const offenStatusOptions = useMemo(() => {
     const counts = countByKeys(offenEntriesAll, entryTicketStatus);
-    const seen = new Set();
-    const list = [];
-    for (const opt of VORVERTRAG_TICKET_STATUS_OPTIONS) {
-      if (opt === 'Erledigt') continue;
-      seen.add(opt);
-      const count = counts.get(opt) || 0;
-      if (count > 0) list.push({ value: opt, count });
-    }
-    for (const [value, count] of counts) {
-      if (!value || seen.has(value) || value === 'Erledigt' || !count) continue;
-      list.push({ value, count });
-    }
-    return list;
+    return VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => ({
+      value: opt,
+      count: counts.get(opt) || 0
+    }));
   }, [offenEntriesAll]);
-
-  const offenMitarbeiterOptions = useMemo(() => (
-    [...countByKeys(offenEntriesAll, collectMitarbeiterNames).entries()]
-      .filter(([value, count]) => value && count)
-      .sort((a, b) => a[0].localeCompare(b[0], 'de'))
-      .map(([value, count]) => ({ value, count }))
-  ), [offenEntriesAll]);
 
   const offenBearbeiterOptions = useMemo(() => (
     [...countByKeys(offenEntriesAll, collectShopMitarbeiterNames).entries()]
@@ -1094,20 +1075,6 @@ const System = () => {
               >
                 <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
                 {offenStatusOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-mitarbeiter">
-              Marketing Mitarbeiter
-              <select
-                id="offen-filter-mitarbeiter"
-                className="form-input"
-                value={offenFilter.mitarbeiter}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, mitarbeiter: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
-                {offenMitarbeiterOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
                 ))}
               </select>
