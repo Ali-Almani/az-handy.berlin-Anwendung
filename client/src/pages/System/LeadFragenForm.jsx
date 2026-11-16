@@ -13,7 +13,8 @@ import {
   ticketFormFieldOrder,
   visibleQuestionOrder,
   parseRueckrufzeit,
-  formatRueckrufzeit
+  formatRueckrufzeit,
+  isCustomTicketField
 } from './callcenterLeadData';
 import TicketPriorityField from './TicketPriorityField';
 import TicketLanguageField from './TicketLanguageField';
@@ -451,7 +452,8 @@ export default function LeadFragenForm({
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const labelFor = (field, fallback) => ticketFormFieldLabel(field, fallback, questionConfig, questionLocale);
-  const order = ticketFormFieldOrder(questionConfig, { includeMocKn: showMocKn });
+  const extraCustomIds = Object.keys(answers || {}).filter(isCustomTicketField);
+  const order = ticketFormFieldOrder(questionConfig, { includeMocKn: showMocKn, extraCustomIds });
 
   if (templateEditing) {
     return (
@@ -627,10 +629,11 @@ export default function LeadFragenForm({
 
   const renderCustomField = (field) => {
     const added = customQuestions(questionConfig).find((item) => item.id === field);
-    if (!added) return null;
-    const label = labelFor(field, added.label || 'Neue Frage');
+    if (!added && !isCustomTicketField(field)) return null;
+    const type = added?.type || 'text';
+    const label = labelFor(field, added?.label || 'Zusatzfeld');
     const inputId = `${idPrefix}-${field}`;
-    if (added.type === 'dropdown') {
+    if (type === 'dropdown') {
       const options = questionDropdownOptions(field, questionConfig) || [];
       return (
         <QuestionField key={field} id={inputId} label={label}>
@@ -649,7 +652,7 @@ export default function LeadFragenForm({
         </QuestionField>
       );
     }
-    const inputType = added.type === 'date' || added.type === 'time' || added.type === 'tel' ? added.type : 'text';
+    const inputType = type === 'date' || type === 'time' || type === 'tel' ? type : 'text';
     return (
       <QuestionField key={field} id={inputId} label={label}>
         <input

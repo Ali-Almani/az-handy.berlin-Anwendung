@@ -15,6 +15,8 @@ import {
   deleteWhatsAppMessageHandler,
   getAutoQuestionFlowHandler,
   saveAutoQuestionFlowHandler,
+  getTicketQuestionConfigHandler,
+  saveTicketQuestionConfigHandler,
   getInboxGroupsHandler,
   saveInboxGroupsHandler
 } from '../controllers/whatsapp.controller.js';
@@ -53,6 +55,8 @@ router.use(authenticateToken);
 router.get('/tickets', listWhatsAppTickets);
 router.get('/auto-flow', getAutoQuestionFlowHandler);
 router.put('/auto-flow', saveAutoQuestionFlowHandler);
+router.get('/ticket-fields', getTicketQuestionConfigHandler);
+router.put('/ticket-fields', saveTicketQuestionConfigHandler);
 router.get('/inbox-groups', getInboxGroupsHandler);
 router.put('/inbox-groups', saveInboxGroupsHandler);
 router.post('/tickets/:id/messages', sendWhatsAppTicketMessage);

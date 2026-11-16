@@ -64,7 +64,7 @@ function NextSelect({ value, questions, selfId, onChange }) {
   );
 }
 
-export default function AutoAbfrage() {
+export default function AutoAbfrage({ questionConfig } = {}) {
   const [flow, setFlow] = useState(null);
   const [locale, setLocale] = useState('de');
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,7 @@ export default function AutoAbfrage() {
     getAutoQuestionFlowApi()
       .then((res) => {
         if (!on || !res?.flow) return;
-        const names = ticketProduktNames(loadQuestionConfig());
+        const names = ticketProduktNames(questionConfig || loadQuestionConfig());
         const synced = applyProduktOptions(res.flow, names);
         if (produktOptionKey(res.flow) !== produktOptionKey(synced)) {
           saveAutoQuestionFlowApi(synced).catch(() => {});
@@ -130,7 +130,7 @@ export default function AutoAbfrage() {
     try {
       const payload = applyProduktOptions(
         withStart(flow.questions || [], flow),
-        ticketProduktNames(loadQuestionConfig())
+        ticketProduktNames(questionConfig || loadQuestionConfig())
       );
       const res = await saveAutoQuestionFlowApi(payload);
       setFlow(res?.flow || flow);

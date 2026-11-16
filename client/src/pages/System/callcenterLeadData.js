@@ -319,24 +319,40 @@ export function emptyQuestionConfig() {
   return { hidden: [], labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
 }
 
+export function normalizeQuestionConfig(parsed) {
+  if (!parsed || typeof parsed !== 'object') return emptyQuestionConfig();
+  return {
+    hidden: Array.isArray(parsed.hidden) ? parsed.hidden.filter(Boolean).map(String) : [],
+    labels: parsed.labels && typeof parsed.labels === 'object' && !Array.isArray(parsed.labels) ? parsed.labels : {},
+    texts: parsed.texts && typeof parsed.texts === 'object' && !Array.isArray(parsed.texts) ? parsed.texts : {},
+    options: parsed.options && typeof parsed.options === 'object' && !Array.isArray(parsed.options) ? parsed.options : {},
+    links: parsed.links && typeof parsed.links === 'object' && !Array.isArray(parsed.links) ? parsed.links : {},
+    order: upgradeQuestionOrder(
+      Array.isArray(parsed.order) ? parsed.order.filter((field) => typeof field === 'string' && field) : []
+    ),
+    custom: Array.isArray(parsed.custom)
+      ? parsed.custom.filter((item) => item && item.id && QUESTION_FIELD_TYPES.some((type) => type.id === item.type))
+      : []
+  };
+}
+
+export function hasQuestionConfigContent(config) {
+  const next = normalizeQuestionConfig(config);
+  return Boolean(
+    next.custom.length
+    || next.hidden.length
+    || next.order.length
+    || Object.keys(next.labels).length
+    || Object.keys(next.texts).length
+    || Object.keys(next.options).length
+    || Object.keys(next.links).length
+  );
+}
+
 export function loadQuestionConfig() {
   try {
     const raw = localStorage.getItem(QUESTION_CONFIG_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (!parsed || typeof parsed !== 'object') return emptyQuestionConfig();
-    return {
-      hidden: Array.isArray(parsed.hidden) ? parsed.hidden.filter(Boolean) : [],
-      labels: parsed.labels && typeof parsed.labels === 'object' ? parsed.labels : {},
-      texts: parsed.texts && typeof parsed.texts === 'object' ? parsed.texts : {},
-      options: parsed.options && typeof parsed.options === 'object' ? parsed.options : {},
-      links: parsed.links && typeof parsed.links === 'object' ? parsed.links : {},
-      order: upgradeQuestionOrder(
-        Array.isArray(parsed.order) ? parsed.order.filter((field) => typeof field === 'string' && field) : []
-      ),
-      custom: Array.isArray(parsed.custom)
-        ? parsed.custom.filter((item) => item && item.id && QUESTION_FIELD_TYPES.some((type) => type.id === item.type))
-        : []
-    };
+    return normalizeQuestionConfig(raw ? JSON.parse(raw) : null);
   } catch {
     return emptyQuestionConfig();
   }
@@ -375,11 +391,32 @@ function isKundenTelefonnummerField(config, field) {
   return label === 'telefonnummer des kunden' || label === 'telefonnummer';
 }
 
+export function customFieldIdsFromTicket(ticket) {
+  const ids = [];
+  const seen = new Set();
+  const add = (id) => {
+    const key = String(id || '');
+    if (!isCustomTicketField(key) || seen.has(key)) return;
+    seen.add(key);
+    ids.push(key);
+  };
+  const answers = ticket?.customAnswers && typeof ticket.customAnswers === 'object'
+    ? ticket.customAnswers
+    : {};
+  Object.keys(answers).forEach(add);
+  Object.keys(ticket || {}).forEach(add);
+  return ids;
+}
+
 /** Ticket erstellen: Vorlagenfelder bleiben immer sichtbar, auch wenn sie im Fragen-Bereich gelöscht sind. */
-export function ticketFormFieldOrder(config, { includeMocKn = false } = {}) {
-  const custom = customQuestions(config)
-    .map((item) => item.id)
-    .filter((id) => id && !isQuestionHidden(config, id));
+export function ticketFormFieldOrder(config, { includeMocKn = false, extraCustomIds = [] } = {}) {
+  const seen = new Set();
+  const custom = [];
+  for (const id of [...customQuestions(config).map((item) => item.id), ...extraCustomIds]) {
+    if (!id || seen.has(id) || !isCustomTicketField(id) || isQuestionHidden(config, id)) continue;
+    seen.add(id);
+    custom.push(id);
+  }
   const saved = Array.isArray(config?.order)
     ? config.order.filter((field) => custom.includes(field))
     : [];
@@ -919,8 +956,12 @@ export function preserveOpenTicketEdits(prev, hydrated) {
 
 export function ticketFormAnswers(ticket, config) {
   const base = formFromLead(ticket);
-  customQuestions(config).forEach((item) => {
-    base[item.id] = ticket?.[item.id] || ticket?.customAnswers?.[item.id] || '';
+  const ids = new Set([
+    ...customQuestions(config).map((item) => item.id),
+    ...customFieldIdsFromTicket(ticket)
+  ]);
+  ids.forEach((id) => {
+    base[id] = ticket?.[id] || ticket?.customAnswers?.[id] || '';
   });
   return base;
 }

@@ -72,11 +72,12 @@ export default function LeadNachrichtHistory({
   editLog = [],
   onAnswerChange,
   bearbeiterName = '',
-  canDeleteDokumente = false
+  canDeleteDokumente = false,
+  questionConfig: questionConfigProp
 }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
   const logItems = Array.isArray(editLog) ? editLog : [];
-  const questionConfig = useMemo(() => loadQuestionConfig(), [ticket?.id]);
+  const questionConfig = questionConfigProp || loadQuestionConfig();
   const answers = useMemo(
     () => ticketFormAnswers(ticket, questionConfig),
     [ticket, questionConfig]

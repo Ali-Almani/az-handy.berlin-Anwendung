@@ -81,6 +81,16 @@ export const saveAutoQuestionFlowApi = async (flow) => {
   return res.data;
 };
 
+export const getTicketQuestionConfigApi = async () => {
+  const res = await api.get('/whatsapp/ticket-fields');
+  return res.data;
+};
+
+export const saveTicketQuestionConfigApi = async (config) => {
+  const res = await api.put('/whatsapp/ticket-fields', { config });
+  return res.data;
+};
+
 export const getInboxGroupsApi = async () => {
   const res = await api.get('/whatsapp/inbox-groups');
   return res.data;

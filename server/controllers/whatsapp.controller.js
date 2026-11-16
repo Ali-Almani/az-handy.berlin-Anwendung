@@ -28,6 +28,7 @@ import {
   normalizeWaId
 } from '../utils/whatsappInbox.js';
 import { loadAutoQuestionFlow, saveAutoQuestionFlow } from '../utils/autoQuestionFlow.js';
+import { loadTicketQuestionConfig, saveTicketQuestionConfig } from '../utils/ticketQuestionConfig.js';
 import {
   filterInboxTickets,
   loadInboxGroups,
@@ -573,4 +574,17 @@ export async function saveAutoQuestionFlowHandler(req, res) {
   const { flow, error } = saveAutoQuestionFlow(req.body?.flow || req.body || {});
   if (error) return res.status(400).json({ success: false, message: error });
   return res.json({ success: true, flow });
+}
+
+export async function getTicketQuestionConfigHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const { config, empty } = loadTicketQuestionConfig();
+  return res.json({ success: true, config, empty });
+}
+
+export async function saveTicketQuestionConfigHandler(req, res) {
+  if (!(await requireTicketingManager(req, res))) return;
+  const config = saveTicketQuestionConfig(req.body?.config || req.body || {});
+  req.app.get('io')?.emit('ticketing:ticket-fields', { config });
+  return res.json({ success: true, config });
 }

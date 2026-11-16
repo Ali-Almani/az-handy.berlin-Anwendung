@@ -516,7 +516,9 @@ const CallcenterNachrichten = ({
   offenCount = 0,
   archivCount = 0,
   onOpenOffen,
-  onOpenArchiv
+  onOpenArchiv,
+  questionConfig: questionConfigProp,
+  onQuestionConfigChange
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
@@ -540,7 +542,9 @@ const CallcenterNachrichten = ({
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [mobileSheet, setMobileSheet] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState('');
-  const [questionConfig, setQuestionConfig] = useState(() => loadQuestionConfig());
+  const [localQuestionConfig, setLocalQuestionConfig] = useState(() => loadQuestionConfig());
+  const questionConfig = questionConfigProp ?? localQuestionConfig;
+  const setQuestionConfig = onQuestionConfigChange || setLocalQuestionConfig;
   const [templateEditing, setTemplateEditing] = useState(false);
   const [chipEditing, setChipEditing] = useState(false);
   const [fragenOpen, setFragenOpen] = useState(false);
@@ -760,8 +764,9 @@ const CallcenterNachrichten = ({
   }, []);
 
   useEffect(() => {
+    if (onQuestionConfigChange) return;
     saveQuestionConfig(questionConfig);
-  }, [questionConfig]);
+  }, [questionConfig, onQuestionConfigChange]);
 
   const angebotSyncKey = useRef(null);
   useEffect(() => {

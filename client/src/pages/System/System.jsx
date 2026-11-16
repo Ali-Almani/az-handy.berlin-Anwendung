@@ -43,6 +43,7 @@ import { TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriori
 import { TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
 import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
+import { useTicketQuestionConfig } from './useTicketQuestionConfig';
 import {
   collectShopMitarbeiterNames,
   countUnreadLeadTickets,
@@ -67,7 +68,6 @@ import {
   bringTicketToFront,
   compareOffenEntries,
   shopOptionsForTicketing,
-  loadQuestionConfig,
   questionDropdownOptions,
   LEAD_ANGEBOT_OPTIONS
 } from './callcenterLeadData';
@@ -193,6 +193,9 @@ function matchesOffenFilter(entry, filter) {
 
 const System = () => {
   const { user } = useAuth();
+  const [questionConfig, setQuestionConfig] = useTicketQuestionConfig({
+    persist: canEditTicketingFragen(user)
+  });
   const formRef = useRef(null);
   const cardsSectionRef = useRef(null);
   const [filialeOptions, setFilialeOptions] = useState(FILIALE_OPTIONS);
@@ -296,8 +299,8 @@ const System = () => {
   ), [offenEntriesAll]);
 
   const offenTypOptions = useMemo(
-    () => questionDropdownOptions('angebot', loadQuestionConfig()) || [...LEAD_ANGEBOT_OPTIONS],
-    [listTab]
+    () => questionDropdownOptions('angebot', questionConfig) || [...LEAD_ANGEBOT_OPTIONS],
+    [questionConfig]
   );
 
   const offenCount = useMemo(
@@ -922,6 +925,8 @@ const System = () => {
           onTicketsChange={setLeadTickets}
           openTicketId={openLeadId}
           filialeOptions={filialeOptions}
+          questionConfig={questionConfig}
+          onQuestionConfigChange={setQuestionConfig}
           canEditFragen={canEditFragen}
           canWriteAnweisung={canWriteAnweisung}
           onAnweisungUnreadChange={setAnweisungUnread}
@@ -943,7 +948,7 @@ const System = () => {
         />
       ) : null}
 
-      {listTab === 'auto' && canEditFragen ? <AutoAbfrage /> : null}
+      {listTab === 'auto' && canEditFragen ? <AutoAbfrage questionConfig={questionConfig} /> : null}
 
       {listTab === 'erstellen' && showForm ? (
         <div ref={formRef}>
@@ -992,6 +997,7 @@ const System = () => {
             onAnswerChange={patchLeadAnswer}
             bearbeiterName={defaultMitarbeiter}
             canDeleteDokumente={canManageTicketingSystem(user)}
+            questionConfig={questionConfig}
           />
         </div>
       ) : null}
