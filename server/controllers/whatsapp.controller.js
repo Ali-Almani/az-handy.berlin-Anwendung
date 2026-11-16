@@ -16,6 +16,7 @@ import {
   deleteStoredMessage,
   deleteStoredMessageById,
   deleteCloudMessage,
+  applyMessageStatus,
   findWhatsAppTicket,
   findTicketInState,
   sendOutgoingParts,
@@ -266,7 +267,9 @@ export async function receiveWhatsAppWebhook(req, io) {
       const contacts = Array.isArray(value.contacts) ? value.contacts : [];
       const messages = Array.isArray(value.messages) ? value.messages : [];
       for (const item of messages) {
-        const waId = normalizeWaId(item.from);
+        const fromId = normalizeWaId(item.from);
+        const contact = contacts.find((c) => normalizeWaId(c.wa_id) === fromId) || contacts[0];
+        const waId = normalizeWaId(contact?.wa_id) || fromId;
         if (!waId) continue;
         if (String(item?.type || '') === 'revoke') {
           const originalId = String(item?.revoke?.original_message_id || '').trim();
@@ -275,7 +278,7 @@ export async function receiveWhatsAppWebhook(req, io) {
           if (io) revoked.forEach((ticket) => io.emit('whatsapp:inbox', ticket));
           continue;
         }
-        const name = String(contacts.find((c) => normalizeWaId(c.wa_id) === waId)?.profile?.name || '').trim();
+        const name = String(contact?.profile?.name || '').trim();
         const message = await messageFromWhatsApp(item);
         if (!message) continue;
         const state = await upsertIncomingMessage({ waId, name, message });
@@ -291,12 +294,16 @@ export async function receiveWhatsAppWebhook(req, io) {
       const statuses = Array.isArray(value.statuses) ? value.statuses : [];
       for (const status of statuses) {
         const statusName = String(status?.status || '').toLowerCase();
-        if (statusName !== 'deleted' && statusName !== 'revoked') continue;
         const wamid = String(status?.id || '').trim();
         if (!wamid) continue;
-        const tickets = await deleteStoredMessageById(wamid);
-        if (io) {
-          tickets.forEach((ticket) => io.emit('whatsapp:inbox', ticket));
+        if (statusName === 'deleted' || statusName === 'revoked') {
+          const tickets = await deleteStoredMessageById(wamid);
+          if (io) tickets.forEach((ticket) => io.emit('whatsapp:inbox', ticket));
+          continue;
+        }
+        if (statusName === 'failed' || statusName === 'sent' || statusName === 'delivered' || statusName === 'read' || statusName === 'played') {
+          const tickets = await applyMessageStatus(wamid, statusName, Array.isArray(status?.errors) ? status.errors[0] : null);
+          if (io) tickets.forEach((ticket) => io.emit('whatsapp:inbox', ticket));
         }
       }
     }
@@ -465,20 +472,13 @@ export async function deleteWhatsAppMessageHandler(req, res) {
   if (message.from !== 'agent') {
     return res.status(400).json({ success: false, message: 'Nur eigene Nachrichten können gelöscht werden.' });
   }
-  const sentToWhatsApp = messageId.startsWith('wamid.');
-  const cloudDeleted = sentToWhatsApp ? await deleteCloudMessage(messageId) : true;
-  if (sentToWhatsApp && !cloudDeleted) {
-    return res.json({
-      success: true,
-      cloudDeleted: false,
-      ticket,
-      message: 'Bei WhatsApp ging das Löschen nicht (nur eigene Nachrichten, max. 2 Tage). Die Nachricht bleibt im Chat.'
-    });
+  if (messageId.startsWith('wamid.')) {
+    await deleteCloudMessage(messageId);
   }
   const state = await deleteStoredMessage(ticket.id, messageId);
   const next = findTicketInState(state, ticket.id) || { ...ticket, messages: (ticket.messages || []).filter((m) => m.id !== messageId) };
   req.app.get('io')?.emit('whatsapp:inbox', next);
-  return res.json({ success: true, cloudDeleted: true, ticket: next });
+  return res.json({ success: true, ticket: next });
 }
 
 export async function uploadTicketDocumentHandler(req, res) {

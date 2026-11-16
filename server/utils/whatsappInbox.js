@@ -214,11 +214,43 @@ function graphUrl(pathname) {
   return `https://graph.facebook.com/${whatsappGraphVersion()}/${pathname.replace(/^\//, '')}`;
 }
 
+function mapWhatsAppError(code, raw) {
+  const n = Number(code);
+  if (n === 131047) {
+    return 'Die 24-Stunden-Frist bei WhatsApp ist abgelaufen. Der Kunde muss zuerst wieder schreiben.';
+  }
+  if (n === 131026) {
+    return 'Die Nachricht konnte nicht zugestellt werden (Nummer nicht bei WhatsApp oder blockiert).';
+  }
+  if (n === 131021) {
+    return 'Empfänger und Absender dürfen nicht dieselbe Nummer sein.';
+  }
+  if (n === 131048 || n === 131056 || n === 130429) {
+    return 'WhatsApp hat die Nachricht wegen zu vieler Nachrichten blockiert. Bitte kurz warten.';
+  }
+  if (n === 131031) {
+    return 'Die WhatsApp-Nummer ist gesperrt. Bitte in Meta Business prüfen.';
+  }
+  if (n === 133010) {
+    return 'Diese WhatsApp-Nummer ist nicht für die Cloud API registriert.';
+  }
+  return String(raw || 'WhatsApp-Nachricht konnte nicht gesendet werden.').slice(0, 180);
+}
+
 function graphError(payload, fallback) {
-  const err = new Error(payload?.error?.message || fallback);
+  const raw = payload?.error?.error_user_msg || payload?.error?.message || fallback;
+  const mapped = mapWhatsAppError(payload?.error?.code, raw);
+  const err = new Error(mapped);
   err.status = 502;
-  err.detail = String(payload?.error?.message || fallback).slice(0, 180);
+  err.detail = mapped.slice(0, 220);
+  err.graphCode = payload?.error?.code;
   return err;
+}
+
+/** Meta hängt ohne + die Vorwahl der Business-Nummer davor – dann kommt die Nachricht nie an. */
+function e164WaId(raw) {
+  const digits = normalizeWaId(raw);
+  return digits ? `+${digits}` : '';
 }
 
 function extForMime(mime, fallback = '.bin') {
@@ -719,17 +751,26 @@ export function findTicketInState(state, ticketId, waId) {
 async function sendGraphMessage(body) {
   const token = whatsappToken();
   const phoneId = whatsappPhoneNumberId();
+  const payloadBody = { messaging_product: 'whatsapp', ...body };
+  if (payloadBody.to) {
+    const e164 = e164WaId(payloadBody.to);
+    if (!e164) throw graphError({}, 'Keine WhatsApp-Nummer.');
+    payloadBody.to = e164;
+    if (!payloadBody.recipient_type) payloadBody.recipient_type = 'individual';
+  }
   const res = await fetch(graphUrl(`${encodeURIComponent(phoneId)}/messages`), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ messaging_product: 'whatsapp', ...body })
+    body: JSON.stringify(payloadBody)
   });
   const payload = await res.json().catch(() => ({}));
-  if (!res.ok) throw graphError(payload, 'whatsapp_send');
-  return String(payload?.messages?.[0]?.id || `wa-out-${Date.now()}`);
+  if (payload?.error || !res.ok) throw graphError(payload, 'whatsapp_send');
+  const id = payload?.messages?.[0]?.id;
+  if (!id) throw graphError(payload, 'WhatsApp hat die Nachricht nicht angenommen.');
+  return String(id);
 }
 
 function lastCustomerWaMessageId(ticket) {
@@ -887,17 +928,57 @@ export async function sendWhatsAppDocument(toWaId, mediaId, filename, caption = 
 
 export async function deleteCloudMessage(wamid) {
   const id = String(wamid || '').trim();
-  if (!id || !id.startsWith('wamid.')) return false;
+  if (!id || !id.startsWith('wamid.') || !whatsappConfigured()) return false;
   try {
-    await sendGraphMessage({
-      status: 'deleted',
-      message_id: id
+    const token = whatsappToken();
+    const phoneId = whatsappPhoneNumberId();
+    const res = await fetch(graphUrl(`${encodeURIComponent(phoneId)}/messages`), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        status: 'deleted',
+        message_id: id
+      })
     });
+    const payload = await res.json().catch(() => ({}));
+    if (payload?.error || !res.ok) return false;
     return true;
   } catch (err) {
     console.warn('[whatsapp] delete message', err?.detail || err?.message || err);
     return false;
   }
+}
+
+export async function applyMessageStatus(wamid, statusName, error) {
+  const id = String(wamid || '').trim();
+  const status = String(statusName || '').toLowerCase();
+  if (!id || !status) return [];
+  const changed = [];
+  const state = await mutateWhatsAppTickets((current) => {
+    for (const ticket of current.tickets) {
+      const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
+      const idx = messages.findIndex((m) => m.id === id);
+      if (idx < 0) continue;
+      const msg = { ...messages[idx], deliveryStatus: status };
+      if (status === 'failed') {
+        msg.deliveryError = mapWhatsAppError(
+          error?.code,
+          error?.error_user_msg || error?.message || error?.title || 'Bei WhatsApp nicht angekommen.'
+        );
+      } else if (status === 'delivered' || status === 'read' || status === 'played') {
+        msg.deliveryError = '';
+      }
+      messages[idx] = msg;
+      ticket.messages = messages;
+      changed.push(ticket.id);
+    }
+    return { value: { tickets: current.tickets } };
+  });
+  return (state?.tickets || []).filter((ticket) => changed.includes(ticket.id));
 }
 
 function uploadMime(raw, kind) {

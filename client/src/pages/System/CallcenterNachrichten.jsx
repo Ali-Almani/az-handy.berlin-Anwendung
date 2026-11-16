@@ -1419,9 +1419,6 @@ const CallcenterNachrichten = ({
               [next, ...prev.filter((t) => isLiveWhatsAppTicket(t) && t.id !== next.id)]
             ));
           }
-          if (data?.cloudDeleted === false && data?.message) {
-            window.alert(data.message);
-          }
         })
         .catch((err) => {
           window.alert(err?.response?.data?.message || 'Nachricht konnte nicht gelöscht werden.');
@@ -2072,6 +2069,11 @@ const CallcenterNachrichten = ({
                     ) : null}
                     {m.from === 'customer' && translateErrorId === m.id && !m.translation ? (
                       <p className="sz-bubble-translate-error" role="alert">{translateErrorText || 'Übersetzung fehlgeschlagen.'}</p>
+                    ) : null}
+                    {m.from === 'agent' && m.deliveryStatus === 'failed' ? (
+                      <p className="sz-bubble-translate-error" role="alert">
+                        {m.deliveryError || 'Bei WhatsApp nicht angekommen.'}
+                      </p>
                     ) : null}
                     <div className="sz-bubble-meta">
                       {m.from === 'customer' && m.text && !m.translation ? (
