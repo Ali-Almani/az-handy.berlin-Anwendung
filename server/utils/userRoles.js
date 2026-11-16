@@ -67,3 +67,66 @@ export function pickPrimaryRole(existingRole, selected) {
   if (current && list.some((role) => rolesEquivalent(role, current))) return current;
   return list[0] || current || 'Marketing';
 }
+
+function roleKey(role) {
+  return String(role || '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+export function isAdminRole(role) {
+  const r = String(role || '').trim();
+  return r === 'Administrator' || r === 'admin' || r.toLowerCase().includes('admin');
+}
+
+export function isTeamleiterSocialMediaRole(role) {
+  const k = roleKey(role);
+  return k === 'teamleiter social media' || (k.includes('teamleiter') && k.includes('social media'));
+}
+
+export function isSocialMediaRole(role) {
+  const k = roleKey(role);
+  return k === 'mitarbeiter social media' || k === 'social media';
+}
+
+export function userDisplayName(user) {
+  return String(user?.name ?? user?.get?.('name') ?? user?.dataValues?.name ?? '')
+    .replace(/\u00a0/g, ' ')
+    .trim();
+}
+
+function normalizePersonName(value) {
+  return String(value || '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+const ANWEISUNG_TEAMLEITER_ALLOW_NAME = 'alissar oklar';
+
+export function isAnweisungTeamleiterAllow(user) {
+  return normalizePersonName(userDisplayName(user)) === ANWEISUNG_TEAMLEITER_ALLOW_NAME;
+}
+
+/** Automatisierte Abfrage nur Administrator. */
+export function canManageAutoAbfrage(user) {
+  return userRoles(user).some(isAdminRole);
+}
+
+/** Anweisung: Admin und Mitarbeiter SM; Teamleiter SM nur Alissar Oklar. */
+export function canSeeTicketingAnweisung(user) {
+  const roles = userRoles(user);
+  if (roles.some(isAdminRole)) return true;
+  if (roles.some(isTeamleiterSocialMediaRole)) return isAnweisungTeamleiterAllow(user);
+  return roles.some(isSocialMediaRole);
+}
+
+export function canWriteTicketingAnweisung(user) {
+  const roles = userRoles(user);
+  if (roles.some(isAdminRole)) return true;
+  return roles.some(isTeamleiterSocialMediaRole) && isAnweisungTeamleiterAllow(user);
+}

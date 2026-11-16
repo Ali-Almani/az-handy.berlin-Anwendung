@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import User from '../models/User.js';
 import { normalizeUserId } from '../utils/normalizeUserId.js';
-import { userRoles } from '../utils/userRoles.js';
+import { userRoles, canManageAutoAbfrage } from '../utils/userRoles.js';
 import {
   whatsappAppSecret,
   whatsappVerifyToken,
@@ -570,7 +570,10 @@ export async function getAutoQuestionFlowHandler(req, res) {
 }
 
 export async function saveAutoQuestionFlowHandler(req, res) {
-  if (!(await requireTicketingManager(req, res))) return;
+  const user = await loadTicketingUser(req);
+  if (!canManageAutoAbfrage(user)) {
+    return res.status(403).json({ success: false, message: 'Kein Zugriff auf Automatisierte Abfrage.' });
+  }
   const { flow, error } = saveAutoQuestionFlow(req.body?.flow || req.body || {});
   if (error) return res.status(400).json({ success: false, message: error });
   return res.json({ success: true, flow });

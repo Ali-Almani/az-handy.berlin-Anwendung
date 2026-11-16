@@ -198,8 +198,37 @@ export const canViewTicketingOffen = (user) => {
 /** Bearbeiten-Icon für Vorlage–Fragen in Nachrichten (nicht für Mitarbeiter social media) */
 export const canEditTicketingFragen = canManageTicketingSystem;
 
-/** Anweisung-Tab schreiben: Administrator und Teamleiter social media. Mitarbeiter nur lesen. */
-export const canWriteTicketingAnweisung = canManageTicketingSystem;
+function normalizePersonName(value) {
+  return String(value || '')
+    .replace(/\u00a0/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+const ANWEISUNG_TEAMLEITER_ALLOW_NAME = 'alissar oklar';
+
+export const isAnweisungTeamleiterAllow = (user) => (
+  normalizePersonName(user?.name) === ANWEISUNG_TEAMLEITER_ALLOW_NAME
+);
+
+/** Automatisierte Abfrage nur für Administrator. */
+export const canManageAutoAbfrage = (user) => isAdmin(user);
+
+/** Anweisung sichtbar: Admin und Mitarbeiter SM; Teamleiter SM nur Alissar Oklar. */
+export const canSeeTicketingAnweisung = (user) => {
+  if (!user) return false;
+  if (isAdmin(user)) return true;
+  if (isTeamleiterSocialMedia(user)) return isAnweisungTeamleiterAllow(user);
+  return isSocialMedia(user);
+};
+
+/** Anweisung schreiben: Administrator und Alissar Oklar (Teamleiter social media). */
+export const canWriteTicketingAnweisung = (user) => {
+  if (!user) return false;
+  if (isAdmin(user)) return true;
+  return isTeamleiterSocialMedia(user) && isAnweisungTeamleiterAllow(user);
+};
 
 // Prüfe ob Benutzer Teamleiter shop ist
 export const isTeamleiterShop = (user) => {

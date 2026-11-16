@@ -509,6 +509,7 @@ const CallcenterNachrichten = ({
   onStatusApplied,
   onOpened,
   canEditFragen = true,
+  canSeeAnweisung = true,
   canWriteAnweisung = false,
   onAnweisungUnreadChange,
   canOpenOffen = false,
@@ -629,7 +630,7 @@ const CallcenterNachrichten = ({
     return base;
   }, [active, questionConfig]);
   const showNotiz = readTab === 'notiz';
-  const showAnweisung = readTab === 'anweisung';
+  const showAnweisung = canSeeAnweisung && readTab === 'anweisung';
   const showNotePane = showNotiz || showAnweisung;
   const chatLocale = questionChatLocale(active?.sprache);
   const composerRtl = chatLocale === 'ar' || /[\u0600-\u06FF]/.test(draft);
@@ -656,7 +657,7 @@ const CallcenterNachrichten = ({
   }, [inboxNotiz]);
 
   const loadAnweisung = useCallback(async () => {
-    if (anweisungDirty.current) return;
+    if (!canSeeAnweisung || anweisungDirty.current) return;
     try {
       const res = await getInboxAnweisungApi();
       anweisungSkipSave.current = true;
@@ -667,10 +668,10 @@ const CallcenterNachrichten = ({
     } catch {
       /* offline / kein Zugriff */
     }
-  }, []);
+  }, [canSeeAnweisung]);
 
   const markAnweisungRead = useCallback(async () => {
-    if (canWriteAnweisung) return;
+    if (!canSeeAnweisung || canWriteAnweisung) return;
     setAnweisungUnread(false);
     onAnweisungUnreadRef.current?.(false);
     try {
@@ -678,9 +679,10 @@ const CallcenterNachrichten = ({
     } catch {
       /* Netz */
     }
-  }, [canWriteAnweisung]);
+  }, [canSeeAnweisung, canWriteAnweisung]);
 
   const openAnweisungTab = useCallback(() => {
+    if (!canSeeAnweisung) return;
     const hadUnread = anweisungUnread;
     setReadTab('anweisung');
     setMobileShowChat(false);
@@ -688,7 +690,7 @@ const CallcenterNachrichten = ({
     markAnweisungRead().finally(() => {
       loadAnweisung();
     });
-  }, [anweisungUnread, loadAnweisung, markAnweisungRead]);
+  }, [canSeeAnweisung, anweisungUnread, loadAnweisung, markAnweisungRead]);
 
   const openMobileNotiz = () => {
     setChatMenuOpen(false);
@@ -696,6 +698,7 @@ const CallcenterNachrichten = ({
   };
 
   const openMobileAnweisung = () => {
+    if (!canSeeAnweisung) return;
     setChatMenuOpen(false);
     setMobileSheet('anweisung');
     if (anweisungUnread) setAnweisungBanner(true);
@@ -705,17 +708,24 @@ const CallcenterNachrichten = ({
   };
 
   useEffect(() => {
+    if (!canSeeAnweisung) {
+      setAnweisungUnread(false);
+      onAnweisungUnreadRef.current?.(false);
+      setReadTabState((tab) => (tab === 'anweisung' ? 'ungelesen' : tab));
+      setMobileSheet((sheet) => (sheet === 'anweisung' ? '' : sheet));
+      return;
+    }
     loadAnweisung();
-  }, [loadAnweisung]);
+  }, [canSeeAnweisung, loadAnweisung]);
 
   useEffect(() => {
-    if (canWriteAnweisung) return undefined;
+    if (!canSeeAnweisung || canWriteAnweisung) return undefined;
     const id = window.setInterval(loadAnweisung, 8000);
     return () => window.clearInterval(id);
-  }, [canWriteAnweisung, loadAnweisung]);
+  }, [canSeeAnweisung, canWriteAnweisung, loadAnweisung]);
 
   useEffect(() => {
-    if (canWriteAnweisung) return undefined;
+    if (!canSeeAnweisung || canWriteAnweisung) return undefined;
     const socket = getSocket();
     if (!socket) return undefined;
     const onNew = (payload) => {
@@ -734,7 +744,7 @@ const CallcenterNachrichten = ({
     return () => {
       socket.off('ticketing:anweisung', onNew);
     };
-  }, [canWriteAnweisung, readTab, markAnweisungRead]);
+  }, [canSeeAnweisung, canWriteAnweisung, readTab, markAnweisungRead]);
 
   useEffect(() => {
     if (!canWriteAnweisung) return undefined;
@@ -1626,7 +1636,7 @@ const CallcenterNachrichten = ({
               Notiz
             </button>
           ) : null}
-          {mobileSide !== 'list' ? (
+          {mobileSide !== 'list' && canSeeAnweisung ? (
             <button
               type="button"
               role="tab"
@@ -1706,6 +1716,7 @@ const CallcenterNachrichten = ({
               >
                 Notiz
               </button>
+              {canSeeAnweisung ? (
               <button
                 type="button"
                 role="tab"
@@ -1718,10 +1729,11 @@ const CallcenterNachrichten = ({
                   <span className="sz-chip-count">Neu</span>
                 ) : null}
               </button>
+              ) : null}
             </div>
             {showNotePane ? null : (
               <>
-                {anweisungUnread && !canWriteAnweisung ? (
+                {canSeeAnweisung && anweisungUnread && !canWriteAnweisung ? (
                   <button type="button" className="sz-anweisung-alert" onClick={openAnweisungTab}>
                     Neue Anweisung – öffnen
                   </button>

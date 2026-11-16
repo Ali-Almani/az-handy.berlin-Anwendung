@@ -16,7 +16,7 @@ import {
   ticketIdPrefixForType
 } from '../utils/vorvertragTicketId.js';
 import { buildVorvertragEditLog } from '../utils/vorvertragEditLog.js';
-import { userRoles } from '../utils/userRoles.js';
+import { userRoles, canSeeTicketingAnweisung, canWriteTicketingAnweisung } from '../utils/userRoles.js';
 
 const VORVERTRAG_FILE = 'vorvertrag.json';
 const VORVERTRAG_DEFAULT = () => ({ entries: [] });
@@ -646,7 +646,16 @@ export async function deleteVorvertrag(req, res) {
 export async function getInboxAnweisung(req, res) {
   if (!(await requireTicketingAccess(req, res))) return;
   const userId = req.user?.userId ?? req.user?.id;
-  const isWriter = await canManageTicketing(userId);
+  let user = null;
+  try {
+    user = await User.findByPk(normalizeUserId(userId) ?? userId);
+  } catch {
+    user = null;
+  }
+  if (!canSeeTicketingAnweisung(user)) {
+    return res.json({ success: true, text: '', updatedAt: '', unread: false });
+  }
+  const isWriter = canWriteTicketingAnweisung(user);
   const data = normalizeAnweisungState(readJsonStore(ANWEISUNG_FILE, ANWEISUNG_DEFAULT()));
   return res.json({
     success: true,
@@ -657,7 +666,17 @@ export async function getInboxAnweisung(req, res) {
 }
 
 export async function saveInboxAnweisung(req, res) {
-  if (!(await requireTicketingManager(req, res))) return;
+  if (!(await requireTicketingAccess(req, res))) return;
+  const userId = req.user?.userId ?? req.user?.id;
+  let user = null;
+  try {
+    user = await User.findByPk(normalizeUserId(userId) ?? userId);
+  } catch {
+    user = null;
+  }
+  if (!canWriteTicketingAnweisung(user)) {
+    return res.status(403).json({ success: false, message: 'Kein Zugriff auf Anweisung.' });
+  }
   const text = String(req.body?.text ?? '');
   const notify = Boolean(req.body?.notify);
   const now = new Date().toISOString();

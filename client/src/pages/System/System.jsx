@@ -4,7 +4,9 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   canAccessTicketingSystem,
   canEditTicketingFragen,
+  canManageAutoAbfrage,
   canManageTicketingSystem,
+  canSeeTicketingAnweisung,
   canViewTicketingOffen,
   canWriteTicketingAnweisung
 } from '../../utils/roles';
@@ -142,7 +144,7 @@ function TicketingSectionMenu({
   setListTab,
   leadUnread,
   anweisungUnread,
-  canEditFragen
+  canManageAuto
 }) {
   const [open, setOpen] = useState(false);
   const choose = (tab) => {
@@ -180,7 +182,7 @@ function TicketingSectionMenu({
             Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
             {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
           </button>
-          {canEditFragen ? (
+          {canManageAuto ? (
             <button type="button" role="menuitem" className={itemClass('auto')} onClick={() => choose('auto')}>
               Automatisierte Abfrage
             </button>
@@ -481,7 +483,7 @@ const System = () => {
   }, [highlightedId]);
 
   useEffect(() => {
-    if (!user || canWriteTicketingAnweisung(user)) {
+    if (!user || !canSeeTicketingAnweisung(user) || canWriteTicketingAnweisung(user)) {
       setAnweisungUnread(false);
       return undefined;
     }
@@ -540,7 +542,7 @@ const System = () => {
     const allowed =
       listTab === 'nachrichten' ||
       (listTab === 'offen' && canViewTicketingOffen(user)) ||
-      (listTab === 'auto' && canEditTicketingFragen(user)) ||
+      (listTab === 'auto' && canManageAutoAbfrage(user)) ||
       ((listTab === 'erstellen' || listTab === 'archiv') && canManageTicketingSystem(user));
     if (!allowed) setListTab('nachrichten');
   }, [user, listTab]);
@@ -870,13 +872,15 @@ const System = () => {
   const canManageVorvertrag = canManageTicketingSystem(user);
   const canSeeOffen = canViewTicketingOffen(user);
   const canEditFragen = canEditTicketingFragen(user);
+  const canManageAuto = canManageAutoAbfrage(user);
+  const canSeeAnweisung = canSeeTicketingAnweisung(user);
   const canWriteAnweisung = canWriteTicketingAnweisung(user);
   const sectionMenuProps = {
     listTab,
     setListTab,
     leadUnread,
-    anweisungUnread,
-    canEditFragen
+    anweisungUnread: canSeeAnweisung ? anweisungUnread : false,
+    canManageAuto
   };
 
   return (
@@ -892,7 +896,7 @@ const System = () => {
           onClick={() => setListTab('nachrichten')}
         >
           Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
-          {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
+          {canSeeAnweisung && anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
         </button>
         {canSeeOffen ? (
           <button
@@ -919,7 +923,7 @@ const System = () => {
             Archiv ({archivCount})
           </button>
         ) : null}
-        {canEditFragen ? (
+        {canManageAuto ? (
           <button
             type="button"
             role="tab"
@@ -938,7 +942,7 @@ const System = () => {
         </div>
       ) : null}
 
-      {anweisungUnread && listTab !== 'nachrichten' && !canWriteAnweisung ? (
+      {canSeeAnweisung && anweisungUnread && listTab !== 'nachrichten' && !canWriteAnweisung ? (
         <button
           type="button"
           className="system-toast system-toast--anweisung"
@@ -992,6 +996,7 @@ const System = () => {
           questionConfig={questionConfig}
           onQuestionConfigChange={setQuestionConfig}
           canEditFragen={canEditFragen}
+          canSeeAnweisung={canSeeAnweisung}
           canWriteAnweisung={canWriteAnweisung}
           onAnweisungUnreadChange={setAnweisungUnread}
           onStatusApplied={(id, targetTab = 'offen') => {
@@ -1014,7 +1019,7 @@ const System = () => {
         />
       ) : null}
 
-      {listTab === 'auto' && canEditFragen ? (
+      {listTab === 'auto' && canManageAuto ? (
         <AutoAbfrage
           questionConfig={questionConfig}
           onQuestionConfigChange={setQuestionConfig}
