@@ -1090,7 +1090,7 @@ const System = () => {
         />
       ) : null}
 
-      {listTab === 'offen' && editingLead ? (
+      {(listTab === 'offen' || listTab === 'archiv') && editingLead ? (
         <div ref={formRef}>
           <LeadNachrichtHistory
             ticket={editingLead}
