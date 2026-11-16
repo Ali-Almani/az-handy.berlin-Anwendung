@@ -87,6 +87,10 @@
   border-bottom: 1px solid $border-color;
 }
 
+.sz-read-tab--phone {
+  display: none;
+}
+
 .sz-read-tab {
   flex: 1;
   display: inline-flex;
@@ -2054,8 +2058,30 @@
     width: 100%;
   }
 
+  .sz-read-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .sz-read-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.4rem 0.65rem;
+  }
+
   .sz-read-tab--desktop {
     display: none;
+  }
+
+  .sz-read-tab--phone {
+    display: inline-flex;
   }
 
   .sz-chat-more-item--phone,

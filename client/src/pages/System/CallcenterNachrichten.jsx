@@ -1636,7 +1636,7 @@ const CallcenterNachrichten = ({
         </div>
         <aside className="sz-list-pane">
           <div className="sz-filters">
-            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Notiz oder Anweisung">
+            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Geöffnete Tickets oder Archiv">
               <button
                 type="button"
                 role="tab"
@@ -1661,6 +1661,34 @@ const CallcenterNachrichten = ({
                   <span className="sz-read-tab-count">{readTabCounts.gelesen}</span>
                 ) : null}
               </button>
+              {canOpenOffen ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={false}
+                  className="sz-read-tab sz-read-tab--phone"
+                  onClick={() => onOpenOffen?.()}
+                >
+                  Geöffnete Tickets
+                  {offenCount > 0 ? (
+                    <span className="sz-read-tab-count">{offenCount}</span>
+                  ) : null}
+                </button>
+              ) : null}
+              {canOpenArchiv ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={false}
+                  className="sz-read-tab sz-read-tab--phone"
+                  onClick={() => onOpenArchiv?.()}
+                >
+                  Archiv
+                  {archivCount > 0 ? (
+                    <span className="sz-read-tab-count">{archivCount}</span>
+                  ) : null}
+                </button>
+              ) : null}
               <button
                 type="button"
                 role="tab"
@@ -1877,32 +1905,6 @@ const CallcenterNachrichten = ({
                   </button>
                   {chatMenuOpen ? (
                     <div className="sz-chat-more-menu" role="menu">
-                      {canOpenOffen ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="sz-chat-more-item sz-chat-more-item--phone"
-                          onClick={() => {
-                            setChatMenuOpen(false);
-                            onOpenOffen?.();
-                          }}
-                        >
-                          Geöffnete Tickets ({offenCount})
-                        </button>
-                      ) : null}
-                      {canOpenArchiv ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="sz-chat-more-item sz-chat-more-item--phone"
-                          onClick={() => {
-                            setChatMenuOpen(false);
-                            onOpenArchiv?.();
-                          }}
-                        >
-                          Archiv ({archivCount})
-                        </button>
-                      ) : null}
                       <button
                         type="button"
                         role="menuitem"

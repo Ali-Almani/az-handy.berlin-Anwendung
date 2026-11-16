@@ -78,20 +78,14 @@ const TOAST_MS = 4500;
 function TicketingSectionMenu({
   listTab,
   setListTab,
-  canManage,
-  canSeeOffen,
   leadUnread,
-  offenCount,
-  archivCount,
   anweisungUnread,
-  canEditFragen,
-  onOpenOffen
+  canEditFragen
 }) {
   const [open, setOpen] = useState(false);
   const choose = (tab) => {
     setOpen(false);
-    if (tab === 'offen') onOpenOffen();
-    else setListTab(tab);
+    setListTab(tab);
   };
   const itemClass = (tab) => `system-section-menu-item${listTab === tab ? ' system-section-menu-item--active' : ''}`;
 
@@ -124,16 +118,6 @@ function TicketingSectionMenu({
             Nachrichten{leadUnread > 0 ? ` (${leadUnread})` : ''}
             {anweisungUnread ? <span className="system-tab-count">Anweisung</span> : null}
           </button>
-          {canSeeOffen ? (
-            <button type="button" role="menuitem" className={itemClass('offen')} onClick={() => choose('offen')}>
-              Geöffnete Tickets ({offenCount})
-            </button>
-          ) : null}
-          {canManage ? (
-            <button type="button" role="menuitem" className={itemClass('archiv')} onClick={() => choose('archiv')}>
-              Archiv ({archivCount})
-            </button>
-          ) : null}
           {canEditFragen ? (
             <button type="button" role="menuitem" className={itemClass('auto')} onClick={() => choose('auto')}>
               Automatisierte Abfrage
@@ -802,17 +786,9 @@ const System = () => {
   const sectionMenuProps = {
     listTab,
     setListTab,
-    canManage: canManageVorvertrag,
-    canSeeOffen,
     leadUnread,
-    offenCount,
-    archivCount,
     anweisungUnread,
-    canEditFragen,
-    onOpenOffen: () => {
-      setListTab('offen');
-      setArchivSearch('');
-    }
+    canEditFragen
   };
 
   return (
