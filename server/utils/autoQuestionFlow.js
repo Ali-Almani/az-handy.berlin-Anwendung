@@ -210,7 +210,11 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
           value,
           replyId,
           prompt,
-          title: textPack(opt.title, value),
+          title: {
+            de: clip(opt.title?.de || value, 80),
+            ar: clip(opt.title?.ar, 80),
+            en: clip(opt.title?.en, 80)
+          },
           next: Array.isArray(opt.next) ? opt.next : []
         });
       });

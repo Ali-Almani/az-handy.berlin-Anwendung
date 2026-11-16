@@ -35,18 +35,19 @@ function uniqueTitle(name, used, max) {
   return title;
 }
 
+function addProduktName(wanted, seen, raw) {
+  const name = String(raw || '').trim().slice(0, 80);
+  const key = name.toLowerCase();
+  if (!name || seen.has(key) || wanted.length >= 10) return;
+  seen.add(key);
+  wanted.push(name);
+}
+
 export function applyProduktOptions(flow, names) {
   const source = flow && typeof flow === 'object' ? flow : { questions: [] };
   const wanted = [];
   const seen = new Set();
-  (Array.isArray(names) ? names : []).forEach((raw) => {
-    const name = String(raw || '').trim().slice(0, 80);
-    const key = name.toLowerCase();
-    if (!name || seen.has(key) || wanted.length >= 10) return;
-    seen.add(key);
-    wanted.push(name);
-  });
-  if (!wanted.length) return source;
+  (Array.isArray(names) ? names : []).forEach((raw) => addProduktName(wanted, seen, raw));
 
   const questions = (source.questions || []).map((q) => ({
     ...q,
@@ -54,12 +55,15 @@ export function applyProduktOptions(flow, names) {
   }));
   const index = questions.findIndex(isProduktQuestion);
   const prev = index >= 0 ? questions[index] : null;
+  (prev?.options || []).forEach((opt) => addProduktName(wanted, seen, opt.value));
+  if (!wanted.length) return source;
+
   const prevByValue = new Map((prev?.options || []).map((opt) => [String(opt.value || ''), opt]));
   const usedTitles = new Set();
   const usedIds = new Set();
   const maxTitle = wanted.length <= 3 ? 20 : 24;
   const options = wanted.map((name, optionIndex) => {
-    const old = prevByValue.get(name);
+    const old = prevByValue.get(name) || prevByValue.get(name.toLowerCase());
     let replyId = '';
     if (old?.replyId && /^[A-Za-z0-9:._-]{1,200}$/.test(old.replyId) && !usedIds.has(old.replyId)) {
       replyId = old.replyId;
@@ -73,12 +77,16 @@ export function applyProduktOptions(flow, names) {
       }
     }
     usedIds.add(replyId);
-    const title = uniqueTitle(name, usedTitles, maxTitle);
+    const deTitle = uniqueTitle(String(old?.title?.de || name).trim() || name, usedTitles, maxTitle);
     return {
       value: name,
       replyId,
       prompt: false,
-      title: { de: title, ar: title, en: title },
+      title: {
+        de: deTitle,
+        ar: String(old?.title?.ar || '').trim().slice(0, maxTitle),
+        en: String(old?.title?.en || '').trim().slice(0, maxTitle)
+      },
       next: Array.isArray(old?.next) ? old.next : []
     };
   });

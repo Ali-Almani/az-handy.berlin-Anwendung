@@ -1014,7 +1014,12 @@ const System = () => {
         />
       ) : null}
 
-      {listTab === 'auto' && canEditFragen ? <AutoAbfrage questionConfig={questionConfig} /> : null}
+      {listTab === 'auto' && canEditFragen ? (
+        <AutoAbfrage
+          questionConfig={questionConfig}
+          onQuestionConfigChange={setQuestionConfig}
+        />
+      ) : null}
 
       {listTab === 'erstellen' && showForm ? (
         <div ref={formRef}>

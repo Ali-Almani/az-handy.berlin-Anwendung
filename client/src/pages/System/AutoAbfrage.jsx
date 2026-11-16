@@ -64,7 +64,15 @@ function NextSelect({ value, questions, selfId, onChange }) {
   );
 }
 
-export default function AutoAbfrage({ questionConfig } = {}) {
+function produktNamesFromFlow(flow) {
+  const question = (flow?.questions || []).find(isProduktQuestion);
+  return (question?.options || [])
+    .map((opt) => String(opt?.value || opt?.title?.de || '').trim())
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } = {}) {
   const [flow, setFlow] = useState(null);
   const [locale, setLocale] = useState('de');
   const [loading, setLoading] = useState(true);
@@ -128,10 +136,18 @@ export default function AutoAbfrage({ questionConfig } = {}) {
     setError('');
     setSaved(false);
     try {
-      const payload = applyProduktOptions(
-        withStart(flow.questions || [], flow),
-        ticketProduktNames(questionConfig || loadQuestionConfig())
-      );
+      const payload = withStart(flow.questions || [], flow);
+      const names = produktNamesFromFlow(payload);
+      if (names.length && onQuestionConfigChange) {
+        onQuestionConfigChange((prev) => {
+          const current = ticketProduktNames(prev || questionConfig || loadQuestionConfig());
+          if (current.join('\n') === names.join('\n')) return prev;
+          return {
+            ...(prev || {}),
+            options: { ...(prev?.options || {}), angebot: names }
+          };
+        });
+      }
       const res = await saveAutoQuestionFlowApi(payload);
       setFlow(res?.flow || flow);
       setSaved(true);
@@ -355,46 +371,47 @@ export default function AutoAbfrage({ questionConfig } = {}) {
             />
           ) : (
             <div className="auto-flow-options">
-              {(question.options || []).map((opt, index) => (
-                <div key={`${question.id}-${index}`} className="auto-flow-option">
+              {(question.options || []).map((opt, optIndex) => (
+                <div key={`${question.id}-${optIndex}`} className="auto-flow-option">
                   <input
                     className="form-input"
-                    value={linked ? (opt.value || opt.title?.[locale] || '') : (opt.title?.[locale] || '')}
-                    placeholder="Antwort"
-                    aria-label="Antwort"
-                    readOnly={linked}
-                    title={linked ? 'Kommt aus Ticket erstellen' : undefined}
+                    value={opt.title?.[locale] || (locale === 'de' ? (opt.value || '') : '')}
+                    placeholder={locale === 'ar' ? 'Antwort auf Arabisch' : locale === 'en' ? 'Answer' : 'Antwort'}
+                    aria-label={locale === 'ar' ? 'Arabischer Wert' : 'Antwort'}
+                    maxLength={(question.options || []).length <= 3 ? 20 : 24}
                     dir={locale === 'ar' ? 'rtl' : undefined}
                     onChange={(ev) => {
                       const title = { ...opt.title, [locale]: ev.target.value };
                       const patch = { title };
-                      if (locale === 'de' && !opt.prompt && (!opt.value || opt.value === (opt.title?.de || ''))) {
+                      if (!opt.prompt && !String(opt.value || '').trim()) {
+                        patch.value = ev.target.value;
+                      } else if (locale === 'de' && !opt.prompt && opt.value === (opt.title?.de || '')) {
                         patch.value = ev.target.value;
                       }
-                      updateOption(question.id, index, patch);
+                      updateOption(question.id, optIndex, patch);
                     }}
                   />
                   <NextSelect
                     value={(opt.next || [])[0] || ''}
                     questions={questions}
                     selfId={question.id}
-                    onChange={(next) => updateOption(question.id, index, { next })}
+                    onChange={(next) => updateOption(question.id, optIndex, { next })}
                   />
-                  {linked ? null : (
+                  {(question.options || []).length > 1 ? (
                   <button
                     type="button"
                     className="btn btn--secondary btn--small"
                     onClick={() => updateQuestion(question.id, {
-                      options: question.options.filter((_, i) => i !== index)
+                      options: question.options.filter((_, i) => i !== optIndex)
                     })}
                     aria-label="Wert löschen"
                   >
                     ×
                   </button>
-                  )}
+                  ) : null}
                 </div>
               ))}
-              {!linked && (question.options || []).length < 10 ? (
+              {(question.options || []).length < 10 ? (
                 <button
                   type="button"
                   className="btn btn--secondary btn--small"
