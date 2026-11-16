@@ -205,38 +205,6 @@
     padding: 0.55rem 0.65rem;
     font-size: 0.82rem;
   }
-
-  .system-offen-filters {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: flex-end;
-    gap: 0.35rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    margin: 0 0 0.65rem;
-    padding: 0 0.45rem 0.4rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-
-    label {
-      flex: 0 0 7.6rem;
-      width: 7.6rem;
-      font-size: 0.68rem;
-      gap: 0.15rem;
-    }
-
-    .form-input {
-      width: 100%;
-      height: 2rem;
-      min-height: 2rem;
-      padding: 0 0.4rem;
-      font-size: 0.72rem;
-    }
-  }
 }
 
 .system-tab-count {
@@ -544,6 +512,78 @@
   margin-bottom: $spacing-md;
 }
 
+.system-phone-tabs {
+  display: none;
+}
+
+@media (max-width: $breakpoint-md) {
+  .vorvertrag-table-section {
+    margin-top: 0;
+  }
+
+  .system-archiv-search {
+    margin: 0 0 0.65rem;
+    padding: 0 0.45rem;
+    max-width: none;
+  }
+
+  .system-phone-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.15rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0 0 0.25rem;
+    padding: 0.35rem 0.25rem 0;
+    border-bottom: 1px solid $border-color;
+    background: $bg-color;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .system-phone-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0.4rem 0.65rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: $text-light;
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: $font-weight-medium;
+    line-height: 1.15;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &--active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+    }
+  }
+
+  .system-phone-tab-count {
+    min-width: 1.15rem;
+    padding: 0 0.28rem;
+    border-radius: 999px;
+    background: mix(#fff, $text-light, 82%);
+    color: $text-color;
+    font-size: 0.7rem;
+    font-weight: $font-weight-bold;
+    line-height: 1.3;
+    text-align: center;
+  }
+}
+
 .system-offen-filters {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
@@ -572,6 +612,45 @@
 
   input[type="date"].form-input {
     display: block;
+  }
+
+  @media (max-width: $breakpoint-md) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 0.35rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0 0 0.65rem;
+    padding: 0.15rem 0.45rem 0.45rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    label {
+      flex: 0 0 auto;
+      flex-shrink: 0;
+      width: 7.4rem;
+      min-width: 7.4rem;
+      font-size: 0.68rem;
+      gap: 0.12rem;
+      white-space: nowrap;
+    }
+
+    .form-input {
+      width: 7.4rem;
+      min-width: 7.4rem;
+      height: 2rem;
+      min-height: 2rem;
+      padding: 0 0.4rem;
+      font-size: 0.72rem;
+    }
   }
 }
 
@@ -657,6 +736,7 @@
 
 .vorvertrag-table-section {
   margin-top: $spacing-md;
+  min-width: 0;
 }
 
 .vorvertrag-table-wrapper {

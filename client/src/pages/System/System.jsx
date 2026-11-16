@@ -75,6 +75,67 @@ import './System.scss';
 
 const TOAST_MS = 4500;
 
+function TicketingPhoneTabs({
+  active,
+  onSelect,
+  ungelesenCount = 0,
+  gelesenCount = 0,
+  offenCount = 0,
+  archivCount = 0,
+  canSeeOffen = false,
+  canSeeArchiv = false
+}) {
+  const tabClass = (id) => `system-phone-tab${active === id ? ' system-phone-tab--active' : ''}`;
+  return (
+    <div className="system-phone-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Geöffnete Tickets oder Archiv">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active === 'ungelesen'}
+        className={tabClass('ungelesen')}
+        onClick={() => onSelect('ungelesen')}
+      >
+        Ungelesen
+        {ungelesenCount > 0 ? <span className="system-phone-tab-count">{ungelesenCount}</span> : null}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active === 'gelesen'}
+        className={tabClass('gelesen')}
+        onClick={() => onSelect('gelesen')}
+      >
+        Gelesen
+        {gelesenCount > 0 ? <span className="system-phone-tab-count">{gelesenCount}</span> : null}
+      </button>
+      {canSeeOffen ? (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={active === 'offen'}
+          className={tabClass('offen')}
+          onClick={() => onSelect('offen')}
+        >
+          Geöffnete Tickets
+          {offenCount > 0 ? <span className="system-phone-tab-count">{offenCount}</span> : null}
+        </button>
+      ) : null}
+      {canSeeArchiv ? (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={active === 'archiv'}
+          className={tabClass('archiv')}
+          onClick={() => onSelect('archiv')}
+        >
+          Archiv
+          {archivCount > 0 ? <span className="system-phone-tab-count">{archivCount}</span> : null}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function TicketingSectionMenu({
   listTab,
   setListTab,
@@ -196,6 +257,7 @@ const System = () => {
   const [mode, setMode] = useState('new');
   const [formKind, setFormKind] = useState('vorvertrag');
   const [listTab, setListTab] = useState('nachrichten');
+  const [inboxTab, setInboxTab] = useState('ungelesen');
   const [archivSearch, setArchivSearch] = useState('');
   const [offenFilter, setOffenFilter] = useState(EMPTY_OFFEN_FILTER);
   const [statusSavingId, setStatusSavingId] = useState('');
@@ -216,6 +278,10 @@ const System = () => {
 
   const leadUnread = useMemo(
     () => countUnreadLeadTickets(leadTickets),
+    [leadTickets]
+  );
+  const leadGelesenCount = useMemo(
+    () => leadTickets.filter((ticket) => !ticket?.unread).length,
     [leadTickets]
   );
 
@@ -844,7 +910,7 @@ const System = () => {
         ) : null}
       </div>
 
-      {listTab !== 'nachrichten' ? (
+      {listTab !== 'nachrichten' && listTab !== 'offen' && listTab !== 'archiv' ? (
         <div className="system-section-bar">
           <TicketingSectionMenu {...sectionMenuProps} />
         </div>
@@ -916,6 +982,8 @@ const System = () => {
           canOpenArchiv={canManageVorvertrag}
           offenCount={offenCount}
           archivCount={archivCount}
+          inboxTab={inboxTab}
+          onInboxTabChange={setInboxTab}
           onOpenOffen={() => {
             setListTab('offen');
             setArchivSearch('');
@@ -962,6 +1030,32 @@ const System = () => {
             />
           )}
         </div>
+      ) : null}
+
+      {listTab === 'offen' || listTab === 'archiv' ? (
+        <TicketingPhoneTabs
+          active={listTab}
+          ungelesenCount={leadUnread}
+          gelesenCount={leadGelesenCount}
+          offenCount={offenCount}
+          archivCount={archivCount}
+          canSeeOffen={canSeeOffen}
+          canSeeArchiv={canManageVorvertrag}
+          onSelect={(tab) => {
+            if (tab === 'ungelesen' || tab === 'gelesen') {
+              setInboxTab(tab);
+              setListTab('nachrichten');
+              setLeadEditId('');
+              return;
+            }
+            if (tab === 'offen') {
+              setListTab('offen');
+              setArchivSearch('');
+              return;
+            }
+            setListTab('archiv');
+          }}
+        />
       ) : null}
 
       {listTab === 'offen' && editingLead ? (

@@ -517,12 +517,20 @@ const CallcenterNachrichten = ({
   archivCount = 0,
   onOpenOffen,
   onOpenArchiv,
+  inboxTab = 'ungelesen',
+  onInboxTabChange,
   questionConfig: questionConfigProp,
   onQuestionConfigChange
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [channel, setChannel] = useState('all');
-  const [readTab, setReadTab] = useState('ungelesen');
+  const [readTab, setReadTabState] = useState(() => (
+    inboxTab === 'gelesen' ? 'gelesen' : 'ungelesen'
+  ));
+  const setReadTab = (tab) => {
+    setReadTabState(tab);
+    if (tab === 'ungelesen' || tab === 'gelesen') onInboxTabChange?.(tab);
+  };
   const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
   const [inboxAnweisung, setInboxAnweisung] = useState('');
   const [anweisungUnread, setAnweisungUnread] = useState(false);
