@@ -87,10 +87,6 @@
   border-bottom: 1px solid $border-color;
 }
 
-.sz-read-tab--phone {
-  display: none;
-}
-
 .sz-read-tab {
   flex: 1;
   display: inline-flex;
@@ -121,6 +117,10 @@
 
   &--alert {
     color: $danger-color;
+  }
+
+  &--phone {
+    display: none;
   }
 }
 
@@ -2080,7 +2080,7 @@
     display: none;
   }
 
-  .sz-read-tab--phone {
+  .sz-read-tab.sz-read-tab--phone {
     display: inline-flex;
   }
 
