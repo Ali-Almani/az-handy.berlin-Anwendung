@@ -69,7 +69,8 @@ import {
   compareOffenEntries,
   shopOptionsForTicketing,
   questionDropdownOptions,
-  LEAD_ANGEBOT_OPTIONS
+  LEAD_ANGEBOT_OPTIONS,
+  LEAD_O2_OPTIONS
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -193,6 +194,8 @@ function TicketingSectionMenu({
 const EMPTY_OFFEN_FILTER = {
   datum: '',
   filiale: '',
+  o2Kunde: '',
+  stadt: '',
   typ: '',
   priority: '',
   sprache: '',
@@ -225,9 +228,16 @@ function withTicketCount(label, count) {
   return `${label} (${count})`;
 }
 
+function uniqueFilterValues(values) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'de'));
+}
+
 function matchesOffenFilter(entry, filter) {
   if (filter.datum && String(entry?.datum || '').slice(0, 10) !== filter.datum) return false;
   if (filter.filiale && entryFilialeValue(entry) !== filter.filiale) return false;
+  if (filter.o2Kunde && String(entry?.o2Kunde || '').trim() !== filter.o2Kunde) return false;
+  if (filter.stadt && String(entry?.stadt || '').trim() !== filter.stadt) return false;
   if (filter.typ && String(entry?.angebot || '').trim() !== filter.typ) return false;
   if (filter.priority && normalizeTicketPriority(entry?.priority) !== filter.priority) return false;
   if (filter.sprache && normalizeTicketLanguage(entry?.sprache) !== filter.sprache) return false;
@@ -352,6 +362,18 @@ const System = () => {
     () => questionDropdownOptions('angebot', questionConfig) || [...LEAD_ANGEBOT_OPTIONS],
     [questionConfig]
   );
+
+  const offenO2Options = useMemo(() => {
+    const fromConfig = questionDropdownOptions('o2Kunde', questionConfig) || [...LEAD_O2_OPTIONS];
+    const fromTickets = offenEntriesAll.map((entry) => entry?.o2Kunde);
+    return uniqueFilterValues([...fromConfig, ...fromTickets]);
+  }, [questionConfig, offenEntriesAll]);
+
+  const offenStadtOptions = useMemo(() => {
+    const fromConfig = questionDropdownOptions('stadt', questionConfig) || [];
+    const fromTickets = offenEntriesAll.map((entry) => entry?.stadt);
+    return uniqueFilterValues([...fromConfig, ...fromTickets]);
+  }, [questionConfig, offenEntriesAll]);
 
   const offenCount = useMemo(
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadOffenEntries.length,
@@ -1096,6 +1118,34 @@ const System = () => {
               >
                 <option value="">Alle</option>
                 {offenFilialeOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-o2">
+              O2 Kunde
+              <select
+                id="offen-filter-o2"
+                className="form-input"
+                value={offenFilter.o2Kunde}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, o2Kunde: ev.target.value }))}
+              >
+                <option value="">Alle</option>
+                {offenO2Options.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="offen-filter-stadt">
+              Stadt
+              <select
+                id="offen-filter-stadt"
+                className="form-input"
+                value={offenFilter.stadt}
+                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, stadt: ev.target.value }))}
+              >
+                <option value="">Alle</option>
+                {offenStadtOptions.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
