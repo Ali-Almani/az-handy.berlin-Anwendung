@@ -10,6 +10,7 @@ import {
   questionOptionLinks,
   templateQuestionText,
   ticketFormFieldLabel,
+  germanizeTicketFormLabel,
   ticketFormFieldOrder,
   visibleQuestionOrder,
   parseRueckrufzeit,
@@ -303,7 +304,7 @@ function questionMeta(field, config) {
   if (!added) return null;
   const typeLabel = QUESTION_FIELD_TYPES.find((item) => item.id === added.type)?.label || added.type;
   return {
-    label: added.label || 'Neue Frage?',
+    label: germanizeTicketFormLabel(added.label || 'Neue Frage?') || 'Neue Frage?',
     hasText: true,
     type: typeLabel
   };
@@ -318,7 +319,7 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
       {order.map((field, index) => {
         const meta = questionMeta(field, config);
         if (!meta) return null;
-        const label = config?.labels?.[field]?.[locale] || meta.label;
+        const label = ticketFormFieldLabel(field, meta.label, config, 'de') || meta.label;
         const text = config?.texts?.[field]?.[locale] || templateQuestionText(field, locale);
         const options = questionDropdownOptions(field, config);
         const links = field === 'angebot'

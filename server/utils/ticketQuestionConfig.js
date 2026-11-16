@@ -23,6 +23,13 @@ function clip(value, max) {
   return String(value || '').trim().slice(0, max);
 }
 
+function germanizeTicketFormLabel(value) {
+  const raw = String(value || '').trim().replace(/\?+$/, '').trim();
+  const compact = raw.replace(/\s+/g, ' ');
+  if (/^رقم\s*ال?هاتف/.test(compact)) return 'Telefonnummer des Kunden';
+  return raw;
+}
+
 function emptyTicketQuestionConfig() {
   return { hidden: [], labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
 }
@@ -108,15 +115,22 @@ export function sanitizeTicketQuestionConfig(raw) {
     if (!CUSTOM_ID_RE.test(id) || customIds.has(id)) continue;
     const type = FIELD_TYPES.has(item?.type) ? item.type : 'text';
     customIds.add(id);
+    const rawLabel = clip(item?.label, 80) || 'Neue Frage';
     custom.push({
       id,
       type,
-      label: clip(item?.label, 80) || 'Neue Frage'
+      label: germanizeTicketFormLabel(rawLabel) || 'Neue Frage'
     });
   }
 
   const labels = sanitizeKeyedMap(src.labels, customIds, (value) => {
     const pack = sanitizeLocaleMap(value, 80);
+    if (!pack.de) {
+      const mapped = germanizeTicketFormLabel(pack.ar || pack.en || '');
+      if (mapped === 'Telefonnummer des Kunden') pack.de = mapped;
+    } else {
+      pack.de = germanizeTicketFormLabel(pack.de) || pack.de;
+    }
     return Object.keys(pack).length ? pack : null;
   }, 80);
 

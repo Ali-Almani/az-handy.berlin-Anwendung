@@ -460,12 +460,22 @@ function withoutQuestionMark(value) {
   return String(value || '').trim().replace(/\?+$/, '').trim();
 }
 
+export function germanizeTicketFormLabel(value) {
+  const raw = withoutQuestionMark(value);
+  const compact = raw.replace(/\s+/g, ' ');
+  if (/^رقم\s*ال?هاتف/.test(compact)) return 'Telefonnummer des Kunden';
+  return raw;
+}
+
 export function ticketFormFieldLabel(field, fallback, config, locale = 'de') {
   if (TICKET_FORM_LABELS[field]) return TICKET_FORM_LABELS[field];
-  let custom = String(config?.labels?.[field]?.[locale] || '').trim();
+  const pack = config?.labels?.[field] && typeof config.labels[field] === 'object' ? config.labels[field] : {};
+  let custom = String(pack.de || '').trim();
+  if (!custom && locale && locale !== 'de') custom = String(pack[locale] || '').trim();
+  if (!custom) custom = String(pack.ar || pack.en || '').trim();
   const legacy = LEGACY_TICKET_FORM_LABELS[field];
   if (legacy && legacy.includes(normalizeTicketFormLabel(custom))) custom = '';
-  return withoutQuestionMark(custom || fallback);
+  return germanizeTicketFormLabel(custom || fallback);
 }
 
 export const AUTO_QUESTION_TICKET_FIELDS = [

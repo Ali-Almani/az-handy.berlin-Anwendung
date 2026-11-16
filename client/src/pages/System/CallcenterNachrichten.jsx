@@ -970,14 +970,15 @@ const CallcenterNachrichten = ({
     onStatusApplied?.(id, 'offen');
   };
 
-  const addQuestion = (type) => {
+  const addQuestion = (type, locale = chatLocale) => {
     const id = `cq-${Date.now().toString(36)}`;
     const label = 'Neue Frage?';
+    const loc = locale || chatLocale;
     setQuestionConfig((prev) => ({
       ...prev,
       custom: [...customQuestions(prev), { id, type, label }],
-      labels: { ...prev.labels, [id]: { ...(prev.labels?.[id] || {}), [chatLocale]: label } },
-      texts: { ...prev.texts, [id]: { ...(prev.texts?.[id] || {}), [chatLocale]: '' } },
+      labels: { ...prev.labels, [id]: { ...(prev.labels?.[id] || {}), [loc]: label } },
+      texts: { ...prev.texts, [id]: { ...(prev.texts?.[id] || {}), [loc]: '' } },
       options: type === 'dropdown'
         ? { ...prev.options, [id]: ['Option 1', 'Option 2'] }
         : prev.options,
@@ -991,11 +992,12 @@ const CallcenterNachrichten = ({
     });
   };
 
-  const updateQuestion = (field, { label, text, options, links }) => {
+  const updateQuestion = (field, { label, text, options, links }, locale = chatLocale) => {
+    const loc = locale || chatLocale;
     setQuestionConfig((prev) => {
       const labels = {
         ...prev.labels,
-        [field]: { ...(prev.labels[field] || {}), [chatLocale]: label }
+        [field]: { ...(prev.labels[field] || {}), [loc]: label }
       };
       let next = { ...prev, labels };
       if (text != null) {
@@ -1003,7 +1005,7 @@ const CallcenterNachrichten = ({
           ...next,
           texts: {
             ...prev.texts,
-            [field]: { ...(prev.texts[field] || {}), [chatLocale]: text }
+            [field]: { ...(prev.texts[field] || {}), [loc]: text }
           }
         };
       }
@@ -2607,10 +2609,11 @@ const CallcenterNachrichten = ({
               answers={answers}
               onChange={patchAnswer}
               questionConfig={questionConfig}
-              questionLocale={chatLocale}
+              questionLocale="de"
               templateEditing={canEditFragen && templateEditing}
               onQuestionDelete={deleteQuestion}
-              onQuestionAdd={addQuestion}
+              onQuestionAdd={(type) => addQuestion(type, 'de')}
+              onQuestionUpdate={(field, patch) => updateQuestion(field, patch, 'de')}
               onQuestionMove={(field, direction) => {
                 setQuestionConfig((prev) => {
                   const order = visibleQuestionOrder(prev);
@@ -2624,7 +2627,6 @@ const CallcenterNachrichten = ({
                   return { ...prev, order: [...next, ...hidden] };
                 });
               }}
-              onQuestionUpdate={updateQuestion}
             />
             ) : null}
             {active && Object.keys(active.autoAnswers || {}).length ? (
