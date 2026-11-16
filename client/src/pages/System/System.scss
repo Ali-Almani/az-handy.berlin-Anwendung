@@ -240,6 +240,28 @@
   flex: 0 1 auto;
 }
 
+.lead-fragen-panel__opened {
+  display: flex;
+  align-items: flex-end;
+  gap: $spacing-sm;
+  flex: 0 0 auto;
+}
+
+.lead-fragen-panel__opened-field {
+  flex: 0 0 7.25rem;
+  min-width: 6.5rem;
+  margin-bottom: 0;
+
+  &--time {
+    flex-basis: 5.5rem;
+    min-width: 5rem;
+  }
+
+  .form-input {
+    cursor: default;
+  }
+}
+
 .lead-fragen-panel__bearbeiter {
   flex: 0 1 12rem;
   min-width: 8rem;

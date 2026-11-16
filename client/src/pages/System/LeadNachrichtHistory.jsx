@@ -46,6 +46,20 @@ function fillAutoKontaktversuchZeit(ticket, draft, now = new Date()) {
   return draft;
 }
 
+function formatOpenedDate(iso) {
+  const parsed = Date.parse(iso);
+  if (!Number.isFinite(parsed)) return '';
+  const ymd = berlinCalendarDate(new Date(parsed));
+  const [year, month, day] = ymd.split('-');
+  return day && month && year ? `${day}.${month}.${year}` : '';
+}
+
+function formatOpenedTime(iso) {
+  const parsed = Date.parse(iso);
+  if (!Number.isFinite(parsed)) return '';
+  return berlinClockTime(new Date(parsed));
+}
+
 function draftFromTicket(ticket, bearbeiterName) {
   const draft = followupSnapshot(ticket);
   const name = String(bearbeiterName || '').trim();
@@ -76,6 +90,9 @@ export default function LeadNachrichtHistory({
   questionConfig: questionConfigProp
 }) {
   const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
+  const openedAt = String(ticket?.geoeffnetAt || '').trim() || ensureTicketGeoeffnetAt(ticket);
+  const openedDate = formatOpenedDate(openedAt);
+  const openedTime = formatOpenedTime(openedAt);
   const logItems = Array.isArray(editLog) ? editLog : [];
   const questionConfig = questionConfigProp || loadQuestionConfig();
   const answers = useMemo(
@@ -155,6 +172,28 @@ export default function LeadNachrichtHistory({
           <p className="lead-fragen-panel__sub">
             {ticket?.id}
           </p>
+        </div>
+        <div className="lead-fragen-panel__opened">
+          <div className="form-group sz-qfield lead-fragen-panel__opened-field">
+            <label className="sz-qfield__label" htmlFor="offen-geoeffnet-datum">Datum</label>
+            <input
+              id="offen-geoeffnet-datum"
+              className="form-input"
+              value={openedDate}
+              readOnly
+              aria-label="Datum geöffnetes Ticket"
+            />
+          </div>
+          <div className="form-group sz-qfield lead-fragen-panel__opened-field lead-fragen-panel__opened-field--time">
+            <label className="sz-qfield__label" htmlFor="offen-geoeffnet-zeit">Zeit</label>
+            <input
+              id="offen-geoeffnet-zeit"
+              className="form-input"
+              value={openedTime}
+              readOnly
+              aria-label="Zeit geöffnetes Ticket"
+            />
+          </div>
         </div>
         <div className="form-group sz-qfield lead-fragen-panel__bearbeiter">
           <label htmlFor="offen-shop-mitarbeiter" className="sz-qfield__label">Bearbeiter</label>
