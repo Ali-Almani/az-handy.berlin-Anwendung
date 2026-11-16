@@ -235,6 +235,44 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
               }}
             />
           </article>
+          <article className="auto-flow-setting">
+            <h3 className="auto-flow-setting__title">Abholbereit</h3>
+            <p className="auto-flow-setting__hint">Wenn der Status in Geöffnete Tickets auf Abholbereit gesetzt wird. Leer = aus.</p>
+            <textarea
+              className="form-input auto-flow-setting__text"
+              value={flow.abholbereitText?.[locale] || ''}
+              placeholder="Nachricht an den Kunden"
+              aria-label="Nachricht bei Abholbereit"
+              rows={3}
+              dir={locale === 'ar' ? 'rtl' : undefined}
+              onChange={(ev) => {
+                setSaved(false);
+                setFlow((prev) => ({
+                  ...prev,
+                  abholbereitText: { ...(prev.abholbereitText || {}), [locale]: ev.target.value }
+                }));
+              }}
+            />
+          </article>
+          <article className="auto-flow-setting">
+            <h3 className="auto-flow-setting__title">Erledigt</h3>
+            <p className="auto-flow-setting__hint">Wenn der Status in Geöffnete Tickets auf Erledigt gesetzt wird. Leer = aus.</p>
+            <textarea
+              className="form-input auto-flow-setting__text"
+              value={flow.erledigtText?.[locale] || ''}
+              placeholder="Nachricht an den Kunden"
+              aria-label="Nachricht bei Erledigt"
+              rows={3}
+              dir={locale === 'ar' ? 'rtl' : undefined}
+              onChange={(ev) => {
+                setSaved(false);
+                setFlow((prev) => ({
+                  ...prev,
+                  erledigtText: { ...(prev.erledigtText || {}), [locale]: ev.target.value }
+                }));
+              }}
+            />
+          </article>
         </div>
       </div>
 

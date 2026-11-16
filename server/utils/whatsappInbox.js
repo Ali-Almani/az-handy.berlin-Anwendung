@@ -16,6 +16,7 @@ import {
   followupTextForLocale,
   followupWaitMs,
   loadAutoQuestionFlow,
+  statusAutoTextForLocale,
   matchFlowOption,
   normalizeFlowAnswer,
   queueAfter,
@@ -205,6 +206,8 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     dokumenteHidden: [],
     editLog: [],
     kontaktversuchCount: 1,
+    abholbereitAutoSent: false,
+    erledigtAutoSent: false,
     createdAt: at,
     messages: []
   };
@@ -496,10 +499,13 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (extra.autoQuestionDueAt !== undefined) ticket.autoQuestionDueAt = extra.autoQuestionDueAt;
     if (extra.autoQuestionQueue !== undefined) ticket.autoQuestionQueue = extra.autoQuestionQueue;
     if (extra.sprache !== undefined) ticket.sprache = extra.sprache;
+    if (extra.abholbereitAutoSent) ticket.abholbereitAutoSent = true;
+    if (extra.erledigtAutoSent) ticket.erledigtAutoSent = true;
     return { value: { tickets: state.tickets } };
   }).then((state) => {
     const ticket = ticketFromState(state, ticketId);
-    if (message?.from === 'agent' && message?.auto !== 'followup') {
+    const skipFollowup = message?.auto === 'followup' || message?.auto === 'abholbereit' || message?.auto === 'erledigt';
+    if (message?.from === 'agent' && !skipFollowup) {
       armTextFollowup(ticket);
     }
     return state;
@@ -515,7 +521,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
-      'textFollowupDueAt', 'textFollowupSent', 'kontaktversuchCount', 'editLog',
+      'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'kontaktversuchCount', 'editLog',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
         `kundenbesuch${n}Bearbeiter`,
         `kontakt${n}Bearbeiter`,
@@ -1436,6 +1442,38 @@ async function sendScheduledTextFollowup(ticketId) {
   } catch (err) {
     console.warn('[whatsapp] followup', err?.detail || err?.message || err);
     await patchWhatsAppTicket(ticketId, { textFollowupSent: false });
+  }
+}
+
+export async function sendStatusAutoMessage(ticket, prevStatus) {
+  const nextStatus = String(ticket?.ticketStatus || '').trim();
+  const prev = String(prevStatus || '').trim();
+  if (!ticket?.id || !ticket?.waId || !nextStatus || nextStatus === prev) return ticket;
+  if (nextStatus !== 'Abholbereit' && nextStatus !== 'Erledigt') return ticket;
+  const sentKey = nextStatus === 'Erledigt' ? 'erledigtAutoSent' : 'abholbereitAutoSent';
+  if (ticket[sentKey]) return ticket;
+  const flow = loadAutoQuestionFlow();
+  const locale = localeFromSprache(ticket.sprache);
+  const text = statusAutoTextForLocale(flow, nextStatus, locale);
+  if (!text) return ticket;
+  try {
+    const waMessageId = await sendWhatsAppText(ticket.waId, text);
+    if (nextStatus === 'Erledigt') cancelTextFollowup(ticket.id);
+    let nextState = await appendOutgoingMessage(ticket.id, {
+      id: waMessageId,
+      from: 'agent',
+      auto: nextStatus === 'Erledigt' ? 'erledigt' : 'abholbereit',
+      locale,
+      text,
+      at: new Date().toISOString()
+    }, { keepUnread: true, [sentKey]: true });
+    if (nextStatus === 'Erledigt') {
+      nextState = await patchWhatsAppTicket(ticket.id, { textFollowupDueAt: '', textFollowupSent: true });
+    }
+    return ticketFromState(nextState, ticket.id, ticket.waId) || ticket;
+  } catch (err) {
+    console.warn('[whatsapp] status-auto', nextStatus, err?.detail || err?.message || err);
+    return ticket;
   }
 }
 

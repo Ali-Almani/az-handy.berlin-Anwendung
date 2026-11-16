@@ -1877,7 +1877,7 @@
 
 .auto-flow-settings__grid {
   display: grid;
-  grid-template-columns: minmax(180px, 220px) minmax(280px, 1fr);
+  grid-template-columns: minmax(180px, 1fr) minmax(280px, 1fr);
   gap: 0.55rem;
   align-items: stretch;
 

@@ -22,6 +22,7 @@ import {
   sendOutgoingParts,
   sendOutgoingSavedFile,
   sendWelcomeIfNeeded,
+  sendStatusAutoMessage,
   handleAutoQuestionReply,
   cancelTextFollowup,
   downloadWhatsAppMedia,
@@ -523,9 +524,13 @@ export async function patchWhatsAppTicketHandler(req, res) {
   if (!(await requireInboxTicketAccess(req, res, current))) return;
   const body = { ...(req.body || {}) };
   delete body.inboxGroup;
+  const prevStatus = String(current?.ticketStatus || '').trim();
   const state = await patchWhatsAppTicket(req.params.id, body);
-  const ticket = (state?.tickets || []).find((t) => t.id === req.params.id);
+  let ticket = (state?.tickets || []).find((t) => t.id === req.params.id);
   if (!ticket) return res.status(404).json({ success: false, message: 'Chat nicht gefunden.' });
+  if (body.ticketStatus != null) {
+    ticket = await sendStatusAutoMessage(ticket, prevStatus) || ticket;
+  }
   req.app.get('io')?.emit('whatsapp:inbox', ticket);
   return res.json({ success: true, ticket });
 }

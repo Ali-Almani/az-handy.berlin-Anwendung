@@ -47,6 +47,8 @@ export function defaultAutoQuestionFlow() {
     waitSeconds: 60,
     followupWaitHours: 23,
     followupText: { de: '', ar: '', en: '' },
+    abholbereitText: { de: '', ar: '', en: '' },
+    erledigtText: { de: '', ar: '', en: '' },
     startId: 'o2Kunde',
     questions: [
       {
@@ -290,6 +292,8 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
   }
   followupWaitHours = Math.min(23, Math.max(1, followupWaitHours));
   const followupText = optionalTextPack(source.followupText);
+  const abholbereitText = optionalTextPack(source.abholbereitText);
+  const erledigtText = optionalTextPack(source.erledigtText);
 
   let startId = String(source.startId || '').trim();
   if (!ids.has(startId)) startId = questions[0].id;
@@ -297,7 +301,18 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
     return { flow: null, error: 'Die erste Frage fehlt.' };
   }
 
-  return { flow: { waitSeconds, followupWaitHours, followupText, startId, questions }, error: '' };
+  return {
+    flow: {
+      waitSeconds,
+      followupWaitHours,
+      followupText,
+      abholbereitText,
+      erledigtText,
+      startId,
+      questions
+    },
+    error: ''
+  };
 }
 
 export function loadAutoQuestionFlow() {
@@ -331,9 +346,20 @@ export function followupWaitMs(flow = loadAutoQuestionFlow()) {
 }
 
 export function followupTextForLocale(flow, locale) {
-  const pack = flow?.followupText && typeof flow.followupText === 'object' ? flow.followupText : {};
+  return localeTextPack(flow?.followupText, locale);
+}
+
+export function statusAutoTextForLocale(flow, status, locale) {
+  const name = String(status || '').trim();
+  if (name === 'Erledigt') return localeTextPack(flow?.erledigtText, locale);
+  if (name === 'Abholbereit') return localeTextPack(flow?.abholbereitText, locale);
+  return '';
+}
+
+function localeTextPack(pack, locale) {
+  const src = pack && typeof pack === 'object' ? pack : {};
   const loc = LOCALES.includes(locale) ? locale : 'de';
-  return String(pack[loc] || pack.de || pack.ar || pack.en || '').trim();
+  return String(src[loc] || src.de || src.ar || src.en || '').trim();
 }
 
 export function findFlowQuestion(flow, id) {
