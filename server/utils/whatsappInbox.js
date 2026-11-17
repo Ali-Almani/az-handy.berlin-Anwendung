@@ -39,32 +39,24 @@ Turmstraße 47, 10551
 Hauptstraße 156, 10827`;
 
 const WELCOME_BY_LOCALE = {
-  ar: `أهلاً بك في AZ Handy Berlin! 
-استلمنا رسالتك، وسيرد عليك أحد زملائنا شخصياً بأقرب وقت خلال ساعات العمل.
-
-📞 للاستفسارات : 03076767089
-🕙 الإثنين–السبت: 10 صباحاً–6 مساءً
-
-📍 فروعنا في برلين:
-${WELCOME_BRANCHES}
-
+  ar: `👋 أهلاً وسهلاً بكم في AZ Handy Berlin!
+شكراً لتواصلكم معنا! 💙
+📞 خدمة العملاء: 03076767089
+🕙 أوقات العمل: الإثنين–السبت | 10:00–18:00
+📍 فروعنا السبعة في برلين:
+https://qrco.de/bgn8QT
 🌐 أحدث عروضنا:
-az-handy.berlin
-
-شكراً جزيلاً، يسعدنا مساعدتك! 🌟`,
-  de: `Willkommen bei AZ Handy Berlin!
-Wir haben Ihre Nachricht erhalten. Ein Kollege antwortet Ihnen persönlich so schnell wie möglich während der Öffnungszeiten.
-
-📞 Fragen: 03076767089
-🕙 Mo–Sa: 10–18 Uhr
-
-📍 Unsere Filialen in Berlin:
-${WELCOME_BRANCHES}
-
+az-handy.berlin الأفضل بعالم الموبايلات والاتصالات
+مع تحيات فريق AZ Handy Berlin 💙`,
+  de: `👋 Willkommen bei AZ Handy Berlin!
+Vielen Dank für Ihre Nachricht! 💙
+📞 Kundenservice: 030 76767089
+🕙 Öffnungszeiten: Mo.–Sa. | 10–18 Uhr
+📍 Unsere 7 Berliner Filialen:
+https://qrco.de/bgn8QT
 🌐 Aktuelle Angebote:
-az-handy.berlin
-
-Vielen Dank, wir helfen Ihnen gerne! 🌟`,
+https://az-handy.berlin
+Ihr AZ Handy Berlin Team 💙`,
   en: `Welcome to AZ Handy Berlin!
 We received your message. A colleague will reply personally as soon as possible during opening hours.
 
