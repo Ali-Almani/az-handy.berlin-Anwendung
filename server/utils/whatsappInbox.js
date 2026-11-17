@@ -129,6 +129,14 @@ export function whatsappPhoneNumberId() {
   return String(process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim();
 }
 
+/** Nur Ereignisse der konfigurierten Cloud-API-Nummer ins Ticketing nehmen. */
+export function isTicketingWhatsAppPhone(metadata) {
+  const configured = whatsappPhoneNumberId();
+  if (!configured) return false;
+  const incoming = String(metadata?.phone_number_id || '').trim();
+  return Boolean(incoming) && incoming === configured;
+}
+
 export function whatsappAppSecret() {
   return String(process.env.WHATSAPP_APP_SECRET || '').trim().replace(/^["']|["']$/g, '');
 }

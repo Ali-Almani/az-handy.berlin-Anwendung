@@ -6,6 +6,8 @@ import {
   whatsappAppSecret,
   whatsappVerifyToken,
   whatsappConfigured,
+  whatsappPhoneNumberId,
+  isTicketingWhatsAppPhone,
   loadWhatsAppTickets,
   upsertIncomingMessage,
   appendOutgoingMessage,
@@ -265,6 +267,7 @@ export async function receiveWhatsAppWebhook(req, io) {
     const changes = Array.isArray(entry?.changes) ? entry.changes : [];
     for (const change of changes) {
       const value = change?.value || {};
+      if (whatsappPhoneNumberId() && !isTicketingWhatsAppPhone(value.metadata)) continue;
       const contacts = Array.isArray(value.contacts) ? value.contacts : [];
       const messages = Array.isArray(value.messages) ? value.messages : [];
       for (const item of messages) {
