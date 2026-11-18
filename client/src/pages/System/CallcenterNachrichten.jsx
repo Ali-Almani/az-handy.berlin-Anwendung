@@ -39,6 +39,7 @@ import {
   mergeWhatsAppTickets,
   displayTicketId,
   isCustomTicketField,
+  ticketFormCustomLabel,
   NEW_QUESTION_PLACEHOLDER
 } from './callcenterLeadData';
 import { syncProduktQuestion, ticketProduktNames } from './produktFrageSync';
@@ -626,6 +627,7 @@ const CallcenterNachrichten = ({
     if (!active) return null;
     const base = formFromLead(active);
     customQuestions(questionConfig).forEach((item) => {
+      if (!ticketFormCustomLabel(questionConfig, item.id)) return;
       base[item.id] = active[item.id] || active.customAnswers?.[item.id] || '';
     });
     return base;

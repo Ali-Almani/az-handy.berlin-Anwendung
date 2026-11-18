@@ -448,7 +448,7 @@ export function ticketFormFieldOrder(config, { includeMocKn = false, extraCustom
   const custom = [];
   for (const id of [...customQuestions(config).map((item) => item.id), ...extraCustomIds]) {
     if (!id || seen.has(id) || !isCustomTicketField(id) || isQuestionHidden(config, id)) continue;
-    if (!extraCustomIds.includes(id) && !questionLocaleValue(config?.labels, id, 'de')) continue;
+    if (!ticketFormCustomLabel(config, id)) continue;
     seen.add(id);
     custom.push(id);
   }
@@ -502,15 +502,43 @@ export function germanizeTicketFormLabel(value) {
   return raw;
 }
 
+export function hasArabicScript(value) {
+  return /[\u0600-\u06FF]/.test(String(value || ''));
+}
+
+const TICKET_FORM_PLACEHOLDER_LABELS = new Set([
+  'zusatzfeld',
+  'neue frage',
+  'new question',
+  'سؤال جديد'
+]);
+
+export function isUsableTicketFormLabel(value) {
+  const label = germanizeTicketFormLabel(value);
+  if (!label || hasArabicScript(label)) return false;
+  return !TICKET_FORM_PLACEHOLDER_LABELS.has(normalizeTicketFormLabel(label));
+}
+
+export function ticketFormCustomLabel(config, field) {
+  const pack = config?.labels?.[field] && typeof config.labels[field] === 'object' ? config.labels[field] : {};
+  const added = customQuestions(config).find((item) => item.id === field);
+  for (const candidate of [pack.de, added?.label]) {
+    const label = germanizeTicketFormLabel(String(candidate || '').trim());
+    if (isUsableTicketFormLabel(label)) return label;
+  }
+  return '';
+}
+
 export function ticketFormFieldLabel(field, fallback, config, locale = 'de') {
   if (TICKET_FORM_LABELS[field]) return TICKET_FORM_LABELS[field];
   const pack = config?.labels?.[field] && typeof config.labels[field] === 'object' ? config.labels[field] : {};
   const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
   let custom = String(pack[loc] || '').trim();
-  if (!custom && loc === 'de') custom = String(pack.de || '').trim();
+  if (loc === 'de') custom = ticketFormCustomLabel(config, field);
   const legacy = LEGACY_TICKET_FORM_LABELS[field];
   if (legacy && legacy.includes(normalizeTicketFormLabel(custom))) custom = '';
-  return germanizeTicketFormLabel(custom || fallback);
+  const next = germanizeTicketFormLabel(custom || fallback);
+  return loc === 'de' && !isUsableTicketFormLabel(next) ? '' : next;
 }
 
 export const AUTO_QUESTION_TICKET_FIELDS = [

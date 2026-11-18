@@ -30,6 +30,11 @@ function germanizeTicketFormLabel(value) {
   return raw;
 }
 
+function isGermanTicketFormLabel(value) {
+  const label = germanizeTicketFormLabel(value);
+  return Boolean(label) && !/[\u0600-\u06FF]/.test(label);
+}
+
 function emptyTicketQuestionConfig() {
   return { hidden: [], hiddenLocales: {}, labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
 }
@@ -132,17 +137,21 @@ export function sanitizeTicketQuestionConfig(raw) {
     if (!CUSTOM_ID_RE.test(id) || customIds.has(id)) continue;
     const type = FIELD_TYPES.has(item?.type) ? item.type : 'text';
     customIds.add(id);
-    const rawLabel = clip(item?.label, 80) || 'Neue Frage';
+    const rawLabel = clip(item?.label, 80);
+    const deLabel = germanizeTicketFormLabel(rawLabel);
     custom.push({
       id,
       type,
-      label: germanizeTicketFormLabel(rawLabel) || 'Neue Frage'
+      label: isGermanTicketFormLabel(deLabel) ? deLabel : ''
     });
   }
 
   const labels = sanitizeKeyedMap(src.labels, customIds, (value) => {
     const pack = sanitizeLocaleMap(value, 80);
-    if (pack.de) pack.de = germanizeTicketFormLabel(pack.de) || pack.de;
+    if (pack.de) {
+      pack.de = germanizeTicketFormLabel(pack.de) || pack.de;
+      if (!isGermanTicketFormLabel(pack.de)) delete pack.de;
+    }
     return Object.keys(pack).length ? pack : null;
   }, 80);
 

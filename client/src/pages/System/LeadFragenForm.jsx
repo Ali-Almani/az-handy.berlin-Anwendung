@@ -10,7 +10,7 @@ import {
   questionOptionLinks,
   templateQuestionText,
   ticketFormFieldLabel,
-  germanizeTicketFormLabel,
+  ticketFormCustomLabel,
   ticketFormFieldOrder,
   parseRueckrufzeit,
   formatRueckrufzeit,
@@ -303,7 +303,7 @@ function questionMeta(field, config) {
   if (!added) return null;
   const typeLabel = QUESTION_FIELD_TYPES.find((item) => item.id === added.type)?.label || added.type;
   return {
-    label: germanizeTicketFormLabel(added.label || 'Neue Frage?') || 'Neue Frage?',
+    label: ticketFormCustomLabel(config, field) || 'Neue Frage?',
     hasText: true,
     type: typeLabel
   };
@@ -452,7 +452,9 @@ export default function LeadFragenForm({
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const labelFor = (field, fallback) => ticketFormFieldLabel(field, fallback, questionConfig, questionLocale);
-  const extraCustomIds = Object.keys(answers || {}).filter(isCustomTicketField);
+  const extraCustomIds = Object.keys(answers || {}).filter((id) => (
+    isCustomTicketField(id) && ticketFormCustomLabel(questionConfig, id)
+  ));
   const order = ticketFormFieldOrder(questionConfig, { includeMocKn: showMocKn, extraCustomIds });
 
   if (templateEditing) {
@@ -631,7 +633,8 @@ export default function LeadFragenForm({
     const added = customQuestions(questionConfig).find((item) => item.id === field);
     if (!added && !isCustomTicketField(field)) return null;
     const type = added?.type || 'text';
-    const label = labelFor(field, added?.label || 'Zusatzfeld');
+    const label = ticketFormCustomLabel(questionConfig, field) || labelFor(field, '');
+    if (!label) return null;
     const inputId = `${idPrefix}-${field}`;
     if (type === 'dropdown') {
       const options = questionDropdownOptions(field, questionConfig) || [];
