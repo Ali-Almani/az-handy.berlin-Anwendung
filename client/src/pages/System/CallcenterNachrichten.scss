@@ -15,9 +15,19 @@
   overflow: hidden;
 }
 
-@media (min-width: $breakpoint-lg) {
+@media (min-width: $breakpoint-md) {
   .sz-layout--with-questions {
-    grid-template-columns: minmax(16.5rem, 20rem) minmax(0, 1fr) minmax(15.5rem, 19rem);
+    grid-template-columns: minmax(12.5rem, 0.82fr) minmax(0, 1.85fr) minmax(12rem, 0.68fr);
+  }
+
+  .sz-layout--with-questions.sz-layout--form-only {
+    grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: $breakpoint-xl) {
+  .sz-layout--with-questions {
+    grid-template-columns: minmax(16rem, 0.9fr) minmax(0, 1.7fr) minmax(14.5rem, 0.78fr);
   }
 
   .sz-layout--with-questions.sz-layout--form-only {
@@ -1901,6 +1911,8 @@
 @media (min-width: $breakpoint-md) {
   .sz-layout {
     min-height: min(74dvh, 780px);
+    height: calc(100dvh - 11.5rem);
+    max-height: calc(100dvh - 11.5rem);
   }
 }
 
@@ -1911,15 +1923,7 @@
   }
 }
 
-@media (max-width: $breakpoint-lg) {
-  .sz-questions {
-    border-left: none;
-    border-top: 1px solid $border-color;
-    max-height: 18rem;
-  }
-}
-
-@media (max-width: $breakpoint-md) {
+@media (max-width: $breakpoint-md - 1px) {
   .sz {
     margin-top: 0;
     margin-bottom: 0;
