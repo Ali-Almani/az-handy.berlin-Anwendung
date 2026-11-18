@@ -622,6 +622,8 @@ export default function LeadFragenForm({
             aria-label={`${labelFor('marketingErstkontakt', 'Marketing-Kontaktzeitraum')} in Stunden`}
             inputMode="decimal"
             readOnly
+            disabled
+            aria-readonly="true"
           />
           <span>(Std)</span>
         </div>

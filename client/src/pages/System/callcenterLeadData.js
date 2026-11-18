@@ -822,9 +822,9 @@ export function kontaktversuchGroup(n) {
     fields: [
       { key: kontaktversuchBearbeiterKey(n), label: 'Bearbeiter', type: 'text', autoName: true },
       { key: `kontakt${n}ShopNotiz`, label: 'Shop Notiz', type: 'text' },
-      { key: kontaktversuchDatumKey(n), label: 'Datum', type: 'date' },
-      { key: kontaktversuchUhrzeitKey(n), label: 'Zeit', type: 'time' },
-      { key: kontaktversuchZeitKey(n), label: zeitLabel, type: 'text', autoZeit: true }
+      { key: kontaktversuchDatumKey(n), label: 'Datum', type: 'date', locked: true },
+      { key: kontaktversuchUhrzeitKey(n), label: 'Zeit', type: 'time', locked: true },
+      { key: kontaktversuchZeitKey(n), label: zeitLabel, type: 'text', autoZeit: true, locked: true }
     ]
   };
 }

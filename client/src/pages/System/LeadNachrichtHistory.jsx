@@ -261,7 +261,8 @@ export default function LeadNachrichtHistory({
           <div className="lead-fragen-grid">
             {group.fields.map((field) => {
               const value = draft[field.key] || '';
-              const pickerType = field.type === 'date' || field.type === 'time' ? field.type : '';
+              const locked = Boolean(field.locked || field.autoZeit);
+              const pickerType = !locked && (field.type === 'date' || field.type === 'time') ? field.type : '';
               const inputType = pickerType && value ? pickerType : 'text';
               const input = (
                 <input
@@ -269,8 +270,10 @@ export default function LeadNachrichtHistory({
                   className="form-input"
                   type={inputType}
                   value={value}
-                  readOnly={Boolean(field.autoZeit)}
+                  readOnly={locked}
+                  disabled={locked}
                   inputMode={field.autoZeit ? 'decimal' : undefined}
+                  aria-readonly={locked || undefined}
                   aria-label={field.autoZeit ? `${group.title} ${field.label} in Stunden` : `${group.title} ${field.label}`}
                   onFocus={(ev) => {
                     if (pickerType) ev.target.type = pickerType;
@@ -278,7 +281,7 @@ export default function LeadNachrichtHistory({
                   onBlur={(ev) => {
                     if (pickerType && !ev.target.value) ev.target.type = 'text';
                   }}
-                  onChange={(ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
+                  onChange={locked ? undefined : (ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
                 />
               );
               return (

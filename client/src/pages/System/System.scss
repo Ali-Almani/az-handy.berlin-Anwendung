@@ -339,6 +339,14 @@
   font-size: 0.62rem;
 }
 
+.lead-fragen-panel .form-input[readonly],
+.lead-fragen-panel .form-input:disabled {
+  cursor: default;
+  background: $bg-light;
+  opacity: 1;
+  color: $text-color;
+}
+
 .lead-fragen-panel .sz-qfield__label {
   font-size: 0.68rem;
 }
