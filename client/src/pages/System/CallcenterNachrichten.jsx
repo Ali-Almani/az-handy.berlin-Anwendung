@@ -38,7 +38,8 @@ import {
   isLiveWhatsAppTicket,
   mergeWhatsAppTickets,
   displayTicketId,
-  isCustomTicketField
+  isCustomTicketField,
+  NEW_QUESTION_PLACEHOLDER
 } from './callcenterLeadData';
 import { syncProduktQuestion, ticketProduktNames } from './produktFrageSync';
 import LeadFragenForm, { AngebotLinksEditor } from './LeadFragenForm';
@@ -972,13 +973,13 @@ const CallcenterNachrichten = ({
 
   const addQuestion = (type, locale = chatLocale) => {
     const id = `cq-${Date.now().toString(36)}`;
-    const label = 'Neue Frage?';
-    const loc = locale || chatLocale;
+    const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : (locale || chatLocale || 'de');
+    const label = NEW_QUESTION_PLACEHOLDER[loc] || NEW_QUESTION_PLACEHOLDER.de;
     setQuestionConfig((prev) => ({
       ...prev,
-      custom: [...customQuestions(prev), { id, type, label }],
-      labels: { ...prev.labels, [id]: { ...(prev.labels?.[id] || {}), [loc]: label } },
-      texts: { ...prev.texts, [id]: { ...(prev.texts?.[id] || {}), [loc]: '' } },
+      custom: [...customQuestions(prev), { id, type, label: loc === 'de' ? label : '' }],
+      labels: { ...prev.labels, [id]: { [loc]: label } },
+      texts: { ...prev.texts, [id]: { [loc]: '' } },
       options: type === 'dropdown'
         ? { ...prev.options, [id]: ['Option 1', 'Option 2'] }
         : prev.options,
@@ -1015,7 +1016,7 @@ const CallcenterNachrichten = ({
       if (links && typeof links === 'object') {
         next = { ...next, links: { ...(prev.links || {}), [field]: links } };
       }
-      if (customQuestions(prev).some((item) => item.id === field)) {
+      if (loc === 'de' && customQuestions(prev).some((item) => item.id === field)) {
         next = {
           ...next,
           custom: customQuestions(prev).map((item) => (
@@ -1027,13 +1028,33 @@ const CallcenterNachrichten = ({
     });
   };
 
-  const deleteQuestion = (field, label) => {
+  const deleteQuestion = (field, label, locale = chatLocale) => {
     const name = label || 'Diese Frage';
     if (!window.confirm(`${name} wirklich löschen?`)) return;
-    setQuestionConfig((prev) => ({
-      ...prev,
-      hidden: prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
-    }));
+    const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : (chatLocale || 'de');
+    setQuestionConfig((prev) => {
+      if (isCustomTicketField(field)) {
+        const nextLabels = { ...(prev.labels?.[field] || {}) };
+        const nextTexts = { ...(prev.texts?.[field] || {}) };
+        delete nextLabels[loc];
+        delete nextTexts[loc];
+        const still = QUESTION_CHAT_LOCALES.some((item) => (
+          String(nextLabels[item.id] || '').trim() || String(nextTexts[item.id] || '').trim()
+        ));
+        return {
+          ...prev,
+          labels: { ...prev.labels, [field]: nextLabels },
+          texts: { ...prev.texts, [field]: nextTexts },
+          hidden: still || prev.hidden.includes(field) ? prev.hidden : [...prev.hidden, field]
+        };
+      }
+      const current = Array.isArray(prev.hiddenLocales?.[field]) ? prev.hiddenLocales[field] : [];
+      const hiddenLocales = {
+        ...(prev.hiddenLocales || {}),
+        [field]: current.includes(loc) ? current : [...current, loc]
+      };
+      return { ...prev, hiddenLocales };
+    });
   };
 
   const patchAnswer = (field, value) => {
@@ -2611,7 +2632,7 @@ const CallcenterNachrichten = ({
               questionConfig={questionConfig}
               questionLocale="de"
               templateEditing={canEditFragen && templateEditing}
-              onQuestionDelete={deleteQuestion}
+              onQuestionDelete={(field, label) => deleteQuestion(field, label, 'de')}
               onQuestionAdd={(type) => addQuestion(type, 'de')}
               onQuestionUpdate={(field, patch) => updateQuestion(field, patch, 'de')}
               onQuestionMove={(field, direction) => {

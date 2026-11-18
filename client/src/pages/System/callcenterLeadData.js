@@ -305,14 +305,38 @@ function upgradeQuestionOrder(order) {
   return [...VORLAGE_QUESTION_ORDER, ...order.slice(old.length)];
 }
 
+export const NEW_QUESTION_PLACEHOLDER = {
+  de: 'Neue Frage?',
+  ar: 'سؤال جديد؟',
+  en: 'New question?'
+};
+
 export function emptyQuestionConfig() {
-  return { hidden: [], labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
+  return { hidden: [], hiddenLocales: {}, labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
+}
+
+function normalizeHiddenLocales(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  Object.entries(raw).forEach(([field, value]) => {
+    const id = String(field || '').trim();
+    if (!id) return;
+    const locales = Array.isArray(value)
+      ? value.map(String)
+      : (value && typeof value === 'object'
+        ? QUESTION_CHAT_LOCALES.map((item) => item.id).filter((loc) => value[loc])
+        : []);
+    const next = locales.filter((loc) => QUESTION_CHAT_LOCALES.some((item) => item.id === loc));
+    if (next.length) out[id] = [...new Set(next)];
+  });
+  return out;
 }
 
 export function normalizeQuestionConfig(parsed) {
   if (!parsed || typeof parsed !== 'object') return emptyQuestionConfig();
   return {
     hidden: Array.isArray(parsed.hidden) ? parsed.hidden.filter(Boolean).map(String) : [],
+    hiddenLocales: normalizeHiddenLocales(parsed.hiddenLocales),
     labels: parsed.labels && typeof parsed.labels === 'object' && !Array.isArray(parsed.labels) ? parsed.labels : {},
     texts: parsed.texts && typeof parsed.texts === 'object' && !Array.isArray(parsed.texts) ? parsed.texts : {},
     options: parsed.options && typeof parsed.options === 'object' && !Array.isArray(parsed.options) ? parsed.options : {},
@@ -360,6 +384,26 @@ export function isQuestionHidden(config, field) {
   return (config?.hidden || []).includes(field);
 }
 
+export function isQuestionHiddenForLocale(config, field, locale) {
+  if (isQuestionHidden(config, field)) return true;
+  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  const list = config?.hiddenLocales?.[field];
+  return Array.isArray(list) && list.includes(loc);
+}
+
+export function questionLocaleValue(map, field, locale) {
+  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  return String(map?.[field]?.[loc] || '').trim();
+}
+
+export function customQuestionVisibleInLocale(config, field, locale) {
+  if (!isCustomTicketField(field) || isQuestionHiddenForLocale(config, field, locale)) return false;
+  return Boolean(
+    questionLocaleValue(config?.labels, field, locale)
+    || questionLocaleValue(config?.texts, field, locale)
+  );
+}
+
 export function customQuestions(config) {
   return Array.isArray(config?.custom) ? config.custom : [];
 }
@@ -404,6 +448,7 @@ export function ticketFormFieldOrder(config, { includeMocKn = false, extraCustom
   const custom = [];
   for (const id of [...customQuestions(config).map((item) => item.id), ...extraCustomIds]) {
     if (!id || seen.has(id) || !isCustomTicketField(id) || isQuestionHidden(config, id)) continue;
+    if (!extraCustomIds.includes(id) && !questionLocaleValue(config?.labels, id, 'de')) continue;
     seen.add(id);
     custom.push(id);
   }
@@ -460,9 +505,9 @@ export function germanizeTicketFormLabel(value) {
 export function ticketFormFieldLabel(field, fallback, config, locale = 'de') {
   if (TICKET_FORM_LABELS[field]) return TICKET_FORM_LABELS[field];
   const pack = config?.labels?.[field] && typeof config.labels[field] === 'object' ? config.labels[field] : {};
-  let custom = String(pack.de || '').trim();
-  if (!custom && locale && locale !== 'de') custom = String(pack[locale] || '').trim();
-  if (!custom) custom = String(pack.ar || pack.en || '').trim();
+  const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
+  let custom = String(pack[loc] || '').trim();
+  if (!custom && loc === 'de') custom = String(pack.de || '').trim();
   const legacy = LEGACY_TICKET_FORM_LABELS[field];
   if (legacy && legacy.includes(normalizeTicketFormLabel(custom))) custom = '';
   return germanizeTicketFormLabel(custom || fallback);
@@ -601,7 +646,7 @@ export function localizedTemplateQuestions(locale, config) {
   const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : 'de';
   const order = visibleQuestionOrder(config);
   return TEMPLATE_QUESTIONS
-    .filter((q) => !isQuestionHidden(config, q.field))
+    .filter((q) => !isQuestionHiddenForLocale(config, q.field, loc))
     .map((q) => ({
       field: q.field,
       label: storedQuestionLabel(q.field, loc, config) || q[loc]?.label || q.de.label,
@@ -609,11 +654,13 @@ export function localizedTemplateQuestions(locale, config) {
     }))
     .concat(
       customQuestions(config)
-        .filter((item) => !isQuestionHidden(config, item.id))
+        .filter((item) => customQuestionVisibleInLocale(config, item.id, loc))
         .map((item) => ({
           field: item.id,
-          label: config?.labels?.[item.id]?.[loc] || item.label || 'Neue Frage?',
-          text: config?.texts?.[item.id]?.[loc] || item.label || 'Neue Frage?'
+          label: questionLocaleValue(config?.labels, item.id, loc)
+            || NEW_QUESTION_PLACEHOLDER[loc]
+            || NEW_QUESTION_PLACEHOLDER.de,
+          text: questionLocaleValue(config?.texts, item.id, loc)
         }))
     )
     .sort((a, b) => order.indexOf(a.field) - order.indexOf(b.field));

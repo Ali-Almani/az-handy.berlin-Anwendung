@@ -31,7 +31,24 @@ function germanizeTicketFormLabel(value) {
 }
 
 function emptyTicketQuestionConfig() {
-  return { hidden: [], labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
+  return { hidden: [], hiddenLocales: {}, labels: {}, texts: {}, options: {}, links: {}, order: [], custom: [] };
+}
+
+function sanitizeHiddenLocales(raw, customIds) {
+  const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const out = {};
+  for (const [key, value] of Object.entries(src)) {
+    const id = String(key || '').trim();
+    if (!id || !allowedFieldId(id, customIds)) continue;
+    const locales = Array.isArray(value)
+      ? value.map((item) => String(item || '').trim())
+      : (value && typeof value === 'object'
+        ? LOCALES.filter((loc) => value[loc])
+        : []);
+    const next = [...new Set(locales.filter((loc) => LOCALES.includes(loc)))];
+    if (next.length) out[id] = next;
+  }
+  return out;
 }
 
 function allowedFieldId(id, customIds) {
@@ -125,12 +142,7 @@ export function sanitizeTicketQuestionConfig(raw) {
 
   const labels = sanitizeKeyedMap(src.labels, customIds, (value) => {
     const pack = sanitizeLocaleMap(value, 80);
-    if (!pack.de) {
-      const mapped = germanizeTicketFormLabel(pack.ar || pack.en || '');
-      if (mapped === 'Telefonnummer des Kunden') pack.de = mapped;
-    } else {
-      pack.de = germanizeTicketFormLabel(pack.de) || pack.de;
-    }
+    if (pack.de) pack.de = germanizeTicketFormLabel(pack.de) || pack.de;
     return Object.keys(pack).length ? pack : null;
   }, 80);
 
@@ -161,6 +173,7 @@ export function sanitizeTicketQuestionConfig(raw) {
 
   return {
     hidden: sanitizeIdList(src.hidden, customIds, 80),
+    hiddenLocales: sanitizeHiddenLocales(src.hiddenLocales, customIds),
     labels,
     texts,
     options,

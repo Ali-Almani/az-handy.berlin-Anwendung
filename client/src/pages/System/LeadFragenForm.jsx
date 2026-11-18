@@ -12,7 +12,6 @@ import {
   ticketFormFieldLabel,
   germanizeTicketFormLabel,
   ticketFormFieldOrder,
-  visibleQuestionOrder,
   parseRueckrufzeit,
   formatRueckrufzeit,
   isCustomTicketField
@@ -311,7 +310,7 @@ function questionMeta(field, config) {
 }
 
 function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
-  const order = visibleQuestionOrder(config);
+  const order = ticketFormFieldOrder(config);
   const [newType, setNewType] = useState('text');
   return (
     <div className="sz-template-edit">
