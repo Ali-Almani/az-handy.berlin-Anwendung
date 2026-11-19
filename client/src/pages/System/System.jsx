@@ -73,7 +73,8 @@ import {
   shopOptionsForTicketing,
   questionDropdownOptions,
   LEAD_ANGEBOT_OPTIONS,
-  LEAD_O2_OPTIONS
+  LEAD_O2_OPTIONS,
+  isStadtFilterOption
 } from './callcenterLeadData';
 import './System.scss';
 
@@ -375,7 +376,7 @@ const System = () => {
   const offenStadtOptions = useMemo(() => {
     const fromConfig = questionDropdownOptions('stadt', questionConfig) || [];
     const fromTickets = offenEntriesAll.map((entry) => entry?.stadt);
-    return uniqueFilterValues([...fromConfig, ...fromTickets]);
+    return uniqueFilterValues([...fromConfig, ...fromTickets]).filter(isStadtFilterOption);
   }, [questionConfig, offenEntriesAll]);
 
   const offenCount = useMemo(

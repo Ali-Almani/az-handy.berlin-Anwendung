@@ -368,3 +368,12 @@ export function isKnownStadt(value) {
   if (!v) return false;
   return LEAD_STADT_OPTIONS.some((stadt) => stadt.toLowerCase() === v);
 }
+
+/** Stadt-Filter: keine Chat-Texte, Grüße oder mehrzeilige Antworten. */
+export function isStadtFilterOption(value) {
+  const raw = String(value || '');
+  const v = raw.replace(/\s+/g, ' ').trim();
+  if (!v || /[\r\n]/.test(raw) || v.length > 40) return false;
+  if (/[\u0600-\u06FF]/.test(v)) return false;
+  return true;
+}

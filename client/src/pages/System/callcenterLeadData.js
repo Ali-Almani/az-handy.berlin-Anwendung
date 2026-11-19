@@ -6,7 +6,7 @@ import {
 import { TICKET_PRIORITY_DEFAULT, TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
 import { TICKET_LANGUAGE_DEFAULT_NEU, TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
 
-export { LEAD_STADT_OPTIONS } from './deutscheStaedte';
+export { LEAD_STADT_OPTIONS, isStadtFilterOption } from './deutscheStaedte';
 
 export const LEAD_STATUS_OPTIONS = ['Orten', 'Callcenter'];
 export const LEAD_STATUS_DEFAULT = 'Callcenter';
