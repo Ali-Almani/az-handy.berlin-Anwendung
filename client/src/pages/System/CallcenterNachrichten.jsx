@@ -14,7 +14,7 @@ import {
   visibleQuestionOrder,
   migrateLeadTicketStatus,
   normalizeSocialChannel,
-  NACHRICHTEN_ERLEDIGT,
+  isNachrichtenArchiveChoice,
   QUESTION_FIELD_TYPES,
   questionDropdownOptions,
   filterAngebotMentions,
@@ -479,9 +479,8 @@ function ChannelIcon({ channel }) {
 }
 
 function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel, disabled = false }) {
-  const value = migrateLeadTicketStatus(ticketStatus) === 'Erledigt'
-    ? NACHRICHTEN_ERLEDIGT
-    : normalizeNachrichtShop(shop);
+  const status = migrateLeadTicketStatus(ticketStatus);
+  const value = isNachrichtenArchiveChoice(status) ? status : normalizeNachrichtShop(shop);
   return (
     <select
       id={id}
@@ -496,7 +495,7 @@ function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel, 
       <option value="" />
       {shops.map((opt) => (
         <option key={opt} value={opt}>
-          {opt === NACHRICHTEN_ERLEDIGT ? opt : shopOptionLabel(opt)}
+          {isNachrichtenArchiveChoice(opt) ? opt : shopOptionLabel(opt)}
         </option>
       ))}
     </select>
@@ -924,14 +923,14 @@ const CallcenterNachrichten = ({
   }, [openTicketId]);
 
   const handleStatusOrShop = (id, value) => {
-    if (value === NACHRICHTEN_ERLEDIGT) {
-      const markErledigt = (ticket) => {
+    if (isNachrichtenArchiveChoice(value)) {
+      const markArchived = (ticket) => {
         const editor = sanitizeMitarbeiterName(agentName);
         const next = withMitarbeiter({
           ...ticket,
-          ticketStatus: 'Erledigt'
+          ticketStatus: value
         }, editor);
-        const change = leadFieldChange(ticket, 'ticketStatus', 'Erledigt');
+        const change = leadFieldChange(ticket, 'ticketStatus', value);
         if (!change) return next;
         return appendLeadEditLog(next, {
           editorName: editor,
@@ -939,7 +938,7 @@ const CallcenterNachrichten = ({
           changes: [change]
         });
       };
-      patchTicket(id, markErledigt);
+      patchTicket(id, markArchived);
       onStatusApplied?.(id, 'archiv');
       return;
     }

@@ -36,6 +36,7 @@ import { emptyMnpDetails } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
 import { FILIALE_OPTIONS, userFilialeFromEinsatzOrt } from '../../constants/einsatzorte';
 import {
+  isArchivedTicketStatus,
   isVorvertragArchived,
   normalizeVorvertragTicketStatus,
   VORVERTRAG_TICKET_STATUS_OPTIONS
@@ -798,7 +799,7 @@ const System = () => {
             : t
         )
       );
-      goToStatusTab(nextLead === 'Erledigt' ? 'archiv' : 'offen');
+      goToStatusTab(isArchivedTicketStatus(nextLead) ? 'archiv' : 'offen');
       setHighlightedId(id);
       return;
     }
@@ -814,7 +815,7 @@ const System = () => {
     try {
       await updateVorvertragTicketStatusApi(id, nextStatus);
       await loadList({ silent: true });
-      goToStatusTab(nextStatus === 'Erledigt' ? 'archiv' : 'offen');
+      goToStatusTab(isArchivedTicketStatus(nextStatus) ? 'archiv' : 'offen');
     } catch (err) {
       await loadList({ silent: true });
       setError(err.response?.data?.message || err.message || 'Status konnte nicht gespeichert werden.');

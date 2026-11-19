@@ -1015,6 +1015,11 @@
     background: mix(#fff, $success-color, 82%);
   }
 
+  &--nosale {
+    color: $text-light;
+    background: mix(#fff, $border-color, 35%);
+  }
+
   &--order {
     color: darken($warning-color, 28%);
     background: mix(#fff, $warning-color, 78%);

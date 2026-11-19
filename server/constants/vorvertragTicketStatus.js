@@ -6,7 +6,8 @@ export const VORVERTRAG_TICKET_STATUS_OPTIONS = [
   'Boni Ticket',
   'Bestellung',
   'Abholbereit',
-  'Erledigt'
+  'Erledigt',
+  'Kein Verkauf'
 ];
 
 export const VORVERTRAG_TICKET_STATUS_DEFAULT = 'Offen';
@@ -25,6 +26,7 @@ const STATUS_ALIASES = {
   'zur abholung bereit': 'Abholbereit',
   'zur abhohlung bereit': 'Abholbereit',
   erledigt: 'Erledigt',
+  'kein verkauf': 'Kein Verkauf',
   'in bearbeitung': 'Offen',
   'in berbeitung': 'Offen'
 };

@@ -6,7 +6,8 @@ export const VORVERTRAG_TICKET_STATUS_OPTIONS = [
   'Boni Ticket',
   'Bestellung',
   'Abholbereit',
-  'Erledigt'
+  'Erledigt',
+  'Kein Verkauf'
 ];
 
 export const VORVERTRAG_TICKET_STATUS_DEFAULT = 'Offen';
@@ -25,6 +26,7 @@ const STATUS_ALIASES = {
   'zur abholung bereit': 'Abholbereit',
   'zur abhohlung bereit': 'Abholbereit',
   erledigt: 'Erledigt',
+  'kein verkauf': 'Kein Verkauf',
   'in bearbeitung': 'Offen',
   'in berbeitung': 'Offen'
 };
@@ -37,13 +39,19 @@ export function normalizeVorvertragTicketStatus(value) {
   return VORVERTRAG_TICKET_STATUS_DEFAULT;
 }
 
+export function isArchivedTicketStatus(status) {
+  const s = normalizeVorvertragTicketStatus(status);
+  return s === 'Erledigt' || s === 'Kein Verkauf';
+}
+
 export function isVorvertragArchived(entry) {
-  return normalizeVorvertragTicketStatus(entry?.ticketStatus) === 'Erledigt';
+  return isArchivedTicketStatus(entry?.ticketStatus);
 }
 
 export function vorvertragTicketStatusBadge(status) {
   const s = normalizeVorvertragTicketStatus(status);
   if (s === 'Erledigt') return 'yes';
+  if (s === 'Kein Verkauf') return 'nosale';
   if (s === 'Abholbereit') return 'pickup';
   if (s === 'Bestellung') return 'bestellen';
   if (s === 'Offen') return 'open';

@@ -1,4 +1,8 @@
-import { normalizeVorvertragTicketStatus, VORVERTRAG_TICKET_STATUS_DEFAULT } from './vorvertragTicketStatus';
+import {
+  isArchivedTicketStatus,
+  normalizeVorvertragTicketStatus,
+  VORVERTRAG_TICKET_STATUS_DEFAULT
+} from './vorvertragTicketStatus';
 import { TICKET_PRIORITY_DEFAULT, TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
 import { TICKET_LANGUAGE_DEFAULT_NEU, TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
 
@@ -755,7 +759,7 @@ export function migrateLeadTicketStatus(value) {
 }
 
 export function isLeadArchived(entry) {
-  return migrateLeadTicketStatus(entry?.ticketStatus) === 'Erledigt';
+  return isArchivedTicketStatus(migrateLeadTicketStatus(entry?.ticketStatus));
 }
 
 export function isManualLeadTicket(ticket) {
@@ -1172,13 +1176,18 @@ export function appendLeadEditLog(ticket, { editorName, action = 'updated', chan
 
 export const CALLCENTER_SHOP = 'Call Center';
 export const NACHRICHTEN_ERLEDIGT = 'Erledigt';
+export const NACHRICHTEN_KEIN_VERKAUF = 'Kein Verkauf';
+
+export function isNachrichtenArchiveChoice(value) {
+  return value === NACHRICHTEN_ERLEDIGT || value === NACHRICHTEN_KEIN_VERKAUF;
+}
 
 export function shopOptionsForOrten() {
   return [...ORTEN_SHOP_OPTIONS];
 }
 
 export function shopOptionsForNachrichten() {
-  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS, NACHRICHTEN_ERLEDIGT];
+  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS, NACHRICHTEN_ERLEDIGT, NACHRICHTEN_KEIN_VERKAUF];
 }
 
 export function shopOptionsForTicketing() {
