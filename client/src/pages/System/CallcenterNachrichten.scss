@@ -1758,6 +1758,7 @@
 
   &--dock {
     flex-shrink: 0;
+    flex-wrap: wrap;
     position: sticky;
     bottom: 0;
     z-index: 1;
@@ -1766,6 +1767,27 @@
     border-top: 1px solid $border-color;
     background: $bg-color;
   }
+}
+
+.sz-chip-audience {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 0 100%;
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  font-weight: $font-weight-medium;
+  color: $text-light;
+  cursor: pointer;
+
+  input {
+    margin: 0;
+  }
+}
+
+.sz-chip-edit .sz-chip-audience {
+  flex: none;
+  width: auto;
 }
 
 .sz-questions-form {

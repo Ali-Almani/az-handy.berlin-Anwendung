@@ -510,6 +510,8 @@ const CallcenterNachrichten = ({
   onStatusApplied,
   onOpened,
   canEditFragen = true,
+  canSeeAlissarFragen = false,
+  canAssignAlissarFragen = false,
   canSeeAnweisung = true,
   canWriteAnweisung = false,
   onAnweisungUnreadChange,
@@ -559,6 +561,7 @@ const CallcenterNachrichten = ({
   const [chipEditing, setChipEditing] = useState(false);
   const [fragenOpen, setFragenOpen] = useState(false);
   const [chipType, setChipType] = useState('text');
+  const [chipAlissarOnly, setChipAlissarOnly] = useState(false);
   const [cursorAt, setCursorAt] = useState(0);
   const [mentionHi, setMentionHi] = useState(0);
   const [translatingId, setTranslatingId] = useState(null);
@@ -645,6 +648,10 @@ const CallcenterNachrichten = ({
   const templateQuestions = useMemo(
     () => localizedTemplateQuestions(chatLocale, questionConfig),
     [chatLocale, questionConfig]
+  );
+  const sendQuestions = useMemo(
+    () => templateQuestions.filter((q) => q.audience !== 'alissar' || canSeeAlissarFragen),
+    [templateQuestions, canSeeAlissarFragen]
   );
   const mitarbeiterLabel = sanitizeMitarbeiterName(agentName)
     || collectMitarbeiterNames(active)[0]
@@ -972,13 +979,19 @@ const CallcenterNachrichten = ({
     onStatusApplied?.(id, 'offen');
   };
 
-  const addQuestion = (type, locale = chatLocale) => {
+  const addQuestion = (type, locale = chatLocale, audience = 'all') => {
     const id = `cq-${Date.now().toString(36)}`;
     const loc = QUESTION_CHAT_LOCALES.some((item) => item.id === locale) ? locale : (locale || chatLocale || 'de');
     const label = NEW_QUESTION_PLACEHOLDER[loc] || NEW_QUESTION_PLACEHOLDER.de;
+    const customItem = {
+      id,
+      type,
+      label: loc === 'de' ? label : '',
+      ...(audience === 'alissar' ? { audience: 'alissar' } : {})
+    };
     setQuestionConfig((prev) => ({
       ...prev,
-      custom: [...customQuestions(prev), { id, type, label: loc === 'de' ? label : '' }],
+      custom: [...customQuestions(prev), customItem],
       labels: { ...prev.labels, [id]: { [loc]: label } },
       texts: { ...prev.texts, [id]: { [loc]: '' } },
       options: type === 'dropdown'
@@ -994,7 +1007,7 @@ const CallcenterNachrichten = ({
     });
   };
 
-  const updateQuestion = (field, { label, text, options, links }, locale = chatLocale) => {
+  const updateQuestion = (field, { label, text, options, links, audience }, locale = chatLocale) => {
     const loc = locale || chatLocale;
     setQuestionConfig((prev) => {
       const labels = {
@@ -1017,12 +1030,16 @@ const CallcenterNachrichten = ({
       if (links && typeof links === 'object') {
         next = { ...next, links: { ...(prev.links || {}), [field]: links } };
       }
-      if (loc === 'de' && customQuestions(prev).some((item) => item.id === field)) {
+      if (customQuestions(prev).some((item) => item.id === field)) {
         next = {
           ...next,
-          custom: customQuestions(prev).map((item) => (
-            item.id === field ? { ...item, label } : item
-          ))
+          custom: customQuestions(next).map((item) => {
+            if (item.id !== field) return item;
+            const row = loc === 'de' ? { ...item, label } : { ...item };
+            if (audience === 'alissar') row.audience = 'alissar';
+            else if (audience === 'all') delete row.audience;
+            return row;
+          })
         };
       }
       return next;
@@ -2201,7 +2218,7 @@ const CallcenterNachrichten = ({
                         <button
                           type="button"
                           className="sz-question-icon sz-phone-hide"
-                          onClick={() => addQuestion(chipType)}
+                          onClick={() => addQuestion(chipType, chatLocale, canAssignAlissarFragen && chipAlissarOnly ? 'alissar' : 'all')}
                           aria-label="Neue Frage hinzufügen"
                           title="Neue Frage hinzufügen"
                         >
@@ -2300,6 +2317,21 @@ const CallcenterNachrichten = ({
                               />
                             </label>
                           ) : null}
+                          {canAssignAlissarFragen && isCustomTicketField(q.field) ? (
+                            <label className="sz-chip-audience">
+                              <input
+                                type="checkbox"
+                                checked={q.audience === 'alissar'}
+                                onChange={(ev) => updateQuestion(q.field, {
+                                  label: q.label,
+                                  text: q.text,
+                                  options: options || undefined,
+                                  audience: ev.target.checked ? 'alissar' : 'all'
+                                })}
+                              />
+                              Nur Alissar Oklar
+                            </label>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -2307,7 +2339,7 @@ const CallcenterNachrichten = ({
                 ) : null}
                 {fragenOpen && !chipEditing ? (
                 <div className={`sz-quick${chatLocale === 'ar' ? ' sz-quick--rtl' : ''}`}>
-                  {templateQuestions.map((q) => (
+                  {sendQuestions.map((q) => (
                     <button
                       key={q.field}
                       type="button"
@@ -2337,9 +2369,23 @@ const CallcenterNachrichten = ({
                         ))}
                       </select>
                     </label>
-                    <button type="button" className="btn btn--primary btn--small" onClick={() => addQuestion(chipType)}>
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--small"
+                      onClick={() => addQuestion(chipType, chatLocale, canAssignAlissarFragen && chipAlissarOnly ? 'alissar' : 'all')}
+                    >
                       Frage hinzufügen
                     </button>
+                    {canAssignAlissarFragen ? (
+                    <label className="sz-chip-audience">
+                      <input
+                        type="checkbox"
+                        checked={chipAlissarOnly}
+                        onChange={(ev) => setChipAlissarOnly(ev.target.checked)}
+                      />
+                      Nur Alissar Oklar
+                    </label>
+                    ) : null}
                   </div>
                 ) : null}
                 {pendingImages.length ? (

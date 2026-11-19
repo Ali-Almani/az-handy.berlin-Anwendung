@@ -349,7 +349,13 @@ export function normalizeQuestionConfig(parsed) {
       Array.isArray(parsed.order) ? parsed.order.filter((field) => typeof field === 'string' && field) : []
     ),
     custom: Array.isArray(parsed.custom)
-      ? parsed.custom.filter((item) => item && item.id && QUESTION_FIELD_TYPES.some((type) => type.id === item.type))
+      ? parsed.custom
+        .filter((item) => item && item.id && QUESTION_FIELD_TYPES.some((type) => type.id === item.type))
+        .map((item) => (
+          item.audience === 'alissar'
+            ? { ...item, audience: 'alissar' }
+            : item
+        ))
       : []
   };
 }
@@ -412,6 +418,10 @@ export function customQuestions(config) {
   return Array.isArray(config?.custom) ? config.custom : [];
 }
 
+export function isAlissarOnlyQuestion(item) {
+  return item?.audience === 'alissar';
+}
+
 export function questionFieldIds(config) {
   return [...VORLAGE_QUESTION_ORDER, ...customQuestions(config).map((item) => item.id)];
 }
@@ -452,6 +462,7 @@ export function ticketFormFieldOrder(config, { includeMocKn = false, extraCustom
   const custom = [];
   for (const id of [...customQuestions(config).map((item) => item.id), ...extraCustomIds]) {
     if (!id || seen.has(id) || !isCustomTicketField(id) || isQuestionHidden(config, id)) continue;
+    if (isAlissarOnlyQuestion(customQuestions(config).find((item) => item.id === id))) continue;
     if (!ticketFormCustomLabel(config, id)) continue;
     seen.add(id);
     custom.push(id);
@@ -692,7 +703,8 @@ export function localizedTemplateQuestions(locale, config) {
           label: questionLocaleValue(config?.labels, item.id, loc)
             || NEW_QUESTION_PLACEHOLDER[loc]
             || NEW_QUESTION_PLACEHOLDER.de,
-          text: questionLocaleValue(config?.texts, item.id, loc)
+          text: questionLocaleValue(config?.texts, item.id, loc),
+          audience: isAlissarOnlyQuestion(item) ? 'alissar' : 'all'
         }))
     )
     .sort((a, b) => order.indexOf(a.field) - order.indexOf(b.field));

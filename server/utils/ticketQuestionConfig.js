@@ -139,11 +139,13 @@ export function sanitizeTicketQuestionConfig(raw) {
     customIds.add(id);
     const rawLabel = clip(item?.label, 80);
     const deLabel = germanizeTicketFormLabel(rawLabel);
-    custom.push({
+    const row = {
       id,
       type,
       label: isGermanTicketFormLabel(deLabel) ? deLabel : ''
-    });
+    };
+    if (item?.audience === 'alissar') row.audience = 'alissar';
+    custom.push(row);
   }
 
   const labels = sanitizeKeyedMap(src.labels, customIds, (value) => {

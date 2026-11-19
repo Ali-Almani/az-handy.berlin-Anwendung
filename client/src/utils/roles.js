@@ -207,9 +207,14 @@ function normalizePersonName(value) {
 }
 
 const ANWEISUNG_TEAMLEITER_ALLOW_NAME = 'alissar oklar';
+const ALI_ALMANI_ADMIN_NAME = 'ali almani';
 
 export const isAnweisungTeamleiterAllow = (user) => (
   normalizePersonName(user?.name) === ANWEISUNG_TEAMLEITER_ALLOW_NAME
+);
+
+export const isAliAlmaniAdmin = (user) => (
+  Boolean(user) && isAdmin(user) && normalizePersonName(user?.name) === ALI_ALMANI_ADMIN_NAME
 );
 
 /** Automatisierte Abfrage nur für Administrator. */

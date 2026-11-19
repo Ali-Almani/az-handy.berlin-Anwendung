@@ -7,6 +7,8 @@ import {
   canManageAutoAbfrage,
   canManageTicketingSystem,
   canSeeTicketingAnweisung,
+  isAnweisungTeamleiterAllow,
+  isAliAlmaniAdmin,
   canViewTicketingOffen,
   canWriteTicketingAnweisung
 } from '../../utils/roles';
@@ -877,6 +879,8 @@ const System = () => {
   const canManageAuto = canManageAutoAbfrage(user);
   const canSeeAnweisung = canSeeTicketingAnweisung(user);
   const canWriteAnweisung = canWriteTicketingAnweisung(user);
+  const canSeeAlissarFragen = isAnweisungTeamleiterAllow(user);
+  const canAssignAlissarFragen = isAliAlmaniAdmin(user);
   const sectionMenuProps = {
     listTab,
     setListTab,
@@ -998,6 +1002,8 @@ const System = () => {
           questionConfig={questionConfig}
           onQuestionConfigChange={setQuestionConfig}
           canEditFragen={canEditFragen}
+          canSeeAlissarFragen={canSeeAlissarFragen}
+          canAssignAlissarFragen={canAssignAlissarFragen}
           canSeeAnweisung={canSeeAnweisung}
           canWriteAnweisung={canWriteAnweisung}
           onAnweisungUnreadChange={setAnweisungUnread}
