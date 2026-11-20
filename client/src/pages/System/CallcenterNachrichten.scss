@@ -84,6 +84,8 @@
   position: sticky;
   top: 0;
   z-index: 3;
+  min-width: 0;
+  overflow: hidden;
   padding: $spacing-sm;
   border-bottom: 1px solid $border-color;
   background: $bg-color;
@@ -91,29 +93,41 @@
 
 .sz-read-tabs {
   display: flex;
-  gap: 0.15rem;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.08rem;
+  min-width: 0;
   margin: -0.25rem -0.25rem $spacing-sm;
   padding: 0 0.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   border-bottom: 1px solid $border-color;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .sz-read-tab {
-  flex: 1;
+  flex: 1 1 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.22rem;
+  min-width: 0;
   margin: 0;
-  padding: 0.4rem 0.22rem;
+  padding: 0.4rem 0.12rem;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: $text-light;
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: $font-weight-medium;
   line-height: 1.15;
   text-align: center;
+  white-space: nowrap;
   cursor: pointer;
 
   &:hover {
@@ -2000,6 +2014,21 @@
     min-height: min(74dvh, 780px);
     height: calc(100dvh - 11.5rem);
     max-height: calc(100dvh - 11.5rem);
+  }
+}
+
+@media (min-width: $breakpoint-md) and (max-width: $breakpoint-xl - 1px) {
+  .sz-read-tab {
+    font-size: 0.64rem;
+    padding: 0.34rem 0.06rem;
+    gap: 0.12rem;
+  }
+
+  .sz-read-tab-count,
+  .sz-read-tab .sz-chip-count {
+    min-width: 0.95rem;
+    padding: 0 0.16rem;
+    font-size: 0.6rem;
   }
 }
 
