@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SOCIAL_CHANNELS,
+  NACHRICHTEN_FILIALE_GROUPS,
   QUESTION_CHAT_LOCALES,
   formFromLead,
   appendLeadEditLog,
@@ -25,6 +26,9 @@ import {
   shopOptionLabel,
   shopOptionsForNachrichten,
   normalizeNachrichtShop,
+  filialeGroupChannelId,
+  filialeGroupForShop,
+  ticketMatchesNachrichtenChannel,
   sanitizeMitarbeiterName,
   isManualLeadTicket,
   MANUAL_TICKET_CHANNEL,
@@ -422,8 +426,7 @@ function formatChatTime(iso) {
 }
 
 function ticketMatchesChannel(ticket, channel) {
-  if (channel === 'all') return true;
-  return normalizeSocialChannel(ticket.channel) === channel;
+  return ticketMatchesNachrichtenChannel(ticket, channel);
 }
 
 function ChannelIcon({ channel }) {
@@ -820,11 +823,21 @@ const CallcenterNachrichten = ({
 
   const unreadByChannel = useMemo(() => {
     const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
+    NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
+      counts[filialeGroupChannelId(group)] = 0;
+    });
     list.forEach((t) => {
-      if (!t.unread) return;
-      counts.all += 1;
-      const ch = normalizeSocialChannel(t.channel);
-      counts[ch] = (counts[ch] || 0) + 1;
+      if (!t.unread || isManualLeadTicket(t)) return;
+      if (ticketMatchesNachrichtenChannel(t, 'all')) {
+        counts.all += 1;
+        const ch = normalizeSocialChannel(t.channel);
+        counts[ch] = (counts[ch] || 0) + 1;
+      }
+      const group = filialeGroupForShop(t.shop);
+      if (group && ticketMatchesNachrichtenChannel(t, filialeGroupChannelId(group))) {
+        const key = filialeGroupChannelId(group);
+        counts[key] = (counts[key] || 0) + 1;
+      }
     });
     return counts;
   }, [list]);
@@ -924,6 +937,14 @@ const CallcenterNachrichten = ({
 
   useEffect(() => {
     if (!openTicketId) return;
+    const ticket = (tickets || []).find((t) => t.id === openTicketId);
+    const group = filialeGroupForShop(ticket?.shop);
+    if (group) {
+      setChannel(filialeGroupChannelId(group));
+      if (readTab === 'ungelesen' || readTab === 'gelesen') {
+        setReadTab(ticket?.unread ? 'ungelesen' : 'gelesen');
+      }
+    }
     openTicket(openTicketId);
     onOpened?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -976,6 +997,13 @@ const CallcenterNachrichten = ({
       });
     };
     patchTicket(id, assignShop);
+    const group = filialeGroupForShop(shop);
+    if (group) {
+      setChannel(filialeGroupChannelId(group));
+      if (readTab === 'ungelesen' || readTab === 'gelesen') {
+        setReadTab(source?.unread ? 'ungelesen' : 'gelesen');
+      }
+    }
     onStatusApplied?.(id, 'offen');
   };
 
@@ -1779,7 +1807,7 @@ const CallcenterNachrichten = ({
                     Neue Anweisung – öffnen
                   </button>
                 ) : null}
-                <div className="sz-channel-row" role="tablist" aria-label="Kanäle">
+                <div className="sz-channel-row" role="tablist" aria-label="Kanäle und Filialen">
                   <button
                     type="button"
                     role="tab"
@@ -1806,6 +1834,24 @@ const CallcenterNachrichten = ({
                       ) : null}
                     </button>
                   ))}
+                  <span className="sz-channel-row-sep" aria-hidden="true" />
+                  {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
+                    const id = filialeGroupChannelId(group);
+                    const unread = unreadByChannel[id] || 0;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        role="tab"
+                        aria-selected={channel === id}
+                        className={`sz-chip sz-chip--shop${channel === id ? ' sz-chip--active' : ''}`}
+                        onClick={() => setChannel(id)}
+                      >
+                        {group.label}
+                        {unread > 0 ? <span className="sz-chip-count">{unread}</span> : null}
+                      </button>
+                    );
+                  })}
                 </div>
                 <label className="visually-hidden" htmlFor="sz-search">Posteingang suchen</label>
                 <input

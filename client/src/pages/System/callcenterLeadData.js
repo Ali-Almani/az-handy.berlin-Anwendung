@@ -33,6 +33,17 @@ export const ORTEN_SHOP_OPTIONS = [
   'Hauptstraße 156'
 ];
 
+export const NACHRICHTEN_FILIALE_GROUPS = [
+  { id: 'sonnenallee16', shop: 'Sonnenallee 16', label: 'Sonnenallee 16' },
+  { id: 'km169', shop: 'Karl-Marx-Straße 169', label: 'KM 169' },
+  { id: 'km127', shop: 'Karl-Marx-Straße 127', label: 'KM 127' },
+  { id: 'km50', shop: 'Karl-Marx-Straße 50', label: 'KM 50' },
+  { id: 'badstr12', shop: 'Badstraße 12', label: 'Badstr. 12' },
+  { id: 'turmstr47', shop: 'Turmstraße 47', label: 'Turmstr. 47' },
+  { id: 'hauptstr156', shop: 'Hauptstraße 156', label: 'Hauptstr. 156' },
+  { id: 'kitzingstr', shop: 'Kitzingstraße', label: 'Kitzingstr. 7-9' }
+];
+
 export const NACHRICHT_ART_OPTIONS = [
   { id: 'angebot', label: 'Angebot' },
   { id: 'beschwerde', label: 'Beschwerde' },
@@ -1225,6 +1236,38 @@ export function normalizeNachrichtShop(shop) {
 
 export function shopAssignsTicket(shop) {
   return Boolean(normalizeNachrichtShop(shop));
+}
+
+export function filialeGroupChannelId(group) {
+  return group?.id ? `shop:${group.id}` : '';
+}
+
+export function filialeGroupByChannel(channel) {
+  const id = String(channel || '');
+  if (!id.startsWith('shop:')) return null;
+  const key = id.slice(5);
+  return NACHRICHTEN_FILIALE_GROUPS.find((group) => group.id === key) || null;
+}
+
+export function filialeGroupForShop(shop) {
+  const normalized = normalizeNachrichtShop(shop);
+  if (!normalized) return null;
+  return NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === normalized) || null;
+}
+
+export function isTicketInFilialeGroup(ticket) {
+  return Boolean(filialeGroupForShop(ticket?.shop));
+}
+
+export function ticketMatchesNachrichtenChannel(ticket, channel) {
+  const group = filialeGroupByChannel(channel);
+  if (group) {
+    if (isLeadArchived(ticket) || !isTicketInFilialeGroup(ticket)) return false;
+    return filialeGroupForShop(ticket?.shop)?.id === group.id;
+  }
+  if (isTicketInFilialeGroup(ticket)) return false;
+  if (channel === 'all') return true;
+  return normalizeSocialChannel(ticket.channel) === channel;
 }
 
 export function shopOptionLabel(shop) {

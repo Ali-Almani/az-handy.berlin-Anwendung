@@ -153,6 +153,15 @@
   margin-bottom: $spacing-sm;
 }
 
+.sz-channel-row-sep {
+  flex: 0 0 1px;
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.4rem;
+  margin: 0 0.12rem;
+  background: $border-color;
+}
+
 .sz-chip {
   display: inline-flex;
   align-items: center;
@@ -201,6 +210,12 @@
     color: #111;
     border-color: #111;
     background: #f3f3f3;
+  }
+
+  &--shop.sz-chip--active {
+    color: $primary-color;
+    border-color: $primary-color;
+    background: mix(#fff, $primary-color, 90%);
   }
 }
 
