@@ -27,6 +27,7 @@ import {
   shopOptionsForNachrichten,
   normalizeNachrichtShop,
   filialeGroupChannelId,
+  filialeGroupByChannel,
   filialeGroupForShop,
   filialeGroupForTicket,
   ticketMatchesNachrichtenChannel,
@@ -824,11 +825,8 @@ const CallcenterNachrichten = ({
 
   const unreadByChannel = useMemo(() => {
     const unread = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
-    const gelesen = {};
     NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
-      const id = filialeGroupChannelId(group);
-      unread[id] = 0;
-      gelesen[id] = 0;
+      unread[filialeGroupChannelId(group)] = 0;
     });
     list.forEach((t) => {
       if (isManualLeadTicket(t)) return;
@@ -838,13 +836,12 @@ const CallcenterNachrichten = ({
         unread[ch] = (unread[ch] || 0) + 1;
       }
       const group = filialeGroupForTicket(t);
-      if (!group) return;
+      if (!group || !t.unread) return;
       const id = filialeGroupChannelId(group);
       if (!ticketMatchesNachrichtenChannel(t, id)) return;
-      if (t.unread) unread[id] += 1;
-      else gelesen[id] += 1;
+      unread[id] += 1;
     });
-    return { ...unread, gelesen };
+    return unread;
   }, [list]);
 
   const readTabCounts = useMemo(() => {
@@ -1844,29 +1841,62 @@ const CallcenterNachrichten = ({
                     </button>
                   ))}
                   <span className="sz-channel-row-sep" aria-hidden="true" />
-                  {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
-                    const id = filialeGroupChannelId(group);
-                    const unread = unreadByChannel[id] || 0;
-                    const gelesen = unreadByChannel.gelesen?.[id] || 0;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        role="tab"
-                        aria-selected={channel === id}
-                        className={`sz-chip sz-chip--shop${channel === id ? ' sz-chip--active' : ''}`}
-                        onClick={() => {
-                          setChannel(id);
-                          if (readTab === 'notiz' || readTab === 'anweisung') return;
-                          setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
-                        }}
-                      >
-                        {group.label}
-                        {unread > 0 ? <span className="sz-chip-count">{unread}</span> : null}
-                        {gelesen > 0 ? <span className="sz-read-tab-count">{gelesen}</span> : null}
-                      </button>
-                    );
-                  })}
+                  <div className="sz-filiale-chips">
+                    {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
+                      const id = filialeGroupChannelId(group);
+                      const unread = unreadByChannel[id] || 0;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          role="tab"
+                          title={group.shop}
+                          aria-label={unread > 0 ? `${group.shop}, ${unread} ungelesen` : group.shop}
+                          aria-selected={channel === id}
+                          className={`sz-chip sz-chip--shop${channel === id ? ' sz-chip--active' : ''}`}
+                          onClick={() => {
+                            setChannel(id);
+                            if (readTab === 'notiz' || readTab === 'anweisung') return;
+                            setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
+                          }}
+                        >
+                          {group.label}
+                          {unread > 0 ? <span className="sz-chip-count">{unread}</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="sz-filiale-select-wrap" htmlFor="sz-filiale-select">
+                    <span className="visually-hidden">Filiale</span>
+                    <select
+                      id="sz-filiale-select"
+                      className={`form-input sz-filiale-select${filialeGroupByChannel(channel) ? ' sz-filiale-select--active' : ''}`}
+                      value={filialeGroupByChannel(channel) ? channel : ''}
+                      onChange={(ev) => {
+                        const id = ev.target.value;
+                        if (!id) {
+                          setChannel('all');
+                          return;
+                        }
+                        setChannel(id);
+                        if (readTab === 'notiz' || readTab === 'anweisung') return;
+                        const unread = unreadByChannel[id] || 0;
+                        setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
+                      }}
+                    >
+                      <option value="">Filiale</option>
+                      {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
+                        const id = filialeGroupChannelId(group);
+                        const unread = unreadByChannel[id] || 0;
+                        const suffix = unread > 0 ? ` (${unread})` : '';
+                        return (
+                          <option key={id} value={id}>
+                            {group.label}{suffix}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
                 </div>
                 <label className="visually-hidden" htmlFor="sz-search">Posteingang suchen</label>
                 <input

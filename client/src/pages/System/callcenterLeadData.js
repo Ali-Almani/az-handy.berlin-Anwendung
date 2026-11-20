@@ -35,14 +35,14 @@ export const ORTEN_SHOP_OPTIONS = [
 ];
 
 export const NACHRICHTEN_FILIALE_GROUPS = [
-  { id: 'sonnenallee16', shop: 'Sonnenallee 16', label: 'Sonnenallee 16' },
+  { id: 'sonnenallee16', shop: 'Sonnenallee 16', label: 'Sonn' },
   { id: 'km169', shop: 'Karl-Marx-Straße 169', label: 'KM 169' },
   { id: 'km127', shop: 'Karl-Marx-Straße 127', label: 'KM 127' },
   { id: 'km50', shop: 'Karl-Marx-Straße 50', label: 'KM 50' },
-  { id: 'badstr12', shop: 'Badstraße 12', label: 'Badstr. 12' },
-  { id: 'turmstr47', shop: 'Turmstraße 47', label: 'Turmstr. 47' },
-  { id: 'hauptstr156', shop: 'Hauptstraße 156', label: 'Hauptstr. 156' },
-  { id: 'kitzingstr', shop: 'Kitzingstraße', label: 'Kitzingstr. 7-9' }
+  { id: 'badstr12', shop: 'Badstraße 12', label: 'Bad' },
+  { id: 'turmstr47', shop: 'Turmstraße 47', label: 'Turm' },
+  { id: 'hauptstr156', shop: 'Hauptstraße 156', label: 'Haupt' },
+  { id: 'kitzingstr', shop: 'Kitzingstraße', label: 'Kitz' }
 ];
 
 export const NACHRICHT_ART_OPTIONS = [

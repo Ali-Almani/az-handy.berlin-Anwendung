@@ -162,6 +162,40 @@
   background: $border-color;
 }
 
+.sz-filiale-chips {
+  display: contents;
+}
+
+.sz-filiale-select-wrap {
+  display: none;
+}
+
+.sz-filiale-select {
+  width: 100%;
+  min-height: 2.05rem;
+  padding: 0.28rem 0.5rem;
+  font-size: 0.82rem;
+}
+
+.sz-filiale-select--active {
+  color: $primary-color;
+  border-color: $primary-color;
+  background: mix(#fff, $primary-color, 90%);
+}
+
+@media (max-width: $breakpoint-xl - 1px) {
+  .sz-channel-row-sep,
+  .sz-filiale-chips {
+    display: none;
+  }
+
+  .sz-filiale-select-wrap {
+    display: block;
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
 .sz-chip {
   display: inline-flex;
   align-items: center;
