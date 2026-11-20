@@ -217,6 +217,22 @@
     border-color: $primary-color;
     background: mix(#fff, $primary-color, 90%);
   }
+
+  &--icon {
+    padding: 0.28rem;
+    min-width: 1.85rem;
+    min-height: 1.85rem;
+    justify-content: center;
+
+    .sz-channel-icon {
+      width: 1.05rem;
+      height: 1.05rem;
+    }
+
+    .sz-chip-count {
+      margin-left: -0.1rem;
+    }
+  }
 }
 
 .sz-chip-count {

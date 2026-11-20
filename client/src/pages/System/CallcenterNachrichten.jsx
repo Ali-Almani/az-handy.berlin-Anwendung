@@ -1823,12 +1823,13 @@ const CallcenterNachrichten = ({
                       key={c.id}
                       type="button"
                       role="tab"
+                      aria-label={c.label}
+                      title={c.label}
                       aria-selected={channel === c.id}
-                      className={`sz-chip sz-chip--${c.id}${channel === c.id ? ' sz-chip--active' : ''}`}
+                      className={`sz-chip sz-chip--icon sz-chip--${c.id}${channel === c.id ? ' sz-chip--active' : ''}`}
                       onClick={() => setChannel(c.id)}
                     >
                       <ChannelIcon channel={c.id} />
-                      {c.label}
                       {unreadByChannel[c.id] > 0 ? (
                         <span className="sz-chip-count">{unreadByChannel[c.id]}</span>
                       ) : null}
