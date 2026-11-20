@@ -52,9 +52,9 @@ export const NACHRICHT_ART_OPTIONS = [
 ];
 
 export const SOCIAL_CHANNELS = [
-  { id: 'facebook', label: 'Facebook', short: 'FB' },
   { id: 'whatsapp', label: 'WhatsApp', short: 'WA' },
   { id: 'instagram', label: 'Instagram', short: 'IG' },
+  { id: 'facebook', label: 'Facebook', short: 'FB' },
   { id: 'tiktok', label: 'TikTok', short: 'TT' }
 ];
 
@@ -1311,7 +1311,9 @@ export function ticketMatchesNachrichtenChannel(ticket, channel) {
     if (isLeadArchived(ticket) || !ticketGroup) return false;
     return ticketGroup.id === group.id;
   }
-  if (ticketGroup) return false;
+  if (ticketGroup || shopAssignsTicket(ticket?.shop) || shopAssignsTicket(ticket?.filiale)) {
+    return false;
+  }
   if (channel === 'all') return true;
   return normalizeSocialChannel(ticket.channel) === channel;
 }
