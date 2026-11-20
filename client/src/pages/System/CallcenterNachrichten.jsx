@@ -431,6 +431,37 @@ function ticketMatchesChannel(ticket, channel) {
   return ticketMatchesNachrichtenChannel(ticket, channel);
 }
 
+function ticketMatchesInboxSearch(ticket, query) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return true;
+  const hay = [
+    ticket?.id,
+    ticket?.ticketNr,
+    displayTicketId(ticket),
+    ticket?.customerName,
+    ticket?.handle,
+    ticket?.rufnummer,
+    ticket?.waId,
+    ticket?.angebot,
+    ...(Array.isArray(ticket?.messages) ? ticket.messages : []).map((message) => (
+      message.text || (messageVoices(message).length ? 'Sprachnachricht' : '')
+    ))
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  if (hay.includes(q)) return true;
+  const qDigits = q.replace(/\D/g, '');
+  if (qDigits.length >= 4) {
+    const nums = [ticket?.rufnummer, ticket?.handle, ticket?.waId, ticket?.id, displayTicketId(ticket)]
+      .map((value) => String(value || '').replace(/\D/g, ''))
+      .filter(Boolean)
+      .join(' ');
+    if (nums.includes(qDigits)) return true;
+  }
+  return false;
+}
+
 function ChannelIcon({ channel }) {
   const id = normalizeSocialChannel(channel);
   if (id === MANUAL_TICKET_CHANNEL) {
@@ -600,29 +631,14 @@ const CallcenterNachrichten = ({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return list
-      .filter((t) => ticketMatchesChannel(t, channel))
       .filter((t) => {
         if (isManualLeadTicket(t)) return false;
+        if (isLeadArchived(t)) return false;
         if (readTab === 'notiz' || readTab === 'anweisung') return false;
+        if (q) return ticketMatchesInboxSearch(t, q);
+        if (!ticketMatchesChannel(t, channel)) return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
         return !t.unread;
-      })
-      .filter((t) => {
-        if (!q) return true;
-        const hay = [
-          t.id,
-          t.ticketNr,
-          displayTicketId(t),
-          t.customerName,
-          t.handle,
-          t.rufnummer,
-          t.angebot,
-          ...(t.messages || []).map((m) => (m.text || (messageVoices(m).length ? 'Sprachnachricht' : '')))
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return hay.includes(q);
       })
       .sort((a, b) => String(lastMessageAt(b)).localeCompare(String(lastMessageAt(a))));
   }, [list, channel, readTab, search, activeId]);
@@ -1965,9 +1981,11 @@ const CallcenterNachrichten = ({
           <ul className="sz-ticket-list">
             {filtered.length === 0 ? (
               <li className="sz-empty">
-                {readTab === 'ungelesen'
-                  ? 'Keine ungelesenen Nachrichten.'
-                  : 'Keine gelesenen Nachrichten.'}
+                {search.trim()
+                  ? 'Keine Treffer für Name, Nummer oder ID.'
+                  : readTab === 'ungelesen'
+                    ? 'Keine ungelesenen Nachrichten.'
+                    : 'Keine gelesenen Nachrichten.'}
               </li>
             ) : (
               filtered.map((t) => {
