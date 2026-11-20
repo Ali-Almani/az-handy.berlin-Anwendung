@@ -28,6 +28,16 @@ function MetaChip({ children, accent }) {
 function mitarbeiterNames(entry, fallbackName = '') {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
+  if (isLeadEntry(entry)) {
+    const names = [];
+    const add = (value) => {
+      const name = sanitizeMitarbeiterName(value);
+      if (name && !names.includes(name)) names.push(name);
+    };
+    add(entry?.mitarbeiterName);
+    (Array.isArray(entry?.mitarbeiterNames) ? entry.mitarbeiterNames : []).forEach(add);
+    return names;
+  }
   const names = collectMitarbeiterNames({
     ...entry,
     mitarbeiterName: entry?.mitarbeiterName || mnp.mitarbeiter || e.mitarbeiter

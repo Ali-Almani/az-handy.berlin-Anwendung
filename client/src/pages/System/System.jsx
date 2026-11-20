@@ -64,7 +64,6 @@ import {
   kontaktversuchCountFor,
   saveLeadTickets,
   sanitizeMitarbeiterName,
-  withMitarbeiter,
   withShopMitarbeiter,
   appendLeadEditLog,
   leadFieldChange,
@@ -612,7 +611,6 @@ const System = () => {
     if (!isLeadEntry(entry) && !canManageTicketingSystem(user)) return;
     if (isLeadEntry(entry)) {
       const openedAt = new Date().toISOString();
-      const opener = sanitizeMitarbeiterName(defaultMitarbeiter);
       setLeadEditId(entry.id);
       setHighlightedId(entry.id);
       setShowForm(false);
@@ -620,17 +618,15 @@ const System = () => {
         const ordered = bringTicketToFront(prev, entry.id, openedAt);
         return ordered.map((t) => {
           if (t.id !== entry.id) return t;
-          const next = withMitarbeiter({
+          const next = {
             ...t,
             lastOpenedAt: openedAt,
             geoeffnetAt: String(t.geoeffnetAt || '').trim() || openedAt
-          }, opener);
+          };
           if (isLiveWhatsAppTicket(next)) {
             patchWhatsAppTicketApi(next.id, {
               lastOpenedAt: openedAt,
-              geoeffnetAt: next.geoeffnetAt,
-              mitarbeiterName: next.mitarbeiterName,
-              mitarbeiterNames: next.mitarbeiterNames
+              geoeffnetAt: next.geoeffnetAt
             }).catch(() => {});
           }
           return next;
@@ -688,11 +684,11 @@ const System = () => {
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
           : {};
         const patched = { ...t, [field]: value, ...extra };
-        const next = field === 'kontaktversuchCount' || silent
-          ? patched
-          : field === 'shopMitarbeiter'
-            ? withShopMitarbeiter(patched, value)
-            : withMitarbeiter(patched, defaultMitarbeiter);
+        const next = field === 'shopMitarbeiter'
+          ? withShopMitarbeiter(patched, value)
+          : (!silent && change)
+            ? withShopMitarbeiter(patched, defaultMitarbeiter)
+            : patched;
         const saved = change
           ? appendLeadEditLog(next, {
               editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
@@ -784,7 +780,7 @@ const System = () => {
           t.id === id
             ? (() => {
                 const nextName = sanitizeMitarbeiterName(defaultMitarbeiter);
-                const next = withMitarbeiter({
+                const next = withShopMitarbeiter({
                   ...t,
                   ticketStatus: nextLead
                 }, nextName);

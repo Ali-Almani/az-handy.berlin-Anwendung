@@ -1389,9 +1389,6 @@ export function collectMitarbeiterNames(entry) {
   (Array.isArray(entry?.messages) ? entry.messages : []).forEach((message) => {
     if (message?.from === 'agent') add(message.authorName);
   });
-  (Array.isArray(entry?.editLog) ? entry.editLog : []).forEach((item) => add(item?.editorName));
-  add(entry?.lastEditedBy?.name);
-  add(entry?.lastEditedBy?.userName);
   add(entry?.createdBy?.name);
   add(entry?.createdBy?.userName);
   add(entry?.eingabeDetails?.mitarbeiter);

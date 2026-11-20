@@ -159,12 +159,14 @@ export default function LeadNachrichtHistory({
   const commitAndClose = () => {
     const merged = { ...ticket, ...draft };
     const keys = new Set([...offenFollowupFieldKeys(merged), 'kontaktversuchCount']);
+    let changed = false;
     for (const key of keys) {
       if (String(draft[key] ?? '') === String(saved[key] ?? '')) continue;
+      changed = true;
       onAnswerChange?.(key, draft[key] ?? '');
     }
     const name = sanitizeMitarbeiterName(bearbeiterName);
-    if (name) onAnswerChange?.('shopMitarbeiter', name);
+    if (name && changed) onAnswerChange?.('shopMitarbeiter', name);
     onClose?.();
   };
 
