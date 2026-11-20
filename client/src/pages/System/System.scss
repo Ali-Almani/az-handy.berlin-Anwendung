@@ -630,7 +630,7 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  margin-bottom: $spacing-md;
+  margin-bottom: 0.4rem;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 
@@ -674,7 +674,7 @@
 
   @media (max-width: $breakpoint-md) {
     gap: 0.35rem;
-    margin: 0 0 0.65rem;
+    margin: 0 0 0.35rem;
     padding: 0.15rem 0.45rem 0.45rem;
 
     label {
@@ -688,6 +688,13 @@
       min-width: 6.8rem;
     }
   }
+}
+
+.system-offen-result-count {
+  margin: 0 0 $spacing-md;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: $text-color;
 }
 
 .system-toast {

@@ -233,6 +233,10 @@ function withTicketCount(label, count) {
   return `${label} (${count})`;
 }
 
+function facetTickets(list, filter, skipKey) {
+  return list.filter((entry) => matchesOffenFilter(entry, { ...filter, [skipKey]: '' }));
+}
+
 function uniqueFilterValues(values) {
   return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'de'));
@@ -348,20 +352,31 @@ const System = () => {
     return [...set].filter((opt) => String(opt).trim().toLowerCase() !== 'zentrale');
   }, [filialeOptions, offenEntriesAll]);
 
-  const offenStatusOptions = useMemo(() => {
-    const counts = countByKeys(offenEntriesAll, entryTicketStatus);
-    return VORVERTRAG_TICKET_STATUS_OPTIONS.map((opt) => ({
-      value: opt,
-      count: counts.get(opt) || 0
-    }));
-  }, [offenEntriesAll]);
+  const offenStatusOptions = useMemo(() => [...VORVERTRAG_TICKET_STATUS_OPTIONS], []);
 
   const offenBearbeiterOptions = useMemo(() => (
     [...countByKeys(offenEntriesAll, collectShopMitarbeiterNames).entries()]
       .filter(([value, count]) => value && count)
       .sort((a, b) => a[0].localeCompare(b[0], 'de'))
-      .map(([value, count]) => ({ value, count }))
+      .map(([value]) => value)
   ), [offenEntriesAll]);
+
+  const offenFacetCounts = useMemo(() => {
+    const make = (key, getKeys) => {
+      const list = facetTickets(offenEntriesAll, offenFilter, key);
+      return { all: list.length, by: countByKeys(list, getKeys) };
+    };
+    return {
+      filiale: make('filiale', entryFilialeValue),
+      o2Kunde: make('o2Kunde', (entry) => String(entry?.o2Kunde || '').trim()),
+      stadt: make('stadt', (entry) => String(entry?.stadt || '').trim()),
+      typ: make('typ', (entry) => String(entry?.angebot || '').trim()),
+      priority: make('priority', (entry) => normalizeTicketPriority(entry?.priority)),
+      sprache: make('sprache', (entry) => normalizeTicketLanguage(entry?.sprache)),
+      status: make('status', entryTicketStatus),
+      bearbeiter: make('bearbeiter', collectShopMitarbeiterNames)
+    };
+  }, [offenEntriesAll, offenFilter]);
 
   const offenTypOptions = useMemo(
     () => questionDropdownOptions('angebot', questionConfig) || [...LEAD_ANGEBOT_OPTIONS],
@@ -384,6 +399,7 @@ const System = () => {
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadOffenEntries.length,
     [entries, leadOffenEntries]
   );
+  const offenVisibleCount = listTab === 'offen' ? filteredEntries.length : offenCount;
   const archivCount = useMemo(
     () => entries.filter((entry) => isVorvertragArchived(entry)).length + leadArchivEntries.length,
     [entries, leadArchivEntries]
@@ -911,7 +927,7 @@ const System = () => {
               setArchivSearch('');
             }}
           >
-            Geöffnete Tickets ({offenCount})
+            Geöffnete Tickets ({offenVisibleCount})
           </button>
         ) : null}
         {canManageVorvertrag ? (
@@ -1073,7 +1089,7 @@ const System = () => {
           active={listTab}
           ungelesenCount={leadUnread}
           gelesenCount={leadGelesenCount}
-          offenCount={offenCount}
+          offenCount={offenVisibleCount}
           archivCount={archivCount}
           canSeeOffen={canSeeOffen}
           canSeeArchiv={canManageVorvertrag}
@@ -1130,9 +1146,9 @@ const System = () => {
                 value={offenFilter.filiale}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, filiale: ev.target.value }))}
               >
-                <option value="">Alle</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.filiale.all)}</option>
                 {offenFilialeOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.filiale.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1144,9 +1160,9 @@ const System = () => {
                 value={offenFilter.o2Kunde}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, o2Kunde: ev.target.value }))}
               >
-                <option value="">Alle</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.o2Kunde.all)}</option>
                 {offenO2Options.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.o2Kunde.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1158,9 +1174,9 @@ const System = () => {
                 value={offenFilter.stadt}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, stadt: ev.target.value }))}
               >
-                <option value="">Alle</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.stadt.all)}</option>
                 {offenStadtOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.stadt.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1172,9 +1188,9 @@ const System = () => {
                 value={offenFilter.typ}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, typ: ev.target.value }))}
               >
-                <option value="">Alle</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.typ.all)}</option>
                 {offenTypOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.typ.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1186,9 +1202,9 @@ const System = () => {
                 value={offenFilter.priority}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, priority: ev.target.value }))}
               >
-                <option value="">Alle</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.priority.all)}</option>
                 {TICKET_PRIORITY_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.priority.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1200,9 +1216,9 @@ const System = () => {
                 value={offenFilter.sprache}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, sprache: ev.target.value }))}
               >
-                <option value="">Alle</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.sprache.all)}</option>
                 {TICKET_LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.sprache.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1214,9 +1230,9 @@ const System = () => {
                 value={offenFilter.status}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, status: ev.target.value }))}
               >
-                <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.status.all)}</option>
                 {offenStatusOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.status.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
@@ -1228,13 +1244,19 @@ const System = () => {
                 value={offenFilter.bearbeiter}
                 onChange={(ev) => setOffenFilter((prev) => ({ ...prev, bearbeiter: ev.target.value }))}
               >
-                <option value="">{withTicketCount('Alle', offenEntriesAll.length)}</option>
+                <option value="">{withTicketCount('Alle', offenFacetCounts.bearbeiter.all)}</option>
                 {offenBearbeiterOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{withTicketCount(opt.value, opt.count)}</option>
+                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.bearbeiter.by.get(opt) || 0)}</option>
                 ))}
               </select>
             </label>
           </div>
+        ) : null}
+        {listTab === 'offen' ? (
+          <p className="system-offen-result-count" aria-live="polite">
+            {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
+            {Object.values(offenFilter).some(Boolean) ? ` von ${offenCount}` : ''}
+          </p>
         ) : null}
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
