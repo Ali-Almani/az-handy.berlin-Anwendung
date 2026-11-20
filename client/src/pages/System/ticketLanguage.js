@@ -3,7 +3,7 @@ export const TICKET_LANGUAGE_OPTIONS = [
   'Deutsch',
   'Englisch',
   'Indisch',
-  'Pakistani'
+  'Urdu'
 ];
 
 export const TICKET_LANGUAGE_DEFAULT = 'Deutsch';
@@ -21,9 +21,10 @@ const LANGUAGE_ALIASES = {
   inidi: 'Indisch',
   hindi: 'Indisch',
   indian: 'Indisch',
-  pakistani: 'Pakistani',
-  pakistanie: 'Pakistani',
-  urdu: 'Pakistani'
+  pakistani: 'Urdu',
+  pakistanie: 'Urdu',
+  urdu: 'Urdu',
+  urdo: 'Urdu'
 };
 
 export function normalizeTicketLanguage(value) {
