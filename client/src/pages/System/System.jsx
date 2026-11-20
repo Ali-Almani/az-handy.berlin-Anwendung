@@ -460,19 +460,6 @@ const System = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const name = sanitizeMitarbeiterName(defaultMitarbeiter);
-    if (!name) return;
-    setLeadTickets((prev) => {
-      let changed = false;
-      const next = prev.map((t) => {
-        if (sanitizeMitarbeiterName(t.mitarbeiterName)) return t;
-        changed = true;
-        return withMitarbeiter(t, name);
-      });
-      return changed ? next : prev;
-    });
-  }, [defaultMitarbeiter]);
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -625,16 +612,29 @@ const System = () => {
     if (!isLeadEntry(entry) && !canManageTicketingSystem(user)) return;
     if (isLeadEntry(entry)) {
       const openedAt = new Date().toISOString();
+      const opener = sanitizeMitarbeiterName(defaultMitarbeiter);
       setLeadEditId(entry.id);
       setHighlightedId(entry.id);
       setShowForm(false);
       setLeadTickets((prev) => {
-        const next = bringTicketToFront(prev, entry.id, openedAt);
-        const ticket = next.find((t) => t.id === entry.id);
-        if (ticket && isLiveWhatsAppTicket(ticket)) {
-          patchWhatsAppTicketApi(ticket.id, { lastOpenedAt: openedAt }).catch(() => {});
-        }
-        return next;
+        const ordered = bringTicketToFront(prev, entry.id, openedAt);
+        return ordered.map((t) => {
+          if (t.id !== entry.id) return t;
+          const next = withMitarbeiter({
+            ...t,
+            lastOpenedAt: openedAt,
+            geoeffnetAt: String(t.geoeffnetAt || '').trim() || openedAt
+          }, opener);
+          if (isLiveWhatsAppTicket(next)) {
+            patchWhatsAppTicketApi(next.id, {
+              lastOpenedAt: openedAt,
+              geoeffnetAt: next.geoeffnetAt,
+              mitarbeiterName: next.mitarbeiterName,
+              mitarbeiterNames: next.mitarbeiterNames
+            }).catch(() => {});
+          }
+          return next;
+        });
       });
       requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       return;

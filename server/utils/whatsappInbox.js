@@ -197,6 +197,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     textFollowupSent: false,
     sprache: '',
     mitarbeiterName: '',
+    mitarbeiterNames: [],
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
     kundenbesuchDatum: '',
@@ -519,7 +520,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
     const allowed = [
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName', 'ticketNr',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
-      'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
+      'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'mitarbeiterNames', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
       'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'kontaktversuchCount', 'editLog',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
@@ -588,14 +589,14 @@ export async function patchWhatsAppTicket(ticketId, patch) {
         }));
         continue;
       }
-      if (key === 'shopMitarbeiterNames') {
+      if (key === 'shopMitarbeiterNames' || key === 'mitarbeiterNames') {
         const src = Array.isArray(patch[key]) ? patch[key] : [];
         const names = [];
         for (const value of src.slice(0, 30)) {
           const name = String(value || '').trim().slice(0, 80);
           if (name && !names.includes(name)) names.push(name);
         }
-        ticket.shopMitarbeiterNames = names;
+        ticket[key] = names;
         continue;
       }
       ticket[key] = patch[key];

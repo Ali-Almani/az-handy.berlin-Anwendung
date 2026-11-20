@@ -113,13 +113,6 @@ export default function LeadNachrichtHistory({
   }, [ticket?.id, bearbeiterName]);
 
   useEffect(() => {
-    const name = sanitizeMitarbeiterName(bearbeiterName);
-    if (!name) return;
-    if (collectShopMitarbeiterNames(ticket).includes(name)) return;
-    onAnswerChange?.('shopMitarbeiter', name);
-  }, [ticket?.id, bearbeiterName]);
-
-  useEffect(() => {
     if (String(ticket?.geoeffnetAt || '').trim()) return;
     onAnswerChange?.('geoeffnetAt', ensureTicketGeoeffnetAt(ticket));
   }, [ticket?.id]);
@@ -161,6 +154,8 @@ export default function LeadNachrichtHistory({
       if (String(draft[key] ?? '') === String(saved[key] ?? '')) continue;
       onAnswerChange?.(key, draft[key] ?? '');
     }
+    const name = sanitizeMitarbeiterName(bearbeiterName);
+    if (name) onAnswerChange?.('shopMitarbeiter', name);
     onClose?.();
   };
 

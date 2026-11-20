@@ -42,6 +42,7 @@ function MitarbeiterNamesSelect({ names, ariaLabel = 'Marketing Mitarbeiter' }) 
   if (names.length === 1) return names[0];
   return (
     <select
+      key={names[0]}
       className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
       defaultValue={names[0]}
       aria-label={ariaLabel}

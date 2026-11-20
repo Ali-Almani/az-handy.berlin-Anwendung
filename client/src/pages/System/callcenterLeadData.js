@@ -946,6 +946,8 @@ export function emptyLeadForm() {
     dokumente: [],
     dokumenteHidden: [],
     ...emptyKontaktversuchFields(),
+    mitarbeiterName: '',
+    mitarbeiterNames: [],
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
     kundenbesuchDatum: '',
@@ -975,6 +977,8 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'priority',
   'nachrichtArt',
   'shop',
+  'mitarbeiterName',
+  'mitarbeiterNames',
   'shopMitarbeiter',
   'shopMitarbeiterNames',
   'kundenbesuchDatum',
@@ -1011,7 +1015,7 @@ export function preserveOpenTicketEdits(prev, hydrated) {
     ...Object.keys(hydrated || {}).filter(isKontaktversuchField)
   ]);
   for (const key of [...followupKeys, ...TICKET_FORM_PRESERVE_KEYS]) {
-    if (key === 'kontaktversuchCount' || key === 'shopMitarbeiterNames') continue;
+    if (key === 'kontaktversuchCount' || key === 'shopMitarbeiterNames' || key === 'mitarbeiterNames') continue;
     const remote = String(hydrated?.[key] ?? '').trim();
     const local = String(prev?.[key] ?? '').trim();
     if (!remote && local) next[key] = prev[key];
@@ -1028,6 +1032,15 @@ export function preserveOpenTicketEdits(prev, hydrated) {
   next.shopMitarbeiter = sanitizeMitarbeiterName(next.shopMitarbeiter)
     || sanitizeMitarbeiterName(prev.shopMitarbeiter)
     || shopNames[0]
+    || '';
+  const staffNames = prependMitarbeiterName([
+    ...(Array.isArray(prev.mitarbeiterNames) ? prev.mitarbeiterNames : []),
+    ...(Array.isArray(hydrated?.mitarbeiterNames) ? hydrated.mitarbeiterNames : [])
+  ], next.mitarbeiterName || prev.mitarbeiterName);
+  next.mitarbeiterNames = staffNames;
+  next.mitarbeiterName = sanitizeMitarbeiterName(next.mitarbeiterName)
+    || sanitizeMitarbeiterName(prev.mitarbeiterName)
+    || staffNames[0]
     || '';
   next.dokumenteHidden = sanitizeDokumenteHidden([
     ...(Array.isArray(prev.dokumenteHidden) ? prev.dokumenteHidden : []),
@@ -1354,6 +1367,17 @@ export function sanitizeMitarbeiterName(value) {
   return v;
 }
 
+function prependMitarbeiterName(names, first) {
+  const out = [];
+  const add = (value) => {
+    const name = sanitizeMitarbeiterName(value);
+    if (name && !out.includes(name)) out.push(name);
+  };
+  add(first);
+  (Array.isArray(names) ? names : []).forEach(add);
+  return out;
+}
+
 export function collectMitarbeiterNames(entry) {
   const names = [];
   const add = (value) => {
@@ -1376,11 +1400,7 @@ export function collectMitarbeiterNames(entry) {
 
 export function withMitarbeiter(ticket, name) {
   const nextName = sanitizeMitarbeiterName(name);
-  const names = collectMitarbeiterNames({
-    ...ticket,
-    mitarbeiterName: nextName || ticket?.mitarbeiterName
-  });
-  if (nextName && !names.includes(nextName)) names.push(nextName);
+  const names = prependMitarbeiterName(collectMitarbeiterNames(ticket), nextName);
   return {
     ...ticket,
     mitarbeiterName: nextName || names[0] || sanitizeMitarbeiterName(ticket?.mitarbeiterName) || '',
@@ -1401,8 +1421,7 @@ export function collectShopMitarbeiterNames(entry) {
 
 export function withShopMitarbeiter(ticket, name) {
   const nextName = sanitizeMitarbeiterName(name);
-  const names = collectShopMitarbeiterNames(ticket);
-  if (nextName && !names.includes(nextName)) names.push(nextName);
+  const names = prependMitarbeiterName(collectShopMitarbeiterNames(ticket), nextName);
   return {
     ...ticket,
     shopMitarbeiter: nextName || names[0] || sanitizeMitarbeiterName(ticket?.shopMitarbeiter) || '',

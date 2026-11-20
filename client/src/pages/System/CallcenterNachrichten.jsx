@@ -885,6 +885,9 @@ const CallcenterNachrichten = ({
           mocKn: next.mocKn,
           nachrichtArt: next.nachrichtArt,
           mitarbeiterName: next.mitarbeiterName,
+          mitarbeiterNames: next.mitarbeiterNames,
+          shopMitarbeiter: next.shopMitarbeiter,
+          shopMitarbeiterNames: next.shopMitarbeiterNames,
           priority: next.priority,
           customAnswers
         };
