@@ -906,9 +906,16 @@
 
 .vorvertrag-table .vorvertrag-ticket-row__status,
 .vorvertrag-table .vorvertrag-ticket-row__mitarbeiter,
-.vorvertrag-table .vorvertrag-ticket-row__shop-mitarbeiter {
+.vorvertrag-table .vorvertrag-ticket-row__shop-mitarbeiter,
+.vorvertrag-table .vorvertrag-ticket-row__filiale {
   width: 1%;
   white-space: nowrap;
+}
+
+.vorvertrag-ticket-row__filiale-select {
+  width: 9.5rem;
+  min-width: 9.5rem;
+  max-width: 9.5rem;
 }
 
 .vorvertrag-ticket-row__kundenbesuch-datum {

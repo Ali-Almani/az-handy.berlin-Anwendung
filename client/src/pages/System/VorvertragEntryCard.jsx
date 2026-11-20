@@ -1,4 +1,3 @@
-import { formatEinsatzOrt } from '../../constants/einsatzorte';
 import { mnpDetailsFromEingabe } from './mnpConstants';
 import { isMnpOnlyEntry } from './vorvertragEntryType';
 import {
@@ -7,7 +6,8 @@ import {
   displayTicketId,
   isLeadEntry,
   migrateLeadTicketStatus,
-  sanitizeMitarbeiterName
+  sanitizeMitarbeiterName,
+  shopOptionLabel
 } from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
@@ -91,11 +91,34 @@ function StatusSelect({ value, name, disabled, onChange }) {
   );
 }
 
+function FilialeSelect({ value, name, options, disabled, onChange }) {
+  const current = String(value || '').trim();
+  const shops = [...options];
+  if (current && !shops.includes(current)) shops.unshift(current);
+  return (
+    <select
+      className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__filiale-select"
+      value={current}
+      disabled={disabled}
+      onClick={(ev) => ev.stopPropagation()}
+      onChange={onChange}
+      aria-label={`Filiale für ${name}`}
+    >
+      {!current ? <option value="">Filiale</option> : null}
+      {shops.map((opt) => (
+        <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
+      ))}
+    </select>
+  );
+}
+
 export default function VorvertragEntryCard({
   entry,
   onEdit,
   onStatusChange,
   onKundenbesuchDatumChange,
+  onFilialeChange,
+  filialeOptions = [],
   statusSaving = false,
   highlighted = false,
   fallbackMitarbeiter = '',
@@ -120,7 +143,7 @@ export default function VorvertragEntryCard({
   const priority = normalizeTicketPriority(entry?.priority);
   const priorityMod = ticketPriorityBadge(priority);
   const sprache = normalizeTicketLanguage(entry?.sprache);
-  const filiale = formatEinsatzOrt(entry?.filiale);
+  const filiale = String(entry?.filiale || entry?.shop || '').trim();
 
   return (
     <tr
@@ -131,9 +154,6 @@ export default function VorvertragEntryCard({
       <td className="vorvertrag-ticket-row__kunde">{name}</td>
       <td className="vorvertrag-ticket-row__datum">{formatDatum(entry?.datum)}</td>
       <td className="vorvertrag-ticket-row__zeit">{formatGeoeffnetZeit(entry?.createdAt)}</td>
-      <td className="vorvertrag-ticket-row__filiale">
-        {filiale ? <MetaChip accent>{filiale}</MetaChip> : '—'}
-      </td>
       <td className="vorvertrag-ticket-row__typ">
         {lead ? (
           <MetaChip accent>{entry?.angebot || 'Nachricht'}</MetaChip>
@@ -183,6 +203,15 @@ export default function VorvertragEntryCard({
       </td>
       <td className="vorvertrag-ticket-row__shop-mitarbeiter">
         <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
+      </td>
+      <td className="vorvertrag-ticket-row__filiale">
+        <FilialeSelect
+          value={filiale}
+          name={name}
+          options={filialeOptions}
+          disabled={statusSaving}
+          onChange={(ev) => onFilialeChange?.(entry, ev.target.value)}
+        />
       </td>
       <td className="vorvertrag-ticket-row__actions">
         <button

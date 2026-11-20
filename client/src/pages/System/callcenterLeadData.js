@@ -1134,7 +1134,7 @@ const LEAD_FIELD_LABELS = {
   kundenbesuch2Bearbeiter: 'Kontaktversuch 2 Bearbeiter',
   kundenbesuch3Bearbeiter: 'Kontaktversuch 3 Bearbeiter',
   kontaktversuchCount: 'Kontaktversuche',
-  shop: 'Shop',
+  shop: 'Filiale',
   ticketStatus: 'Status',
   kundenbesuchDatum: 'Datum erreicht',
   priority: 'Priorität',

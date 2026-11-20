@@ -599,11 +599,13 @@ export async function updateVorvertragTicketStatus(req, res) {
     const kundenbesuchDatum = String(
       req.body?.kundenbesuchDatum ?? prev.kundenbesuchDatum ?? ''
     ).trim().slice(0, 10);
+    const filiale = String(req.body?.filiale ?? prev.filiale ?? '').trim();
 
     updated = {
       ...prev,
       ticketStatus,
       kundenbesuchDatum,
+      filiale: filiale || prev.filiale,
       updatedAt: now,
       lastEditedBy: editor,
       editHistory: history.slice(0, 200)
