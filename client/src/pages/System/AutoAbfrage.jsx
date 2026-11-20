@@ -324,6 +324,36 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
               }}
             />
           </article>
+          <article className={`auto-flow-setting${isSettingEnabled(flow, 'finaleEnabled', 'finaleText') ? '' : ' auto-flow-setting--off'}`}>
+            <div className="auto-flow-setting__head">
+              <h3 className="auto-flow-setting__title">Finale-Antwort</h3>
+              <AutoSwitch
+                checked={isSettingEnabled(flow, 'finaleEnabled', 'finaleText')}
+                onChange={(on) => {
+                  setSaved(false);
+                  setFlow((prev) => ({ ...prev, finaleEnabled: on }));
+                }}
+              />
+            </div>
+            <p className="auto-flow-setting__hint">
+              Nach der letzten Kundenantwort. Schreibe {'{ID}'} für die Ticket-Nummer, z. B. WA-201126-001.
+            </p>
+            <textarea
+              className="form-input auto-flow-setting__text"
+              value={flow.finaleText?.[locale] || ''}
+              placeholder={'Vielen Dank. Ihre Ticket-ID ist {ID}.'}
+              aria-label="Finale Nachricht an den Kunden"
+              rows={3}
+              dir={locale === 'ar' ? 'rtl' : undefined}
+              onChange={(ev) => {
+                setSaved(false);
+                setFlow((prev) => ({
+                  ...prev,
+                  finaleText: { ...(prev.finaleText || {}), [locale]: ev.target.value }
+                }));
+              }}
+            />
+          </article>
         </div>
       </div>
 

@@ -63,6 +63,8 @@ export function defaultAutoQuestionFlow() {
     abholbereitText: { de: '', ar: '', en: '' },
     erledigtEnabled: false,
     erledigtText: { de: '', ar: '', en: '' },
+    finaleEnabled: false,
+    finaleText: { de: '', ar: '', en: '' },
     startId: 'o2Kunde',
     questions: [
       {
@@ -308,9 +310,11 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
   const followupText = optionalTextPack(source.followupText);
   const abholbereitText = optionalTextPack(source.abholbereitText);
   const erledigtText = optionalTextPack(source.erledigtText);
+  const finaleText = optionalTextPack(source.finaleText);
   const followupEnabled = enabledFlag(source, 'followupEnabled', followupText);
   const abholbereitEnabled = enabledFlag(source, 'abholbereitEnabled', abholbereitText);
   const erledigtEnabled = enabledFlag(source, 'erledigtEnabled', erledigtText);
+  const finaleEnabled = enabledFlag(source, 'finaleEnabled', finaleText);
 
   let startId = String(source.startId || '').trim();
   if (!ids.has(startId)) startId = questions[0].id;
@@ -328,6 +332,8 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
       abholbereitText,
       erledigtEnabled,
       erledigtText,
+      finaleEnabled,
+      finaleText,
       startId,
       questions
     },
@@ -381,6 +387,22 @@ export function statusAutoTextForLocale(flow, status, locale) {
     return localeTextPack(flow?.abholbereitText, locale);
   }
   return '';
+}
+
+export function finaleTextForLocale(flow, locale) {
+  if (flow?.finaleEnabled === false) return '';
+  return localeTextPack(flow?.finaleText, locale);
+}
+
+export function displayTicketId(ticket) {
+  const nr = String(ticket?.ticketNr || '').trim();
+  if (nr) return nr;
+  return String(ticket?.id || '').trim();
+}
+
+export function fillTicketPlaceholders(text, ticket) {
+  const id = displayTicketId(ticket);
+  return String(text || '').replace(/\{(?:ticket[-_ ]?(?:id|nr)|id)\}/gi, id);
 }
 
 function localeTextPack(pack, locale) {

@@ -15,6 +15,8 @@ import {
   flowWaitMs,
   followupTextForLocale,
   followupWaitMs,
+  fillTicketPlaceholders,
+  finaleTextForLocale,
   loadAutoQuestionFlow,
   statusAutoTextForLocale,
   matchFlowOption,
@@ -209,6 +211,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     kontaktversuchCount: 1,
     abholbereitAutoSent: false,
     erledigtAutoSent: false,
+    finaleAutoSent: false,
     createdAt: at,
     messages: []
   };
@@ -502,10 +505,11 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (extra.sprache !== undefined) ticket.sprache = extra.sprache;
     if (extra.abholbereitAutoSent) ticket.abholbereitAutoSent = true;
     if (extra.erledigtAutoSent) ticket.erledigtAutoSent = true;
+    if (extra.finaleAutoSent) ticket.finaleAutoSent = true;
     return { value: { tickets: state.tickets } };
   }).then((state) => {
     const ticket = ticketFromState(state, ticketId);
-    const skipFollowup = message?.auto === 'followup' || message?.auto === 'abholbereit' || message?.auto === 'erledigt';
+    const skipFollowup = message?.auto === 'followup' || message?.auto === 'abholbereit' || message?.auto === 'erledigt' || message?.auto === 'finale';
     if (message?.from === 'agent' && !skipFollowup) {
       armTextFollowup(ticket);
     }
@@ -522,7 +526,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'mitarbeiterNames', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
-      'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'kontaktversuchCount', 'editLog',
+      'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'finaleAutoSent', 'kontaktversuchCount', 'editLog',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
         `kundenbesuch${n}Bearbeiter`,
         `kontakt${n}Bearbeiter`,
@@ -1266,6 +1270,30 @@ async function startFlowPause(ticket, questionId, queue = []) {
   return next;
 }
 
+async function sendFinaleMessage(ticket) {
+  if (!ticket?.id || !ticket?.waId || ticket.finaleAutoSent) return ticket;
+  const flow = loadAutoQuestionFlow();
+  const locale = localeFromSprache(ticket.sprache);
+  const template = finaleTextForLocale(flow, locale);
+  const text = fillTicketPlaceholders(template, ticket);
+  if (!text) return ticket;
+  try {
+    const waMessageId = await sendWhatsAppText(ticket.waId, text);
+    const nextState = await appendOutgoingMessage(ticket.id, {
+      id: waMessageId,
+      from: 'agent',
+      auto: 'finale',
+      locale,
+      text,
+      at: new Date().toISOString()
+    }, { keepUnread: true, finaleAutoSent: true });
+    return ticketFromState(nextState, ticket.id, ticket.waId) || ticket;
+  } catch (err) {
+    console.warn('[whatsapp] finale', err?.detail || err?.message || err);
+    return ticket;
+  }
+}
+
 async function finishOrPause(ticket, patch, queued) {
   const [nextId, ...rest] = queued;
   if (!nextId) {
@@ -1275,7 +1303,8 @@ async function finishOrPause(ticket, patch, queued) {
       autoQuestionDueAt: '',
       autoQuestionQueue: []
     });
-    return ticketFromState(state, ticket.id, ticket.waId) || ticket;
+    const done = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, ...patch };
+    return sendFinaleMessage(done);
   }
   const dueAt = new Date(Date.now() + flowWaitMs()).toISOString();
   const state = await patchWhatsAppTicket(ticket.id, {
@@ -1426,7 +1455,7 @@ async function sendScheduledTextFollowup(ticketId) {
   ticket = ticketFromState(state, ticketId) || ticket;
   if (!claimed || !ticket?.waId) return;
   const locale = localeFromSprache(ticket.sprache);
-  const text = followupTextForLocale(flow, locale);
+  const text = fillTicketPlaceholders(followupTextForLocale(flow, locale), ticket);
   const lastCustomer = lastCustomerMessageAt(ticket);
   if (!text || !lastCustomer || Date.now() - lastCustomer >= WHATSAPP_SESSION_MS - 60_000) return;
   try {
@@ -1455,7 +1484,7 @@ export async function sendStatusAutoMessage(ticket, prevStatus) {
   if (ticket[sentKey]) return ticket;
   const flow = loadAutoQuestionFlow();
   const locale = localeFromSprache(ticket.sprache);
-  const text = statusAutoTextForLocale(flow, nextStatus, locale);
+  const text = fillTicketPlaceholders(statusAutoTextForLocale(flow, nextStatus, locale), ticket);
   if (!text) return ticket;
   try {
     const waMessageId = await sendWhatsAppText(ticket.waId, text);
