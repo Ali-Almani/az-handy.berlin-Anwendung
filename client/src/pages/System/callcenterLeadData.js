@@ -5,6 +5,7 @@ import {
 } from './vorvertragTicketStatus';
 import { TICKET_PRIORITY_DEFAULT, TICKET_PRIORITY_OPTIONS, normalizeTicketPriority } from './ticketPriority';
 import { TICKET_LANGUAGE_DEFAULT_NEU, TICKET_LANGUAGE_OPTIONS, normalizeTicketLanguage } from './ticketLanguage';
+import { EINSATZORT_LEGACY_MAP } from '../../constants/einsatzorte';
 
 export { LEAD_STADT_OPTIONS, isStadtFilterOption } from './deutscheStaedte';
 
@@ -1238,6 +1239,42 @@ export function shopAssignsTicket(shop) {
   return Boolean(normalizeNachrichtShop(shop));
 }
 
+function compactShopKey(value) {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/ß/g, 'ss')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/strasse/g, 'str')
+    .replace(/straße/g, 'str')
+    .replace(/str\./g, 'str')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+const FILIALE_GROUP_BY_KEY = (() => {
+  const map = new Map();
+  const byId = new Map(NACHRICHTEN_FILIALE_GROUPS.map((group) => [group.id, group]));
+  const add = (raw, group) => {
+    const key = compactShopKey(raw);
+    if (key && group) map.set(key, group);
+  };
+  NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
+    add(group.id, group);
+    add(group.shop, group);
+    add(group.label, group);
+  });
+  Object.entries(EINSATZORT_LEGACY_MAP).forEach(([short, shop]) => {
+    add(short, NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === shop));
+    add(shop, NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === shop));
+  });
+  add('sonnenallee', byId.get('sonnenallee16'));
+  add('kitzing', byId.get('kitzingstr'));
+  add('kitzingstr79', byId.get('kitzingstr'));
+  add('kitzingstrasse79', byId.get('kitzingstr'));
+  return map;
+})();
+
 export function filialeGroupChannelId(group) {
   return group?.id ? `shop:${group.id}` : '';
 }
@@ -1250,22 +1287,31 @@ export function filialeGroupByChannel(channel) {
 }
 
 export function filialeGroupForShop(shop) {
+  if (!String(shop ?? '').trim() || isCallcenterShop(shop)) return null;
   const normalized = normalizeNachrichtShop(shop);
-  if (!normalized) return null;
-  return NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === normalized) || null;
+  if (normalized) {
+    const exact = NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === normalized);
+    if (exact) return exact;
+  }
+  return FILIALE_GROUP_BY_KEY.get(compactShopKey(shop)) || null;
+}
+
+export function filialeGroupForTicket(ticket) {
+  return filialeGroupForShop(ticket?.shop) || filialeGroupForShop(ticket?.filiale);
 }
 
 export function isTicketInFilialeGroup(ticket) {
-  return Boolean(filialeGroupForShop(ticket?.shop));
+  return Boolean(filialeGroupForTicket(ticket));
 }
 
 export function ticketMatchesNachrichtenChannel(ticket, channel) {
   const group = filialeGroupByChannel(channel);
+  const ticketGroup = filialeGroupForTicket(ticket);
   if (group) {
-    if (isLeadArchived(ticket) || !isTicketInFilialeGroup(ticket)) return false;
-    return filialeGroupForShop(ticket?.shop)?.id === group.id;
+    if (isLeadArchived(ticket) || !ticketGroup) return false;
+    return ticketGroup.id === group.id;
   }
-  if (isTicketInFilialeGroup(ticket)) return false;
+  if (ticketGroup) return false;
   if (channel === 'all') return true;
   return normalizeSocialChannel(ticket.channel) === channel;
 }

@@ -28,6 +28,7 @@ import {
   normalizeNachrichtShop,
   filialeGroupChannelId,
   filialeGroupForShop,
+  filialeGroupForTicket,
   ticketMatchesNachrichtenChannel,
   sanitizeMitarbeiterName,
   isManualLeadTicket,
@@ -822,24 +823,28 @@ const CallcenterNachrichten = ({
   }, [active?.id, active?.messages?.length, agentTyping, customerTyping]);
 
   const unreadByChannel = useMemo(() => {
-    const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
+    const unread = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
+    const gelesen = {};
     NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
-      counts[filialeGroupChannelId(group)] = 0;
+      const id = filialeGroupChannelId(group);
+      unread[id] = 0;
+      gelesen[id] = 0;
     });
     list.forEach((t) => {
-      if (!t.unread || isManualLeadTicket(t)) return;
-      if (ticketMatchesNachrichtenChannel(t, 'all')) {
-        counts.all += 1;
+      if (isManualLeadTicket(t)) return;
+      if (ticketMatchesNachrichtenChannel(t, 'all') && t.unread) {
+        unread.all += 1;
         const ch = normalizeSocialChannel(t.channel);
-        counts[ch] = (counts[ch] || 0) + 1;
+        unread[ch] = (unread[ch] || 0) + 1;
       }
-      const group = filialeGroupForShop(t.shop);
-      if (group && ticketMatchesNachrichtenChannel(t, filialeGroupChannelId(group))) {
-        const key = filialeGroupChannelId(group);
-        counts[key] = (counts[key] || 0) + 1;
-      }
+      const group = filialeGroupForTicket(t);
+      if (!group) return;
+      const id = filialeGroupChannelId(group);
+      if (!ticketMatchesNachrichtenChannel(t, id)) return;
+      if (t.unread) unread[id] += 1;
+      else gelesen[id] += 1;
     });
-    return counts;
+    return { ...unread, gelesen };
   }, [list]);
 
   const readTabCounts = useMemo(() => {
@@ -1839,6 +1844,7 @@ const CallcenterNachrichten = ({
                   {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
                     const id = filialeGroupChannelId(group);
                     const unread = unreadByChannel[id] || 0;
+                    const gelesen = unreadByChannel.gelesen?.[id] || 0;
                     return (
                       <button
                         key={id}
@@ -1846,10 +1852,15 @@ const CallcenterNachrichten = ({
                         role="tab"
                         aria-selected={channel === id}
                         className={`sz-chip sz-chip--shop${channel === id ? ' sz-chip--active' : ''}`}
-                        onClick={() => setChannel(id)}
+                        onClick={() => {
+                          setChannel(id);
+                          if (readTab === 'notiz' || readTab === 'anweisung') return;
+                          setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
+                        }}
                       >
                         {group.label}
                         {unread > 0 ? <span className="sz-chip-count">{unread}</span> : null}
+                        {gelesen > 0 ? <span className="sz-read-tab-count">{gelesen}</span> : null}
                       </button>
                     );
                   })}
