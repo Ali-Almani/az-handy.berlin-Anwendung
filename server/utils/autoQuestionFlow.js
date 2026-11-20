@@ -42,12 +42,26 @@ function optionalTextPack(raw) {
   };
 }
 
+function packHasText(pack) {
+  const src = pack && typeof pack === 'object' ? pack : {};
+  return LOCALES.some((loc) => Boolean(String(src[loc] || '').trim()));
+}
+
+function enabledFlag(source, key, pack) {
+  if (source?.[key] === true) return true;
+  if (source?.[key] === false) return false;
+  return packHasText(pack);
+}
+
 export function defaultAutoQuestionFlow() {
   return {
     waitSeconds: 60,
     followupWaitHours: 23,
+    followupEnabled: false,
     followupText: { de: '', ar: '', en: '' },
+    abholbereitEnabled: false,
     abholbereitText: { de: '', ar: '', en: '' },
+    erledigtEnabled: false,
     erledigtText: { de: '', ar: '', en: '' },
     startId: 'o2Kunde',
     questions: [
@@ -294,6 +308,9 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
   const followupText = optionalTextPack(source.followupText);
   const abholbereitText = optionalTextPack(source.abholbereitText);
   const erledigtText = optionalTextPack(source.erledigtText);
+  const followupEnabled = enabledFlag(source, 'followupEnabled', followupText);
+  const abholbereitEnabled = enabledFlag(source, 'abholbereitEnabled', abholbereitText);
+  const erledigtEnabled = enabledFlag(source, 'erledigtEnabled', erledigtText);
 
   let startId = String(source.startId || '').trim();
   if (!ids.has(startId)) startId = questions[0].id;
@@ -305,8 +322,11 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
     flow: {
       waitSeconds,
       followupWaitHours,
+      followupEnabled,
       followupText,
+      abholbereitEnabled,
       abholbereitText,
+      erledigtEnabled,
       erledigtText,
       startId,
       questions
@@ -346,13 +366,20 @@ export function followupWaitMs(flow = loadAutoQuestionFlow()) {
 }
 
 export function followupTextForLocale(flow, locale) {
+  if (flow?.followupEnabled === false) return '';
   return localeTextPack(flow?.followupText, locale);
 }
 
 export function statusAutoTextForLocale(flow, status, locale) {
   const name = String(status || '').trim();
-  if (name === 'Erledigt') return localeTextPack(flow?.erledigtText, locale);
-  if (name === 'Abholbereit') return localeTextPack(flow?.abholbereitText, locale);
+  if (name === 'Erledigt') {
+    if (flow?.erledigtEnabled === false) return '';
+    return localeTextPack(flow?.erledigtText, locale);
+  }
+  if (name === 'Abholbereit') {
+    if (flow?.abholbereitEnabled === false) return '';
+    return localeTextPack(flow?.abholbereitText, locale);
+  }
   return '';
 }
 

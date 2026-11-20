@@ -72,6 +72,30 @@ function produktNamesFromFlow(flow) {
     .slice(0, 10);
 }
 
+function packHasText(pack) {
+  const src = pack && typeof pack === 'object' ? pack : {};
+  return ['de', 'ar', 'en'].some((loc) => Boolean(String(src[loc] || '').trim()));
+}
+
+function isSettingEnabled(flow, key, textKey) {
+  if (flow?.[key] === true) return true;
+  if (flow?.[key] === false) return false;
+  return packHasText(flow?.[textKey]);
+}
+
+function AutoSwitch({ checked, onChange, labelOn = 'Aktiv', labelOff = 'Aus' }) {
+  return (
+    <label className={`auto-flow-setting__switch${checked ? ' auto-flow-setting__switch--on' : ''}`}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(ev) => onChange(ev.target.checked)}
+      />
+      {checked ? labelOn : labelOff}
+    </label>
+  );
+}
+
 export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } = {}) {
   const [flow, setFlow] = useState(null);
   const [locale, setLocale] = useState('de');
@@ -201,9 +225,18 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
               Sekunden
             </label>
           </article>
-          <article className="auto-flow-setting">
-            <h3 className="auto-flow-setting__title">Erinnerung</h3>
-            <p className="auto-flow-setting__hint">Wenn der Kunde nicht antwortet. Leer = aus. Maximal 23 Stunden.</p>
+          <article className={`auto-flow-setting${isSettingEnabled(flow, 'followupEnabled', 'followupText') ? '' : ' auto-flow-setting--off'}`}>
+            <div className="auto-flow-setting__head">
+              <h3 className="auto-flow-setting__title">Erinnerung</h3>
+              <AutoSwitch
+                checked={isSettingEnabled(flow, 'followupEnabled', 'followupText')}
+                onChange={(on) => {
+                  setSaved(false);
+                  setFlow((prev) => ({ ...prev, followupEnabled: on }));
+                }}
+              />
+            </div>
+            <p className="auto-flow-setting__hint">Wenn der Kunde nicht antwortet. Maximal 23 Stunden.</p>
             <label className="auto-flow-setting__row">
               <input
                 className="form-input"
@@ -235,9 +268,18 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
               }}
             />
           </article>
-          <article className="auto-flow-setting">
-            <h3 className="auto-flow-setting__title">Abholbereit</h3>
-            <p className="auto-flow-setting__hint">Wenn der Status in Geöffnete Tickets auf Abholbereit gesetzt wird. Leer = aus.</p>
+          <article className={`auto-flow-setting${isSettingEnabled(flow, 'abholbereitEnabled', 'abholbereitText') ? '' : ' auto-flow-setting--off'}`}>
+            <div className="auto-flow-setting__head">
+              <h3 className="auto-flow-setting__title">Abholbereit</h3>
+              <AutoSwitch
+                checked={isSettingEnabled(flow, 'abholbereitEnabled', 'abholbereitText')}
+                onChange={(on) => {
+                  setSaved(false);
+                  setFlow((prev) => ({ ...prev, abholbereitEnabled: on }));
+                }}
+              />
+            </div>
+            <p className="auto-flow-setting__hint">Wenn der Status in Geöffnete Tickets auf Abholbereit gesetzt wird.</p>
             <textarea
               className="form-input auto-flow-setting__text"
               value={flow.abholbereitText?.[locale] || ''}
@@ -254,9 +296,18 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
               }}
             />
           </article>
-          <article className="auto-flow-setting">
-            <h3 className="auto-flow-setting__title">Erledigt</h3>
-            <p className="auto-flow-setting__hint">Wenn der Status in Geöffnete Tickets auf Erledigt gesetzt wird. Leer = aus.</p>
+          <article className={`auto-flow-setting${isSettingEnabled(flow, 'erledigtEnabled', 'erledigtText') ? '' : ' auto-flow-setting--off'}`}>
+            <div className="auto-flow-setting__head">
+              <h3 className="auto-flow-setting__title">Erledigt</h3>
+              <AutoSwitch
+                checked={isSettingEnabled(flow, 'erledigtEnabled', 'erledigtText')}
+                onChange={(on) => {
+                  setSaved(false);
+                  setFlow((prev) => ({ ...prev, erledigtEnabled: on }));
+                }}
+              />
+            </div>
+            <p className="auto-flow-setting__hint">Wenn der Status in Geöffnete Tickets auf Erledigt gesetzt wird.</p>
             <textarea
               className="form-input auto-flow-setting__text"
               value={flow.erledigtText?.[locale] || ''}

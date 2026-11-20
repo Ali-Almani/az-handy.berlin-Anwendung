@@ -1916,12 +1916,44 @@
   border: 1px solid $border-color;
   border-radius: 8px;
   background: #fff;
+
+  &--off {
+    background: mix(#fff, $border-color, 70%);
+  }
+}
+
+.auto-flow-setting__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .auto-flow-setting__title {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
+}
+
+.auto-flow-setting__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: $text-light;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    margin: 0;
+    accent-color: $primary-color;
+  }
+
+  &--on {
+    color: $primary-color;
+  }
 }
 
 .auto-flow-setting__hint {
