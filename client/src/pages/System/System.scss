@@ -690,11 +690,51 @@
   }
 }
 
-.system-offen-result-count {
+.system-offen-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
   margin: 0 0 $spacing-md;
+
+  @media (max-width: $breakpoint-md) {
+    margin: 0 0 0.65rem;
+    padding: 0 0.45rem;
+  }
+}
+
+.system-offen-result-count {
+  margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
   color: $text-color;
+  white-space: nowrap;
+}
+
+.system-offen-search {
+  flex: 1 1 14rem;
+  max-width: 22rem;
+  min-width: 11rem;
+  margin: 0;
+
+  .form-input {
+    width: 100%;
+    min-height: 2rem;
+    padding: 0.28rem 0.5rem;
+    font-size: 0.82rem;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .system-toast {

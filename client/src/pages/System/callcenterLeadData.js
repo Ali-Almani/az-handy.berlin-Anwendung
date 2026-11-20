@@ -1872,6 +1872,7 @@ export function leadToNeuEntry(lead) {
     customerName: lead.customerName,
     handle: lead.handle,
     rufnummer: lead.rufnummer,
+    waId: lead.waId,
     o2Kunde: lead.o2Kunde,
     angebot: lead.angebot,
     produktNotiz: lead.produktNotiz,

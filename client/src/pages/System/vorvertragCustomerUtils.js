@@ -25,6 +25,7 @@ function archiveSearchHaystack(entry) {
     entry?.handle,
     entry?.channel,
     entry?.rufnummer,
+    entry?.waId,
     entry?.angebot,
     entry?.shop,
     id,
@@ -42,7 +43,16 @@ export function entryMatchesCustomerNameSearch(entry, query) {
   if (!q) return true;
   const terms = q.split(/\s+/).filter(Boolean);
   const haystack = archiveSearchHaystack(entry);
-  return terms.every((term) => haystack.includes(term));
+  if (terms.every((term) => haystack.includes(term))) return true;
+  const qDigits = q.replace(/\D/g, '');
+  if (qDigits.length >= 4) {
+    const nums = [entry?.rufnummer, entry?.handle, entry?.waId, entry?.id, entry?.ticketNr]
+      .map((value) => String(value || '').replace(/\D/g, ''))
+      .filter(Boolean)
+      .join(' ');
+    if (nums.includes(qDigits)) return true;
+  }
+  return false;
 }
 
 /** Eindeutige Kunden aus bestehenden Vorverträgen (neueste Daten pro Schlüssel). */

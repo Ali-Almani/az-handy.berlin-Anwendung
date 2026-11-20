@@ -278,6 +278,7 @@ const System = () => {
   const [listTab, setListTab] = useState('nachrichten');
   const [inboxTab, setInboxTab] = useState('ungelesen');
   const [archivSearch, setArchivSearch] = useState('');
+  const [offenSearch, setOffenSearch] = useState('');
   const [offenFilter, setOffenFilter] = useState(EMPTY_OFFEN_FILTER);
   const [statusSavingId, setStatusSavingId] = useState('');
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
@@ -331,6 +332,7 @@ const System = () => {
     if (listTab === 'offen') {
       return offenEntriesAll
         .filter((entry) => matchesOffenFilter(entry, offenFilter))
+        .filter((entry) => entryMatchesCustomerNameSearch(entry, offenSearch))
         .slice()
         .sort((a, b) => compareOffenEntries(a, b, leadEditId));
     }
@@ -341,7 +343,7 @@ const System = () => {
       return [...leads, ...vv];
     }
     return vv;
-  }, [entries, listTab, archivSearch, leadOffenEntries, leadArchivEntries, offenEntriesAll, offenFilter, leadEditId]);
+  }, [entries, listTab, archivSearch, offenSearch, leadOffenEntries, leadArchivEntries, offenEntriesAll, offenFilter, leadEditId]);
 
   const offenFilialeOptions = useMemo(() => {
     const set = new Set([...shopOptionsForTicketing(), ...filialeOptions]);
@@ -1253,10 +1255,24 @@ const System = () => {
           </div>
         ) : null}
         {listTab === 'offen' ? (
-          <p className="system-offen-result-count" aria-live="polite">
-            {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
-            {Object.values(offenFilter).some(Boolean) ? ` von ${offenCount}` : ''}
-          </p>
+          <div className="system-offen-toolbar">
+            <p className="system-offen-result-count" aria-live="polite">
+              {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
+              {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? ` von ${offenCount}` : ''}
+            </p>
+            <label className="system-offen-search">
+              <span className="visually-hidden">Name, Nummer oder ID</span>
+              <input
+                id="offen-suche"
+                type="search"
+                className="form-input"
+                value={offenSearch}
+                onChange={(ev) => setOffenSearch(ev.target.value)}
+                placeholder="Name, Nummer oder ID…"
+                autoComplete="off"
+              />
+            </label>
+          </div>
         ) : null}
         {listTab === 'archiv' ? (
           <div className="system-archiv-search">
@@ -1280,9 +1296,11 @@ const System = () => {
               ? 'Keine Treffer für diesen Kundenname oder diese ID im Archiv.'
               : listTab === 'archiv'
                 ? 'Keine Einträge im Archiv.'
-                : Object.values(offenFilter).some(Boolean)
-                  ? 'Keine offenen Einträge für diese Filter.'
-                  : 'Keine offenen Einträge.'}
+                : offenSearch.trim()
+                  ? 'Keine Treffer für Name, Nummer oder ID.'
+                  : Object.values(offenFilter).some(Boolean)
+                    ? 'Keine offenen Einträge für diese Filter.'
+                    : 'Keine offenen Einträge.'}
           </p>
         ) : (
           <div className="vorvertrag-table-wrapper">
