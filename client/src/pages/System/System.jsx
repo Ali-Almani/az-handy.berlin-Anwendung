@@ -73,7 +73,6 @@ import {
   bringTicketToFront,
   compareOffenEntries,
   shopOptionsForTicketing,
-  normalizeNachrichtShop,
   questionDropdownOptions,
   LEAD_ANGEBOT_OPTIONS,
   LEAD_O2_OPTIONS,
@@ -870,50 +869,6 @@ const System = () => {
     }
   };
 
-  const handleFilialeChange = async (entry, value) => {
-    const id = entry?.id;
-    if (!id) return;
-    const shop = normalizeNachrichtShop(value) || String(value || '').trim();
-    if (!shop) return;
-
-    if (isLeadEntry(entry)) {
-      if (normalizeNachrichtShop(entry?.shop) === shop || String(entry?.shop || '').trim() === shop) return;
-      setLeadTickets((prev) =>
-        prev.map((t) => {
-          if (t.id !== id) return t;
-          const next = { ...t, shop };
-          const change = leadFieldChange(t, 'shop', shop);
-          const saved = change
-            ? appendLeadEditLog(next, {
-                editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
-                changes: [change]
-              })
-            : next;
-          persistLiveTicket(saved);
-          return saved;
-        })
-      );
-      setHighlightedId(id);
-      return;
-    }
-
-    if (String(entry?.filiale || '').trim() === shop) return;
-    setStatusSavingId(id);
-    setError('');
-    setEntries((prev) => prev.map((item) => (
-      item.id === id ? { ...item, filiale: shop } : item
-    )));
-    try {
-      await updateVorvertragTicketStatusApi(id, entry.ticketStatus, { filiale: shop });
-      await loadList({ silent: true });
-    } catch (err) {
-      await loadList({ silent: true });
-      setError(err.response?.data?.message || err.message || 'Filiale konnte nicht gespeichert werden.');
-    } finally {
-      setStatusSavingId('');
-    }
-  };
-
   if (!user || !canAccessTicketingSystem(user)) {
     return <Navigate to="/" replace />;
   }
@@ -1338,8 +1293,6 @@ const System = () => {
                     onEdit={startEdit}
                     onStatusChange={handleStatusChange}
                     onKundenbesuchDatumChange={handleKundenbesuchDatumChange}
-                    onFilialeChange={handleFilialeChange}
-                    filialeOptions={shopOptionsForTicketing()}
                     statusSaving={statusSavingId === entry.id}
                     highlighted={highlightedId === entry.id || leadEditId === entry.id}
                     fallbackMitarbeiter={defaultMitarbeiter}

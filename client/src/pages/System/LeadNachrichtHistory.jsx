@@ -20,7 +20,10 @@ import {
   ticketFormAnswers,
   sanitizeMitarbeiterName,
   collectShopMitarbeiterNames,
-  ensureTicketGeoeffnetAt
+  ensureTicketGeoeffnetAt,
+  shopOptionsForTicketing,
+  shopOptionLabel,
+  normalizeNachrichtShop
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -106,6 +109,12 @@ export default function LeadNachrichtHistory({
     [ticket, draft]
   );
   const shopNames = useMemo(() => collectShopMitarbeiterNames(ticket), [ticket]);
+  const filialeOptions = useMemo(() => {
+    const shops = shopOptionsForTicketing();
+    const current = normalizeNachrichtShop(ticket?.shop) || String(ticket?.shop || '').trim();
+    return current && !shops.includes(current) ? [current, ...shops] : shops;
+  }, [ticket?.shop]);
+  const filialeValue = normalizeNachrichtShop(ticket?.shop) || String(ticket?.shop || '').trim();
 
   useEffect(() => {
     setSaved(followupSnapshot(ticket));
@@ -214,6 +223,21 @@ export default function LeadNachrichtHistory({
               aria-label="Bearbeiter"
             />
           )}
+        </div>
+        <div className="form-group sz-qfield lead-fragen-panel__filiale">
+          <label htmlFor="offen-ticket-filiale" className="sz-qfield__label">Filiale</label>
+          <select
+            id="offen-ticket-filiale"
+            className="form-input"
+            value={filialeValue}
+            onChange={(ev) => onAnswerChange?.('shop', ev.target.value)}
+            aria-label="Filiale"
+          >
+            {!filialeValue ? <option value="">Filiale</option> : null}
+            {filialeOptions.map((opt) => (
+              <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
+            ))}
+          </select>
         </div>
         <div className="lead-fragen-panel__actions">
           <button

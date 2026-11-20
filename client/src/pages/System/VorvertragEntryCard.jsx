@@ -91,34 +91,11 @@ function StatusSelect({ value, name, disabled, onChange }) {
   );
 }
 
-function FilialeSelect({ value, name, options, disabled, onChange }) {
-  const current = String(value || '').trim();
-  const shops = [...options];
-  if (current && !shops.includes(current)) shops.unshift(current);
-  return (
-    <select
-      className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__filiale-select"
-      value={current}
-      disabled={disabled}
-      onClick={(ev) => ev.stopPropagation()}
-      onChange={onChange}
-      aria-label={`Filiale für ${name}`}
-    >
-      {!current ? <option value="">Filiale</option> : null}
-      {shops.map((opt) => (
-        <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
-      ))}
-    </select>
-  );
-}
-
 export default function VorvertragEntryCard({
   entry,
   onEdit,
   onStatusChange,
   onKundenbesuchDatumChange,
-  onFilialeChange,
-  filialeOptions = [],
   statusSaving = false,
   highlighted = false,
   fallbackMitarbeiter = '',
@@ -205,13 +182,7 @@ export default function VorvertragEntryCard({
         <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
       </td>
       <td className="vorvertrag-ticket-row__filiale">
-        <FilialeSelect
-          value={filiale}
-          name={name}
-          options={filialeOptions}
-          disabled={statusSaving}
-          onChange={(ev) => onFilialeChange?.(entry, ev.target.value)}
-        />
+        {filiale ? <MetaChip accent>{shopOptionLabel(filiale)}</MetaChip> : '—'}
       </td>
       <td className="vorvertrag-ticket-row__actions">
         <button
