@@ -455,7 +455,10 @@ export default function LeadFragenForm({
   const extraCustomIds = Object.keys(answers || {}).filter((id) => (
     isCustomTicketField(id) && ticketFormCustomLabel(questionConfig, id)
   ));
-  const order = ticketFormFieldOrder(questionConfig, { includeMocKn: showMocKn, extraCustomIds });
+  const baseOrder = ticketFormFieldOrder(questionConfig, { includeMocKn: showMocKn, extraCustomIds });
+  const order = templateEditing
+    ? baseOrder
+    : ['customerName', ...baseOrder.filter((field) => field !== 'customerName')];
 
   if (templateEditing) {
     return (
@@ -476,7 +479,23 @@ export default function LeadFragenForm({
     : o2Options;
   const angebotOptions = questionDropdownOptions('angebot', questionConfig) || [];
 
+  const customerNameValue = String(answers?.customerName || '').trim() === 'Neues Ticket'
+    ? ''
+    : (answers?.customerName || '');
+
   const fieldNodes = {
+    customerName: (
+      <QuestionField key="customerName" id={`${idPrefix}-customer-name`} label={labelFor('customerName', 'Kunde Name')}>
+        <input
+          id={`${idPrefix}-customer-name`}
+          className="form-input"
+          value={customerNameValue}
+          aria-label={labelFor('customerName', 'Kunde Name')}
+          autoComplete="name"
+          onChange={(ev) => patch('customerName', ev.target.value)}
+        />
+      </QuestionField>
+    ),
     priority: (
       <TicketPriorityField
         key="priority"

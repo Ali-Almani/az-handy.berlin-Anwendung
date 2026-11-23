@@ -10,16 +10,18 @@ import {
   isAnweisungTeamleiterAllow,
   isAliAlmaniAdmin,
   canViewTicketingOffen,
-  canWriteTicketingAnweisung
+  canWriteTicketingAnweisung,
+  isAdmin
 } from '../../utils/roles';
 import {
   listVorvertraegeApi,
   createVorvertragApi,
   updateVorvertragApi,
   updateVorvertragTicketStatusApi,
+  deleteVorvertragApi,
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
-import { createInboxTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
+import { createInboxTicketApi, deleteWhatsAppTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -72,6 +74,7 @@ import {
   leadFieldChange,
   isCustomTicketField,
   liveTicketFormPatch,
+  displayTicketId,
   bringTicketToFront,
   compareOffenEntries,
   shopOptionsForTicketing,
@@ -929,12 +932,45 @@ const System = () => {
     }
   };
 
+  const handleDeleteOffenTicket = async (entry) => {
+    const id = entry?.id;
+    if (!id || !isAdmin(user)) return;
+    const name = isLeadEntry(entry)
+      ? (entry?.customerName || entry?.rufnummer || displayTicketId(entry) || 'Dieses Ticket')
+      : ([entry?.kundeVorname, entry?.kundeNachname].filter(Boolean).join(' ') || displayTicketId(entry) || 'Dieses Ticket');
+    if (!window.confirm(`${name} wirklich aus Geöffnete Tickets löschen?`)) return;
+    setError('');
+    try {
+      if (isLeadEntry(entry)) {
+        const local = leadTickets.find((t) => t.id === id) || entry;
+        if (isLiveWhatsAppTicket(local) || isManualLeadTicket(local)) {
+          try {
+            await deleteWhatsAppTicketApi(id);
+          } catch (err) {
+            if (isLiveWhatsAppTicket(local)) throw err;
+          }
+        }
+        setLeadTickets((prev) => (prev || []).filter((t) => t.id !== id));
+        if (leadEditId === id) setLeadEditId('');
+        if (highlightedId === id) setHighlightedId(null);
+        return;
+      }
+      await deleteVorvertragApi(id);
+      setEntries((prev) => (prev || []).filter((item) => item.id !== id));
+      if (activeId === id) cancelForm();
+      if (highlightedId === id) setHighlightedId(null);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Ticket konnte nicht gelöscht werden.');
+    }
+  };
+
   if (!user || !canAccessTicketingSystem(user)) {
     return <Navigate to="/" replace />;
   }
 
   const canManageVorvertrag = canManageTicketingSystem(user);
   const canSeeOffen = canViewTicketingOffen(user);
+  const canDeleteOffenTicket = isAdmin(user);
   const canEditFragen = canEditTicketingFragen(user);
   const canManageAuto = canManageAutoAbfrage(user);
   const canSeeAnweisung = canSeeTicketingAnweisung(user);
@@ -1381,6 +1417,8 @@ const System = () => {
                     key={entry.id}
                     entry={entry}
                     onEdit={startEdit}
+                    onDelete={handleDeleteOffenTicket}
+                    canDelete={canDeleteOffenTicket && listTab === 'offen'}
                     onStatusChange={handleStatusChange}
                     onKundenbesuchDatumChange={handleKundenbesuchDatumChange}
                     statusSaving={statusSavingId === entry.id}

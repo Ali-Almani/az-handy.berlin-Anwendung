@@ -1012,6 +1012,9 @@
 }
 
 .vorvertrag-ticket-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   white-space: nowrap;
   width: 1%;
 }
@@ -1038,6 +1041,11 @@
   &:hover {
     color: $primary-color;
     border-color: $primary-color;
+  }
+
+  &--danger:hover {
+    color: $danger-color;
+    border-color: $danger-color;
   }
 }
 

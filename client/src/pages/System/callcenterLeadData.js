@@ -513,6 +513,7 @@ export function ticketFormFieldOrder(config, { includeMocKn = false, extraCustom
 }
 
 export const TICKET_FORM_LABELS = {
+  customerName: 'Kunde Name',
   priority: 'Priorität',
   sprache: 'Sprache',
   rufnummer: 'WhatsApp-Nummer',
@@ -1120,6 +1121,7 @@ export function liveTicketFormPatch(ticket) {
 
 export function formFromLead(entry) {
   return {
+    customerName: entry?.customerName || '',
     rufnummer: entry?.rufnummer || '',
     o2Kunde: String(entry?.o2Kunde || '').trim(),
     angebot: entry?.angebot || '',
@@ -1139,6 +1141,7 @@ export function formFromLead(entry) {
 }
 
 const LEAD_FIELD_LABELS = {
+  customerName: 'Kunde Name',
   rufnummer: 'WhatsApp-Nummer',
   o2Kunde: 'O2 Kunde',
   angebot: 'Angebote',
