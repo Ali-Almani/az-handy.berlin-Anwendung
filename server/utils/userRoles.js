@@ -77,6 +77,13 @@ function roleKey(role) {
     .replace(/\s+/g, ' ');
 }
 
+export function userHasShopImeiLimit(user) {
+  return userRoles(user).some((role) => {
+    const k = roleKey(role);
+    return k === 'mitarbeiter shop' || k === 'teamleiter shop';
+  });
+}
+
 export function isAdminRole(role) {
   const r = String(role || '').trim();
   return r === 'Administrator' || r === 'admin' || r.toLowerCase().includes('admin');

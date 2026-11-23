@@ -11,9 +11,10 @@ import {
   trimCopyHistoryByRetention,
   dedupeCopyHistoryByEntryKey,
   wouldExceedMitarbeiterShopOpenVerlaufLimit,
-  MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE
+  resolveUserImeiLimit,
+  shopImeiReserveLimitMessage
 } from '../utils/copyHistoryRetention';
-import { isMitarbeiterShop } from '../../../utils/roles';
+import { canHaveImeiLimit, isMitarbeiterShop } from '../../../utils/roles';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 /** Rate-Limit: 10 Kopien pro Konto innerhalb 30 Min – gilt für alle Rollen */
@@ -130,9 +131,9 @@ export function useImeisCopyHandlers({
     setShowRateLimitModal(true);
   }, [copyTimestamps, setRateLimitMessage, setRateLimitModalTitle, setShowRateLimitModal]);
 
-  const showReserveLimitError = useCallback(() => {
+  const showReserveLimitError = useCallback((limit) => {
     setRateLimitModalTitle?.('Reservierungs-Limit erreicht');
-    setRateLimitMessage(MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE);
+    setRateLimitMessage(shopImeiReserveLimitMessage(limit));
     setShowRateLimitModal(true);
   }, [setRateLimitMessage, setRateLimitModalTitle, setShowRateLimitModal]);
 
@@ -189,8 +190,8 @@ export function useImeisCopyHandlers({
     // „Reservieren“: soll in Verlauf erscheinen, IMEI kopieren, aber NICHT als Copy/Checkout zählen.
     if (action === 'reservieren') {
       const imeiToCopy = String(item?.imei || '').trim();
-      if (isMitarbeiterShop(user) && wouldExceedMitarbeiterShopOpenVerlaufLimit(copyHistory, user?.name, imeiToCopy)) {
-        showReserveLimitError();
+      if (canHaveImeiLimit(user) && wouldExceedMitarbeiterShopOpenVerlaufLimit(copyHistory, user?.name, imeiToCopy, resolveUserImeiLimit(user))) {
+        showReserveLimitError(resolveUserImeiLimit(user));
         return;
       }
       const updatedActions = { ...rowActions, [rowId]: actionData };
@@ -245,7 +246,9 @@ export function useImeisCopyHandlers({
     setImeis,
     setCopySuccess,
     setSelectedRowForDropdown,
-    rowActionsForPersist
+    rowActionsForPersist,
+    canHaveImeiLimit,
+    resolveUserImeiLimit
   ]);
 
   const handleUpdateHistoryAction = useCallback(async (index, newAction) => {

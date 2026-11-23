@@ -23,7 +23,8 @@ export const mockLogin = async (mockUsers, credentials) => {
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
-        tshirt_groesse: user.tshirt_groesse ?? null
+        tshirt_groesse: user.tshirt_groesse ?? null,
+        imei_limit: user.imei_limit ?? null
       }
     }
   };

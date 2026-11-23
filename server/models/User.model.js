@@ -74,6 +74,12 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(8),
     allowNull: true,
     comment: 'Uniform-Größe (nur Mitarbeiter shop): S, M, L, XL, 2XL–5XL'
+  },
+  imei_limit: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 20,
+    comment: 'Max. offene IMEI-Reservierungen (Mitarbeiter shop / Teamleiter shop)'
   }
 }, {
   tableName: 'users',

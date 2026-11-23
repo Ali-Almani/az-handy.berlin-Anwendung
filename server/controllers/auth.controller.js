@@ -156,7 +156,8 @@ export const login = async (req, res, next) => {
         avatar: user.avatar ?? user.get?.('avatar') ?? null,
         einsatz_ort: user.einsatz_ort ?? user.get?.('einsatz_ort') ?? null,
         telefon: user.telefon ?? user.get?.('telefon') ?? null,
-        tshirt_groesse: user.tshirt_groesse ?? user.get?.('tshirt_groesse') ?? null
+        tshirt_groesse: user.tshirt_groesse ?? user.get?.('tshirt_groesse') ?? null,
+        imei_limit: user.imei_limit ?? user.get?.('imei_limit') ?? null
       }
     });
   } catch (error) {

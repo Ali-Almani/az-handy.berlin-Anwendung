@@ -36,6 +36,7 @@ export const mockGetProfile = async (mockUsers, token) => {
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
         tshirt_groesse: user.tshirt_groesse ?? null,
+        imei_limit: user.imei_limit ?? null,
         createdAt: user.createdAt
       }
     }
@@ -94,7 +95,8 @@ export const mockUpdateProfile = async (mockUsers, token, updates) => {
         avatar,
         einsatz_ort: u.einsatz_ort || null,
         telefon: u.telefon || null,
-        tshirt_groesse: u.tshirt_groesse ?? null
+        tshirt_groesse: u.tshirt_groesse ?? null,
+        imei_limit: u.imei_limit ?? null
       }
     }
   };
@@ -132,7 +134,7 @@ export const mockGetAllUsers = async (mockUsers, token) => {
   if (!adminId) throw authError();
   const adminUser = mockUsers.find(u => u.id === adminId);
   if (!adminUser || !['Administrator', 'admin'].includes(adminUser.role)) throw forbiddenError('Nur Administratoren können alle Benutzer sehen');
-  const users = mockUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar || null, einsatz_ort: u.einsatz_ort || null, telefon: u.telefon || null, createdAt: u.createdAt }));
+  const users = mockUsers.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, roles: u.roles, avatar: u.avatar || null, einsatz_ort: u.einsatz_ort || null, telefon: u.telefon || null, imei_limit: u.imei_limit ?? null, createdAt: u.createdAt }));
   return { data: { success: true, users } };
 };
 
@@ -186,8 +188,20 @@ export const mockUpdateUserByAdmin = async (mockUsers, token, userId, updates) =
     if (mockUsers.some(u => u.email === updates.email && u.id !== userId)) throw badRequestError('E-Mail wird bereits verwendet');
     mockUsers[userIndex].email = updates.email;
   }
+  if (updates.roles) mockUsers[userIndex].roles = updates.roles;
+  if (updates.imei_limit !== undefined) {
+    const n = Number.parseInt(String(updates.imei_limit), 10);
+    if (!Number.isFinite(n) || n < 1 || n > 999) throw badRequestError('IMEI-Limit muss eine Zahl zwischen 1 und 999 sein');
+    const roleList = [
+      mockUsers[userIndex].role,
+      ...(Array.isArray(mockUsers[userIndex].roles) ? mockUsers[userIndex].roles : [])
+    ].map((role) => String(role || '').replace(/\u00a0/g, ' ').trim());
+    const shop = roleList.some((role) => role === 'Mitarbeiter shop' || role === 'Teamleiter shop');
+    if (!shop) throw badRequestError('IMEI-Limit nur für Mitarbeiter shop und Teamleiter shop');
+    mockUsers[userIndex].imei_limit = n;
+  }
   const u = mockUsers[userIndex];
-  return { data: { success: true, message: 'Benutzer erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role, telefon: u.telefon || null, einsatz_ort: u.einsatz_ort || null } } };
+  return { data: { success: true, message: 'Benutzer erfolgreich aktualisiert', user: { id: u.id, name: u.name, email: u.email, role: u.role, roles: u.roles, telefon: u.telefon || null, einsatz_ort: u.einsatz_ort || null, imei_limit: u.imei_limit ?? null } } };
 };
 
 export const mockDeleteUser = async (mockUsers, token, userId) => {

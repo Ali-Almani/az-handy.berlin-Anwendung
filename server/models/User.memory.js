@@ -22,6 +22,7 @@ const toPlainUser = (u) => ({
   avatar: u.avatar ?? null,
   einsatz_ort: u.einsatz_ort ?? null,
   telefon: u.telefon ?? null,
+  imei_limit: u.imei_limit ?? null,
   createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
   updatedAt: u.updatedAt instanceof Date ? u.updatedAt.toISOString() : u.updatedAt
 });
@@ -36,6 +37,7 @@ const fromPlainUser = (u) => ({
   avatar: u.avatar ?? null,
   einsatz_ort: u.einsatz_ort ?? null,
   telefon: u.telefon ?? null,
+  imei_limit: u.imei_limit ?? null,
   createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
   updatedAt: u.updatedAt ? new Date(u.updatedAt) : new Date()
 });
@@ -98,6 +100,7 @@ class InMemoryUser {
     this.avatar = data.avatar ?? null;
     this.einsatz_ort = data.einsatz_ort ?? null;
     this.telefon = data.telefon ?? null;
+    this.imei_limit = data.imei_limit ?? null;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
   }
@@ -119,6 +122,7 @@ class InMemoryUser {
         avatar: this.avatar,
         einsatz_ort: this.einsatz_ort,
         telefon: this.telefon,
+        imei_limit: this.imei_limit ?? null,
         createdAt: this.createdAt,
         updatedAt: this.updatedAt
       };

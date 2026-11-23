@@ -69,11 +69,28 @@ export function historyEntryHidesImeiFromList(entry) {
   return Boolean(String(entry?.imei ?? '').trim());
 }
 
-/** Max. offene Verlauf-Slots (Reservieren/Kopie ohne Abschluss) pro Mitarbeiter shop */
+/** Max. offene Verlauf-Slots (Reservieren/Kopie ohne Abschluss), Standard für Shop-Rollen */
 export const MITARBEITER_SHOP_MAX_OPEN_VERLAUF = 20;
+export const DEFAULT_IMEI_LIMIT = MITARBEITER_SHOP_MAX_OPEN_VERLAUF;
+export const MIN_IMEI_LIMIT = 1;
+export const MAX_IMEI_LIMIT = 999;
 
-export const MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE =
-  'Du hast dein Limit von 20 offenen IMEI-Reservierungen erreicht. Bitte bearbeite deinen Verlauf (annehmen oder ablehnen), bevor du weitere IMEIs reservierst.';
+export function parseImeiLimit(value, fallback = DEFAULT_IMEI_LIMIT) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const n = Number.parseInt(String(value).trim(), 10);
+  if (!Number.isFinite(n) || n < MIN_IMEI_LIMIT || n > MAX_IMEI_LIMIT) return null;
+  return n;
+}
+
+export function resolveUserImeiLimit(user) {
+  return parseImeiLimit(user?.imei_limit ?? user?.imeiLimit, DEFAULT_IMEI_LIMIT) ?? DEFAULT_IMEI_LIMIT;
+}
+
+export function shopImeiReserveLimitMessage(limit = DEFAULT_IMEI_LIMIT) {
+  return `Du hast dein Limit von ${limit} offenen IMEI-Reservierungen erreicht. Bitte bearbeite deinen Verlauf (annehmen oder ablehnen), bevor du weitere IMEIs reservierst.`;
+}
+
+export const MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE = shopImeiReserveLimitMessage(DEFAULT_IMEI_LIMIT);
 
 export function countOpenVerlaufSlotsForUser(entries, userName) {
   const myNorm = normCopyHistoryUserName(userName);

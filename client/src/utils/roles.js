@@ -245,6 +245,17 @@ export const isTeamleiterShop = (user) => {
   ));
 };
 
+/** IMEI-Limit in der Benutzerverwaltung: nur Mitarbeiter shop und Teamleiter shop */
+export const canHaveImeiLimit = (userOrRoles) => {
+  const list = Array.isArray(userOrRoles)
+    ? userOrRoles.map((role) => String(role || '').replace(/\u00a0/g, ' ').trim())
+    : userRoles(userOrRoles);
+  return list.some((role) => {
+    const k = normRole(role);
+    return k === 'mitarbeiter shop' || k === 'teamleiter shop';
+  });
+};
+
 // Prüfe ob Benutzer Büro Mitarbeiter ist
 export const isBüroMitarbeiter = (user) => {
   if (!user) return false;

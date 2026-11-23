@@ -57,9 +57,10 @@ import {
   parseCopyHistoryTimestamp,
   historyEntryHidesImeiFromList,
   countOpenVerlaufSlotsForUser,
-  MITARBEITER_SHOP_MAX_OPEN_VERLAUF,
-  MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE
+  resolveUserImeiLimit,
+  shopImeiReserveLimitMessage
 } from '../utils/copyHistoryRetention.js';
+import { userHasShopImeiLimit } from '../utils/userRoles.js';
 import { sendJsonResponse } from '../utils/httpJson.js';
 import {
   getSharedImeiOwnerId,
@@ -1325,7 +1326,7 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
     }
   } catch (_) {}
 
-  if (isMitarbeiterShop(role)) {
+  if (userHasShopImeiLimit(currentUser)) {
     const userName = String(currentUser?.name ?? currentUser?.get?.('name') ?? '').trim();
     const touchesVerlauf =
       copyHistory !== undefined ||
@@ -1338,8 +1339,9 @@ export const saveImeisDataToStorage = async (userId, body, app) => {
           : null;
       if (historyForLimit) {
         const openCount = countOpenVerlaufSlotsForUser(historyForLimit, userName);
-        if (openCount > MITARBEITER_SHOP_MAX_OPEN_VERLAUF) {
-          const err = new Error(MITARBEITER_SHOP_RESERVE_LIMIT_MESSAGE);
+        const maxOpen = resolveUserImeiLimit(currentUser);
+        if (openCount > maxOpen) {
+          const err = new Error(shopImeiReserveLimitMessage(maxOpen));
           err.statusCode = 403;
           throw err;
         }

@@ -2,7 +2,8 @@ import User from '../models/User.js';
 import { resolveAuthUserId } from '../utils/normalizeUserId.js';
 import { ALLOWED_EINSATZ_ORT, canonicalizeEinsatzOrt } from '../constants/einsatzorte.js';
 import { writeAuditLog } from '../utils/auditLog.js';
-import { pickPrimaryRole, sanitizeAssignedRoles, userRoles } from '../utils/userRoles.js';
+import { pickPrimaryRole, sanitizeAssignedRoles, userHasShopImeiLimit, userRoles } from '../utils/userRoles.js';
+import { parseImeiLimit } from '../utils/copyHistoryRetention.js';
 
 const isAdmin = (user) => {
   if (!user) return false;
@@ -84,6 +85,7 @@ export const getProfile = async (req, res, next) => {
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
         tshirt_groesse: user.tshirt_groesse || null,
+        imei_limit: user.imei_limit ?? null,
         createdAt: user.createdAt
       }
     });
@@ -149,7 +151,8 @@ export const updateProfile = async (req, res, next) => {
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
         telefon: user.telefon || null,
-        tshirt_groesse: user.tshirt_groesse || null
+        tshirt_groesse: user.tshirt_groesse || null,
+        imei_limit: user.imei_limit ?? null
       }
     });
   } catch (error) {
@@ -329,7 +332,7 @@ export const updateUserByAdmin = async (req, res, next) => {
       return res.status(403).json({ message: 'Nur Administratoren können Benutzer bearbeiten' });
     }
     const { id } = req.params;
-    const { role, roles, name, email, avatar, einsatz_ort, telefon } = req.body;
+    const { role, roles, name, email, avatar, einsatz_ort, telefon, imei_limit } = req.body;
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
@@ -373,6 +376,16 @@ export const updateUserByAdmin = async (req, res, next) => {
       user.einsatz_ort = v ? canonicalizeEinsatzOrt(v) : null;
     }
     if (telefon !== undefined) user.telefon = normalizeTelefonInput(telefon);
+    if (imei_limit !== undefined) {
+      if (!userHasShopImeiLimit(user)) {
+        return res.status(400).json({ message: 'IMEI-Limit nur für Mitarbeiter shop und Teamleiter shop' });
+      }
+      const parsed = parseImeiLimit(imei_limit, null);
+      if (parsed == null) {
+        return res.status(400).json({ message: 'IMEI-Limit muss eine Zahl zwischen 1 und 999 sein' });
+      }
+      user.imei_limit = parsed;
+    }
     await user.save();
     writeAuditLog(req, {
       category: 'user',
@@ -391,7 +404,8 @@ export const updateUserByAdmin = async (req, res, next) => {
         roles: publicRoles(user),
         avatar: user.avatar || null,
         einsatz_ort: user.einsatz_ort || null,
-        telefon: user.telefon || null
+        telefon: user.telefon || null,
+        imei_limit: user.imei_limit ?? null
       }
     });
   } catch (error) {

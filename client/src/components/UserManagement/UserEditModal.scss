@@ -66,6 +66,12 @@
     font-size: 0.95rem;
   }
 
+  .form-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    color: #666;
+  }
+
   .role-checkboxes {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
