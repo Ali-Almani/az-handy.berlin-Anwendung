@@ -861,6 +861,10 @@
       position: sticky;
       top: 0;
       white-space: nowrap;
+
+      &:last-child {
+        min-width: 5.6rem;
+      }
     }
   }
 
@@ -1012,19 +1016,26 @@
 }
 
 .vorvertrag-ticket-row__actions {
-  display: flex;
+  width: 1%;
+  min-width: 5.6rem;
+  padding: 0.35rem 0.4rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.vorvertrag-ticket-row__action-btns {
+  display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  white-space: nowrap;
-  width: 1%;
 }
 
 .vorvertrag-ticket-row__edit-icon {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   margin: 0;
   padding: 0;
   border: 1px solid $border-color;
@@ -1034,8 +1045,8 @@
   cursor: pointer;
 
   svg {
-    width: 1.05rem;
-    height: 1.05rem;
+    width: 0.95rem;
+    height: 0.95rem;
   }
 
   &:hover {
