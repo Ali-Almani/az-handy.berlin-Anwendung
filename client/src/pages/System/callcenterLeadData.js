@@ -38,8 +38,8 @@ export const NACHRICHTEN_FILIALE_GROUPS = [
   { id: 'callcenter', shop: 'Call Center', label: 'CC' },
   { id: 'sonnenallee16', shop: 'Sonnenallee 16', label: 'Son' },
   { id: 'km169', shop: 'Karl-Marx-Straße 169', label: 'K69' },
-  { id: 'km127', shop: 'Karl-Marx-Straße 127', label: 'K127' },
-  { id: 'km50', shop: 'Karl-Marx-Straße 50', label: 'K 50' },
+  { id: 'km127', shop: 'Karl-Marx-Straße 127', label: 'K27' },
+  { id: 'km50', shop: 'Karl-Marx-Straße 50', label: 'K50' },
   { id: 'badstr12', shop: 'Badstraße 12', label: 'Bad' },
   { id: 'turmstr47', shop: 'Turmstraße 47', label: 'Trm' },
   { id: 'hauptstr156', shop: 'Hauptstraße 156', label: 'Hpt' },
@@ -1342,6 +1342,7 @@ const FILIALE_GROUP_BY_KEY = (() => {
   add('cc', byId.get('callcenter'));
   add('km169', byId.get('km169'));
   add('km127', byId.get('km127'));
+  add('k127', byId.get('km127'));
   add('km50', byId.get('km50'));
   add('turm', byId.get('turmstr47'));
   add('haupt', byId.get('hauptstr156'));
