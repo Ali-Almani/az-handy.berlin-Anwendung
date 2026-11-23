@@ -196,7 +196,7 @@ export default function VorvertragEntryCard({
       <td className="vorvertrag-ticket-row__filiale">
         {filiale ? <MetaChip accent>{shopOptionLabel(filiale)}</MetaChip> : '—'}
       </td>
-      <td className="vorvertrag-ticket-row__actions">
+      <td className={`vorvertrag-ticket-row__actions${canDelete ? '' : ' vorvertrag-ticket-row__actions--solo'}`}>
         <div className="vorvertrag-ticket-row__action-btns">
           <button
             type="button"

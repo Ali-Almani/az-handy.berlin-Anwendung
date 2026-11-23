@@ -1054,12 +1054,20 @@
   padding: 0.35rem 0.4rem;
   white-space: nowrap;
   vertical-align: middle;
+
+  &--solo {
+    text-align: center;
+  }
 }
 
 .vorvertrag-ticket-row__action-btns {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+.vorvertrag-ticket-row__actions--solo .vorvertrag-ticket-row__action-btns {
+  justify-content: center;
 }
 
 .vorvertrag-ticket-row__edit-icon {
