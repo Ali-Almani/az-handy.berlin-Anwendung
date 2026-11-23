@@ -58,7 +58,6 @@ import {
   isLeadEntry,
   isLeadInNeu,
   isManualLeadTicket,
-  MANUAL_TICKET_NAME,
   leadToNeuEntry,
   isLiveWhatsAppTicket,
   createManualLeadTicket,
@@ -71,8 +70,8 @@ import {
   sanitizeMitarbeiterName,
   withShopMitarbeiter,
   appendLeadEditLog,
+  collectLeadFieldChanges,
   leadFieldChange,
-  isCustomTicketField,
   liveTicketFormPatch,
   displayTicketId,
   bringTicketToFront,
@@ -419,6 +418,8 @@ const System = () => {
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
   const [leadEditId, setLeadEditId] = useState('');
+  const [newTicketDraft, setNewTicketDraft] = useState(null);
+  const [ticketDraftIsNew, setTicketDraftIsNew] = useState(false);
   const [creatingOffenTicket, setCreatingOffenTicket] = useState(false);
   const [anweisungUnread, setAnweisungUnread] = useState(false);
 
@@ -548,8 +549,8 @@ const System = () => {
   );
 
   const editingLead = useMemo(
-    () => leadTickets.find((t) => t.id === leadEditId) || null,
-    [leadTickets, leadEditId]
+    () => newTicketDraft || leadTickets.find((t) => t.id === leadEditId) || null,
+    [leadTickets, leadEditId, newTicketDraft]
   );
 
   const activeEditLog = useMemo(() => {
@@ -760,10 +761,18 @@ const System = () => {
     setListTab('nachrichten');
   };
 
+  const closeTicketEditor = () => {
+    setLeadEditId('');
+    setNewTicketDraft(null);
+    setTicketDraftIsNew(false);
+  };
+
   const startEdit = (entry) => {
     if (!isLeadEntry(entry) && !canManageTicketingSystem(user)) return;
     if (isLeadEntry(entry)) {
       const openedAt = new Date().toISOString();
+      setNewTicketDraft(null);
+      setTicketDraftIsNew(false);
       setLeadEditId(entry.id);
       setHighlightedId(entry.id);
       setShowForm(false);
@@ -805,47 +814,94 @@ const System = () => {
   const cancelForm = () => {
     setShowForm(false);
     setActiveId(null);
-    setLeadEditId('');
+    closeTicketEditor();
     setForm(emptyVorvertragForm());
     setGeraetSeed('');
     setMode('new');
     setFormKind('vorvertrag');
   };
 
-  const openCreatedOffenTicket = (ticket) => {
-    if (!ticket?.id) return;
-    const openedAt = String(ticket.geoeffnetAt || ticket.lastOpenedAt || new Date().toISOString());
-    setLeadTickets((prev) => {
-      const exists = prev.some((t) => t.id === ticket.id);
-      const next = exists
-        ? prev.map((t) => (t.id === ticket.id ? { ...t, ...ticket } : t))
-        : [ticket, ...prev];
-      return bringTicketToFront(next, ticket.id, openedAt);
-    });
-    setLeadEditId(ticket.id);
-    setHighlightedId(ticket.id);
+  const startNewOffenTicket = () => {
+    if (creatingOffenTicket) return;
+    setError('');
+    const local = {
+      ...createManualLeadTicket({
+        tickets: leadTickets,
+        agentName: defaultMitarbeiter
+      }),
+      id: `draft-${Date.now()}`,
+      ticketNr: ''
+    };
+    setNewTicketDraft(local);
+    setTicketDraftIsNew(true);
+    setLeadEditId(local.id);
+    setHighlightedId('');
     setShowForm(false);
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
-  const startNewOffenTicket = async () => {
-    if (creatingOffenTicket) return;
-    setCreatingOffenTicket(true);
-    setError('');
-    try {
-      const data = await createInboxTicketApi({ authorName: defaultMitarbeiter });
-      const ticket = data?.ticket;
-      if (!ticket?.id) throw new Error('empty');
-      openCreatedOffenTicket(ticket);
-    } catch {
-      const local = createManualLeadTicket({
-        tickets: leadTickets,
-        agentName: defaultMitarbeiter
-      });
-      openCreatedOffenTicket(local);
-    } finally {
-      setCreatingOffenTicket(false);
+  const commitTicketEditor = async (working) => {
+    if (!working) {
+      closeTicketEditor();
+      return;
     }
+    const editor = sanitizeMitarbeiterName(defaultMitarbeiter);
+    if (ticketDraftIsNew) {
+      setCreatingOffenTicket(true);
+      try {
+        const data = await createInboxTicketApi({ authorName: editor });
+        const created = data?.ticket;
+        if (!created?.id) throw new Error('empty');
+        const merged = {
+          ...created,
+          ...working,
+          id: created.id,
+          ticketNr: created.ticketNr || created.id,
+          createdAt: created.createdAt || working.createdAt,
+          source: created.source || working.source,
+          channel: created.channel || working.channel,
+          liveWhatsApp: false,
+          waId: ''
+        };
+        persistLiveTicket(merged);
+        setLeadTickets((prev) => {
+          const exists = prev.some((t) => t.id === merged.id);
+          const next = exists
+            ? prev.map((t) => (t.id === merged.id ? { ...t, ...merged } : t))
+            : [merged, ...prev];
+          return bringTicketToFront(next, merged.id, merged.lastOpenedAt || merged.geoeffnetAt);
+        });
+        setHighlightedId(merged.id);
+      } catch {
+        const local = createManualLeadTicket({
+          tickets: leadTickets,
+          agentName: editor
+        });
+        const merged = {
+          ...local,
+          ...working,
+          id: local.id,
+          ticketNr: local.ticketNr || local.id
+        };
+        persistLiveTicket(merged);
+        setLeadTickets((prev) => [merged, ...prev]);
+        setHighlightedId(merged.id);
+      } finally {
+        setCreatingOffenTicket(false);
+        closeTicketEditor();
+      }
+      return;
+    }
+    const original = leadTickets.find((t) => t.id === working.id) || working;
+    const changes = collectLeadFieldChanges(original, working);
+    let saved = { ...original, ...working };
+    if (changes.length) {
+      saved = withShopMitarbeiter(saved, editor);
+      saved = appendLeadEditLog(saved, { editorName: editor, changes });
+    }
+    setLeadTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+    persistLiveTicket(saved);
+    closeTicketEditor();
   };
 
   const persistLiveTicket = (ticket) => {
@@ -860,40 +916,6 @@ const System = () => {
       payload[key] = ticket[key] || '';
     }
     patchWhatsAppTicketApi(ticket.id, payload).catch(() => {});
-  };
-
-  const patchLeadAnswer = (field, value) => {
-    if (!leadEditId) return;
-    setLeadTickets((prev) =>
-      prev.map((t) => {
-        if (t.id !== leadEditId) return t;
-        const silent = field === 'geoeffnetAt' || field === 'dokumente' || field === 'dokumenteHidden' || /ZeitAt$/.test(String(field || ''));
-        const change = silent ? null : leadFieldChange(t, field, value);
-        const extra = isCustomTicketField(field)
-          ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
-          : {};
-        if (field === 'rufnummer') {
-          const name = String(t.customerName || '').trim();
-          if (!name || name === MANUAL_TICKET_NAME) {
-            extra.customerName = String(value || '').trim() || MANUAL_TICKET_NAME;
-          }
-        }
-        const patched = { ...t, [field]: value, ...extra };
-        const next = field === 'shopMitarbeiter'
-          ? withShopMitarbeiter(patched, value)
-          : (!silent && change)
-            ? withShopMitarbeiter(patched, defaultMitarbeiter)
-            : patched;
-        const saved = change
-          ? appendLeadEditLog(next, {
-              editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
-              changes: [change]
-            })
-          : next;
-        persistLiveTicket(saved);
-        return saved;
-      })
-    );
   };
 
   const handleFormChange = (field, value) => {
@@ -1079,7 +1101,7 @@ const System = () => {
           }
         }
         setLeadTickets((prev) => (prev || []).filter((t) => t.id !== id));
-        if (leadEditId === id) setLeadEditId('');
+        if (leadEditId === id) closeTicketEditor();
         if (highlightedId === id) setHighlightedId(null);
         return;
       }
@@ -1309,7 +1331,7 @@ const System = () => {
             if (tab === 'ungelesen' || tab === 'gelesen') {
               setInboxTab(tab);
               setListTab('nachrichten');
-              setLeadEditId('');
+              closeTicketEditor();
               return;
             }
             if (tab === 'offen') {
@@ -1326,12 +1348,13 @@ const System = () => {
         <div ref={formRef}>
           <LeadNachrichtHistory
             ticket={editingLead}
-            onClose={() => setLeadEditId('')}
+            onClose={closeTicketEditor}
+            onCommit={commitTicketEditor}
             editLog={editingLead.editLog}
-            onAnswerChange={patchLeadAnswer}
             bearbeiterName={defaultMitarbeiter}
             canDeleteDokumente={canManageTicketingSystem(user)}
             questionConfig={questionConfig}
+            saving={creatingOffenTicket}
           />
         </div>
       ) : null}

@@ -1182,6 +1182,37 @@ export function leadFieldChange(ticket, field, nextValue) {
   return { field: label, from, to };
 }
 
+export function collectLeadFieldChanges(original, working) {
+  const keys = new Set([
+    ...TICKET_FORM_PRESERVE_KEYS,
+    ...offenFollowupFieldKeys(original),
+    ...offenFollowupFieldKeys(working),
+    'customerName',
+    'shop',
+    'shopMitarbeiter',
+    'kontaktversuchCount'
+  ]);
+  Object.keys(working || {}).forEach((key) => {
+    if (isCustomTicketField(key)) keys.add(key);
+  });
+  Object.keys(working?.customAnswers || {}).forEach((key) => keys.add(key));
+  const skip = new Set(['mitarbeiterNames', 'shopMitarbeiterNames', 'geoeffnetAt', 'lastOpenedAt']);
+  const changes = [];
+  keys.forEach((key) => {
+    if (skip.has(key)) return;
+    const fromVal = original?.[key] ?? original?.customAnswers?.[key];
+    const toVal = working?.[key] ?? working?.customAnswers?.[key];
+    const change = leadFieldChange({ [key]: fromVal }, key, toVal);
+    if (change) changes.push(change);
+  });
+  const docsFrom = JSON.stringify(original?.dokumente || []);
+  const docsTo = JSON.stringify(working?.dokumente || []);
+  if (docsFrom !== docsTo) {
+    changes.push({ field: 'Dokumente', from: '—', to: 'aktualisiert' });
+  }
+  return changes;
+}
+
 export function appendLeadEditLog(ticket, { editorName, action = 'updated', changes }) {
   const valid = (changes || []).filter((c) => c && c.from !== c.to);
   if (!valid.length) return ticket;

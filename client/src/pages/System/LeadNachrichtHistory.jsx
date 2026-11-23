@@ -6,7 +6,7 @@ import {
   KONTAKTVERSUCH_MAX,
   berlinCalendarDate,
   berlinClockTime,
-  kontaktversuchBearbeiterKey,
+  isCustomTicketField,
   kontaktversuchCountFor,
   kontaktversuchDatumKey,
   kontaktversuchGroup,
@@ -23,7 +23,9 @@ import {
   ensureTicketGeoeffnetAt,
   shopOptionsForTicketing,
   shopOptionLabel,
-  normalizeNachrichtShop
+  normalizeNachrichtShop,
+  MANUAL_TICKET_NAME,
+  withShopMitarbeiter
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -83,60 +85,82 @@ function draftFromTicket(ticket, bearbeiterName) {
   return fillAutoKontaktversuchZeit(ticket, draft);
 }
 
+function ticketWorkingCopy(ticket, bearbeiterName) {
+  const followup = draftFromTicket(ticket, bearbeiterName);
+  return {
+    ...ticket,
+    ...followup,
+    geoeffnetAt: String(ticket?.geoeffnetAt || '').trim() || ensureTicketGeoeffnetAt(ticket)
+  };
+}
+
 export default function LeadNachrichtHistory({
   ticket,
   onClose,
+  onCommit,
   editLog = [],
-  onAnswerChange,
   bearbeiterName = '',
   canDeleteDokumente = false,
-  questionConfig: questionConfigProp
+  questionConfig: questionConfigProp,
+  saving = false
 }) {
-  const customerName = ticket?.customerName || ticket?.rufnummer || 'Kunde';
-  const openedAt = String(ticket?.geoeffnetAt || '').trim() || ensureTicketGeoeffnetAt(ticket);
+  const [working, setWorking] = useState(() => ticketWorkingCopy(ticket, bearbeiterName));
+  const [commitBusy, setCommitBusy] = useState(false);
+  const questionConfig = questionConfigProp || loadQuestionConfig();
+
+  useEffect(() => {
+    setWorking(ticketWorkingCopy(ticket, bearbeiterName));
+  }, [ticket?.id, bearbeiterName]);
+
+  const customerName = working?.customerName || working?.rufnummer || 'Kunde';
+  const openedAt = String(working?.geoeffnetAt || '').trim() || ensureTicketGeoeffnetAt(working);
   const openedDate = formatOpenedDate(openedAt);
   const openedTime = formatOpenedTime(openedAt);
   const logItems = Array.isArray(editLog) ? editLog : [];
-  const questionConfig = questionConfigProp || loadQuestionConfig();
   const answers = useMemo(
-    () => ticketFormAnswers(ticket, questionConfig),
-    [ticket, questionConfig]
+    () => ticketFormAnswers(working, questionConfig),
+    [working, questionConfig]
   );
-  const [saved, setSaved] = useState(() => followupSnapshot(ticket));
-  const [draft, setDraft] = useState(() => draftFromTicket(ticket, bearbeiterName));
   const groups = useMemo(
-    () => offenFollowupGroupsForTicket({ ...ticket, ...draft }),
-    [ticket, draft]
+    () => offenFollowupGroupsForTicket(working),
+    [working]
   );
-  const shopNames = useMemo(() => collectShopMitarbeiterNames(ticket), [ticket]);
+  const shopNames = useMemo(() => collectShopMitarbeiterNames(working), [working]);
   const filialeOptions = useMemo(() => {
     const shops = shopOptionsForTicketing();
-    const current = normalizeNachrichtShop(ticket?.shop) || String(ticket?.shop || '').trim();
+    const current = normalizeNachrichtShop(working?.shop) || String(working?.shop || '').trim();
     return current && !shops.includes(current) ? [current, ...shops] : shops;
-  }, [ticket?.shop]);
-  const filialeValue = normalizeNachrichtShop(ticket?.shop) || String(ticket?.shop || '').trim();
+  }, [working?.shop]);
+  const filialeValue = normalizeNachrichtShop(working?.shop) || String(working?.shop || '').trim();
+  const busy = saving || commitBusy;
 
-  useEffect(() => {
-    setSaved(followupSnapshot(ticket));
-    setDraft(draftFromTicket(ticket, bearbeiterName));
-  }, [ticket?.id, bearbeiterName]);
-
-  useEffect(() => {
-    if (String(ticket?.geoeffnetAt || '').trim()) return;
-    onAnswerChange?.('geoeffnetAt', ensureTicketGeoeffnetAt(ticket));
-  }, [ticket?.id]);
+  const patchWorking = (field, value) => {
+    setWorking((prev) => {
+      const extra = isCustomTicketField(field)
+        ? { customAnswers: { ...(prev.customAnswers || {}), [field]: value } }
+        : {};
+      if (field === 'rufnummer') {
+        const name = String(prev.customerName || '').trim();
+        if (!name || name === MANUAL_TICKET_NAME) {
+          extra.customerName = String(value || '').trim() || MANUAL_TICKET_NAME;
+        }
+      }
+      const patched = { ...prev, [field]: value, ...extra };
+      return field === 'shopMitarbeiter' ? withShopMitarbeiter(patched, value) : patched;
+    });
+  };
 
   const addKontaktversuch = () => {
-    const nextN = kontaktversuchCountFor({ ...ticket, ...draft }) + 1;
+    const nextN = kontaktversuchCountFor(working) + 1;
     if (nextN > KONTAKTVERSUCH_MAX) return;
     const name = sanitizeMitarbeiterName(bearbeiterName);
     const today = berlinCalendarDate();
     const clock = berlinClockTime();
     const now = new Date();
     const group = kontaktversuchGroup(nextN);
-    const zeit = kontaktversuchZeitValue({ ...ticket, ...draft }, nextN, now);
+    const zeit = kontaktversuchZeitValue(working, nextN, now);
     const zeitAt = now.toISOString();
-    setDraft((prev) => {
+    setWorking((prev) => {
       const next = { ...prev, kontaktversuchCount: nextN };
       for (const field of group.fields) {
         if (field.autoName && name) next[field.key] = name;
@@ -148,26 +172,16 @@ export default function LeadNachrichtHistory({
       next[kontaktversuchZeitAtKey(nextN)] = zeitAt;
       return next;
     });
-    onAnswerChange?.('kontaktversuchCount', nextN);
-    if (name) onAnswerChange?.(kontaktversuchBearbeiterKey(nextN), name);
-    onAnswerChange?.(kontaktversuchDatumKey(nextN), today);
-    onAnswerChange?.(kontaktversuchUhrzeitKey(nextN), clock);
-    onAnswerChange?.(kontaktversuchZeitKey(nextN), zeit);
-    onAnswerChange?.(kontaktversuchZeitAtKey(nextN), zeitAt);
   };
 
-  const commitAndClose = () => {
-    const merged = { ...ticket, ...draft };
-    const keys = new Set([...offenFollowupFieldKeys(merged), 'kontaktversuchCount']);
-    let changed = false;
-    for (const key of keys) {
-      if (String(draft[key] ?? '') === String(saved[key] ?? '')) continue;
-      changed = true;
-      onAnswerChange?.(key, draft[key] ?? '');
+  const commitAndClose = async () => {
+    if (busy) return;
+    setCommitBusy(true);
+    try {
+      await onCommit?.(working);
+    } finally {
+      setCommitBusy(false);
     }
-    const name = sanitizeMitarbeiterName(bearbeiterName);
-    if (name && changed) onAnswerChange?.('shopMitarbeiter', name);
-    onClose?.();
   };
 
   return (
@@ -176,7 +190,7 @@ export default function LeadNachrichtHistory({
         <div className="lead-fragen-panel__identity">
           <h3 className="lead-fragen-panel__title">{customerName}</h3>
           <p className="lead-fragen-panel__sub">
-            {ticket?.id}
+            {String(working?.id || '').startsWith('draft-') ? 'Neues Ticket' : working?.id}
           </p>
         </div>
         <div className="lead-fragen-panel__opened">
@@ -207,8 +221,9 @@ export default function LeadNachrichtHistory({
             <select
               id="offen-shop-mitarbeiter"
               className="form-input"
-              value={ticket?.shopMitarbeiter || shopNames[0]}
-              onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
+              value={working?.shopMitarbeiter || shopNames[0] || ''}
+              onChange={(ev) => patchWorking('shopMitarbeiter', ev.target.value)}
+              disabled={busy}
               aria-label="Bearbeiter"
             >
               {shopNames.map((name) => (
@@ -219,8 +234,9 @@ export default function LeadNachrichtHistory({
             <input
               id="offen-shop-mitarbeiter"
               className="form-input"
-              value={ticket?.shopMitarbeiter || ''}
-              onChange={(ev) => onAnswerChange?.('shopMitarbeiter', ev.target.value)}
+              value={working?.shopMitarbeiter || ''}
+              onChange={(ev) => patchWorking('shopMitarbeiter', ev.target.value)}
+              disabled={busy}
               autoComplete="off"
               aria-label="Bearbeiter"
             />
@@ -232,7 +248,8 @@ export default function LeadNachrichtHistory({
             id="offen-ticket-filiale"
             className="form-input"
             value={filialeValue}
-            onChange={(ev) => onAnswerChange?.('shop', ev.target.value)}
+            onChange={(ev) => patchWorking('shop', ev.target.value)}
+            disabled={busy}
             aria-label="Filiale"
           >
             {!filialeValue ? <option value="">Filiale</option> : null}
@@ -246,33 +263,35 @@ export default function LeadNachrichtHistory({
             type="button"
             className="btn btn--outline btn--small"
             onClick={() => onClose?.()}
+            disabled={busy}
           >
             Abbrechen
           </button>
-          {onClose ? (
-            <button type="button" className="btn btn--secondary btn--small" onClick={commitAndClose}>
-              Fertig
-            </button>
-          ) : null}
+          <button type="button" className="btn btn--secondary btn--small" onClick={commitAndClose} disabled={busy}>
+            {busy ? 'Wird gespeichert…' : 'Fertig'}
+          </button>
         </div>
       </div>
       <h3 className="vorvertrag-section-title">Informationen</h3>
       <LeadFragenForm
         fieldsOnly
         answers={answers}
-        onChange={onAnswerChange}
+        onChange={patchWorking}
         questionConfig={questionConfig}
         idPrefix="offen-q"
         showMocKn
       />
       <hr className="offen-followup-rule" />
       <TicketDokumente
-        ticket={ticket}
+        ticket={working}
         uploaderName={bearbeiterName}
         canDelete={canDeleteDokumente}
         onDokumenteChange={(docs, hidden) => {
-          onAnswerChange?.('dokumente', docs);
-          if (hidden) onAnswerChange?.('dokumenteHidden', hidden);
+          setWorking((prev) => ({
+            ...prev,
+            dokumente: docs,
+            ...(hidden ? { dokumenteHidden: hidden } : {})
+          }));
         }}
       />
       <hr className="offen-followup-rule" />
@@ -281,7 +300,7 @@ export default function LeadNachrichtHistory({
           <h3 className="vorvertrag-section-title">{group.title}</h3>
           <div className="lead-fragen-grid">
             {group.fields.map((field) => {
-              const value = draft[field.key] || '';
+              const value = working[field.key] || '';
               const locked = Boolean(field.locked || field.autoZeit);
               const pickerType = !locked && (field.type === 'date' || field.type === 'time') ? field.type : '';
               const inputType = pickerType && value ? pickerType : 'text';
@@ -302,7 +321,7 @@ export default function LeadNachrichtHistory({
                   onBlur={(ev) => {
                     if (pickerType && !ev.target.value) ev.target.type = 'text';
                   }}
-                  onChange={locked ? undefined : (ev) => setDraft((prev) => ({ ...prev, [field.key]: ev.target.value }))}
+                  onChange={locked || busy ? undefined : (ev) => patchWorking(field.key, ev.target.value)}
                 />
               );
               return (
