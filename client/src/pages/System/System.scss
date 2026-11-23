@@ -620,31 +620,38 @@
   }
 }
 
-.system-offen-filters {
+.system-offen-bar {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: flex-end;
-  gap: 0.28rem;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  margin-bottom: 0.4rem;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0 0 $spacing-md;
+  padding: 0.75rem 0.85rem 0.8rem;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  background: mix(#fff, $bg-light, 35%);
 
-  &::-webkit-scrollbar {
-    display: none;
+  @media (max-width: $breakpoint-md) {
+    margin: 0 0 0.65rem;
+    padding: 0.65rem 0.45rem 0.7rem;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
   }
+}
+
+.system-offen-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.4rem, 1fr));
+  align-items: end;
+  gap: 0.45rem 0.55rem;
+  width: 100%;
 
   label {
     display: flex;
     flex-direction: column;
-    flex: 1 1 0;
-    min-width: 5.4rem;
+    min-width: 0;
     margin: 0;
-    gap: 0.12rem;
+    gap: 0.18rem;
     font-size: 0.68rem;
     font-weight: 600;
     color: $text-light;
@@ -654,12 +661,14 @@
   .form-input {
     box-sizing: border-box;
     width: 100%;
-    height: 2rem;
-    min-height: 2rem;
-    padding: 0 0.32rem;
+    height: 2.15rem;
+    min-height: 2.15rem;
+    padding: 0 0.5rem;
+    border-radius: 6px;
     font-weight: 400;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     line-height: 1.25;
+    background: #fff;
     text-overflow: ellipsis;
   }
 
@@ -667,25 +676,34 @@
     display: block;
   }
 
-  label:has(input[type="date"]) {
-    flex: 0 1 7.1rem;
-    min-width: 6.8rem;
+  label.is-set {
+    color: $primary-color;
+
+    .form-input {
+      border-color: $primary-color;
+      background: mix(#fff, $primary-color, 94%);
+    }
   }
 
   @media (max-width: $breakpoint-md) {
-    gap: 0.35rem;
-    margin: 0 0 0.35rem;
-    padding: 0.15rem 0.45rem 0.45rem;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     label {
       flex: 0 0 auto;
-      width: 6.8rem;
-      min-width: 6.8rem;
+      width: 8.2rem;
     }
 
     .form-input {
-      width: 6.8rem;
-      min-width: 6.8rem;
+      width: 8.2rem;
     }
   }
 }
@@ -694,39 +712,65 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.55rem 0.85rem;
-  margin: 0 0 $spacing-md;
+  gap: 0.5rem 0.7rem;
 
   .btn {
     flex: 0 0 auto;
+    min-height: 2.15rem;
+    padding: 0 0.9rem;
     white-space: nowrap;
-  }
-
-  @media (max-width: $breakpoint-md) {
-    margin: 0 0 0.65rem;
-    padding: 0 0.45rem;
   }
 }
 
 .system-offen-result-count {
   margin: 0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: $text-color;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: mix(#fff, $primary-color, 88%);
+  color: darken($primary-color, 8%);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
   white-space: nowrap;
+}
+
+.system-offen-reset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: $text-light;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+
+  &:hover {
+    color: $primary-color;
+  }
 }
 
 .system-offen-search {
   flex: 1 1 14rem;
-  max-width: 22rem;
-  min-width: 11rem;
-  margin: 0;
+  min-width: 12rem;
+  max-width: 26rem;
+  margin: 0 0 0 auto;
 
   .form-input {
     width: 100%;
-    min-height: 2rem;
-    padding: 0.28rem 0.5rem;
+    min-height: 2.15rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    background: #fff;
     font-size: 0.82rem;
+  }
+
+  @media (max-width: $breakpoint-md) {
+    margin-left: 0;
+    max-width: none;
+    flex: 1 1 100%;
   }
 }
 

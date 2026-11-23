@@ -1211,157 +1211,169 @@ const System = () => {
       {listTab === 'offen' || listTab === 'archiv' ? (
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'offen' ? (
-          <div className="system-offen-filters" aria-label="Geöffnete Tickets filtern">
-            <label htmlFor="offen-filter-datum">
-              Datum
-              <input
-                id="offen-filter-datum"
-                className="form-input"
-                type="date"
-                value={offenFilter.datum}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, datum: ev.target.value }))}
-              />
-            </label>
-            <label htmlFor="offen-filter-filiale">
-              Filiale
-              <select
-                id="offen-filter-filiale"
-                className="form-input"
-                value={offenFilter.filiale}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, filiale: ev.target.value }))}
+          <div className="system-offen-bar">
+            <div className="system-offen-toolbar">
+              <button
+                type="button"
+                className="btn btn--primary btn--small"
+                onClick={startNewOffenTicket}
+                disabled={creatingOffenTicket}
               >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.filiale.all)}</option>
-                {offenFilialeOptions.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.filiale.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-o2">
-              O2 Kunde
-              <select
-                id="offen-filter-o2"
-                className="form-input"
-                value={offenFilter.o2Kunde}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, o2Kunde: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.o2Kunde.all)}</option>
-                {offenO2Options.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.o2Kunde.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-stadt">
-              Stadt
-              <select
-                id="offen-filter-stadt"
-                className="form-input"
-                value={offenFilter.stadt}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, stadt: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.stadt.all)}</option>
-                {offenStadtOptions.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.stadt.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-typ">
-              Angebot
-              <select
-                id="offen-filter-typ"
-                className="form-input"
-                value={offenFilter.typ}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, typ: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.typ.all)}</option>
-                {offenTypOptions.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.typ.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-priority">
-              Priorität
-              <select
-                id="offen-filter-priority"
-                className="form-input"
-                value={offenFilter.priority}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, priority: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.priority.all)}</option>
-                {TICKET_PRIORITY_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.priority.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-sprache">
-              Sprache
-              <select
-                id="offen-filter-sprache"
-                className="form-input"
-                value={offenFilter.sprache}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, sprache: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.sprache.all)}</option>
-                {TICKET_LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.sprache.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-status">
-              Status
-              <select
-                id="offen-filter-status"
-                className="form-input"
-                value={offenFilter.status}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, status: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.status.all)}</option>
-                {offenStatusOptions.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.status.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-            <label htmlFor="offen-filter-bearbeiter">
-              Bearbeiter
-              <select
-                id="offen-filter-bearbeiter"
-                className="form-input"
-                value={offenFilter.bearbeiter}
-                onChange={(ev) => setOffenFilter((prev) => ({ ...prev, bearbeiter: ev.target.value }))}
-              >
-                <option value="">{withTicketCount('Alle', offenFacetCounts.bearbeiter.all)}</option>
-                {offenBearbeiterOptions.map((opt) => (
-                  <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.bearbeiter.by.get(opt) || 0)}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-        ) : null}
-        {listTab === 'offen' ? (
-          <div className="system-offen-toolbar">
-            <button
-              type="button"
-              className="btn btn--primary btn--small"
-              onClick={startNewOffenTicket}
-              disabled={creatingOffenTicket}
-            >
-              {creatingOffenTicket ? 'Wird erstellt…' : 'Ticket erstellen'}
-            </button>
-            <p className="system-offen-result-count" aria-live="polite">
-              {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
-              {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? ` von ${offenCount}` : ''}
-            </p>
-            <label className="system-offen-search">
-              <span className="visually-hidden">Name, Nummer oder ID</span>
-              <input
-                id="offen-suche"
-                type="search"
-                className="form-input"
-                value={offenSearch}
-                onChange={(ev) => setOffenSearch(ev.target.value)}
-                placeholder="Name, Nummer oder ID…"
-                autoComplete="off"
-              />
-            </label>
+                {creatingOffenTicket ? 'Wird erstellt…' : 'Ticket erstellen'}
+              </button>
+              <p className="system-offen-result-count" aria-live="polite">
+                {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
+                {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? ` von ${offenCount}` : ''}
+              </p>
+              {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? (
+                <button
+                  type="button"
+                  className="system-offen-reset"
+                  onClick={() => {
+                    setOffenFilter(EMPTY_OFFEN_FILTER);
+                    setOffenSearch('');
+                  }}
+                >
+                  Filter zurücksetzen
+                </button>
+              ) : null}
+              <label className="system-offen-search">
+                <span className="visually-hidden">Name, Nummer oder ID</span>
+                <input
+                  id="offen-suche"
+                  type="search"
+                  className="form-input"
+                  value={offenSearch}
+                  onChange={(ev) => setOffenSearch(ev.target.value)}
+                  placeholder="Name, Nummer oder ID…"
+                  autoComplete="off"
+                />
+              </label>
+            </div>
+            <div className="system-offen-filters" aria-label="Geöffnete Tickets filtern">
+              <label htmlFor="offen-filter-datum" className={offenFilter.datum ? 'is-set' : undefined}>
+                Datum
+                <input
+                  id="offen-filter-datum"
+                  className="form-input"
+                  type="date"
+                  value={offenFilter.datum}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, datum: ev.target.value }))}
+                />
+              </label>
+              <label htmlFor="offen-filter-filiale" className={offenFilter.filiale ? 'is-set' : undefined}>
+                Filiale
+                <select
+                  id="offen-filter-filiale"
+                  className="form-input"
+                  value={offenFilter.filiale}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, filiale: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {offenFilialeOptions.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.filiale.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-o2" className={offenFilter.o2Kunde ? 'is-set' : undefined}>
+                O2 Kunde
+                <select
+                  id="offen-filter-o2"
+                  className="form-input"
+                  value={offenFilter.o2Kunde}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, o2Kunde: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {offenO2Options.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.o2Kunde.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-stadt" className={offenFilter.stadt ? 'is-set' : undefined}>
+                Stadt
+                <select
+                  id="offen-filter-stadt"
+                  className="form-input"
+                  value={offenFilter.stadt}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, stadt: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {offenStadtOptions.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.stadt.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-typ" className={offenFilter.typ ? 'is-set' : undefined}>
+                Angebot
+                <select
+                  id="offen-filter-typ"
+                  className="form-input"
+                  value={offenFilter.typ}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, typ: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {offenTypOptions.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.typ.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-priority" className={offenFilter.priority ? 'is-set' : undefined}>
+                Priorität
+                <select
+                  id="offen-filter-priority"
+                  className="form-input"
+                  value={offenFilter.priority}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, priority: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {TICKET_PRIORITY_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.priority.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-sprache" className={offenFilter.sprache ? 'is-set' : undefined}>
+                Sprache
+                <select
+                  id="offen-filter-sprache"
+                  className="form-input"
+                  value={offenFilter.sprache}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, sprache: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {TICKET_LANGUAGE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.sprache.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-status" className={offenFilter.status ? 'is-set' : undefined}>
+                Status
+                <select
+                  id="offen-filter-status"
+                  className="form-input"
+                  value={offenFilter.status}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, status: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {offenStatusOptions.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.status.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="offen-filter-bearbeiter" className={offenFilter.bearbeiter ? 'is-set' : undefined}>
+                Bearbeiter
+                <select
+                  id="offen-filter-bearbeiter"
+                  className="form-input"
+                  value={offenFilter.bearbeiter}
+                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, bearbeiter: ev.target.value }))}
+                >
+                  <option value="">Alle</option>
+                  {offenBearbeiterOptions.map((opt) => (
+                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.bearbeiter.by.get(opt) || 0)}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
         ) : null}
         {listTab === 'archiv' ? (
