@@ -846,14 +846,14 @@ const CallcenterNachrichten = ({
       unread[filialeGroupChannelId(group)] = 0;
     });
     list.forEach((t) => {
-      if (isManualLeadTicket(t)) return;
-      if (ticketMatchesNachrichtenChannel(t, 'all') && t.unread) {
+      if (isManualLeadTicket(t) || isLeadArchived(t) || !t.unread) return;
+      if (ticketMatchesNachrichtenChannel(t, 'all')) {
         unread.all += 1;
         const ch = normalizeSocialChannel(t.channel);
         unread[ch] = (unread[ch] || 0) + 1;
       }
       const group = filialeGroupForTicket(t);
-      if (!group || !t.unread) return;
+      if (!group) return;
       const id = filialeGroupChannelId(group);
       if (!ticketMatchesNachrichtenChannel(t, id)) return;
       unread[id] += 1;
@@ -863,7 +863,7 @@ const CallcenterNachrichten = ({
 
   const readTabCounts = useMemo(() => {
     const inChannel = list.filter((t) => {
-      if (isManualLeadTicket(t)) return false;
+      if (isManualLeadTicket(t) || isLeadArchived(t)) return false;
       return ticketMatchesChannel(t, channel);
     });
     return {

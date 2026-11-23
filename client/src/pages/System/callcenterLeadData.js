@@ -1382,10 +1382,11 @@ export function isTicketInFilialeGroup(ticket) {
 }
 
 export function ticketMatchesNachrichtenChannel(ticket, channel) {
+  if (isLeadArchived(ticket)) return false;
   const group = filialeGroupByChannel(channel);
   const ticketGroup = filialeGroupForTicket(ticket);
   if (group) {
-    if (isLeadArchived(ticket) || !ticketGroup) return false;
+    if (!ticketGroup) return false;
     return ticketGroup.id === group.id;
   }
   if (ticketGroup || shopAssignsTicket(ticket?.shop) || shopAssignsTicket(ticket?.filiale)) {
@@ -1687,7 +1688,11 @@ export function marketingErstkontaktValue(ticket) {
 }
 
 export function countUnreadLeadTickets(tickets) {
-  return (tickets || []).filter((t) => t.unread).length;
+  return (tickets || []).filter((t) => {
+    if (!t?.unread) return false;
+    if (isManualLeadTicket(t) || isLeadArchived(t)) return false;
+    return true;
+  }).length;
 }
 
 function pad3(n) {
