@@ -543,11 +543,6 @@
   margin-bottom: $spacing-md;
 }
 
-.system-archiv-search {
-  max-width: 28rem;
-  margin-bottom: $spacing-md;
-}
-
 .system-phone-tabs {
   display: none;
 }
@@ -555,12 +550,6 @@
 @media (max-width: $breakpoint-md) {
   .vorvertrag-table-section {
     margin-top: 0;
-  }
-
-  .system-archiv-search {
-    margin: 0 0 0.65rem;
-    padding: 0 0.45rem;
-    max-width: none;
   }
 
   .system-phone-tabs {

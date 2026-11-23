@@ -261,6 +261,134 @@ function matchesOffenFilter(entry, filter) {
   return true;
 }
 
+function ticketFilterActive(filter, search) {
+  return Object.values(filter || {}).some(Boolean) || String(search || '').trim().length > 0;
+}
+
+function ticketFacetCounts(list, filter) {
+  const make = (key, getKeys) => {
+    const subset = facetTickets(list, filter, key);
+    return { all: subset.length, by: countByKeys(subset, getKeys) };
+  };
+  return {
+    filiale: make('filiale', entryFilialeValue),
+    o2Kunde: make('o2Kunde', (entry) => String(entry?.o2Kunde || '').trim()),
+    stadt: make('stadt', (entry) => String(entry?.stadt || '').trim()),
+    typ: make('typ', (entry) => String(entry?.angebot || '').trim()),
+    priority: make('priority', (entry) => normalizeTicketPriority(entry?.priority)),
+    sprache: make('sprache', (entry) => normalizeTicketLanguage(entry?.sprache)),
+    status: make('status', entryTicketStatus),
+    bearbeiter: make('bearbeiter', collectShopMitarbeiterNames)
+  };
+}
+
+function ticketFilialeFilterOptions(list, filialeOptions) {
+  const set = new Set([...shopOptionsForTicketing(), ...filialeOptions]);
+  list.forEach((entry) => {
+    const value = entryFilialeValue(entry);
+    if (value) set.add(value);
+  });
+  return [...set].filter((opt) => String(opt).trim().toLowerCase() !== 'zentrale');
+}
+
+function ticketBearbeiterFilterOptions(list) {
+  return [...countByKeys(list, collectShopMitarbeiterNames).entries()]
+    .filter(([value, count]) => value && count)
+    .sort((a, b) => a[0].localeCompare(b[0], 'de'))
+    .map(([value]) => value);
+}
+
+const ARCHIV_STATUS_OPTIONS = VORVERTRAG_TICKET_STATUS_OPTIONS.filter(isArchivedTicketStatus);
+
+function TicketListBar({
+  idPrefix,
+  filtersAriaLabel,
+  filter,
+  onFilterChange,
+  search,
+  onSearchChange,
+  onReset,
+  visibleCount,
+  totalCount,
+  createAction = null,
+  filialeOptions,
+  o2Options,
+  stadtOptions,
+  typOptions,
+  statusOptions,
+  bearbeiterOptions,
+  facetCounts
+}) {
+  const setField = (key) => (ev) => onFilterChange((prev) => ({ ...prev, [key]: ev.target.value }));
+  const active = ticketFilterActive(filter, search);
+  const fid = (name) => `${idPrefix}-${name}`;
+  const renderSelect = (name, label, value, options, counts) => (
+    <label htmlFor={fid(name)} className={value ? 'is-set' : undefined}>
+      {label}
+      <select
+        id={fid(name)}
+        className="form-input"
+        value={value}
+        onChange={setField(name)}
+      >
+        <option value="">Alle</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{withTicketCount(opt, counts.by.get(opt) || 0)}</option>
+        ))}
+      </select>
+    </label>
+  );
+
+  return (
+    <div className="system-offen-bar">
+      <div className="system-offen-toolbar">
+        {createAction}
+        <p className="system-offen-result-count" aria-live="polite">
+          {visibleCount === 1 ? '1 Ticket' : `${visibleCount} Tickets`}
+          {active ? ` von ${totalCount}` : ''}
+        </p>
+        {active ? (
+          <button type="button" className="system-offen-reset" onClick={onReset}>
+            Filter zurücksetzen
+          </button>
+        ) : null}
+        <label className="system-offen-search">
+          <span className="visually-hidden">Name, Nummer oder ID</span>
+          <input
+            id={fid('suche')}
+            type="search"
+            className="form-input"
+            value={search}
+            onChange={(ev) => onSearchChange(ev.target.value)}
+            placeholder="Name, Nummer oder ID…"
+            autoComplete="off"
+          />
+        </label>
+      </div>
+      <div className="system-offen-filters" aria-label={filtersAriaLabel}>
+        <label htmlFor={fid('datum')} className={filter.datum ? 'is-set' : undefined}>
+          Datum
+          <input
+            id={fid('datum')}
+            className="form-input"
+            type="date"
+            value={filter.datum}
+            onChange={setField('datum')}
+          />
+        </label>
+        {renderSelect('filiale', 'Filiale', filter.filiale, filialeOptions, facetCounts.filiale)}
+        {renderSelect('o2Kunde', 'O2 Kunde', filter.o2Kunde, o2Options, facetCounts.o2Kunde)}
+        {renderSelect('stadt', 'Stadt', filter.stadt, stadtOptions, facetCounts.stadt)}
+        {renderSelect('typ', 'Angebot', filter.typ, typOptions, facetCounts.typ)}
+        {renderSelect('priority', 'Priorität', filter.priority, TICKET_PRIORITY_OPTIONS, facetCounts.priority)}
+        {renderSelect('sprache', 'Sprache', filter.sprache, TICKET_LANGUAGE_OPTIONS, facetCounts.sprache)}
+        {renderSelect('status', 'Status', filter.status, statusOptions, facetCounts.status)}
+        {renderSelect('bearbeiter', 'Bearbeiter', filter.bearbeiter, bearbeiterOptions, facetCounts.bearbeiter)}
+      </div>
+    </div>
+  );
+}
+
 const System = () => {
   const { user } = useAuth();
   const [questionConfig, setQuestionConfig] = useTicketQuestionConfig({
@@ -286,6 +414,7 @@ const System = () => {
   const [archivSearch, setArchivSearch] = useState('');
   const [offenSearch, setOffenSearch] = useState('');
   const [offenFilter, setOffenFilter] = useState(EMPTY_OFFEN_FILTER);
+  const [archivFilter, setArchivFilter] = useState(EMPTY_OFFEN_FILTER);
   const [statusSavingId, setStatusSavingId] = useState('');
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
@@ -325,17 +454,12 @@ const System = () => {
     () => [...leadOffenEntries, ...entries.filter((entry) => !isVorvertragArchived(entry))],
     [leadOffenEntries, entries]
   );
+  const archivEntriesAll = useMemo(
+    () => [...leadArchivEntries, ...entries.filter((entry) => isVorvertragArchived(entry))],
+    [leadArchivEntries, entries]
+  );
 
   const filteredEntries = useMemo(() => {
-    const vv = entries.filter((entry) => {
-      const archived = isVorvertragArchived(entry);
-      const inTab = listTab === 'archiv' ? archived : !archived;
-      if (!inTab) return false;
-      if (listTab === 'archiv' && archivSearch.trim()) {
-        return entryMatchesCustomerNameSearch(entry, archivSearch);
-      }
-      return true;
-    });
     if (listTab === 'offen') {
       return offenEntriesAll
         .filter((entry) => matchesOffenFilter(entry, offenFilter))
@@ -344,48 +468,41 @@ const System = () => {
         .sort((a, b) => compareOffenEntries(a, b, leadEditId));
     }
     if (listTab === 'archiv') {
-      const leads = archivSearch.trim()
-        ? leadArchivEntries.filter((entry) => entryMatchesCustomerNameSearch(entry, archivSearch))
-        : leadArchivEntries;
-      return [...leads, ...vv];
+      return archivEntriesAll
+        .filter((entry) => matchesOffenFilter(entry, archivFilter))
+        .filter((entry) => entryMatchesCustomerNameSearch(entry, archivSearch));
     }
-    return vv;
-  }, [entries, listTab, archivSearch, offenSearch, leadOffenEntries, leadArchivEntries, offenEntriesAll, offenFilter, leadEditId]);
+    return entries.filter((entry) => !isVorvertragArchived(entry));
+  }, [entries, listTab, archivSearch, archivFilter, offenSearch, offenEntriesAll, archivEntriesAll, offenFilter, leadEditId]);
 
-  const offenFilialeOptions = useMemo(() => {
-    const set = new Set([...shopOptionsForTicketing(), ...filialeOptions]);
-    offenEntriesAll.forEach((entry) => {
-      const value = entryFilialeValue(entry);
-      if (value) set.add(value);
-    });
-    return [...set].filter((opt) => String(opt).trim().toLowerCase() !== 'zentrale');
-  }, [filialeOptions, offenEntriesAll]);
+  const offenFilialeOptions = useMemo(
+    () => ticketFilialeFilterOptions(offenEntriesAll, filialeOptions),
+    [filialeOptions, offenEntriesAll]
+  );
+  const archivFilialeOptions = useMemo(
+    () => ticketFilialeFilterOptions(archivEntriesAll, filialeOptions),
+    [filialeOptions, archivEntriesAll]
+  );
 
   const offenStatusOptions = useMemo(() => [...VORVERTRAG_TICKET_STATUS_OPTIONS], []);
 
-  const offenBearbeiterOptions = useMemo(() => (
-    [...countByKeys(offenEntriesAll, collectShopMitarbeiterNames).entries()]
-      .filter(([value, count]) => value && count)
-      .sort((a, b) => a[0].localeCompare(b[0], 'de'))
-      .map(([value]) => value)
-  ), [offenEntriesAll]);
+  const offenBearbeiterOptions = useMemo(
+    () => ticketBearbeiterFilterOptions(offenEntriesAll),
+    [offenEntriesAll]
+  );
+  const archivBearbeiterOptions = useMemo(
+    () => ticketBearbeiterFilterOptions(archivEntriesAll),
+    [archivEntriesAll]
+  );
 
-  const offenFacetCounts = useMemo(() => {
-    const make = (key, getKeys) => {
-      const list = facetTickets(offenEntriesAll, offenFilter, key);
-      return { all: list.length, by: countByKeys(list, getKeys) };
-    };
-    return {
-      filiale: make('filiale', entryFilialeValue),
-      o2Kunde: make('o2Kunde', (entry) => String(entry?.o2Kunde || '').trim()),
-      stadt: make('stadt', (entry) => String(entry?.stadt || '').trim()),
-      typ: make('typ', (entry) => String(entry?.angebot || '').trim()),
-      priority: make('priority', (entry) => normalizeTicketPriority(entry?.priority)),
-      sprache: make('sprache', (entry) => normalizeTicketLanguage(entry?.sprache)),
-      status: make('status', entryTicketStatus),
-      bearbeiter: make('bearbeiter', collectShopMitarbeiterNames)
-    };
-  }, [offenEntriesAll, offenFilter]);
+  const offenFacetCounts = useMemo(
+    () => ticketFacetCounts(offenEntriesAll, offenFilter),
+    [offenEntriesAll, offenFilter]
+  );
+  const archivFacetCounts = useMemo(
+    () => ticketFacetCounts(archivEntriesAll, archivFilter),
+    [archivEntriesAll, archivFilter]
+  );
 
   const offenTypOptions = useMemo(
     () => questionDropdownOptions('angebot', questionConfig) || [...LEAD_ANGEBOT_OPTIONS],
@@ -397,12 +514,22 @@ const System = () => {
     const fromTickets = offenEntriesAll.map((entry) => entry?.o2Kunde);
     return uniqueFilterValues([...fromConfig, ...fromTickets]);
   }, [questionConfig, offenEntriesAll]);
+  const archivO2Options = useMemo(() => {
+    const fromConfig = questionDropdownOptions('o2Kunde', questionConfig) || [...LEAD_O2_OPTIONS];
+    const fromTickets = archivEntriesAll.map((entry) => entry?.o2Kunde);
+    return uniqueFilterValues([...fromConfig, ...fromTickets]);
+  }, [questionConfig, archivEntriesAll]);
 
   const offenStadtOptions = useMemo(() => {
     const fromConfig = questionDropdownOptions('stadt', questionConfig) || [];
     const fromTickets = offenEntriesAll.map((entry) => entry?.stadt);
     return uniqueFilterValues([...fromConfig, ...fromTickets]).filter(isStadtFilterOption);
   }, [questionConfig, offenEntriesAll]);
+  const archivStadtOptions = useMemo(() => {
+    const fromConfig = questionDropdownOptions('stadt', questionConfig) || [];
+    const fromTickets = archivEntriesAll.map((entry) => entry?.stadt);
+    return uniqueFilterValues([...fromConfig, ...fromTickets]).filter(isStadtFilterOption);
+  }, [questionConfig, archivEntriesAll]);
 
   const offenCount = useMemo(
     () => entries.filter((entry) => !isVorvertragArchived(entry)).length + leadOffenEntries.length,
@@ -413,6 +540,7 @@ const System = () => {
     () => entries.filter((entry) => isVorvertragArchived(entry)).length + leadArchivEntries.length,
     [entries, leadArchivEntries]
   );
+  const archivVisibleCount = listTab === 'archiv' ? filteredEntries.length : archivCount;
 
   const archivedEntries = useMemo(
     () => entries.filter((entry) => isVorvertragArchived(entry)),
@@ -1022,7 +1150,7 @@ const System = () => {
             className={`system-tab${listTab === 'archiv' ? ' system-tab--active' : ''}`}
             onClick={() => setListTab('archiv')}
           >
-            Archiv ({archivCount})
+            Archiv ({archivVisibleCount})
           </button>
         ) : null}
         {canManageAuto ? (
@@ -1174,7 +1302,7 @@ const System = () => {
           ungelesenCount={leadUnread}
           gelesenCount={leadGelesenCount}
           offenCount={offenVisibleCount}
-          archivCount={archivCount}
+          archivCount={archivVisibleCount}
           canSeeOffen={canSeeOffen}
           canSeeArchiv={canManageVorvertrag}
           onSelect={(tab) => {
@@ -1211,8 +1339,27 @@ const System = () => {
       {listTab === 'offen' || listTab === 'archiv' ? (
       <section className="vorvertrag-table-section" ref={cardsSectionRef}>
         {listTab === 'offen' ? (
-          <div className="system-offen-bar">
-            <div className="system-offen-toolbar">
+          <TicketListBar
+            idPrefix="offen-filter"
+            filtersAriaLabel="Geöffnete Tickets filtern"
+            filter={offenFilter}
+            onFilterChange={setOffenFilter}
+            search={offenSearch}
+            onSearchChange={setOffenSearch}
+            onReset={() => {
+              setOffenFilter(EMPTY_OFFEN_FILTER);
+              setOffenSearch('');
+            }}
+            visibleCount={filteredEntries.length}
+            totalCount={offenCount}
+            filialeOptions={offenFilialeOptions}
+            o2Options={offenO2Options}
+            stadtOptions={offenStadtOptions}
+            typOptions={offenTypOptions}
+            statusOptions={offenStatusOptions}
+            bearbeiterOptions={offenBearbeiterOptions}
+            facetCounts={offenFacetCounts}
+            createAction={(
               <button
                 type="button"
                 className="btn btn--primary btn--small"
@@ -1221,188 +1368,43 @@ const System = () => {
               >
                 {creatingOffenTicket ? 'Wird erstellt…' : 'Ticket erstellen'}
               </button>
-              <p className="system-offen-result-count" aria-live="polite">
-                {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
-                {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? ` von ${offenCount}` : ''}
-              </p>
-              {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? (
-                <button
-                  type="button"
-                  className="system-offen-reset"
-                  onClick={() => {
-                    setOffenFilter(EMPTY_OFFEN_FILTER);
-                    setOffenSearch('');
-                  }}
-                >
-                  Filter zurücksetzen
-                </button>
-              ) : null}
-              <label className="system-offen-search">
-                <span className="visually-hidden">Name, Nummer oder ID</span>
-                <input
-                  id="offen-suche"
-                  type="search"
-                  className="form-input"
-                  value={offenSearch}
-                  onChange={(ev) => setOffenSearch(ev.target.value)}
-                  placeholder="Name, Nummer oder ID…"
-                  autoComplete="off"
-                />
-              </label>
-            </div>
-            <div className="system-offen-filters" aria-label="Geöffnete Tickets filtern">
-              <label htmlFor="offen-filter-datum" className={offenFilter.datum ? 'is-set' : undefined}>
-                Datum
-                <input
-                  id="offen-filter-datum"
-                  className="form-input"
-                  type="date"
-                  value={offenFilter.datum}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, datum: ev.target.value }))}
-                />
-              </label>
-              <label htmlFor="offen-filter-filiale" className={offenFilter.filiale ? 'is-set' : undefined}>
-                Filiale
-                <select
-                  id="offen-filter-filiale"
-                  className="form-input"
-                  value={offenFilter.filiale}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, filiale: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {offenFilialeOptions.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.filiale.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-o2" className={offenFilter.o2Kunde ? 'is-set' : undefined}>
-                O2 Kunde
-                <select
-                  id="offen-filter-o2"
-                  className="form-input"
-                  value={offenFilter.o2Kunde}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, o2Kunde: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {offenO2Options.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.o2Kunde.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-stadt" className={offenFilter.stadt ? 'is-set' : undefined}>
-                Stadt
-                <select
-                  id="offen-filter-stadt"
-                  className="form-input"
-                  value={offenFilter.stadt}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, stadt: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {offenStadtOptions.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.stadt.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-typ" className={offenFilter.typ ? 'is-set' : undefined}>
-                Angebot
-                <select
-                  id="offen-filter-typ"
-                  className="form-input"
-                  value={offenFilter.typ}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, typ: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {offenTypOptions.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.typ.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-priority" className={offenFilter.priority ? 'is-set' : undefined}>
-                Priorität
-                <select
-                  id="offen-filter-priority"
-                  className="form-input"
-                  value={offenFilter.priority}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, priority: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {TICKET_PRIORITY_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.priority.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-sprache" className={offenFilter.sprache ? 'is-set' : undefined}>
-                Sprache
-                <select
-                  id="offen-filter-sprache"
-                  className="form-input"
-                  value={offenFilter.sprache}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, sprache: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {TICKET_LANGUAGE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.sprache.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-status" className={offenFilter.status ? 'is-set' : undefined}>
-                Status
-                <select
-                  id="offen-filter-status"
-                  className="form-input"
-                  value={offenFilter.status}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, status: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {offenStatusOptions.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.status.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-              <label htmlFor="offen-filter-bearbeiter" className={offenFilter.bearbeiter ? 'is-set' : undefined}>
-                Bearbeiter
-                <select
-                  id="offen-filter-bearbeiter"
-                  className="form-input"
-                  value={offenFilter.bearbeiter}
-                  onChange={(ev) => setOffenFilter((prev) => ({ ...prev, bearbeiter: ev.target.value }))}
-                >
-                  <option value="">Alle</option>
-                  {offenBearbeiterOptions.map((opt) => (
-                    <option key={opt} value={opt}>{withTicketCount(opt, offenFacetCounts.bearbeiter.by.get(opt) || 0)}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
+            )}
+          />
         ) : null}
         {listTab === 'archiv' ? (
-          <div className="system-archiv-search">
-            <label htmlFor="archiv-kunde-suche" className="form-label">Kunde oder ID suchen</label>
-            <input
-              id="archiv-kunde-suche"
-              type="search"
-              className="form-input"
-              value={archivSearch}
-              onChange={(ev) => setArchivSearch(ev.target.value)}
-              placeholder="Nach Kundenname oder Ticket-ID suchen…"
-              autoComplete="off"
-            />
-          </div>
+          <TicketListBar
+            idPrefix="archiv-filter"
+            filtersAriaLabel="Archiv filtern"
+            filter={archivFilter}
+            onFilterChange={setArchivFilter}
+            search={archivSearch}
+            onSearchChange={setArchivSearch}
+            onReset={() => {
+              setArchivFilter(EMPTY_OFFEN_FILTER);
+              setArchivSearch('');
+            }}
+            visibleCount={filteredEntries.length}
+            totalCount={archivCount}
+            filialeOptions={archivFilialeOptions}
+            o2Options={archivO2Options}
+            stadtOptions={archivStadtOptions}
+            typOptions={offenTypOptions}
+            statusOptions={ARCHIV_STATUS_OPTIONS}
+            bearbeiterOptions={archivBearbeiterOptions}
+            facetCounts={archivFacetCounts}
+          />
         ) : null}
         {loading && listTab !== 'archiv' ? (
           <p className="vorvertrag-empty">Laden…</p>
         ) : filteredEntries.length === 0 ? (
           <p className="vorvertrag-empty">
-            {listTab === 'archiv' && archivSearch.trim()
-              ? 'Keine Treffer für diesen Kundenname oder diese ID im Archiv.'
+            {listTab === 'archiv' && ticketFilterActive(archivFilter, archivSearch)
+              ? 'Keine Treffer im Archiv für diese Filter.'
               : listTab === 'archiv'
                 ? 'Keine Einträge im Archiv.'
-                : offenSearch.trim()
-                  ? 'Keine Treffer für Name, Nummer oder ID.'
-                  : Object.values(offenFilter).some(Boolean)
-                    ? 'Keine offenen Einträge für diese Filter.'
-                    : 'Keine offenen Einträge.'}
+                : ticketFilterActive(offenFilter, offenSearch)
+                  ? 'Keine Treffer für diese Filter.'
+                  : 'Keine offenen Einträge.'}
           </p>
         ) : (
           <div className="vorvertrag-table-wrapper">
