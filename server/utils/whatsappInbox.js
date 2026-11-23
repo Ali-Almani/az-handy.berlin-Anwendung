@@ -32,50 +32,6 @@ const FILE = 'whatsapp-inbox.json';
 const DEFAULT = () => ({ tickets: [] });
 const MEDIA_DIR = () => path.join(getDataDir(), 'uploads', 'whatsapp');
 
-const WELCOME_BRANCHES = `Sonnenallee 16, 12047
-Karl-Marx-Straße 50, 12043
-Karl-Marx-Straße 127, 12043
-Karl-Marx-Straße 169, 12043
-Badstraße 12, 13357
-Turmstraße 47, 10551
-Hauptstraße 156, 10827`;
-
-const WELCOME_BY_LOCALE = {
-  ar: `👋 أهلاً وسهلاً بكم في AZ Handy Berlin!
-شكراً لتواصلكم معنا! 💙
-📞 خدمة العملاء: 03076767089
-🕙 أوقات العمل: الإثنين–السبت | 10:00–18:00
-📍 فروعنا السبعة في برلين:
-https://qrco.de/bgn8QT
-🌐 أحدث عروضنا:
-az-handy.berlin الأفضل بعالم الموبايلات والاتصالات
-مع تحيات فريق AZ Handy Berlin 💙`,
-  de: `👋 Willkommen bei AZ Handy Berlin!
-Vielen Dank für Ihre Nachricht! 💙
-📞 Kundenservice: 030 76767089
-🕙 Öffnungszeiten: Mo.–Sa. | 10–18 Uhr
-📍 Unsere 7 Berliner Filialen:
-https://qrco.de/bgn8QT
-🌐 Aktuelle Angebote:
-https://az-handy.berlin
-Ihr AZ Handy Berlin Team 💙`,
-  en: `Welcome to AZ Handy Berlin!
-We received your message. A colleague will reply personally as soon as possible during opening hours.
-
-📞 Inquiries: 03076767089
-🕙 Mon–Sat: 10am–6pm
-
-📍 Our shops in Berlin:
-${WELCOME_BRANCHES}
-
-🌐 Latest offers:
-az-handy.berlin
-
-Thank you, we are happy to help! 🌟`
-};
-
-export const FIRST_CUSTOMER_AUTO_REPLY = WELCOME_BY_LOCALE.ar;
-
 const TYPING_PULSE_MS = 20_000;
 const pendingQuestionTimers = new Map();
 const pendingFollowupTimers = new Map();
@@ -1125,18 +1081,8 @@ export async function sendWelcomeIfNeeded(ticket) {
   try {
     const firstText = messages.find((m) => m?.from === 'customer')?.text || '';
     const sprache = detectCustomerLanguage(firstText);
-    const locale = localeFromSprache(sprache);
-    const text = WELCOME_BY_LOCALE[locale] || WELCOME_BY_LOCALE.de;
-    const waMessageId = await sendWhatsAppText(ticket.waId, text);
-    const state = await appendOutgoingMessage(ticket.id, {
-      id: waMessageId,
-      from: 'agent',
-      auto: 'welcome',
-      locale,
-      text,
-      at: new Date().toISOString()
-    }, { keepUnread: true, welcomeAutoSent: true, sprache });
-    const welcomed = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, sprache };
+    const state = await patchWhatsAppTicket(ticket.id, { welcomeAutoSent: true, sprache });
+    const welcomed = ticketFromState(state, ticket.id, ticket.waId) || { ...ticket, welcomeAutoSent: true, sprache };
     return startFlowPause(welcomed, loadAutoQuestionFlow().startId);
   } catch (err) {
     console.warn('[whatsapp] welcome', err?.detail || err?.message || err);

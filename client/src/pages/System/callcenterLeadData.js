@@ -138,20 +138,6 @@ export function spracheFromQuestionLocale(locale) {
   return found?.sprache || TICKET_LANGUAGE_DEFAULT_NEU;
 }
 
-export const FIRST_CUSTOMER_AUTO_REPLY = `👋 أهلاً وسهلاً بكم في AZ Handy Berlin!
-شكراً لتواصلكم معنا! 💙
-📞 خدمة العملاء: 03076767089
-🕙 أوقات العمل: الإثنين–السبت | 10:00–18:00
-📍 فروعنا السبعة في برلين:
-https://qrco.de/bgn8QT
-🌐 أحدث عروضنا:
-az-handy.berlin الأفضل بعالم الموبايلات والاتصالات
-مع تحيات فريق AZ Handy Berlin 💙`;
-
-function welcomeAutoReplyId(ticketId) {
-  return `auto-welcome-${ticketId || 'ticket'}`;
-}
-
 function isWelcomeAutoReply(message) {
   return message?.auto === 'welcome' || String(message?.id || '').startsWith('auto-welcome-');
 }
@@ -193,20 +179,7 @@ export function withFirstMessageAutoReply(ticket) {
   if (ticket.welcomeAutoSent || messages.some(isWelcomeAutoReply)) {
     return ticket.welcomeAutoSent ? ticket : { ...ticket, welcomeAutoSent: true };
   }
-  const firstAt = messages[firstCustomerAt]?.at;
-  const autoAt = firstAt && !Number.isNaN(new Date(firstAt).getTime())
-    ? new Date(new Date(firstAt).getTime() + 1000).toISOString()
-    : new Date().toISOString();
-  const nextMessages = messages.slice();
-  nextMessages.splice(firstCustomerAt + 1, 0, {
-    id: welcomeAutoReplyId(ticket.id),
-    from: 'agent',
-    auto: 'welcome',
-    locale: 'ar',
-    text: FIRST_CUSTOMER_AUTO_REPLY,
-    at: autoAt
-  });
-  return { ...ticket, welcomeAutoSent: true, messages: nextMessages };
+  return { ...ticket, welcomeAutoSent: true };
 }
 
 function leadSprache(value) {
