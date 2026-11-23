@@ -17,13 +17,18 @@ import {
   followupWaitMs,
   fillTicketPlaceholders,
   finaleTextForLocale,
+  isClosingAckQuestion,
+  isClosingAckText,
+  isCustomerPhoneQuestion,
+  kundenTelefonFieldId,
   loadAutoQuestionFlow,
   statusAutoTextForLocale,
   matchFlowOption,
   normalizeFlowAnswer,
   queueAfter,
   resolvedOptionTitle,
-  savesCity
+  savesCity,
+  ticketIdNoticeForLocale
 } from './autoQuestionFlow.js';
 
 export { WHATSAPP_FILE_MAX_BYTES, WHATSAPP_NATIVE_VIDEO_MAX_BYTES };
@@ -168,6 +173,7 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     abholbereitAutoSent: false,
     erledigtAutoSent: false,
     finaleAutoSent: false,
+    ticketIdNoticeSent: false,
     createdAt: at,
     messages: []
   };
@@ -462,10 +468,11 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (extra.abholbereitAutoSent) ticket.abholbereitAutoSent = true;
     if (extra.erledigtAutoSent) ticket.erledigtAutoSent = true;
     if (extra.finaleAutoSent) ticket.finaleAutoSent = true;
+    if (extra.ticketIdNoticeSent) ticket.ticketIdNoticeSent = true;
     return { value: { tickets: state.tickets } };
   }).then((state) => {
     const ticket = ticketFromState(state, ticketId);
-    const skipFollowup = message?.auto === 'followup' || message?.auto === 'abholbereit' || message?.auto === 'erledigt' || message?.auto === 'finale';
+    const skipFollowup = message?.auto === 'followup' || message?.auto === 'abholbereit' || message?.auto === 'erledigt' || message?.auto === 'finale' || message?.auto === 'ticketId';
     if (message?.from === 'agent' && !skipFollowup) {
       armTextFollowup(ticket);
     }
@@ -482,7 +489,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
       'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'mitarbeiterNames', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
-      'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'finaleAutoSent', 'kontaktversuchCount', 'editLog',
+      'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'finaleAutoSent', 'ticketIdNoticeSent', 'kontaktversuchCount', 'editLog',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
         `kundenbesuch${n}Bearbeiter`,
         `kontakt${n}Bearbeiter`,
@@ -1137,13 +1144,22 @@ async function sendFlowQuestion(ticket, questionId) {
         clipTitle(question.label, 24) || 'Auswahl'
       );
     }
-    return appendAutoQuestion(ticket, {
+    const sent = await appendAutoQuestion(ticket, {
       waMessageId,
       text,
       auto: `ask-${question.id}`,
       autoQuestionField: question.id,
       locale
     });
+    if (!isClosingAckQuestion(question) && !isClosingAckText(text)) return sent;
+    await patchWhatsAppTicket(sent.id, {
+      autoQuestionField: '',
+      autoQuestionDueAt: '',
+      autoQuestionQueue: []
+    });
+    const done = { ...sent, autoQuestionField: '', autoQuestionDueAt: '', autoQuestionQueue: [] };
+    const noticed = await sendTicketIdNotice(done);
+    return { ...noticed, autoQuestionField: question.id };
   } catch (err) {
     console.warn('[whatsapp] ask', question.id, err?.detail || err?.message || err);
     return ticket;
@@ -1216,13 +1232,37 @@ async function startFlowPause(ticket, questionId, queue = []) {
   return next;
 }
 
+async function sendTicketIdNotice(ticket) {
+  if (!ticket?.id || !ticket?.waId || ticket.ticketIdNoticeSent) return ticket;
+  const locale = localeFromSprache(ticket.sprache);
+  const text = fillTicketPlaceholders(ticketIdNoticeForLocale(locale), ticket);
+  if (!text) return ticket;
+  try {
+    const waMessageId = await sendWhatsAppText(ticket.waId, text);
+    const nextState = await appendOutgoingMessage(ticket.id, {
+      id: waMessageId,
+      from: 'agent',
+      auto: 'ticketId',
+      locale,
+      text,
+      at: new Date().toISOString()
+    }, { keepUnread: true, ticketIdNoticeSent: true, finaleAutoSent: true });
+    return ticketFromState(nextState, ticket.id, ticket.waId) || ticket;
+  } catch (err) {
+    console.warn('[whatsapp] ticket-id', err?.detail || err?.message || err);
+    return ticket;
+  }
+}
+
 async function sendFinaleMessage(ticket) {
-  if (!ticket?.id || !ticket?.waId || ticket.finaleAutoSent) return ticket;
+  if (!ticket?.id || !ticket?.waId || ticket.finaleAutoSent || ticket.ticketIdNoticeSent) {
+    return ticket;
+  }
   const flow = loadAutoQuestionFlow();
   const locale = localeFromSprache(ticket.sprache);
   const template = finaleTextForLocale(flow, locale);
   const text = fillTicketPlaceholders(template, ticket);
-  if (!text) return ticket;
+  if (!text) return sendTicketIdNotice(ticket);
   try {
     const waMessageId = await sendWhatsAppText(ticket.waId, text);
     const nextState = await appendOutgoingMessage(ticket.id, {
@@ -1233,7 +1273,11 @@ async function sendFinaleMessage(ticket) {
       text,
       at: new Date().toISOString()
     }, { keepUnread: true, finaleAutoSent: true });
-    return ticketFromState(nextState, ticket.id, ticket.waId) || ticket;
+    const sent = ticketFromState(nextState, ticket.id, ticket.waId) || ticket;
+    if (isClosingAckText(text) || isClosingAckText(template)) {
+      return sendTicketIdNotice(sent);
+    }
+    return sent;
   } catch (err) {
     console.warn('[whatsapp] finale', err?.detail || err?.message || err);
     return ticket;
@@ -1273,8 +1317,15 @@ async function finishOrPause(ticket, patch, queued) {
 function answerPatch(ticket, question, value) {
   const patch = {};
   if (!value) return patch;
-  if (question.saveAs) patch[question.saveAs] = value;
-  else {
+  const saveAs = String(question?.saveAs || '').trim();
+  const phoneField = isCustomerPhoneQuestion(question) ? kundenTelefonFieldId() : '';
+  const customField = /^cq-/.test(saveAs) ? saveAs : phoneField;
+  const wroteKnown = saveAs && !/^cq-/.test(saveAs) && !isCustomerPhoneQuestion(question);
+  if (wroteKnown) patch[saveAs] = value;
+  if (customField) {
+    patch.customAnswers = { [customField]: value };
+  }
+  if (!wroteKnown && !customField) {
     const prev = ticket.autoAnswers && typeof ticket.autoAnswers === 'object' ? ticket.autoAnswers : {};
     patch.autoAnswers = {
       ...prev,

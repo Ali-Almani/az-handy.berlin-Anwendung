@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAutoQuestionFlowApi, saveAutoQuestionFlowApi } from '../../services/whatsapp.service';
-import { AUTO_QUESTION_TICKET_FIELDS, loadQuestionConfig } from './callcenterLeadData';
+import { AUTO_QUESTION_TICKET_FIELDS, customQuestions, loadQuestionConfig } from './callcenterLeadData';
 import {
   applyProduktOptions,
   isProduktQuestion,
@@ -186,6 +186,13 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
   if (!flow) return <p className="vorvertrag-error" role="alert">{error || 'Ablauf konnte nicht geladen werden.'}</p>;
 
   const questions = flow.questions || [];
+  const ticketFieldChoices = [
+    ...AUTO_QUESTION_TICKET_FIELDS,
+    ...customQuestions(questionConfig)
+      .filter((item) => item?.id && item?.label)
+      .map((item) => ({ id: item.id, label: item.label }))
+      .filter((item) => !AUTO_QUESTION_TICKET_FIELDS.some((field) => field.id === item.id))
+  ];
 
   return (
     <section className="auto-flow" aria-label="Automatisierte Abfrage">
@@ -440,7 +447,7 @@ export default function AutoAbfrage({ questionConfig, onQuestionConfigChange } =
               disabled={linked}
               onChange={(ev) => updateQuestion(question.id, { saveAs: ev.target.value })}
             >
-              {AUTO_QUESTION_TICKET_FIELDS.map((item) => (
+              {ticketFieldChoices.map((item) => (
                 <option key={item.id || 'none'} value={item.id}>{item.label}</option>
               ))}
             </select>

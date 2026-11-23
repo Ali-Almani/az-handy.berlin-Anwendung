@@ -1,5 +1,6 @@
 import { readJsonStore, updateJsonStore } from './jsonClusterStore.js';
 import { stadtForTicket } from './stadtDeutsch.js';
+import { loadTicketQuestionConfig } from './ticketQuestionConfig.js';
 
 export const AUTO_FLOW_FILE = 'auto-question-flow.json';
 
@@ -208,7 +209,8 @@ export function normalizeAutoQuestionFlow(raw, { strict = false } = {}) {
     const kind = item.kind === 'text' ? 'text' : 'choice';
     const label = clip(item.label, 80) || id;
     let saveAs = String(item.saveAs || '').trim();
-    if (saveAs && !KNOWN_TICKET_FIELDS.has(saveAs)) {
+    const customSave = /^cq-[A-Za-z0-9_-]{1,40}$/.test(saveAs);
+    if (saveAs && !KNOWN_TICKET_FIELDS.has(saveAs) && !customSave) {
       if (strict) return { flow: null, error: `Unbekanntes Ticketfeld bei „${label}“.` };
       saveAs = '';
     }
@@ -403,6 +405,62 @@ export function displayTicketId(ticket) {
 export function fillTicketPlaceholders(text, ticket) {
   const id = displayTicketId(ticket);
   return String(text || '').replace(/\{(?:ticket[-_ ]?(?:id|nr)|id)\}/gi, id);
+}
+
+export const TICKET_ID_NOTICE = {
+  de: 'Deine Ticketnummer lautet {ID}.\nBitte bewahre sie auf und gib sie bei jeder erneuten Kontaktaufnahme an.',
+  ar: 'رقم تذكرتك هو {ID}.\nيرجى الاحتفاظ به وذكره عند كل تواصل جديد.',
+  en: 'Your ticket number is {ID}.\nPlease keep it and give it whenever you contact us again.'
+};
+
+export function ticketIdNoticeForLocale(locale) {
+  const loc = LOCALES.includes(locale) ? locale : 'de';
+  return TICKET_ID_NOTICE[loc] || TICKET_ID_NOTICE.de;
+}
+
+export function isClosingAckText(value) {
+  const t = String(value || '').toLowerCase();
+  return t.includes('angaben erhalten')
+    || t.includes('schnellstmöglich')
+    || t.includes('we will get back')
+    || t.includes('details received')
+    || t.includes('تم استلام')
+    || t.includes('سنتواصل');
+}
+
+export function isClosingAckQuestion(question) {
+  return [question?.label, question?.text?.de, question?.text?.ar, question?.text?.en]
+    .some((value) => isClosingAckText(value));
+}
+
+function questionSearchText(question) {
+  return [
+    question?.id,
+    question?.label,
+    question?.saveAs,
+    question?.text?.de,
+    question?.text?.ar,
+    question?.text?.en
+  ].map((value) => String(value || '').toLowerCase()).join('\n');
+}
+
+export function isCustomerPhoneQuestion(question) {
+  const hay = questionSearchText(question);
+  if (/whatsapp/.test(hay)) return false;
+  return /telefonnummer/.test(hay)
+    || /phone number/.test(hay)
+    || (/رقم/.test(hay) && /هاتف/.test(hay));
+}
+
+export function kundenTelefonFieldId() {
+  const custom = loadTicketQuestionConfig()?.config?.custom || [];
+  const found = custom.find((item) => {
+    const label = String(item?.label || '').trim().replace(/\?+$/, '').toLowerCase();
+    return label === 'telefonnummer des kunden' || label === 'telefonnummer';
+  });
+  if (found?.id) return found.id;
+  const tel = custom.find((item) => item?.type === 'tel');
+  return tel?.id || '';
 }
 
 function localeTextPack(pack, locale) {
