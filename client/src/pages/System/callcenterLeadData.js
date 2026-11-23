@@ -155,7 +155,7 @@ export function mergeWhatsAppTickets(local, remote) {
     const hydrated = hydrateLeadTicket({ ...raw, liveWhatsApp: true });
     const prev = prevById.get(hydrated.id);
     if (!prev) return hydrated;
-    return preserveOpenTicketEdits(prev, {
+    return withPendingOutgoingMessages(prev, preserveOpenTicketEdits(prev, {
       ...hydrated,
       messages: (hydrated.messages || []).map((message) => {
         const old = (prev.messages || []).find((item) => item.id === message.id);
@@ -167,8 +167,50 @@ export function mergeWhatsAppTickets(local, remote) {
           translationSourceLang: old.translationSourceLang
         };
       })
-    });
+    }));
   })];
+}
+
+export function isPendingOutgoingMessage(message) {
+  return Boolean(message?.pending) || String(message?.id || '').startsWith('local-send-');
+}
+
+function pendingMatchesServer(pending, messages) {
+  const text = String(pending?.text || '').trim();
+  const pendingAt = Date.parse(pending?.at || '') || 0;
+  return (Array.isArray(messages) ? messages : []).some((item) => {
+    if (item?.from !== 'agent' || isPendingOutgoingMessage(item)) return false;
+    const itemText = String(item?.text || '').trim();
+    if (text && itemText === text) {
+      const itemAt = Date.parse(item?.at || '') || 0;
+      return !pendingAt || !itemAt || Math.abs(itemAt - pendingAt) < 120000;
+    }
+    if (text) return false;
+    const hasMedia = (list) => Array.isArray(list) && list.length > 0;
+    if (
+      !hasMedia(pending.images)
+      && !hasMedia(pending.voices)
+      && !hasMedia(pending.files)
+      && !hasMedia(pending.videos)
+    ) {
+      return false;
+    }
+    const itemAt = Date.parse(item?.at || '') || 0;
+    return Boolean(itemAt) && itemAt >= pendingAt - 2000;
+  });
+}
+
+export function withPendingOutgoingMessages(prevTicket, nextTicket) {
+  if (!nextTicket) return nextTicket;
+  const pending = (prevTicket?.messages || []).filter(isPendingOutgoingMessage);
+  if (!pending.length) return nextTicket;
+  const server = Array.isArray(nextTicket.messages) ? nextTicket.messages : [];
+  const keep = pending.filter((item) => (
+    !server.some((message) => message.id === item.id)
+    && !pendingMatchesServer(item, server)
+  ));
+  if (!keep.length) return nextTicket;
+  return { ...nextTicket, messages: [...server, ...keep] };
 }
 
 export function withFirstMessageAutoReply(ticket) {
@@ -1882,7 +1924,9 @@ function hydrateLeadTicket(t) {
     id: migrateLeadId(withChannel),
     ticketNr: String(t?.ticketNr || '').trim(),
     channel,
-    messages: (Array.isArray(t?.messages) ? t.messages : []).map(hydrateVoiceMessage),
+    messages: (Array.isArray(t?.messages) ? t.messages : [])
+      .filter((message) => !isPendingOutgoingMessage(message))
+      .map(hydrateVoiceMessage),
     ticketStatus: migrateLeadTicketStatus(t?.ticketStatus),
     priority: normalizeTicketPriority(t?.priority),
     sprache: leadSprache(t?.sprache),

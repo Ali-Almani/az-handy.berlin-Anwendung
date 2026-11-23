@@ -43,6 +43,7 @@ import {
   isLeadArchived,
   isLiveWhatsAppTicket,
   mergeWhatsAppTickets,
+  withPendingOutgoingMessages,
   displayTicketId,
   isCustomTicketField,
   ticketFormCustomLabel,
@@ -584,7 +585,6 @@ const CallcenterNachrichten = ({
   const [recording, setRecording] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [recordSecs, setRecordSecs] = useState(0);
-  const [sending, setSending] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [mobileSide, setMobileSide] = useState('');
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
@@ -620,6 +620,7 @@ const CallcenterNachrichten = ({
   const audioCtxRef = useRef(null);
   const draftRef = useRef('');
   const sendTextRef = useRef(() => false);
+  const sendBusyRef = useRef(false);
   draftRef.current = draft;
   const anweisungSkipSave = useRef(true);
   const anweisungDirty = useRef(false);
@@ -1270,13 +1271,13 @@ const CallcenterNachrichten = ({
   };
 
   const toggleRecording = async () => {
-    if (sending || voiceBusy) return;
+    if (voiceBusy) return;
     if (recording) {
       stopRecording();
       return;
     }
     if (pendingVoice) {
-      sendTextRef.current?.(draft, { voice: pendingVoice });
+      sendTextRef.current?.(draftRef.current, { voice: pendingVoice });
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -1353,7 +1354,7 @@ const CallcenterNachrichten = ({
   };
 
   const sendText = (text, extra = {}) => {
-    if (!active || sending) return false;
+    if (!active || sendBusyRef.current) return false;
     const body = String(text || '').trim();
     const images = pendingImages.map(({ id, src }) => ({ id, src }));
     const voice = extra.voice || pendingVoice;
@@ -1363,59 +1364,23 @@ const CallcenterNachrichten = ({
       .filter((file) => !file.rawFile)
       .map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind }));
     if (!body && !images.length && !voices.length && !files.length && !rawFiles.length) return false;
-    if (isLiveWhatsAppTicket(active)) {
-      setSending(true);
-      (async () => {
-        let ticket = active;
-        let captionUsed = false;
-        for (const file of rawFiles) {
-          const caption = !captionUsed && body && !images.length && !voices.length ? body : '';
-          const data = await sendWhatsAppMediaFileApi(active.id, {
-            file: file.rawFile,
-            text: caption,
-            authorName: agentName,
-            kind: file.kind
-          });
-          if (caption) captionUsed = true;
-          if (data?.ticket) ticket = data.ticket;
-        }
-        const restText = captionUsed ? '' : body;
-        if (restText || images.length || voices.length || files.length) {
-          const data = await sendWhatsAppMessageApi(active.id, {
-            text: restText,
-            images,
-            voices,
-            files,
-            authorName: agentName
-          });
-          if (data?.ticket) ticket = data.ticket;
-        }
-        if (ticket) {
-          onTicketsChange?.((prev) => prev.map((t) => (t.id === ticket.id ? ticket : t)));
-        }
-        setDraft('');
-        setDraftPrev('');
-        setDraftTranslateError('');
-        setPendingImages([]);
-        clearPendingFiles(setPendingFiles);
-        setPendingVoice(null);
-      })()
-        .catch((err) => {
-          window.alert(whatsappSendError(err));
-        })
-        .finally(() => {
-          setSending(false);
-          setVoiceBusy(false);
-          setTicketTyping(active.id, 'agent', false);
-          if (!voice) composerRef.current?.focus();
-        });
-      return true;
-    }
-    setSending(true);
-    const message = {
-      id: `local-${Date.now()}`,
+    sendBusyRef.current = true;
+    window.setTimeout(() => {
+      sendBusyRef.current = false;
+    }, 0);
+    const ticketId = active.id;
+    const snapshot = {
+      draft: body,
+      pendingImages: pendingImages.slice(),
+      pendingFiles: pendingFiles.slice(),
+      pendingVoice: voice || null
+    };
+    const optimisticId = `local-send-${Date.now()}`;
+    const optimistic = {
+      id: optimisticId,
       from: 'agent',
       authorName: agentName || 'Zentrale',
+      pending: true,
       text: body,
       images,
       voices,
@@ -1427,38 +1392,98 @@ const CallcenterNachrichten = ({
         .map(({ id, src, name, mime, kind }) => ({ id, src, name, mime, kind })),
       at: new Date().toISOString()
     };
-    window.setTimeout(() => {
-      patchTicket(active.id, (t) => withMitarbeiter({
+    draftRef.current = '';
+    setDraft('');
+    setDraftPrev('');
+    setDraftTranslateError('');
+    setPendingImages([]);
+    clearPendingFiles(setPendingFiles);
+    setPendingVoice(null);
+    setVoiceBusy(false);
+    setTicketTyping(ticketId, 'agent', false);
+    window.clearTimeout(agentTypingTimer.current);
+    const pushOptimistic = (updater) => {
+      onTicketsChange?.((prev) => prev.map((t) => (t.id === ticketId ? updater(t) : t)));
+    };
+    if (isLiveWhatsAppTicket(active)) {
+      pushOptimistic((t) => withMitarbeiter({
         ...t,
         unread: false,
-        messages: [...(t.messages || []), message]
+        messages: [...(t.messages || []), optimistic]
       }, agentName));
-      setDraft('');
-      setDraftPrev('');
-      setDraftTranslateError('');
-      setPendingImages([]);
-      clearPendingFiles(setPendingFiles);
-      setPendingVoice(null);
-      setSending(false);
-      setVoiceBusy(false);
-      setTicketTyping(active.id, 'agent', false);
-      window.clearTimeout(agentTypingTimer.current);
-      window.clearTimeout(customerTypingTimer.current);
+      window.requestAnimationFrame(() => composerRef.current?.focus());
+      (async () => {
+        let ticket = active;
+        let captionUsed = false;
+        for (const file of rawFiles) {
+          const caption = !captionUsed && body && !images.length && !voices.length ? body : '';
+          const data = await sendWhatsAppMediaFileApi(ticketId, {
+            file: file.rawFile,
+            text: caption,
+            authorName: agentName,
+            kind: file.kind
+          });
+          if (caption) captionUsed = true;
+          if (data?.ticket) ticket = data.ticket;
+        }
+        const restText = captionUsed ? '' : body;
+        if (restText || images.length || voices.length || files.length) {
+          const data = await sendWhatsAppMessageApi(ticketId, {
+            text: restText,
+            images,
+            voices,
+            files,
+            authorName: agentName
+          });
+          if (data?.ticket) ticket = data.ticket;
+        }
+        if (ticket) {
+          onTicketsChange?.((prev) => prev.map((t) => {
+            if (t.id !== ticket.id) return t;
+            const withoutThis = {
+              ...t,
+              messages: (t.messages || []).filter((m) => m.id !== optimisticId)
+            };
+            return withPendingOutgoingMessages(withoutThis, { ...ticket, liveWhatsApp: true });
+          }));
+        }
+      })().catch((err) => {
+        pushOptimistic((t) => ({
+          ...t,
+          messages: (t.messages || []).filter((m) => m.id !== optimisticId)
+        }));
+        setDraft((current) => {
+          const next = String(current || '').trim() ? current : snapshot.draft;
+          draftRef.current = next;
+          return next;
+        });
+        setPendingImages((current) => (current.length ? current : snapshot.pendingImages));
+        setPendingFiles((current) => (current.length ? current : snapshot.pendingFiles));
+        setPendingVoice((current) => current || snapshot.pendingVoice);
+        window.alert(whatsappSendError(err));
+      });
+      return true;
+    }
+    patchTicket(ticketId, (t) => withMitarbeiter({
+      ...t,
+      unread: false,
+      messages: [...(t.messages || []), { ...optimistic, pending: false, id: `local-${Date.now()}` }]
+    }, agentName));
+    window.clearTimeout(customerTypingTimer.current);
+    customerTypingTimer.current = window.setTimeout(() => {
+      setTicketTyping(ticketId, 'customer', true);
+      setTypingTick((n) => n + 1);
       customerTypingTimer.current = window.setTimeout(() => {
-        setTicketTyping(active.id, 'customer', true);
+        setTicketTyping(ticketId, 'customer', false);
         setTypingTick((n) => n + 1);
-        customerTypingTimer.current = window.setTimeout(() => {
-          setTicketTyping(active.id, 'customer', false);
-          setTypingTick((n) => n + 1);
-        }, TYPING_MS);
-      }, 900);
-      composerRef.current?.focus();
-    }, 220);
+      }, TYPING_MS);
+    }, 900);
+    composerRef.current?.focus();
     return true;
   };
   sendTextRef.current = sendText;
 
-  const sendReply = () => sendText(draft);
+  const sendReply = () => sendText(draftRef.current);
 
   const rememberDraftSelection = (el) => {
     if (!el) {
@@ -1475,7 +1500,7 @@ const CallcenterNachrichten = ({
   const translateDraftSelection = async (targetLang) => {
     const sel = draftSelection;
     const text = String(sel?.text || '').trim();
-    if (!text || translatingId || sending) return;
+    if (!text || translatingId) return;
     const lang = targetLang === 'ar' || targetLang === 'en' ? targetLang : 'de';
     setTranslatingId('draft');
     setDraftTranslateError('');
@@ -2154,7 +2179,7 @@ const CallcenterNachrichten = ({
               <>
               <div className="sz-thread" ref={threadRef}>
                 {(active.messages || []).map((m) => (
-                  <div key={m.id} className={`sz-bubble sz-bubble--${m.from}`}>
+                  <div key={m.id} className={`sz-bubble sz-bubble--${m.from}${m.pending ? ' sz-bubble--pending' : ''}`}>
                     {m.auto === 'welcome' ? null : (
                       <p className="sz-bubble-author">
                         {m.from === 'agent' ? AGENT_CHAT_NAME : active.customerName}
@@ -2249,7 +2274,7 @@ const CallcenterNachrichten = ({
                         </button>
                       ) : null}
                       <time className="sz-bubble-time" dateTime={m.at}>{formatChatTime(m.at)}</time>
-                      {m.from === 'agent' && m.auto !== 'welcome' ? (
+                      {m.from === 'agent' && m.auto !== 'welcome' && !m.pending ? (
                         <button
                           type="button"
                           className="sz-bubble-delete"
@@ -2564,7 +2589,7 @@ const CallcenterNachrichten = ({
                             type="button"
                             className="sz-lang-btn"
                             onClick={() => translateDraftSelection(item.id)}
-                            disabled={sending || recording || voiceBusy || Boolean(translatingId)}
+                            disabled={recording || voiceBusy || Boolean(translatingId)}
                             aria-label={`Nach ${item.sprache} übersetzen`}
                           >
                             {translatingId === 'draft' ? '…' : item.short}
@@ -2577,7 +2602,7 @@ const CallcenterNachrichten = ({
                         type="button"
                         className="sz-composer-translate-undo"
                         onClick={restoreDraftOriginal}
-                        disabled={sending || Boolean(translatingId)}
+                        disabled={Boolean(translatingId)}
                       >
                         Original
                       </button>
@@ -2619,7 +2644,7 @@ const CallcenterNachrichten = ({
                     onKeyDown={handleComposerKey}
                     onPaste={handleComposerPaste}
                     placeholder={chatLocale === 'ar' ? 'اكتب الرد' : chatLocale === 'en' ? 'Write a reply' : 'Antwort schreiben'}
-                    disabled={sending || voiceBusy}
+                    disabled={voiceBusy}
                     dir={composerRtl ? 'rtl' : 'ltr'}
                     lang={composerRtl ? 'ar' : chatLocale === 'en' ? 'en' : 'de'}
                   />
@@ -2647,7 +2672,7 @@ const CallcenterNachrichten = ({
                       type="button"
                       className="sz-attach-btn"
                       onClick={() => imageInputRef.current?.click()}
-                      disabled={sending || recording || voiceBusy}
+                      disabled={recording || voiceBusy}
                       aria-label="Bild, Video oder PDF senden"
                       title="Bild, Video oder PDF"
                     >
@@ -2662,7 +2687,7 @@ const CallcenterNachrichten = ({
                       type="button"
                       className={`sz-attach-btn${recording ? ' sz-attach-btn--recording' : ''}`}
                       onClick={toggleRecording}
-                      disabled={sending || voiceBusy}
+                      disabled={voiceBusy}
                       aria-label={recording ? 'Aufnahme stoppen und senden' : pendingVoice ? 'Sprachnachricht senden' : 'Sprachnachricht aufnehmen'}
                       title={recording ? 'Aufnahme stoppen und senden' : pendingVoice ? 'Sprachnachricht senden' : 'Sprachnachricht aufnehmen'}
                     >
@@ -2685,7 +2710,7 @@ const CallcenterNachrichten = ({
                       type="button"
                       className="sz-send"
                       onClick={sendReply}
-                      disabled={sending || recording || voiceBusy || (!draft.trim() && pendingImages.length === 0 && !pendingVoice && pendingFiles.length === 0)}
+                      disabled={recording || voiceBusy || (!draft.trim() && pendingImages.length === 0 && !pendingVoice && pendingFiles.length === 0)}
                       aria-label="Senden"
                       title="Senden"
                     >

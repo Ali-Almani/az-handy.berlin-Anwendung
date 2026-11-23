@@ -833,6 +833,10 @@
     border-color: mix(#fff, $primary-color, 70%);
     border-top-right-radius: 3px;
   }
+
+  &--pending {
+    opacity: 0.72;
+  }
 }
 
 .sz-bubble-author {
