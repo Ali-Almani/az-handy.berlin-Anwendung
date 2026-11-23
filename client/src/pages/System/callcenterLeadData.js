@@ -35,14 +35,15 @@ export const ORTEN_SHOP_OPTIONS = [
 ];
 
 export const NACHRICHTEN_FILIALE_GROUPS = [
-  { id: 'sonnenallee16', shop: 'Sonnenallee 16', label: 'Sonn' },
-  { id: 'km169', shop: 'Karl-Marx-Straße 169', label: 'KM 169' },
-  { id: 'km127', shop: 'Karl-Marx-Straße 127', label: 'KM 127' },
-  { id: 'km50', shop: 'Karl-Marx-Straße 50', label: 'KM 50' },
+  { id: 'callcenter', shop: 'Call Center', label: 'CC' },
+  { id: 'sonnenallee16', shop: 'Sonnenallee 16', label: 'Son' },
+  { id: 'km169', shop: 'Karl-Marx-Straße 169', label: 'K69' },
+  { id: 'km127', shop: 'Karl-Marx-Straße 127', label: 'K127' },
+  { id: 'km50', shop: 'Karl-Marx-Straße 50', label: 'K 50' },
   { id: 'badstr12', shop: 'Badstraße 12', label: 'Bad' },
-  { id: 'turmstr47', shop: 'Turmstraße 47', label: 'Turm' },
-  { id: 'hauptstr156', shop: 'Hauptstraße 156', label: 'Haupt' },
-  { id: 'kitzingstr', shop: 'Kitzingstraße', label: 'Kitz' }
+  { id: 'turmstr47', shop: 'Turmstraße 47', label: 'Trm' },
+  { id: 'hauptstr156', shop: 'Hauptstraße 156', label: 'Hpt' },
+  { id: 'kitzingstr', shop: 'Kitzingstraße', label: 'Ktz' }
 ];
 
 export const NACHRICHT_ART_OPTIONS = [
@@ -1336,6 +1337,15 @@ const FILIALE_GROUP_BY_KEY = (() => {
     add(shop, NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === shop));
   });
   add('sonnenallee', byId.get('sonnenallee16'));
+  add('sonn', byId.get('sonnenallee16'));
+  add('callcenter', byId.get('callcenter'));
+  add('cc', byId.get('callcenter'));
+  add('km169', byId.get('km169'));
+  add('km127', byId.get('km127'));
+  add('km50', byId.get('km50'));
+  add('turm', byId.get('turmstr47'));
+  add('haupt', byId.get('hauptstr156'));
+  add('kitz', byId.get('kitzingstr'));
   add('kitzing', byId.get('kitzingstr'));
   add('kitzingstr79', byId.get('kitzingstr'));
   add('kitzingstrasse79', byId.get('kitzingstr'));
@@ -1354,7 +1364,7 @@ export function filialeGroupByChannel(channel) {
 }
 
 export function filialeGroupForShop(shop) {
-  if (!String(shop ?? '').trim() || isCallcenterShop(shop)) return null;
+  if (!String(shop ?? '').trim()) return null;
   const normalized = normalizeNachrichtShop(shop);
   if (normalized) {
     const exact = NACHRICHTEN_FILIALE_GROUPS.find((group) => group.shop === normalized);
