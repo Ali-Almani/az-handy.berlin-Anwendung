@@ -92,7 +92,9 @@ export function ensureDailyTicketNrs(tickets, channel = 'whatsapp') {
     .map((ticket, index) => ({ ticket, index }))
     .filter(({ ticket }) => {
       const parsed = parseDailyTicketNr(ticket?.ticketNr);
-      return !(parsed && parsed.prefix === prefix);
+      if (parsed) return false;
+      const channelPrefix = prefixForChannel(ticket?.channel);
+      return channelPrefix === prefix;
     })
     .sort((a, b) => {
       const atA = String(a.ticket?.createdAt || a.ticket?.messages?.[0]?.at || '');

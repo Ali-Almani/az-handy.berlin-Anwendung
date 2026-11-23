@@ -179,6 +179,42 @@ function emptyTicket(waId, name, at, existingTickets = []) {
   };
 }
 
+export async function createManualInboxTicket({ authorName = '' } = {}) {
+  const name = String(authorName || '').trim();
+  let created = null;
+  const state = await mutateWhatsAppTickets((current) => {
+    const at = new Date().toISOString();
+    const ticketNr = nextDailyTicketNr(current.tickets, 'ticket', at);
+    const ticket = {
+      ...emptyTicket('', '', at, current.tickets),
+      id: ticketNr,
+      ticketNr,
+      liveWhatsApp: false,
+      waId: '',
+      channel: 'ticket',
+      customerName: 'Neues Ticket',
+      handle: '',
+      rufnummer: '',
+      unread: false,
+      ticketStatus: 'Offen',
+      nachrichtArt: '',
+      sprache: '',
+      shop: '',
+      geoeffnetAt: at,
+      lastOpenedAt: at,
+      shopMitarbeiter: name,
+      shopMitarbeiterNames: name ? [name] : [],
+      source: 'manual',
+      createdAt: at,
+      messages: []
+    };
+    created = ticket;
+    current.tickets = [ticket, ...current.tickets];
+    return { value: { tickets: current.tickets } };
+  });
+  return created || ticketFromState(state, created?.id) || null;
+}
+
 function graphUrl(pathname) {
   return `https://graph.facebook.com/${whatsappGraphVersion()}/${pathname.replace(/^\//, '')}`;
 }

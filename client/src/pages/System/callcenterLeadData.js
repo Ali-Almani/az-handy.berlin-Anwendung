@@ -149,10 +149,15 @@ export function isLiveWhatsAppTicket(ticket) {
 export function mergeWhatsAppTickets(local, remote) {
   const list = Array.isArray(local) ? local : [];
   const cloud = Array.isArray(remote) ? remote : [];
-  const others = list.filter((t) => normalizeSocialChannel(t.channel) !== 'whatsapp' && !isLiveWhatsAppTicket(t));
-  const prevById = new Map(list.filter(isLiveWhatsAppTicket).map((t) => [t.id, t]));
+  const cloudIds = new Set(cloud.map((raw) => String(raw?.id || '')).filter(Boolean));
+  const others = list.filter((t) => (
+    !cloudIds.has(t.id)
+    && normalizeSocialChannel(t.channel) !== 'whatsapp'
+    && !isLiveWhatsAppTicket(t)
+  ));
+  const prevById = new Map(list.filter((t) => isLiveWhatsAppTicket(t) || cloudIds.has(t.id)).map((t) => [t.id, t]));
   return [...others, ...cloud.map((raw) => {
-    const hydrated = hydrateLeadTicket({ ...raw, liveWhatsApp: true });
+    const hydrated = hydrateLeadTicket({ ...raw, liveWhatsApp: Boolean(raw?.waId) });
     const prev = prevById.get(hydrated.id);
     if (!prev) return hydrated;
     return withPendingOutgoingMessages(prev, preserveOpenTicketEdits(prev, {
@@ -1762,18 +1767,21 @@ export function channelLabel(channel) {
 export function createManualLeadTicket({ tickets = [], agentName = '', now = new Date() } = {}) {
   const createdAt = now.toISOString ? now.toISOString() : new Date().toISOString();
   const id = nextLeadId(tickets, now instanceof Date ? now : new Date(), MANUAL_TICKET_CHANNEL);
-  return withMitarbeiter({
+  return withShopMitarbeiter({
     ...emptyLeadForm(),
     id,
+    ticketNr: id,
     channel: MANUAL_TICKET_CHANNEL,
     customerName: MANUAL_TICKET_NAME,
     handle: '',
     unread: false,
     createdAt,
+    geoeffnetAt: createdAt,
+    lastOpenedAt: createdAt,
     messages: [],
     source: 'manual',
     shop: '',
-    ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT
+    ticketStatus: 'Offen'
   }, agentName);
 }
 

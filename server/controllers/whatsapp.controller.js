@@ -9,6 +9,7 @@ import {
   whatsappPhoneNumberId,
   isTicketingWhatsAppPhone,
   loadWhatsAppTickets,
+  createManualInboxTicket,
   upsertIncomingMessage,
   appendOutgoingMessage,
   patchWhatsAppTicket,
@@ -379,6 +380,22 @@ export async function handleWhatsAppWebhookPost(req, res) {
   } catch (err) {
     if (err?.status === 403) return;
     console.warn('[whatsapp] webhook', err?.message || err);
+  }
+}
+
+export async function createManualTicketHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  const authorName = String(req.body?.authorName || req.user?.name || '').trim();
+  try {
+    const ticket = await createManualInboxTicket({ authorName });
+    if (!ticket?.id) {
+      return res.status(500).json({ success: false, message: 'Ticket konnte nicht erstellt werden.' });
+    }
+    req.app.get('io')?.emit('whatsapp:inbox', ticket);
+    return res.json({ success: true, ticket });
+  } catch (err) {
+    console.warn('[whatsapp] create-ticket', err?.message || err);
+    return res.status(500).json({ success: false, message: 'Ticket konnte nicht erstellt werden.' });
   }
 }
 

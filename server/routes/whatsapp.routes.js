@@ -6,6 +6,7 @@ import {
   handleWhatsAppWebhookPost,
   serveWhatsAppFile,
   listWhatsAppTickets,
+  createManualTicketHandler,
   sendWhatsAppTicketMessage,
   sendWhatsAppTicketMedia,
   uploadTicketDocumentHandler,
@@ -53,6 +54,7 @@ router.get('/files/:name', serveWhatsAppFile);
 
 router.use(authenticateToken);
 router.get('/tickets', listWhatsAppTickets);
+router.post('/tickets', createManualTicketHandler);
 router.get('/auto-flow', getAutoQuestionFlowHandler);
 router.put('/auto-flow', saveAutoQuestionFlowHandler);
 router.get('/ticket-fields', getTicketQuestionConfigHandler);

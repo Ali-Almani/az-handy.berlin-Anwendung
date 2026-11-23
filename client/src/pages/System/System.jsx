@@ -19,7 +19,7 @@ import {
   updateVorvertragTicketStatusApi,
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
-import { listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
+import { createInboxTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -55,8 +55,11 @@ import {
   isLeadArchived,
   isLeadEntry,
   isLeadInNeu,
+  isManualLeadTicket,
+  MANUAL_TICKET_NAME,
   leadToNeuEntry,
   isLiveWhatsAppTicket,
+  createManualLeadTicket,
   loadLeadTickets,
   mergeWhatsAppTickets,
   migrateLeadTicketStatus,
@@ -284,6 +287,7 @@ const System = () => {
   const [leadTickets, setLeadTickets] = useState(() => loadLeadTickets());
   const [openLeadId, setOpenLeadId] = useState('');
   const [leadEditId, setLeadEditId] = useState('');
+  const [creatingOffenTicket, setCreatingOffenTicket] = useState(false);
   const [anweisungUnread, setAnweisungUnread] = useState(false);
 
   const defaultMitarbeiter = useMemo(() => {
@@ -677,8 +681,44 @@ const System = () => {
     setFormKind('vorvertrag');
   };
 
+  const openCreatedOffenTicket = (ticket) => {
+    if (!ticket?.id) return;
+    const openedAt = String(ticket.geoeffnetAt || ticket.lastOpenedAt || new Date().toISOString());
+    setLeadTickets((prev) => {
+      const exists = prev.some((t) => t.id === ticket.id);
+      const next = exists
+        ? prev.map((t) => (t.id === ticket.id ? { ...t, ...ticket } : t))
+        : [ticket, ...prev];
+      return bringTicketToFront(next, ticket.id, openedAt);
+    });
+    setLeadEditId(ticket.id);
+    setHighlightedId(ticket.id);
+    setShowForm(false);
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+
+  const startNewOffenTicket = async () => {
+    if (creatingOffenTicket) return;
+    setCreatingOffenTicket(true);
+    setError('');
+    try {
+      const data = await createInboxTicketApi({ authorName: defaultMitarbeiter });
+      const ticket = data?.ticket;
+      if (!ticket?.id) throw new Error('empty');
+      openCreatedOffenTicket(ticket);
+    } catch {
+      const local = createManualLeadTicket({
+        tickets: leadTickets,
+        agentName: defaultMitarbeiter
+      });
+      openCreatedOffenTicket(local);
+    } finally {
+      setCreatingOffenTicket(false);
+    }
+  };
+
   const persistLiveTicket = (ticket) => {
-    if (!isLiveWhatsAppTicket(ticket)) return;
+    if (!isLiveWhatsAppTicket(ticket) && !isManualLeadTicket(ticket)) return;
     const payload = {
       ticketStatus: ticket.ticketStatus || '',
       ...liveTicketFormPatch(ticket)
@@ -701,6 +741,12 @@ const System = () => {
         const extra = isCustomTicketField(field)
           ? { customAnswers: { ...(t.customAnswers || {}), [field]: value } }
           : {};
+        if (field === 'rufnummer') {
+          const name = String(t.customerName || '').trim();
+          if (!name || name === MANUAL_TICKET_NAME) {
+            extra.customerName = String(value || '').trim() || MANUAL_TICKET_NAME;
+          }
+        }
         const patched = { ...t, [field]: value, ...extra };
         const next = field === 'shopMitarbeiter'
           ? withShopMitarbeiter(patched, value)
@@ -1256,6 +1302,14 @@ const System = () => {
         ) : null}
         {listTab === 'offen' ? (
           <div className="system-offen-toolbar">
+            <button
+              type="button"
+              className="btn btn--primary btn--small"
+              onClick={startNewOffenTicket}
+              disabled={creatingOffenTicket}
+            >
+              {creatingOffenTicket ? 'Wird erstellt…' : 'Ticket erstellen'}
+            </button>
             <p className="system-offen-result-count" aria-live="polite">
               {filteredEntries.length === 1 ? '1 Ticket' : `${filteredEntries.length} Tickets`}
               {Object.values(offenFilter).some(Boolean) || offenSearch.trim() ? ` von ${offenCount}` : ''}
