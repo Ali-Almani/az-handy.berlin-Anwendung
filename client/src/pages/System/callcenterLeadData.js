@@ -1804,6 +1804,14 @@ export function countUnreadLeadTickets(tickets) {
   }).length;
 }
 
+export function countGelesenLeadTickets(tickets) {
+  return (tickets || []).filter((t) => {
+    if (t?.unread) return false;
+    if (isManualLeadTicket(t) || isLeadArchived(t)) return false;
+    return true;
+  }).length;
+}
+
 function pad3(n) {
   return String(n).padStart(3, '0');
 }

@@ -887,15 +887,15 @@ const CallcenterNachrichten = ({
   const chipCountByChannel = showingGelesenChips ? gelesenByChannel : unreadByChannel;
 
   const readTabCounts = useMemo(() => {
-    const inChannel = list.filter((t) => {
-      if (isManualLeadTicket(t) || isLeadArchived(t)) return false;
-      return ticketMatchesChannel(t, channel);
+    let ungelesen = 0;
+    let gelesen = 0;
+    list.forEach((t) => {
+      if (isManualLeadTicket(t) || isLeadArchived(t)) return;
+      if (t.unread) ungelesen += 1;
+      else gelesen += 1;
     });
-    return {
-      ungelesen: inChannel.filter((t) => t.unread).length,
-      gelesen: inChannel.filter((t) => !t.unread).length
-    };
-  }, [list, channel]);
+    return { ungelesen, gelesen };
+  }, [list]);
 
   const patchTicket = (id, updater) => {
     onTicketsChange?.((prev) => prev.map((t) => {

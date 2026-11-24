@@ -54,6 +54,7 @@ import { useTicketQuestionConfig } from './useTicketQuestionConfig';
 import {
   collectShopMitarbeiterNames,
   countUnreadLeadTickets,
+  countGelesenLeadTickets,
   isLeadArchived,
   isLeadEntry,
   isLeadInNeu,
@@ -440,7 +441,7 @@ const System = () => {
     [leadTickets]
   );
   const leadGelesenCount = useMemo(
-    () => leadTickets.filter((ticket) => !ticket?.unread).length,
+    () => countGelesenLeadTickets(leadTickets),
     [leadTickets]
   );
 
