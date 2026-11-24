@@ -1452,6 +1452,7 @@ const INVALID_MITARBEITER_NAMES = new Set([
 export function sanitizeMitarbeiterName(value) {
   const v = String(value ?? '').trim();
   if (!v) return '';
+  if (v.length < 3) return '';
   if (INVALID_MITARBEITER_NAMES.has(v)) return '';
   if (/^mitarbeiter(\s|$)/i.test(v)) return '';
   if (/^büro(\s|$)/i.test(v)) return '';
