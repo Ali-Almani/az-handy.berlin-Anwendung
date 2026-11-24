@@ -21,7 +21,7 @@ import {
   deleteVorvertragApi,
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
-import { createInboxTicketApi, deleteWhatsAppTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
+import { createInboxTicketApi, deleteWhatsAppTicketApi, getWhatsAppTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -584,7 +584,7 @@ const System = () => {
       }
     };
     load();
-    const timer = window.setInterval(load, 4000);
+    const timer = window.setInterval(load, 8000);
     const socket = getSocket();
     const onInbox = (ticket) => {
       if (!ticket?.id) return;
@@ -612,6 +612,23 @@ const System = () => {
       socket?.off?.('whatsapp:deleted', onDeleted);
     };
   }, []);
+
+  const editingNeedsThread = Boolean(
+    editingLead?.id && editingLead?.messagesLite && isLiveWhatsAppTicket(editingLead)
+  );
+  useEffect(() => {
+    if (!editingNeedsThread || !leadEditId) return undefined;
+    let on = true;
+    getWhatsAppTicketApi(leadEditId)
+      .then((res) => {
+        if (!on || !res?.ticket) return;
+        setLeadTickets((prev) => mergeWhatsAppTickets(prev, [{ ...res.ticket, messagesLite: false }]));
+      })
+      .catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [leadEditId, editingNeedsThread]);
 
 
   useEffect(() => {

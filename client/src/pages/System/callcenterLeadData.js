@@ -147,6 +147,23 @@ export function isLiveWhatsAppTicket(ticket) {
   return Boolean(ticket?.liveWhatsApp || ticket?.waId);
 }
 
+export function isLiteInboxTicket(ticket) {
+  return Boolean(ticket?.messagesLite);
+}
+
+function withMessageTranslations(prevMessages, nextMessages) {
+  return (nextMessages || []).map((message) => {
+    const old = (prevMessages || []).find((item) => item.id === message.id);
+    if (!old?.translation) return message;
+    return {
+      ...message,
+      translation: old.translation,
+      translationLang: old.translationLang,
+      translationSourceLang: old.translationSourceLang
+    };
+  });
+}
+
 export function mergeWhatsAppTickets(local, remote) {
   const list = Array.isArray(local) ? local : [];
   const cloud = Array.isArray(remote) ? remote : [];
@@ -158,21 +175,31 @@ export function mergeWhatsAppTickets(local, remote) {
   ));
   const prevById = new Map(list.filter((t) => isLiveWhatsAppTicket(t) || cloudIds.has(t.id)).map((t) => [t.id, t]));
   return [...others, ...cloud.map((raw) => {
-    const hydrated = hydrateLeadTicket({ ...raw, liveWhatsApp: Boolean(raw?.waId) });
+    const remoteLite = isLiteInboxTicket(raw);
+    const hydrated = hydrateLeadTicket({
+      ...raw,
+      liveWhatsApp: Boolean(raw?.waId),
+      messagesLite: remoteLite
+    });
     const prev = prevById.get(hydrated.id);
     if (!prev) return hydrated;
+    if (remoteLite) {
+      const last = (hydrated.messages || [])[(hydrated.messages || []).length - 1];
+      let messages = prev.messages || [];
+      if (last?.id && !messages.some((item) => item.id === last.id)) {
+        messages = [...messages, last];
+      }
+      return withPendingOutgoingMessages(prev, preserveOpenTicketEdits(prev, {
+        ...hydrated,
+        messagesLite: isLiteInboxTicket(prev),
+        messageCount: hydrated.messageCount || messages.length,
+        messages
+      }));
+    }
     return withPendingOutgoingMessages(prev, preserveOpenTicketEdits(prev, {
       ...hydrated,
-      messages: (hydrated.messages || []).map((message) => {
-        const old = (prev.messages || []).find((item) => item.id === message.id);
-        if (!old?.translation) return message;
-        return {
-          ...message,
-          translation: old.translation,
-          translationLang: old.translationLang,
-          translationSourceLang: old.translationSourceLang
-        };
-      })
+      messagesLite: false,
+      messages: withMessageTranslations(prev.messages, hydrated.messages)
     }));
   })];
 }
@@ -2031,9 +2058,33 @@ export function loadLeadTickets() {
   return [];
 }
 
+function toStoredInboxTicket(ticket) {
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  const last = messages[messages.length - 1];
+  return {
+    ...ticket,
+    messagesLite: true,
+    messageCount: messages.length,
+    messages: last ? [{
+      id: last.id,
+      from: last.from,
+      at: last.at,
+      text: String(last.text || '').slice(0, 280),
+      auto: last.auto || '',
+      hasImages: Boolean((last.images && last.images.length) || last.image || last.hasImages),
+      hasVoice: Boolean((last.voices && last.voices.length) || last.voice || last.hasVoice),
+      hasFiles: Boolean((last.files && last.files.length) || last.hasFiles),
+      hasVideos: Boolean((last.videos && last.videos.length) || last.hasVideos)
+    }] : []
+  };
+}
+
 export function saveLeadTickets(tickets) {
   try {
-    localStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(tickets));
+    localStorage.setItem(
+      LEAD_STORAGE_KEY,
+      JSON.stringify((tickets || []).map(toStoredInboxTicket))
+    );
   } catch {
     /* Quota / privater Modus */
   }

@@ -5,6 +5,11 @@ export const listWhatsAppTicketsApi = async () => {
   return res.data;
 };
 
+export const getWhatsAppTicketApi = async (ticketId) => {
+  const res = await api.get(`/whatsapp/tickets/${encodeURIComponent(ticketId)}`);
+  return res.data;
+};
+
 export const createInboxTicketApi = async ({ authorName } = {}) => {
   const res = await api.post('/whatsapp/tickets', { authorName });
   return res.data;

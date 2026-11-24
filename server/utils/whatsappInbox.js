@@ -36,6 +36,58 @@ export { WHATSAPP_FILE_MAX_BYTES, WHATSAPP_NATIVE_VIDEO_MAX_BYTES };
 const FILE = 'whatsapp-inbox.json';
 const DEFAULT = () => ({ tickets: [] });
 const MEDIA_DIR = () => path.join(getDataDir(), 'uploads', 'whatsapp');
+const INBOX_PATH = () => path.join(getDataDir(), FILE);
+
+let inboxCacheMtime = -1;
+let inboxCacheTickets = null;
+
+function invalidateWhatsAppTicketsCache() {
+  inboxCacheMtime = -1;
+  inboxCacheTickets = null;
+}
+
+function cacheWhatsAppTickets(tickets) {
+  inboxCacheTickets = tickets;
+  try {
+    inboxCacheMtime = fs.statSync(INBOX_PATH()).mtimeMs;
+  } catch {
+    inboxCacheMtime = Date.now();
+  }
+  return tickets;
+}
+
+function toListPreviewMessage(message) {
+  if (!message || typeof message !== 'object') return message;
+  const images = Array.isArray(message.images) ? message.images : [];
+  const voices = Array.isArray(message.voices) ? message.voices : [];
+  const files = Array.isArray(message.files) ? message.files : [];
+  const videos = Array.isArray(message.videos) ? message.videos : [];
+  return {
+    id: message.id,
+    from: message.from,
+    at: message.at,
+    text: String(message.text || '').slice(0, 280),
+    auto: message.auto || '',
+    authorName: message.authorName || '',
+    hasImages: images.length > 0 || Boolean(message.image),
+    hasVoice: voices.length > 0 || Boolean(message.voice || message.audioUrl || message.audio),
+    hasFiles: files.length > 0,
+    hasVideos: videos.length > 0
+  };
+}
+
+export function toInboxListTicket(ticket) {
+  if (!ticket || typeof ticket !== 'object') return ticket;
+  const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
+  const last = messages[messages.length - 1];
+  const { messages: _omit, ...rest } = ticket;
+  return {
+    ...rest,
+    messagesLite: true,
+    messageCount: messages.length,
+    messages: last ? [toListPreviewMessage(last)] : []
+  };
+}
 
 const TYPING_PULSE_MS = 20_000;
 const pendingQuestionTimers = new Map();
@@ -440,23 +492,34 @@ export async function sendOutgoingSavedFile(toWaId, { filePath, mime, name, kind
 }
 
 export function loadWhatsAppTickets() {
+  try {
+    const mtime = fs.statSync(INBOX_PATH()).mtimeMs;
+    if (inboxCacheTickets && inboxCacheMtime === mtime) return inboxCacheTickets;
+  } catch {
+    /* Datei fehlt noch */
+  }
   const raw = readJsonStore(FILE, DEFAULT());
   const tickets = Array.isArray(raw?.tickets) ? raw.tickets : [];
   const ensured = ensureDailyTicketNrs(tickets, 'whatsapp');
-  if (!ensured.changed) return tickets;
+  if (!ensured.changed) return cacheWhatsAppTickets(tickets);
   updateJsonStore(FILE, DEFAULT(), (state) => {
     const current = Array.isArray(state.tickets) ? state.tickets : [];
     const next = ensureDailyTicketNrs(current, 'whatsapp');
     if (next.changed) state.tickets = next.tickets;
   });
-  return ensureDailyTicketNrs(readJsonStore(FILE, DEFAULT()).tickets || [], 'whatsapp').tickets;
+  invalidateWhatsAppTicketsCache();
+  return cacheWhatsAppTickets(
+    ensureDailyTicketNrs(readJsonStore(FILE, DEFAULT()).tickets || [], 'whatsapp').tickets
+  );
 }
 
 export async function mutateWhatsAppTickets(updater) {
-  return updateJsonStore(FILE, DEFAULT(), (state) => {
+  const result = await updateJsonStore(FILE, DEFAULT(), (state) => {
     if (!Array.isArray(state.tickets)) state.tickets = [];
     return updater(state);
   });
+  invalidateWhatsAppTicketsCache();
+  return result;
 }
 
 function ticketFromState(state, ticketId, waId) {

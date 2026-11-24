@@ -60,6 +60,7 @@ import {
 import {
   deleteWhatsAppMessageApi,
   deleteWhatsAppTicketApi,
+  getWhatsAppTicketApi,
   patchWhatsAppTicketApi,
   sendWhatsAppMediaFileApi,
   sendWhatsAppMessageApi
@@ -329,12 +330,14 @@ function videoSourceType(video) {
 function messagePreview(message) {
   const text = String(message?.text || '').trim();
   if (text) return text;
-  if (messageVoices(message).length) return 'Sprachnachricht';
-  if (messageVideos(message).length) return 'Video';
-  if (messageFiles(message).length) return messageFiles(message)[0].name || 'PDF';
+  if (messageVoices(message).length || message?.hasVoice) return 'Sprachnachricht';
+  if (messageVideos(message).length || message?.hasVideos) return 'Video';
+  if (messageFiles(message).length || message?.hasFiles) {
+    return messageFiles(message)[0]?.name || 'PDF';
+  }
   const count = messageImages(message).length;
   if (count > 1) return `${count} Bilder`;
-  if (count === 1) return 'Bild';
+  if (count === 1 || message?.hasImages) return 'Bild';
   return '—';
 }
 
@@ -956,6 +959,21 @@ const CallcenterNachrichten = ({
     if (!active || !isLiveWhatsAppTicket(active) || !active.unread) return;
     patchTicket(active.id, (t) => (t.unread ? { ...t, unread: false } : t));
   }, [active?.id, active?.unread, active?.messages?.length]);
+
+  const needsFullThread = Boolean(active?.id && active?.messagesLite);
+  useEffect(() => {
+    if (!needsFullThread || !activeId) return undefined;
+    let on = true;
+    getWhatsAppTicketApi(activeId)
+      .then((res) => {
+        if (!on || !res?.ticket) return;
+        onTicketsChange?.((prev) => mergeWhatsAppTickets(prev, [{ ...res.ticket, messagesLite: false }]));
+      })
+      .catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [activeId, needsFullThread, onTicketsChange]);
 
   useEffect(() => {
     if (!openTicketId) return;

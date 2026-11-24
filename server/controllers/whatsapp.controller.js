@@ -9,6 +9,7 @@ import {
   whatsappPhoneNumberId,
   isTicketingWhatsAppPhone,
   loadWhatsAppTickets,
+  toInboxListTicket,
   createManualInboxTicket,
   upsertIncomingMessage,
   appendOutgoingMessage,
@@ -408,8 +409,18 @@ export async function listWhatsAppTickets(req, res) {
   return res.json({
     success: true,
     configured: true,
-    tickets: filterInboxTickets(loadWhatsAppTickets(), user, loadInboxGroups().groups)
+    tickets: filterInboxTickets(loadWhatsAppTickets(), user, loadInboxGroups().groups).map(toInboxListTicket)
   });
+}
+
+export async function getWhatsAppTicketHandler(req, res) {
+  if (!(await requireTicketingAccess(req, res))) return;
+  if (!whatsappConfigured()) {
+    return res.status(503).json({ success: false, message: 'WhatsApp ist nicht eingerichtet.' });
+  }
+  const ticket = findWhatsAppTicket(req.params.id);
+  if (!(await requireInboxTicketAccess(req, res, ticket))) return;
+  return res.json({ success: true, ticket });
 }
 
 export async function sendWhatsAppTicketMessage(req, res) {
