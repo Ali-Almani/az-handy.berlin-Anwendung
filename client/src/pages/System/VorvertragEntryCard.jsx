@@ -65,6 +65,40 @@ function MitarbeiterNamesSelect({ names, ariaLabel = 'Marketing Mitarbeiter' }) 
   );
 }
 
+function StaffNameEditor({
+  value,
+  ticketNames,
+  options,
+  ariaLabel,
+  disabled,
+  onChange
+}) {
+  const current = sanitizeMitarbeiterName(value) || sanitizeMitarbeiterName(ticketNames?.[0]) || '';
+  const names = [];
+  const add = (name) => {
+    const next = sanitizeMitarbeiterName(name);
+    if (next && !names.includes(next)) names.push(next);
+  };
+  add(current);
+  (ticketNames || []).forEach(add);
+  (options || []).forEach(add);
+  return (
+    <select
+      className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
+      value={current}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      onClick={(ev) => ev.stopPropagation()}
+      onChange={(ev) => onChange?.(ev.target.value)}
+    >
+      {!current ? <option value="">—</option> : null}
+      {names.map((name) => (
+        <option key={name} value={name}>{name}</option>
+      ))}
+    </select>
+  );
+}
+
 function formatDatum(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '—';
@@ -112,7 +146,10 @@ export default function VorvertragEntryCard({
   highlighted = false,
   fallbackMitarbeiter = '',
   showPriority = true,
-  showSprache = true
+  showSprache = true,
+  canEditStaffNames = false,
+  staffNameOptions = [],
+  onStaffNameChange
 }) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
@@ -188,10 +225,32 @@ export default function VorvertragEntryCard({
         </div>
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">
-        <MitarbeiterNamesSelect names={mitarbeiter} />
+        {canEditStaffNames && lead ? (
+          <StaffNameEditor
+            value={entry?.mitarbeiterName}
+            ticketNames={mitarbeiter}
+            options={staffNameOptions}
+            ariaLabel="Marketing Mitarbeiter"
+            disabled={statusSaving}
+            onChange={(value) => onStaffNameChange?.(entry, 'mitarbeiterName', value)}
+          />
+        ) : (
+          <MitarbeiterNamesSelect names={mitarbeiter} />
+        )}
       </td>
       <td className="vorvertrag-ticket-row__shop-mitarbeiter">
-        <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
+        {canEditStaffNames && lead ? (
+          <StaffNameEditor
+            value={entry?.shopMitarbeiter}
+            ticketNames={shopMitarbeiter}
+            options={staffNameOptions}
+            ariaLabel="Bearbeiter"
+            disabled={statusSaving}
+            onChange={(value) => onStaffNameChange?.(entry, 'shopMitarbeiter', value)}
+          />
+        ) : (
+          <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
+        )}
       </td>
       <td className="vorvertrag-ticket-row__filiale">
         {filiale ? <MetaChip accent>{shopOptionLabel(filiale)}</MetaChip> : '—'}

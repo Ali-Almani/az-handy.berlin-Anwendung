@@ -1056,6 +1056,7 @@ export function preserveOpenTicketEdits(prev, hydrated) {
   const next = { ...hydrated };
   const prevLog = Array.isArray(prev.editLog) ? prev.editLog : [];
   const remoteLog = Array.isArray(hydrated?.editLog) ? hydrated.editLog : [];
+  const keepLocalStaff = prevLog.length > remoteLog.length;
   next.editLog = prevLog.length >= remoteLog.length ? prevLog : remoteLog;
   const followupKeys = new Set([
     ...offenFollowupFieldKeys(prev),
@@ -1070,27 +1071,38 @@ export function preserveOpenTicketEdits(prev, hydrated) {
     if (!remote && local) next[key] = prev[key];
   }
   next.kontaktversuchCount = Math.max(kontaktversuchCountFor(prev), kontaktversuchCountFor(next));
-  const shopNames = collectShopMitarbeiterNames({
-    shopMitarbeiter: next.shopMitarbeiter || prev.shopMitarbeiter,
-    shopMitarbeiterNames: [
-      ...(Array.isArray(prev.shopMitarbeiterNames) ? prev.shopMitarbeiterNames : []),
-      ...(Array.isArray(next.shopMitarbeiterNames) ? next.shopMitarbeiterNames : [])
-    ]
-  });
-  next.shopMitarbeiterNames = shopNames;
-  next.shopMitarbeiter = sanitizeMitarbeiterName(next.shopMitarbeiter)
-    || sanitizeMitarbeiterName(prev.shopMitarbeiter)
-    || shopNames[0]
-    || '';
-  const staffNames = prependMitarbeiterName([
-    ...(Array.isArray(prev.mitarbeiterNames) ? prev.mitarbeiterNames : []),
-    ...(Array.isArray(hydrated?.mitarbeiterNames) ? hydrated.mitarbeiterNames : [])
-  ], next.mitarbeiterName || prev.mitarbeiterName);
-  next.mitarbeiterNames = staffNames;
-  next.mitarbeiterName = sanitizeMitarbeiterName(next.mitarbeiterName)
-    || sanitizeMitarbeiterName(prev.mitarbeiterName)
-    || staffNames[0]
-    || '';
+  if (keepLocalStaff) {
+    next.shopMitarbeiterNames = collectShopMitarbeiterNames(prev);
+    next.shopMitarbeiter = sanitizeMitarbeiterName(prev.shopMitarbeiter)
+      || next.shopMitarbeiterNames[0]
+      || '';
+    next.mitarbeiterNames = collectMitarbeiterNames(prev);
+    next.mitarbeiterName = sanitizeMitarbeiterName(prev.mitarbeiterName)
+      || next.mitarbeiterNames[0]
+      || '';
+  } else {
+    const shopNames = collectShopMitarbeiterNames({
+      shopMitarbeiter: next.shopMitarbeiter || prev.shopMitarbeiter,
+      shopMitarbeiterNames: [
+        ...(Array.isArray(prev.shopMitarbeiterNames) ? prev.shopMitarbeiterNames : []),
+        ...(Array.isArray(next.shopMitarbeiterNames) ? next.shopMitarbeiterNames : [])
+      ]
+    });
+    next.shopMitarbeiterNames = shopNames;
+    next.shopMitarbeiter = sanitizeMitarbeiterName(next.shopMitarbeiter)
+      || sanitizeMitarbeiterName(prev.shopMitarbeiter)
+      || shopNames[0]
+      || '';
+    const staffNames = prependMitarbeiterName([
+      ...(Array.isArray(prev.mitarbeiterNames) ? prev.mitarbeiterNames : []),
+      ...(Array.isArray(hydrated?.mitarbeiterNames) ? hydrated.mitarbeiterNames : [])
+    ], next.mitarbeiterName || prev.mitarbeiterName);
+    next.mitarbeiterNames = staffNames;
+    next.mitarbeiterName = sanitizeMitarbeiterName(next.mitarbeiterName)
+      || sanitizeMitarbeiterName(prev.mitarbeiterName)
+      || staffNames[0]
+      || '';
+  }
   next.dokumenteHidden = sanitizeDokumenteHidden([
     ...(Array.isArray(prev.dokumenteHidden) ? prev.dokumenteHidden : []),
     ...(Array.isArray(hydrated?.dokumenteHidden) ? hydrated.dokumenteHidden : [])

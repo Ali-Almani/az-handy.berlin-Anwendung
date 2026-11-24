@@ -71,6 +71,7 @@ import {
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withShopMitarbeiter,
+  withMitarbeiter,
   appendLeadEditLog,
   collectLeadFieldChanges,
   leadFieldChange,
@@ -899,7 +900,10 @@ const System = () => {
       closeTicketEditor();
       return;
     }
-    const editor = sanitizeMitarbeiterName(defaultMitarbeiter);
+    const editor = sanitizeMitarbeiterName(defaultMitarbeiter)
+      || sanitizeMitarbeiterName(user?.name)
+      || (isAdmin(user) ? String(user?.name || 'Administrator').trim() : '')
+      || 'Unbekannt';
     if (ticketDraftIsNew) {
       setCreatingOffenTicket(true);
       try {
@@ -958,22 +962,55 @@ const System = () => {
       saved = appendLeadEditLog(saved, { editorName: editor, changes });
     }
     setLeadTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
-    persistLiveTicket(saved);
+    const savedOk = await persistLiveTicket(saved);
+    if (!savedOk) {
+      setError('Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.');
+      return;
+    }
     closeTicketEditor();
   };
 
-  const persistLiveTicket = (ticket) => {
-    if (!isLiveWhatsAppTicket(ticket) && !isManualLeadTicket(ticket)) return;
+  const handleStaffNameChange = async (entry, field, value) => {
+    if (!isAdmin(user) || !isLeadEntry(entry) || !entry?.id) return;
+    const nextName = sanitizeMitarbeiterName(value);
+    const editor = sanitizeMitarbeiterName(defaultMitarbeiter)
+      || sanitizeMitarbeiterName(user?.name)
+      || String(user?.name || 'Administrator').trim()
+      || 'Unbekannt';
+    const current = leadTickets.find((t) => t.id === entry.id) || entry;
+    let next = field === 'shopMitarbeiter'
+      ? withShopMitarbeiter(current, nextName)
+      : withMitarbeiter(current, nextName);
+    const change = leadFieldChange(current, field, nextName);
+    if (change) {
+      next = appendLeadEditLog(next, { editorName: editor, changes: [change] });
+    }
+    setLeadTickets((prev) => prev.map((t) => (t.id === entry.id ? next : t)));
+    const ok = await persistLiveTicket(next);
+    if (!ok) setError('Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.');
+  };
+
+  const persistLiveTicket = async (ticket) => {
+    if (!isLiveWhatsAppTicket(ticket) && !isManualLeadTicket(ticket)) return true;
     const payload = {
       ticketStatus: ticket.ticketStatus || '',
       ...liveTicketFormPatch(ticket)
     };
     payload.kontaktversuchCount = kontaktversuchCountFor(ticket);
     payload.editLog = Array.isArray(ticket.editLog) ? ticket.editLog : [];
+    payload.mitarbeiterName = ticket.mitarbeiterName || '';
+    payload.mitarbeiterNames = Array.isArray(ticket.mitarbeiterNames) ? ticket.mitarbeiterNames : [];
+    payload.shopMitarbeiter = ticket.shopMitarbeiter || '';
+    payload.shopMitarbeiterNames = Array.isArray(ticket.shopMitarbeiterNames) ? ticket.shopMitarbeiterNames : [];
     for (const key of offenFollowupFieldKeys(ticket)) {
       payload[key] = ticket[key] || '';
     }
-    patchWhatsAppTicketApi(ticket.id, payload).catch(() => {});
+    try {
+      await patchWhatsAppTicketApi(ticket.id, payload);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleFormChange = (field, value) => {
@@ -1524,6 +1561,9 @@ const System = () => {
                     fallbackMitarbeiter={defaultMitarbeiter}
                     showPriority={listTab !== 'archiv'}
                     showSprache={listTab !== 'archiv'}
+                    canEditStaffNames={canEditStaffNames && listTab === 'offen'}
+                    staffNameOptions={staffNameOptions}
+                    onStaffNameChange={handleStaffNameChange}
                   />
                 ))}
               </tbody>
