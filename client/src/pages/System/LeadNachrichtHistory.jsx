@@ -105,8 +105,7 @@ export default function LeadNachrichtHistory({
   canDeleteDokumente = false,
   questionConfig: questionConfigProp,
   saving = false,
-  canEditStaffNames = false,
-  staffNameOptions = []
+  canEditStaffNames = false
 }) {
   const [working, setWorking] = useState(() => ticketWorkingCopy(ticket, bearbeiterName));
   const [commitBusy, setCommitBusy] = useState(false);
@@ -138,23 +137,6 @@ export default function LeadNachrichtHistory({
   }, [working?.shop]);
   const filialeValue = normalizeNachrichtShop(working?.shop) || String(working?.shop || '').trim();
   const busy = saving || commitBusy;
-  const staffSelectGroups = (current, ticketNames = []) => {
-    const selected = sanitizeMitarbeiterName(current);
-    const ticket = [];
-    const add = (value) => {
-      const name = sanitizeMitarbeiterName(value);
-      if (name && !ticket.includes(name)) ticket.push(name);
-    };
-    add(selected);
-    (ticketNames || []).forEach(add);
-    return {
-      selected,
-      ticket,
-      others: (staffNameOptions || []).filter((name) => name && !ticket.includes(name))
-    };
-  };
-  const marketingStaffGroups = staffSelectGroups(working?.mitarbeiterName, marketingNames);
-  const shopStaffGroups = staffSelectGroups(working?.shopMitarbeiter, shopNames);
 
   const patchWorking = (field, value) => {
     setWorking((prev) => {
@@ -251,16 +233,9 @@ export default function LeadNachrichtHistory({
               aria-label="Marketing Mitarbeiter"
             >
               <option value="">—</option>
-              {marketingStaffGroups.ticket.map((name) => (
+              {marketingNames.map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
-              {marketingStaffGroups.others.length ? (
-                <optgroup label="Ändern">
-                  {marketingStaffGroups.others.map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </optgroup>
-              ) : null}
             </select>
           </div>
         ) : null}
@@ -276,16 +251,9 @@ export default function LeadNachrichtHistory({
               aria-label="Bearbeiter"
             >
               <option value="">—</option>
-              {shopStaffGroups.ticket.map((name) => (
+              {shopNames.map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
-              {shopStaffGroups.others.length ? (
-                <optgroup label="Ändern">
-                  {shopStaffGroups.others.map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </optgroup>
-              ) : null}
             </select>
           ) : shopNames.length > 1 ? (
             <select

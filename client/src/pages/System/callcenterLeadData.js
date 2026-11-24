@@ -1528,11 +1528,13 @@ export function withMitarbeiter(ticket, name) {
 }
 
 export function assignMitarbeiter(ticket, name) {
+  const names = storedMitarbeiterNames(ticket);
   const nextName = sanitizeMitarbeiterName(name);
+  if (nextName && !names.includes(nextName)) return ticket;
   return {
     ...ticket,
-    mitarbeiterName: nextName,
-    mitarbeiterNames: nextName ? [nextName] : []
+    mitarbeiterName: nextName || names[0] || '',
+    mitarbeiterNames: names
   };
 }
 
@@ -1562,11 +1564,13 @@ export function withShopMitarbeiter(ticket, name) {
 }
 
 export function assignShopMitarbeiter(ticket, name) {
+  const names = storedShopMitarbeiterNames(ticket);
   const nextName = sanitizeMitarbeiterName(name);
+  if (nextName && !names.includes(nextName)) return ticket;
   return {
     ...ticket,
-    shopMitarbeiter: nextName,
-    shopMitarbeiterNames: nextName ? [nextName] : []
+    shopMitarbeiter: nextName || names[0] || '',
+    shopMitarbeiterNames: names
   };
 }
 

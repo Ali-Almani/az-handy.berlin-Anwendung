@@ -22,7 +22,6 @@ import {
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
 import { createInboxTicketApi, deleteWhatsAppTicketApi, getWhatsAppTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
-import { getAllUsers, getUserDirectory } from '../../services/user.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -425,8 +424,6 @@ const System = () => {
   const [ticketDraftIsNew, setTicketDraftIsNew] = useState(false);
   const [creatingOffenTicket, setCreatingOffenTicket] = useState(false);
   const [anweisungUnread, setAnweisungUnread] = useState(false);
-  const [directoryNames, setDirectoryNames] = useState([]);
-
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
     return name || String(user?.email ?? '').trim();
@@ -498,11 +495,6 @@ const System = () => {
   const archivBearbeiterOptions = useMemo(
     () => ticketBearbeiterFilterOptions(archivEntriesAll),
     [archivEntriesAll]
-  );
-
-  const staffNameOptions = useMemo(
-    () => [...directoryNames].filter(Boolean).sort((a, b) => a.localeCompare(b, 'de')),
-    [directoryNames]
   );
 
   const offenFacetCounts = useMemo(
@@ -638,32 +630,6 @@ const System = () => {
       on = false;
     };
   }, [leadEditId, editingNeedsThread]);
-
-  useEffect(() => {
-    if (!isAdmin(user)) {
-      setDirectoryNames([]);
-      return undefined;
-    }
-    let on = true;
-    const applyUsers = (users) => {
-      if (!on) return;
-      const names = [...new Set(
-        (users || []).map((item) => sanitizeMitarbeiterName(item?.name)).filter(Boolean)
-      )].sort((a, b) => a.localeCompare(b, 'de'));
-      setDirectoryNames(names);
-    };
-    getAllUsers()
-      .then((res) => applyUsers(res?.data?.users || []))
-      .catch(() => getUserDirectory()
-        .then((res) => applyUsers(res?.data?.users || []))
-        .catch(() => {
-          if (on) setDirectoryNames([]);
-        }));
-    return () => {
-      on = false;
-    };
-  }, [user]);
-
 
   useEffect(() => {
     if (!successToast) return undefined;
@@ -977,10 +943,9 @@ const System = () => {
     let next = field === 'shopMitarbeiter'
       ? assignShopMitarbeiter(current, nextName)
       : assignMitarbeiter(current, nextName);
-    const change = leadFieldChange(current, field, nextName);
-    if (change) {
-      next = appendLeadEditLog(next, { editorName: editor, changes: [change] });
-    }
+    const change = leadFieldChange(current, field, next[field]);
+    if (!change) return;
+    next = appendLeadEditLog(next, { editorName: editor, changes: [change] });
     setLeadTickets((prev) => prev.map((t) => (t.id === entry.id ? next : t)));
     const ok = await persistLiveTicket(next);
     if (!ok) setError('Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.');
@@ -1448,7 +1413,6 @@ const System = () => {
             questionConfig={questionConfig}
             saving={creatingOffenTicket}
             canEditStaffNames={canEditStaffNames}
-            staffNameOptions={staffNameOptions}
           />
         </div>
       ) : null}
@@ -1558,7 +1522,6 @@ const System = () => {
                     showPriority={listTab !== 'archiv'}
                     showSprache={listTab !== 'archiv'}
                     canEditStaffNames={canEditStaffNames && listTab === 'offen'}
-                    staffNameOptions={staffNameOptions}
                     onStaffNameChange={handleStaffNameChange}
                   />
                 ))}

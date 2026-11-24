@@ -77,14 +77,14 @@ function uniqueTicketStaffNames(list) {
 function StaffNameEditor({
   value,
   ticketNames,
-  options,
   ariaLabel,
   disabled,
   onChange
 }) {
-  const ticket = uniqueTicketStaffNames([value, ...(ticketNames || [])]);
+  const ticket = uniqueTicketStaffNames([...(ticketNames || []), value]);
   const current = sanitizeMitarbeiterName(value) || ticket[0] || '';
-  const others = uniqueTicketStaffNames(options).filter((name) => name !== current && !ticket.includes(name));
+  if (!ticket.length) return '—';
+  if (ticket.length === 1) return ticket[0];
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
@@ -94,17 +94,9 @@ function StaffNameEditor({
       onClick={(ev) => ev.stopPropagation()}
       onChange={(ev) => onChange?.(ev.target.value)}
     >
-      {!current ? <option value="">—</option> : null}
       {ticket.map((name) => (
         <option key={name} value={name}>{name}</option>
       ))}
-      {others.length ? (
-        <optgroup label="Ändern">
-          {others.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </optgroup>
-      ) : null}
     </select>
   );
 }
@@ -158,7 +150,6 @@ export default function VorvertragEntryCard({
   showPriority = true,
   showSprache = true,
   canEditStaffNames = false,
-  staffNameOptions = [],
   onStaffNameChange
 }) {
   const e = entry?.eingabeDetails || {};
@@ -239,7 +230,6 @@ export default function VorvertragEntryCard({
           <StaffNameEditor
             value={entry?.mitarbeiterName}
             ticketNames={mitarbeiter}
-            options={staffNameOptions}
             ariaLabel="Marketing Mitarbeiter"
             disabled={statusSaving}
             onChange={(value) => onStaffNameChange?.(entry, 'mitarbeiterName', value)}
@@ -253,7 +243,6 @@ export default function VorvertragEntryCard({
           <StaffNameEditor
             value={entry?.shopMitarbeiter}
             ticketNames={shopMitarbeiter}
-            options={staffNameOptions}
             ariaLabel="Bearbeiter"
             disabled={statusSaving}
             onChange={(value) => onStaffNameChange?.(entry, 'shopMitarbeiter', value)}
