@@ -1878,8 +1878,10 @@ const CallcenterNachrichten = ({
                     aria-selected={channel === 'all'}
                     className={`sz-chip${channel === 'all' ? ' sz-chip--active' : ''}`}
                     onClick={() => setChannel('all')}
+                    title="Social Media"
+                    aria-label="Social Media"
                   >
-                    Alle
+                    SM
                     {unreadByChannel.all > 0 ? <span className="sz-chip-count">{unreadByChannel.all}</span> : null}
                   </button>
                   {SOCIAL_CHANNELS.map((c) => (
