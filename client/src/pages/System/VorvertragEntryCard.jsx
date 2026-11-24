@@ -65,33 +65,6 @@ function MitarbeiterNamesSelect({ names, ariaLabel = 'Marketing Mitarbeiter' }) 
   );
 }
 
-function StaffNameEditor({
-  value,
-  options,
-  ariaLabel,
-  disabled,
-  onChange
-}) {
-  const current = sanitizeMitarbeiterName(value);
-  const names = [...(options || [])];
-  if (current && !names.includes(current)) names.unshift(current);
-  return (
-    <select
-      className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
-      value={current}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      onClick={(ev) => ev.stopPropagation()}
-      onChange={(ev) => onChange?.(ev.target.value)}
-    >
-      <option value="">—</option>
-      {names.map((name) => (
-        <option key={name} value={name}>{name}</option>
-      ))}
-    </select>
-  );
-}
-
 function formatDatum(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return '—';
@@ -139,10 +112,7 @@ export default function VorvertragEntryCard({
   highlighted = false,
   fallbackMitarbeiter = '',
   showPriority = true,
-  showSprache = true,
-  canEditStaffNames = false,
-  staffNameOptions = [],
-  onStaffNameChange
+  showSprache = true
 }) {
   const e = entry?.eingabeDetails || {};
   const mnp = mnpDetailsFromEingabe(e);
@@ -218,30 +188,10 @@ export default function VorvertragEntryCard({
         </div>
       </td>
       <td className="vorvertrag-ticket-row__mitarbeiter">
-        {canEditStaffNames && lead ? (
-          <StaffNameEditor
-            value={entry?.mitarbeiterName || mitarbeiter[0] || ''}
-            options={staffNameOptions}
-            ariaLabel="Marketing Mitarbeiter"
-            disabled={statusSaving}
-            onChange={(value) => onStaffNameChange?.(entry, 'mitarbeiterName', value)}
-          />
-        ) : (
-          <MitarbeiterNamesSelect names={mitarbeiter} />
-        )}
+        <MitarbeiterNamesSelect names={mitarbeiter} />
       </td>
       <td className="vorvertrag-ticket-row__shop-mitarbeiter">
-        {canEditStaffNames && lead ? (
-          <StaffNameEditor
-            value={entry?.shopMitarbeiter || shopMitarbeiter[0] || ''}
-            options={staffNameOptions}
-            ariaLabel="Bearbeiter"
-            disabled={statusSaving}
-            onChange={(value) => onStaffNameChange?.(entry, 'shopMitarbeiter', value)}
-          />
-        ) : (
-          <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
-        )}
+        <MitarbeiterNamesSelect names={shopMitarbeiter} ariaLabel="Bearbeiter" />
       </td>
       <td className="vorvertrag-ticket-row__filiale">
         {filiale ? <MetaChip accent>{shopOptionLabel(filiale)}</MetaChip> : '—'}

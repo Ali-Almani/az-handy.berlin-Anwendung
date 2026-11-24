@@ -26,8 +26,7 @@ import {
   normalizeNachrichtShop,
   MANUAL_TICKET_NAME,
   withShopMitarbeiter,
-  replaceMitarbeiter,
-  replaceShopMitarbeiter
+  withMitarbeiter
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -154,14 +153,8 @@ export default function LeadNachrichtHistory({
         }
       }
       const patched = { ...prev, [field]: value, ...extra };
-      if (field === 'shopMitarbeiter') {
-        return canEditStaffNames
-          ? replaceShopMitarbeiter(patched, value)
-          : withShopMitarbeiter(patched, value);
-      }
-      if (field === 'mitarbeiterName' && canEditStaffNames) {
-        return replaceMitarbeiter(patched, value);
-      }
+      if (field === 'shopMitarbeiter') return withShopMitarbeiter(patched, value);
+      if (field === 'mitarbeiterName') return withMitarbeiter(patched, value);
       return patched;
     });
   };

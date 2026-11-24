@@ -71,8 +71,6 @@ import {
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withShopMitarbeiter,
-  replaceMitarbeiter,
-  replaceShopMitarbeiter,
   appendLeadEditLog,
   collectLeadFieldChanges,
   leadFieldChange,
@@ -956,9 +954,7 @@ const System = () => {
         !== sanitizeMitarbeiterName(working.mitarbeiterName);
       const shopChanged = sanitizeMitarbeiterName(original.shopMitarbeiter)
         !== sanitizeMitarbeiterName(working.shopMitarbeiter);
-      if (marketingChanged) saved = replaceMitarbeiter(saved, working.mitarbeiterName);
-      if (shopChanged) saved = replaceShopMitarbeiter(saved, working.shopMitarbeiter);
-      else if (!marketingChanged) saved = withShopMitarbeiter(saved, editor);
+      if (!shopChanged && !marketingChanged) saved = withShopMitarbeiter(saved, editor);
       saved = appendLeadEditLog(saved, { editorName: editor, changes });
     }
     setLeadTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
@@ -1142,26 +1138,6 @@ const System = () => {
     } finally {
       setStatusSavingId('');
     }
-  };
-
-  const handleStaffNameChange = (entry, field, value) => {
-    if (!isAdmin(user) || !isLeadEntry(entry) || !entry?.id) return;
-    const nextName = sanitizeMitarbeiterName(value);
-    setLeadTickets((prev) => prev.map((t) => {
-      if (t.id !== entry.id) return t;
-      let next = field === 'shopMitarbeiter'
-        ? replaceShopMitarbeiter(t, nextName)
-        : replaceMitarbeiter(t, nextName);
-      const change = leadFieldChange(t, field, nextName);
-      if (change) {
-        next = appendLeadEditLog(next, {
-          editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
-          changes: [change]
-        });
-      }
-      persistLiveTicket(next);
-      return next;
-    }));
   };
 
   const handleDeleteOffenTicket = async (entry) => {
@@ -1548,9 +1524,6 @@ const System = () => {
                     fallbackMitarbeiter={defaultMitarbeiter}
                     showPriority={listTab !== 'archiv'}
                     showSprache={listTab !== 'archiv'}
-                    canEditStaffNames={canEditStaffNames && listTab === 'offen'}
-                    staffNameOptions={staffNameOptions}
-                    onStaffNameChange={handleStaffNameChange}
                   />
                 ))}
               </tbody>

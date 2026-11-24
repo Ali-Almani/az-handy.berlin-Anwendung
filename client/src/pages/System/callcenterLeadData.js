@@ -1520,24 +1520,6 @@ export function withShopMitarbeiter(ticket, name) {
   };
 }
 
-export function replaceMitarbeiter(ticket, name) {
-  const nextName = sanitizeMitarbeiterName(name);
-  return {
-    ...ticket,
-    mitarbeiterName: nextName,
-    mitarbeiterNames: nextName ? [nextName] : []
-  };
-}
-
-export function replaceShopMitarbeiter(ticket, name) {
-  const nextName = sanitizeMitarbeiterName(name);
-  return {
-    ...ticket,
-    shopMitarbeiter: nextName,
-    shopMitarbeiterNames: nextName ? [nextName] : []
-  };
-}
-
 export function lastMessageAt(ticket) {
   const last = ticket?.messages?.[ticket.messages.length - 1];
   return last?.at || ticket?.createdAt || '';
