@@ -22,6 +22,7 @@ import {
   getInboxAnweisungApi
 } from '../../services/vorvertrag.service';
 import { createInboxTicketApi, deleteWhatsAppTicketApi, getWhatsAppTicketApi, listWhatsAppTicketsApi, patchWhatsAppTicketApi } from '../../services/whatsapp.service';
+import { getAllUsers, getUserDirectory } from '../../services/user.service';
 import { getSocket } from '../../services/socket';
 import VorvertragForm, {
   emptyVorvertragForm,
@@ -52,6 +53,7 @@ import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
 import { useTicketQuestionConfig } from './useTicketQuestionConfig';
 import {
+  collectMitarbeiterNames,
   collectShopMitarbeiterNames,
   countUnreadLeadTickets,
   isLeadArchived,
@@ -69,6 +71,8 @@ import {
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withShopMitarbeiter,
+  replaceMitarbeiter,
+  replaceShopMitarbeiter,
   appendLeadEditLog,
   collectLeadFieldChanges,
   leadFieldChange,
@@ -422,6 +426,7 @@ const System = () => {
   const [ticketDraftIsNew, setTicketDraftIsNew] = useState(false);
   const [creatingOffenTicket, setCreatingOffenTicket] = useState(false);
   const [anweisungUnread, setAnweisungUnread] = useState(false);
+  const [directoryNames, setDirectoryNames] = useState([]);
 
   const defaultMitarbeiter = useMemo(() => {
     const name = String(user?.name ?? '').trim();
@@ -495,6 +500,15 @@ const System = () => {
     () => ticketBearbeiterFilterOptions(archivEntriesAll),
     [archivEntriesAll]
   );
+
+  const staffNameOptions = useMemo(() => {
+    const names = new Set(directoryNames);
+    offenEntriesAll.forEach((entry) => {
+      collectMitarbeiterNames(entry).forEach((name) => names.add(name));
+      collectShopMitarbeiterNames(entry).forEach((name) => names.add(name));
+    });
+    return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b, 'de'));
+  }, [directoryNames, offenEntriesAll]);
 
   const offenFacetCounts = useMemo(
     () => ticketFacetCounts(offenEntriesAll, offenFilter),
@@ -629,6 +643,31 @@ const System = () => {
       on = false;
     };
   }, [leadEditId, editingNeedsThread]);
+
+  useEffect(() => {
+    if (!isAdmin(user)) {
+      setDirectoryNames([]);
+      return undefined;
+    }
+    let on = true;
+    const applyUsers = (users) => {
+      if (!on) return;
+      const names = [...new Set(
+        (users || []).map((item) => sanitizeMitarbeiterName(item?.name)).filter(Boolean)
+      )].sort((a, b) => a.localeCompare(b, 'de'));
+      setDirectoryNames(names);
+    };
+    getAllUsers()
+      .then((res) => applyUsers(res?.data?.users || []))
+      .catch(() => getUserDirectory()
+        .then((res) => applyUsers(res?.data?.users || []))
+        .catch(() => {
+          if (on) setDirectoryNames([]);
+        }));
+    return () => {
+      on = false;
+    };
+  }, [user]);
 
 
   useEffect(() => {
@@ -913,7 +952,13 @@ const System = () => {
     const changes = collectLeadFieldChanges(original, working);
     let saved = { ...original, ...working };
     if (changes.length) {
-      saved = withShopMitarbeiter(saved, editor);
+      const marketingChanged = sanitizeMitarbeiterName(original.mitarbeiterName)
+        !== sanitizeMitarbeiterName(working.mitarbeiterName);
+      const shopChanged = sanitizeMitarbeiterName(original.shopMitarbeiter)
+        !== sanitizeMitarbeiterName(working.shopMitarbeiter);
+      if (marketingChanged) saved = replaceMitarbeiter(saved, working.mitarbeiterName);
+      if (shopChanged) saved = replaceShopMitarbeiter(saved, working.shopMitarbeiter);
+      else if (!marketingChanged) saved = withShopMitarbeiter(saved, editor);
       saved = appendLeadEditLog(saved, { editorName: editor, changes });
     }
     setLeadTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
@@ -1099,6 +1144,26 @@ const System = () => {
     }
   };
 
+  const handleStaffNameChange = (entry, field, value) => {
+    if (!isAdmin(user) || !isLeadEntry(entry) || !entry?.id) return;
+    const nextName = sanitizeMitarbeiterName(value);
+    setLeadTickets((prev) => prev.map((t) => {
+      if (t.id !== entry.id) return t;
+      let next = field === 'shopMitarbeiter'
+        ? replaceShopMitarbeiter(t, nextName)
+        : replaceMitarbeiter(t, nextName);
+      const change = leadFieldChange(t, field, nextName);
+      if (change) {
+        next = appendLeadEditLog(next, {
+          editorName: sanitizeMitarbeiterName(defaultMitarbeiter),
+          changes: [change]
+        });
+      }
+      persistLiveTicket(next);
+      return next;
+    }));
+  };
+
   const handleDeleteOffenTicket = async (entry) => {
     const id = entry?.id;
     if (!id || !isAdmin(user)) return;
@@ -1138,6 +1203,7 @@ const System = () => {
   const canManageVorvertrag = canManageTicketingSystem(user);
   const canSeeOffen = canViewTicketingOffen(user);
   const canDeleteOffenTicket = isAdmin(user);
+  const canEditStaffNames = isAdmin(user);
   const canEditFragen = canEditTicketingFragen(user);
   const canManageAuto = canManageAutoAbfrage(user);
   const canSeeAnweisung = canSeeTicketingAnweisung(user);
@@ -1372,6 +1438,8 @@ const System = () => {
             canDeleteDokumente={canManageTicketingSystem(user)}
             questionConfig={questionConfig}
             saving={creatingOffenTicket}
+            canEditStaffNames={canEditStaffNames}
+            staffNameOptions={staffNameOptions}
           />
         </div>
       ) : null}
@@ -1480,6 +1548,9 @@ const System = () => {
                     fallbackMitarbeiter={defaultMitarbeiter}
                     showPriority={listTab !== 'archiv'}
                     showSprache={listTab !== 'archiv'}
+                    canEditStaffNames={canEditStaffNames && listTab === 'offen'}
+                    staffNameOptions={staffNameOptions}
+                    onStaffNameChange={handleStaffNameChange}
                   />
                 ))}
               </tbody>

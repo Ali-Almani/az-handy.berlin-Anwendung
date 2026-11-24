@@ -25,7 +25,9 @@ import {
   shopOptionLabel,
   normalizeNachrichtShop,
   MANUAL_TICKET_NAME,
-  withShopMitarbeiter
+  withShopMitarbeiter,
+  replaceMitarbeiter,
+  replaceShopMitarbeiter
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -102,7 +104,9 @@ export default function LeadNachrichtHistory({
   bearbeiterName = '',
   canDeleteDokumente = false,
   questionConfig: questionConfigProp,
-  saving = false
+  saving = false,
+  canEditStaffNames = false,
+  staffNameOptions = []
 }) {
   const [working, setWorking] = useState(() => ticketWorkingCopy(ticket, bearbeiterName));
   const [commitBusy, setCommitBusy] = useState(false);
@@ -133,6 +137,10 @@ export default function LeadNachrichtHistory({
   }, [working?.shop]);
   const filialeValue = normalizeNachrichtShop(working?.shop) || String(working?.shop || '').trim();
   const busy = saving || commitBusy;
+  const staffSelectNames = (current) => {
+    const name = sanitizeMitarbeiterName(current);
+    return name && !staffNameOptions.includes(name) ? [name, ...staffNameOptions] : staffNameOptions;
+  };
 
   const patchWorking = (field, value) => {
     setWorking((prev) => {
@@ -146,7 +154,15 @@ export default function LeadNachrichtHistory({
         }
       }
       const patched = { ...prev, [field]: value, ...extra };
-      return field === 'shopMitarbeiter' ? withShopMitarbeiter(patched, value) : patched;
+      if (field === 'shopMitarbeiter') {
+        return canEditStaffNames
+          ? replaceShopMitarbeiter(patched, value)
+          : withShopMitarbeiter(patched, value);
+      }
+      if (field === 'mitarbeiterName' && canEditStaffNames) {
+        return replaceMitarbeiter(patched, value);
+      }
+      return patched;
     });
   };
 
@@ -215,9 +231,41 @@ export default function LeadNachrichtHistory({
             />
           </div>
         </div>
+        {canEditStaffNames ? (
+          <div className="form-group sz-qfield lead-fragen-panel__bearbeiter">
+            <label htmlFor="offen-marketing-mitarbeiter" className="sz-qfield__label">Marketing Mitarbeiter</label>
+            <select
+              id="offen-marketing-mitarbeiter"
+              className="form-input"
+              value={sanitizeMitarbeiterName(working?.mitarbeiterName) || ''}
+              onChange={(ev) => patchWorking('mitarbeiterName', ev.target.value)}
+              disabled={busy}
+              aria-label="Marketing Mitarbeiter"
+            >
+              <option value="">—</option>
+              {staffSelectNames(working?.mitarbeiterName).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         <div className="form-group sz-qfield lead-fragen-panel__bearbeiter">
           <label htmlFor="offen-shop-mitarbeiter" className="sz-qfield__label">Bearbeiter</label>
-          {shopNames.length > 1 ? (
+          {canEditStaffNames ? (
+            <select
+              id="offen-shop-mitarbeiter"
+              className="form-input"
+              value={sanitizeMitarbeiterName(working?.shopMitarbeiter) || ''}
+              onChange={(ev) => patchWorking('shopMitarbeiter', ev.target.value)}
+              disabled={busy}
+              aria-label="Bearbeiter"
+            >
+              <option value="">—</option>
+              {staffSelectNames(working?.shopMitarbeiter).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          ) : shopNames.length > 1 ? (
             <select
               id="offen-shop-mitarbeiter"
               className="form-input"
