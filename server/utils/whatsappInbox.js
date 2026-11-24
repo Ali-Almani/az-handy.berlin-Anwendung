@@ -558,7 +558,21 @@ export async function appendOutgoingMessage(ticketId, message, extra = {}) {
     if (!ticket) return { value: { tickets: state.tickets } };
     ticket.messages = [...(ticket.messages || []), message];
     if (!extra.keepUnread) ticket.unread = false;
-    if (extra.mitarbeiterName) ticket.mitarbeiterName = extra.mitarbeiterName;
+    if (extra.mitarbeiterName) {
+      const name = String(extra.mitarbeiterName || '').trim().slice(0, 80);
+      if (name) {
+        const names = [];
+        const add = (value) => {
+          const next = String(value || '').trim().slice(0, 80);
+          if (next && !names.includes(next)) names.push(next);
+        };
+        add(ticket.mitarbeiterName);
+        (Array.isArray(ticket.mitarbeiterNames) ? ticket.mitarbeiterNames : []).forEach(add);
+        add(name);
+        ticket.mitarbeiterNames = names.slice(0, 30);
+        if (!ticket.mitarbeiterName) ticket.mitarbeiterName = name;
+      }
+    }
     if (extra.welcomeAutoSent) ticket.welcomeAutoSent = true;
     if (extra.autoQuestionField !== undefined) ticket.autoQuestionField = extra.autoQuestionField;
     if (extra.autoQuestionDueAt !== undefined) ticket.autoQuestionDueAt = extra.autoQuestionDueAt;

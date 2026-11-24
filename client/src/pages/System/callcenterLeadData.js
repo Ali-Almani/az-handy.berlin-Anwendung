@@ -1072,33 +1072,28 @@ export function preserveOpenTicketEdits(prev, hydrated) {
   }
   next.kontaktversuchCount = Math.max(kontaktversuchCountFor(prev), kontaktversuchCountFor(next));
   if (keepLocalStaff) {
-    next.shopMitarbeiterNames = collectShopMitarbeiterNames(prev);
+    next.shopMitarbeiterNames = storedShopMitarbeiterNames(prev);
     next.shopMitarbeiter = sanitizeMitarbeiterName(prev.shopMitarbeiter)
       || next.shopMitarbeiterNames[0]
       || '';
-    next.mitarbeiterNames = collectMitarbeiterNames(prev);
+    next.mitarbeiterNames = storedMitarbeiterNames(prev);
     next.mitarbeiterName = sanitizeMitarbeiterName(prev.mitarbeiterName)
       || next.mitarbeiterNames[0]
       || '';
   } else {
-    const shopNames = collectShopMitarbeiterNames({
-      shopMitarbeiter: next.shopMitarbeiter || prev.shopMitarbeiter,
-      shopMitarbeiterNames: [
-        ...(Array.isArray(prev.shopMitarbeiterNames) ? prev.shopMitarbeiterNames : []),
-        ...(Array.isArray(next.shopMitarbeiterNames) ? next.shopMitarbeiterNames : [])
-      ]
-    });
+    const remoteShop = storedShopMitarbeiterNames(hydrated);
+    const localShop = storedShopMitarbeiterNames(prev);
+    const shopNames = remoteShop.length ? remoteShop : localShop;
     next.shopMitarbeiterNames = shopNames;
-    next.shopMitarbeiter = sanitizeMitarbeiterName(next.shopMitarbeiter)
+    next.shopMitarbeiter = sanitizeMitarbeiterName(hydrated?.shopMitarbeiter)
       || sanitizeMitarbeiterName(prev.shopMitarbeiter)
       || shopNames[0]
       || '';
-    const staffNames = prependMitarbeiterName([
-      ...(Array.isArray(prev.mitarbeiterNames) ? prev.mitarbeiterNames : []),
-      ...(Array.isArray(hydrated?.mitarbeiterNames) ? hydrated.mitarbeiterNames : [])
-    ], next.mitarbeiterName || prev.mitarbeiterName);
+    const remoteStaff = storedMitarbeiterNames(hydrated);
+    const localStaff = storedMitarbeiterNames(prev);
+    const staffNames = remoteStaff.length ? remoteStaff : localStaff;
     next.mitarbeiterNames = staffNames;
-    next.mitarbeiterName = sanitizeMitarbeiterName(next.mitarbeiterName)
+    next.mitarbeiterName = sanitizeMitarbeiterName(hydrated?.mitarbeiterName)
       || sanitizeMitarbeiterName(prev.mitarbeiterName)
       || staffNames[0]
       || '';
@@ -1484,14 +1479,35 @@ function prependMitarbeiterName(names, first) {
   return out;
 }
 
-export function collectMitarbeiterNames(entry) {
+function uniqueStoredNames(values) {
   const names = [];
+  (Array.isArray(values) ? values : [values]).forEach((value) => {
+    const name = sanitizeMitarbeiterName(value);
+    if (name && !names.includes(name)) names.push(name);
+  });
+  return names;
+}
+
+export function storedMitarbeiterNames(entry) {
+  return uniqueStoredNames([
+    entry?.mitarbeiterName,
+    ...(Array.isArray(entry?.mitarbeiterNames) ? entry.mitarbeiterNames : [])
+  ]);
+}
+
+export function storedShopMitarbeiterNames(entry) {
+  return uniqueStoredNames([
+    entry?.shopMitarbeiter,
+    ...(Array.isArray(entry?.shopMitarbeiterNames) ? entry.shopMitarbeiterNames : [])
+  ]);
+}
+
+export function collectMitarbeiterNames(entry) {
+  const names = storedMitarbeiterNames(entry);
   const add = (value) => {
     const name = sanitizeMitarbeiterName(value);
     if (name && !names.includes(name)) names.push(name);
   };
-  add(entry?.mitarbeiterName);
-  (Array.isArray(entry?.mitarbeiterNames) ? entry.mitarbeiterNames : []).forEach(add);
   (Array.isArray(entry?.messages) ? entry.messages : []).forEach((message) => {
     if (message?.from === 'agent') add(message.authorName);
   });
@@ -1503,7 +1519,7 @@ export function collectMitarbeiterNames(entry) {
 
 export function withMitarbeiter(ticket, name) {
   const nextName = sanitizeMitarbeiterName(name);
-  const names = prependMitarbeiterName(collectMitarbeiterNames(ticket), nextName);
+  const names = prependMitarbeiterName(storedMitarbeiterNames(ticket), nextName);
   return {
     ...ticket,
     mitarbeiterName: nextName || names[0] || sanitizeMitarbeiterName(ticket?.mitarbeiterName) || '',
@@ -1511,15 +1527,28 @@ export function withMitarbeiter(ticket, name) {
   };
 }
 
-export function collectShopMitarbeiterNames(entry) {
-  const names = [];
-  const add = (value) => {
-    const name = sanitizeMitarbeiterName(value);
-    if (name && !names.includes(name)) names.push(name);
+export function assignMitarbeiter(ticket, name) {
+  const nextName = sanitizeMitarbeiterName(name);
+  return {
+    ...ticket,
+    mitarbeiterName: nextName,
+    mitarbeiterNames: nextName ? [nextName] : []
   };
-  add(entry?.shopMitarbeiter);
-  (Array.isArray(entry?.shopMitarbeiterNames) ? entry.shopMitarbeiterNames : []).forEach(add);
-  return names;
+}
+
+export function rememberMitarbeiter(ticket, name) {
+  const nextName = sanitizeMitarbeiterName(name);
+  const current = sanitizeMitarbeiterName(ticket?.mitarbeiterName);
+  const names = prependMitarbeiterName(storedMitarbeiterNames(ticket), nextName);
+  return {
+    ...ticket,
+    mitarbeiterName: current || nextName || names[0] || '',
+    mitarbeiterNames: names
+  };
+}
+
+export function collectShopMitarbeiterNames(entry) {
+  return storedShopMitarbeiterNames(entry);
 }
 
 export function withShopMitarbeiter(ticket, name) {
@@ -1529,6 +1558,15 @@ export function withShopMitarbeiter(ticket, name) {
     ...ticket,
     shopMitarbeiter: nextName || names[0] || sanitizeMitarbeiterName(ticket?.shopMitarbeiter) || '',
     shopMitarbeiterNames: names
+  };
+}
+
+export function assignShopMitarbeiter(ticket, name) {
+  const nextName = sanitizeMitarbeiterName(name);
+  return {
+    ...ticket,
+    shopMitarbeiter: nextName,
+    shopMitarbeiterNames: nextName ? [nextName] : []
   };
 }
 
@@ -2003,10 +2041,10 @@ export function leadToNeuEntry(lead) {
     priority: normalizeTicketPriority(lead.priority),
     sprache: leadSprache(lead.sprache),
     nachrichtArt: normalizeNachrichtArt(lead.nachrichtArt),
-    mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName),
-    mitarbeiterNames: collectMitarbeiterNames(lead),
-    shopMitarbeiter: sanitizeMitarbeiterName(lead.shopMitarbeiter),
-    shopMitarbeiterNames: collectShopMitarbeiterNames(lead),
+    mitarbeiterName: sanitizeMitarbeiterName(lead.mitarbeiterName) || storedMitarbeiterNames(lead)[0] || '',
+    mitarbeiterNames: storedMitarbeiterNames(lead),
+    shopMitarbeiter: sanitizeMitarbeiterName(lead.shopMitarbeiter) || storedShopMitarbeiterNames(lead)[0] || '',
+    shopMitarbeiterNames: storedShopMitarbeiterNames(lead),
     kundenbesuchDatum: String(lead?.kundenbesuchDatum || '').trim(),
     lastOpenedAt: String(lead?.lastOpenedAt || '').trim(),
     editLog: Array.isArray(lead.editLog) ? lead.editLog : []
@@ -2030,9 +2068,9 @@ function hydrateLeadTicket(t) {
     sprache: leadSprache(t?.sprache),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
-    mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName),
-    shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter),
-    shopMitarbeiterNames: collectShopMitarbeiterNames(t),
+    mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName) || storedMitarbeiterNames(t)[0] || '',
+    shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter) || storedShopMitarbeiterNames(t)[0] || '',
+    shopMitarbeiterNames: storedShopMitarbeiterNames(t),
     mocKn: String(t?.mocKn || '').trim(),
     geoeffnetAt: String(t?.geoeffnetAt || '').trim(),
     lastOpenedAt: String(t?.lastOpenedAt || '').trim(),
@@ -2041,7 +2079,7 @@ function hydrateLeadTicket(t) {
     dokumenteHidden: sanitizeDokumenteHidden(t?.dokumenteHidden),
     kundenbesuchDatum: String(t?.kundenbesuchDatum || '').trim(),
     kontaktversuchCount: kontaktversuchCountFor(t),
-    mitarbeiterNames: collectMitarbeiterNames(withChannel),
+    mitarbeiterNames: storedMitarbeiterNames(withChannel),
     editLog: Array.isArray(t?.editLog) ? t.editLog : [],
     liveWhatsApp: Boolean(t?.liveWhatsApp || t?.waId),
     waId: String(t?.waId || '').trim(),

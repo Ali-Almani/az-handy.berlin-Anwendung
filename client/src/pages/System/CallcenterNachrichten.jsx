@@ -37,6 +37,7 @@ import {
   MANUAL_TICKET_NAME,
   collectMitarbeiterNames,
   withMitarbeiter,
+  rememberMitarbeiter,
   withFirstMessageAutoReply,
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
@@ -973,7 +974,7 @@ const CallcenterNachrichten = ({
     setMobileSide('');
     setChatMenuOpen(false);
     setMobileSheet('');
-    patchTicket(id, (t) => withMitarbeiter({ ...t, unread: false }, agentName));
+    patchTicket(id, (t) => rememberMitarbeiter({ ...t, unread: false }, agentName));
   };
 
   useEffect(() => {
@@ -1445,7 +1446,7 @@ const CallcenterNachrichten = ({
       onTicketsChange?.((prev) => prev.map((t) => (t.id === ticketId ? updater(t) : t)));
     };
     if (isLiveWhatsAppTicket(active)) {
-      pushOptimistic((t) => withMitarbeiter({
+      pushOptimistic((t) => rememberMitarbeiter({
         ...t,
         unread: false,
         messages: [...(t.messages || []), optimistic]
@@ -1503,7 +1504,7 @@ const CallcenterNachrichten = ({
       });
       return true;
     }
-    patchTicket(ticketId, (t) => withMitarbeiter({
+    patchTicket(ticketId, (t) => rememberMitarbeiter({
       ...t,
       unread: false,
       messages: [...(t.messages || []), { ...optimistic, pending: false, id: `local-${Date.now()}` }]

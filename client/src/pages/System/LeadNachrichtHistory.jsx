@@ -20,13 +20,14 @@ import {
   ticketFormAnswers,
   sanitizeMitarbeiterName,
   collectShopMitarbeiterNames,
+  storedMitarbeiterNames,
   ensureTicketGeoeffnetAt,
   shopOptionsForTicketing,
   shopOptionLabel,
   normalizeNachrichtShop,
   MANUAL_TICKET_NAME,
-  withShopMitarbeiter,
-  withMitarbeiter
+  assignShopMitarbeiter,
+  assignMitarbeiter
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -129,6 +130,7 @@ export default function LeadNachrichtHistory({
     [working]
   );
   const shopNames = useMemo(() => collectShopMitarbeiterNames(working), [working]);
+  const marketingNames = useMemo(() => storedMitarbeiterNames(working), [working]);
   const filialeOptions = useMemo(() => {
     const shops = shopOptionsForTicketing();
     const current = normalizeNachrichtShop(working?.shop) || String(working?.shop || '').trim();
@@ -136,10 +138,23 @@ export default function LeadNachrichtHistory({
   }, [working?.shop]);
   const filialeValue = normalizeNachrichtShop(working?.shop) || String(working?.shop || '').trim();
   const busy = saving || commitBusy;
-  const staffSelectNames = (current) => {
-    const name = sanitizeMitarbeiterName(current);
-    return name && !staffNameOptions.includes(name) ? [name, ...staffNameOptions] : staffNameOptions;
+  const staffSelectGroups = (current, ticketNames = []) => {
+    const selected = sanitizeMitarbeiterName(current);
+    const ticket = [];
+    const add = (value) => {
+      const name = sanitizeMitarbeiterName(value);
+      if (name && !ticket.includes(name)) ticket.push(name);
+    };
+    add(selected);
+    (ticketNames || []).forEach(add);
+    return {
+      selected,
+      ticket,
+      others: (staffNameOptions || []).filter((name) => name && !ticket.includes(name))
+    };
   };
+  const marketingStaffGroups = staffSelectGroups(working?.mitarbeiterName, marketingNames);
+  const shopStaffGroups = staffSelectGroups(working?.shopMitarbeiter, shopNames);
 
   const patchWorking = (field, value) => {
     setWorking((prev) => {
@@ -153,8 +168,8 @@ export default function LeadNachrichtHistory({
         }
       }
       const patched = { ...prev, [field]: value, ...extra };
-      if (field === 'shopMitarbeiter') return withShopMitarbeiter(patched, value);
-      if (field === 'mitarbeiterName') return withMitarbeiter(patched, value);
+      if (field === 'shopMitarbeiter') return assignShopMitarbeiter(patched, value);
+      if (field === 'mitarbeiterName') return assignMitarbeiter(patched, value);
       return patched;
     });
   };
@@ -236,9 +251,16 @@ export default function LeadNachrichtHistory({
               aria-label="Marketing Mitarbeiter"
             >
               <option value="">—</option>
-              {staffSelectNames(working?.mitarbeiterName).map((name) => (
+              {marketingStaffGroups.ticket.map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
+              {marketingStaffGroups.others.length ? (
+                <optgroup label="Ändern">
+                  {marketingStaffGroups.others.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           </div>
         ) : null}
@@ -254,9 +276,16 @@ export default function LeadNachrichtHistory({
               aria-label="Bearbeiter"
             >
               <option value="">—</option>
-              {staffSelectNames(working?.shopMitarbeiter).map((name) => (
+              {shopStaffGroups.ticket.map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
+              {shopStaffGroups.others.length ? (
+                <optgroup label="Ändern">
+                  {shopStaffGroups.others.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           ) : shopNames.length > 1 ? (
             <select

@@ -53,7 +53,6 @@ import CallcenterNachrichten from './CallcenterNachrichten';
 import AutoAbfrage from './AutoAbfrage';
 import { useTicketQuestionConfig } from './useTicketQuestionConfig';
 import {
-  collectMitarbeiterNames,
   collectShopMitarbeiterNames,
   countUnreadLeadTickets,
   isLeadArchived,
@@ -71,7 +70,8 @@ import {
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withShopMitarbeiter,
-  withMitarbeiter,
+  assignMitarbeiter,
+  assignShopMitarbeiter,
   appendLeadEditLog,
   collectLeadFieldChanges,
   leadFieldChange,
@@ -500,14 +500,10 @@ const System = () => {
     [archivEntriesAll]
   );
 
-  const staffNameOptions = useMemo(() => {
-    const names = new Set(directoryNames);
-    offenEntriesAll.forEach((entry) => {
-      collectMitarbeiterNames(entry).forEach((name) => names.add(name));
-      collectShopMitarbeiterNames(entry).forEach((name) => names.add(name));
-    });
-    return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b, 'de'));
-  }, [directoryNames, offenEntriesAll]);
+  const staffNameOptions = useMemo(
+    () => [...directoryNames].filter(Boolean).sort((a, b) => a.localeCompare(b, 'de')),
+    [directoryNames]
+  );
 
   const offenFacetCounts = useMemo(
     () => ticketFacetCounts(offenEntriesAll, offenFilter),
@@ -979,8 +975,8 @@ const System = () => {
       || 'Unbekannt';
     const current = leadTickets.find((t) => t.id === entry.id) || entry;
     let next = field === 'shopMitarbeiter'
-      ? withShopMitarbeiter(current, nextName)
-      : withMitarbeiter(current, nextName);
+      ? assignShopMitarbeiter(current, nextName)
+      : assignMitarbeiter(current, nextName);
     const change = leadFieldChange(current, field, nextName);
     if (change) {
       next = appendLeadEditLog(next, { editorName: editor, changes: [change] });

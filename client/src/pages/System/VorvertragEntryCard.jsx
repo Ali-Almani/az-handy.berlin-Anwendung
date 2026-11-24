@@ -65,6 +65,15 @@ function MitarbeiterNamesSelect({ names, ariaLabel = 'Marketing Mitarbeiter' }) 
   );
 }
 
+function uniqueTicketStaffNames(list) {
+  const names = [];
+  (list || []).forEach((value) => {
+    const name = sanitizeMitarbeiterName(value);
+    if (name && !names.includes(name)) names.push(name);
+  });
+  return names;
+}
+
 function StaffNameEditor({
   value,
   ticketNames,
@@ -73,15 +82,9 @@ function StaffNameEditor({
   disabled,
   onChange
 }) {
-  const current = sanitizeMitarbeiterName(value) || sanitizeMitarbeiterName(ticketNames?.[0]) || '';
-  const names = [];
-  const add = (name) => {
-    const next = sanitizeMitarbeiterName(name);
-    if (next && !names.includes(next)) names.push(next);
-  };
-  add(current);
-  (ticketNames || []).forEach(add);
-  (options || []).forEach(add);
+  const ticket = uniqueTicketStaffNames([value, ...(ticketNames || [])]);
+  const current = sanitizeMitarbeiterName(value) || ticket[0] || '';
+  const others = uniqueTicketStaffNames(options).filter((name) => name !== current && !ticket.includes(name));
   return (
     <select
       className="form-input vorvertrag-ticket-row__status-select vorvertrag-ticket-row__mitarbeiter-select"
@@ -92,9 +95,16 @@ function StaffNameEditor({
       onChange={(ev) => onChange?.(ev.target.value)}
     >
       {!current ? <option value="">—</option> : null}
-      {names.map((name) => (
+      {ticket.map((name) => (
         <option key={name} value={name}>{name}</option>
       ))}
+      {others.length ? (
+        <optgroup label="Ändern">
+          {others.map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </optgroup>
+      ) : null}
     </select>
   );
 }
