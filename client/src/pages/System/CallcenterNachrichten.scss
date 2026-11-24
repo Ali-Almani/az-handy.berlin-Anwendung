@@ -291,6 +291,11 @@
   font-weight: $font-weight-bold;
   line-height: 1.3;
   text-align: center;
+
+  &--read {
+    background: mix(#fff, $text-light, 82%);
+    color: $text-color;
+  }
 }
 
 .sz-anweisung-alert {

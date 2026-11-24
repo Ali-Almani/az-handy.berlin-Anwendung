@@ -843,26 +843,47 @@ const CallcenterNachrichten = ({
     threadRef.current.scrollTop = threadRef.current.scrollHeight;
   }, [active?.id, active?.messages?.length, agentTyping, customerTyping]);
 
-  const unreadByChannel = useMemo(() => {
-    const unread = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
+  const emptyChannelCounts = () => {
+    const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
     NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
-      unread[filialeGroupChannelId(group)] = 0;
+      counts[filialeGroupChannelId(group)] = 0;
     });
+    return counts;
+  };
+
+  const addTicketToChannelCounts = (counts, t) => {
+    if (ticketMatchesNachrichtenChannel(t, 'all')) {
+      counts.all += 1;
+      const ch = normalizeSocialChannel(t.channel);
+      counts[ch] = (counts[ch] || 0) + 1;
+    }
+    const group = filialeGroupForTicket(t);
+    if (!group) return;
+    const id = filialeGroupChannelId(group);
+    if (!ticketMatchesNachrichtenChannel(t, id)) return;
+    counts[id] += 1;
+  };
+
+  const unreadByChannel = useMemo(() => {
+    const unread = emptyChannelCounts();
     list.forEach((t) => {
       if (isManualLeadTicket(t) || isLeadArchived(t) || !t.unread) return;
-      if (ticketMatchesNachrichtenChannel(t, 'all')) {
-        unread.all += 1;
-        const ch = normalizeSocialChannel(t.channel);
-        unread[ch] = (unread[ch] || 0) + 1;
-      }
-      const group = filialeGroupForTicket(t);
-      if (!group) return;
-      const id = filialeGroupChannelId(group);
-      if (!ticketMatchesNachrichtenChannel(t, id)) return;
-      unread[id] += 1;
+      addTicketToChannelCounts(unread, t);
     });
     return unread;
   }, [list]);
+
+  const gelesenByChannel = useMemo(() => {
+    const gelesen = emptyChannelCounts();
+    list.forEach((t) => {
+      if (isManualLeadTicket(t) || isLeadArchived(t) || t.unread) return;
+      addTicketToChannelCounts(gelesen, t);
+    });
+    return gelesen;
+  }, [list]);
+
+  const showingGelesenChips = readTab === 'gelesen';
+  const chipCountByChannel = showingGelesenChips ? gelesenByChannel : unreadByChannel;
 
   const readTabCounts = useMemo(() => {
     const inChannel = list.filter((t) => {
@@ -1882,7 +1903,11 @@ const CallcenterNachrichten = ({
                     aria-label="Social Media"
                   >
                     SM
-                    {unreadByChannel.all > 0 ? <span className="sz-chip-count">{unreadByChannel.all}</span> : null}
+                    {chipCountByChannel.all > 0 ? (
+                      <span className={`sz-chip-count${showingGelesenChips ? ' sz-chip-count--read' : ''}`}>
+                        {chipCountByChannel.all}
+                      </span>
+                    ) : null}
                   </button>
                   {SOCIAL_CHANNELS.map((c) => (
                     <button
@@ -1896,8 +1921,10 @@ const CallcenterNachrichten = ({
                       onClick={() => setChannel(c.id)}
                     >
                       <ChannelIcon channel={c.id} />
-                      {unreadByChannel[c.id] > 0 ? (
-                        <span className="sz-chip-count">{unreadByChannel[c.id]}</span>
+                      {chipCountByChannel[c.id] > 0 ? (
+                        <span className={`sz-chip-count${showingGelesenChips ? ' sz-chip-count--read' : ''}`}>
+                          {chipCountByChannel[c.id]}
+                        </span>
                       ) : null}
                     </button>
                   ))}
@@ -1906,23 +1933,29 @@ const CallcenterNachrichten = ({
                     {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
                       const id = filialeGroupChannelId(group);
                       const unread = unreadByChannel[id] || 0;
+                      const count = chipCountByChannel[id] || 0;
                       return (
                         <button
                           key={id}
                           type="button"
                           role="tab"
                           title={group.shop}
-                          aria-label={unread > 0 ? `${group.shop}, ${unread} ungelesen` : group.shop}
+                          aria-label={count > 0 ? `${group.shop}, ${count} ${showingGelesenChips ? 'gelesen' : 'ungelesen'}` : group.shop}
                           aria-selected={channel === id}
                           className={`sz-chip sz-chip--shop${channel === id ? ' sz-chip--active' : ''}`}
                           onClick={() => {
                             setChannel(id);
                             if (readTab === 'notiz' || readTab === 'anweisung') return;
+                            if (readTab === 'gelesen') return;
                             setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
                           }}
                         >
                           {group.label}
-                          {unread > 0 ? <span className="sz-chip-count">{unread}</span> : null}
+                          {count > 0 ? (
+                            <span className={`sz-chip-count${showingGelesenChips ? ' sz-chip-count--read' : ''}`}>
+                              {count}
+                            </span>
+                          ) : null}
                         </button>
                       );
                     })}
@@ -1941,6 +1974,7 @@ const CallcenterNachrichten = ({
                         }
                         setChannel(id);
                         if (readTab === 'notiz' || readTab === 'anweisung') return;
+                        if (readTab === 'gelesen') return;
                         const unread = unreadByChannel[id] || 0;
                         setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
                       }}
@@ -1948,8 +1982,8 @@ const CallcenterNachrichten = ({
                       <option value="">Filiale</option>
                       {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
                         const id = filialeGroupChannelId(group);
-                        const unread = unreadByChannel[id] || 0;
-                        const suffix = unread > 0 ? ` (${unread})` : '';
+                        const count = chipCountByChannel[id] || 0;
+                        const suffix = count > 0 ? ` (${count})` : '';
                         return (
                           <option key={id} value={id}>
                             {group.label}{suffix}
