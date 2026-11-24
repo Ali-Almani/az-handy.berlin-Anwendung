@@ -35,10 +35,10 @@ const FIELD_META = {
   marketingErstkontakt: { label: 'Marketing-Kontaktzeitraum', hasText: true }
 };
 
-function QuestionField({ id, label, children }) {
+function QuestionField({ id, label, children, required = false }) {
   return (
     <div className="form-group sz-qfield">
-      <label htmlFor={id} className="sz-qfield__label">{label}</label>
+      <label htmlFor={id} className={`sz-qfield__label${required ? ' form-label--required' : ''}`}>{label}</label>
       {children}
     </div>
   );
@@ -448,7 +448,8 @@ export default function LeadFragenForm({
   onQuestionUpdate,
   onQuestionMove,
   onQuestionAdd,
-  showMocKn = false
+  showMocKn = false,
+  requiredFields = []
 }) {
   const patch = (field, value) => onChange?.(field, value);
   const labelFor = (field, fallback) => ticketFormFieldLabel(field, fallback, questionConfig, questionLocale);
@@ -482,16 +483,24 @@ export default function LeadFragenForm({
   const customerNameValue = String(answers?.customerName || '').trim() === 'Neues Ticket'
     ? ''
     : (answers?.customerName || '');
+  const isRequired = (field) => requiredFields.includes(field);
 
   const fieldNodes = {
     customerName: (
-      <QuestionField key="customerName" id={`${idPrefix}-customer-name`} label={labelFor('customerName', 'Kunde Name')}>
+      <QuestionField
+        key="customerName"
+        id={`${idPrefix}-customer-name`}
+        label={labelFor('customerName', 'Kunde Name')}
+        required={isRequired('customerName')}
+      >
         <input
           id={`${idPrefix}-customer-name`}
           className="form-input"
           value={customerNameValue}
           aria-label={labelFor('customerName', 'Kunde Name')}
           autoComplete="name"
+          required={isRequired('customerName')}
+          aria-required={isRequired('customerName') || undefined}
           onChange={(ev) => patch('customerName', ev.target.value)}
         />
       </QuestionField>
@@ -519,24 +528,38 @@ export default function LeadFragenForm({
       />
     ),
     rufnummer: (
-      <QuestionField key="rufnummer" id={`${idPrefix}-rufnummer`} label={labelFor('rufnummer', 'WhatsApp-Nummer')}>
+      <QuestionField
+        key="rufnummer"
+        id={`${idPrefix}-rufnummer`}
+        label={labelFor('rufnummer', 'WhatsApp-Nummer')}
+        required={isRequired('rufnummer')}
+      >
         <input
           id={`${idPrefix}-rufnummer`}
           className="form-input"
           type="tel"
           value={answers?.rufnummer || ''}
           aria-label={labelFor('rufnummer', 'WhatsApp-Nummer')}
+          required={isRequired('rufnummer')}
+          aria-required={isRequired('rufnummer') || undefined}
           onChange={(ev) => patch('rufnummer', ev.target.value)}
         />
       </QuestionField>
     ),
     o2Kunde: (
-      <QuestionField key="o2Kunde" id={`${idPrefix}-o2`} label={labelFor('o2Kunde', 'O2 Kunde')}>
+      <QuestionField
+        key="o2Kunde"
+        id={`${idPrefix}-o2`}
+        label={labelFor('o2Kunde', 'O2 Kunde')}
+        required={isRequired('o2Kunde')}
+      >
         <select
           id={`${idPrefix}-o2`}
           className="form-input"
           value={answers?.o2Kunde || ''}
           aria-label={labelFor('o2Kunde', 'O2 Kunde')}
+          required={isRequired('o2Kunde')}
+          aria-required={isRequired('o2Kunde') || undefined}
           onChange={(ev) => patch('o2Kunde', ev.target.value)}
         >
           <option value="" />
@@ -547,12 +570,19 @@ export default function LeadFragenForm({
       </QuestionField>
     ),
     angebot: (
-      <QuestionField key="angebot" id={`${idPrefix}-angebot`} label={labelFor('angebot', 'Angebote')}>
+      <QuestionField
+        key="angebot"
+        id={`${idPrefix}-angebot`}
+        label={labelFor('angebot', 'Angebote')}
+        required={isRequired('angebot')}
+      >
         <select
           id={`${idPrefix}-angebot`}
           className="form-input"
           value={answers?.angebot || ''}
           aria-label={labelFor('angebot', 'Angebote')}
+          required={isRequired('angebot')}
+          aria-required={isRequired('angebot') || undefined}
           onChange={(ev) => patch('angebot', ev.target.value)}
         >
           <option value="" />
@@ -580,6 +610,7 @@ export default function LeadFragenForm({
         label={labelFor('stadt', 'Stadt')}
         value={answers?.stadt || ''}
         onChange={(value) => patch('stadt', value)}
+        required={isRequired('stadt')}
       />
     ),
     marketingNotiz: (

@@ -61,6 +61,7 @@ import {
   leadToNeuEntry,
   isLiveWhatsAppTicket,
   createManualLeadTicket,
+  missingManualTicketCreateFields,
   loadLeadTickets,
   mergeWhatsAppTickets,
   migrateLeadTicketStatus,
@@ -867,6 +868,11 @@ const System = () => {
       || (isAdmin(user) ? String(user?.name || 'Administrator').trim() : '')
       || 'Unbekannt';
     if (ticketDraftIsNew) {
+      const missing = missingManualTicketCreateFields(working);
+      if (missing.length) {
+        setError(`Bitte ausfüllen: ${missing.join(', ')}`);
+        return;
+      }
       setCreatingOffenTicket(true);
       try {
         const data = await createInboxTicketApi({ authorName: editor });
@@ -1413,6 +1419,7 @@ const System = () => {
             questionConfig={questionConfig}
             saving={creatingOffenTicket}
             canEditStaffNames={canEditStaffNames}
+            requireCreateFields={ticketDraftIsNew}
           />
         </div>
       ) : null}

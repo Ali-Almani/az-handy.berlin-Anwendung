@@ -27,7 +27,8 @@ import {
   normalizeNachrichtShop,
   MANUAL_TICKET_NAME,
   assignShopMitarbeiter,
-  assignMitarbeiter
+  assignMitarbeiter,
+  missingManualTicketCreateFields
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -105,14 +106,17 @@ export default function LeadNachrichtHistory({
   canDeleteDokumente = false,
   questionConfig: questionConfigProp,
   saving = false,
-  canEditStaffNames = false
+  canEditStaffNames = false,
+  requireCreateFields = false
 }) {
   const [working, setWorking] = useState(() => ticketWorkingCopy(ticket, bearbeiterName));
   const [commitBusy, setCommitBusy] = useState(false);
+  const [createError, setCreateError] = useState('');
   const questionConfig = questionConfigProp || loadQuestionConfig();
 
   useEffect(() => {
     setWorking(ticketWorkingCopy(ticket, bearbeiterName));
+    setCreateError('');
   }, [ticket?.id, bearbeiterName]);
 
   const customerName = working?.customerName || working?.rufnummer || 'Kunde';
@@ -143,7 +147,7 @@ export default function LeadNachrichtHistory({
       const extra = isCustomTicketField(field)
         ? { customAnswers: { ...(prev.customAnswers || {}), [field]: value } }
         : {};
-      if (field === 'rufnummer') {
+      if (field === 'rufnummer' && !requireCreateFields) {
         const name = String(prev.customerName || '').trim();
         if (!name || name === MANUAL_TICKET_NAME) {
           extra.customerName = String(value || '').trim() || MANUAL_TICKET_NAME;
@@ -182,6 +186,14 @@ export default function LeadNachrichtHistory({
 
   const commitAndClose = async () => {
     if (busy) return;
+    if (requireCreateFields) {
+      const missing = missingManualTicketCreateFields(working);
+      if (missing.length) {
+        setCreateError(`Bitte ausfüllen: ${missing.join(', ')}`);
+        return;
+      }
+    }
+    setCreateError('');
     setCommitBusy(true);
     try {
       await onCommit?.(working);
@@ -281,7 +293,12 @@ export default function LeadNachrichtHistory({
           )}
         </div>
         <div className="form-group sz-qfield lead-fragen-panel__filiale">
-          <label htmlFor="offen-ticket-filiale" className="sz-qfield__label">Filiale</label>
+          <label
+            htmlFor="offen-ticket-filiale"
+            className={`sz-qfield__label${requireCreateFields ? ' form-label--required' : ''}`}
+          >
+            Filiale
+          </label>
           <select
             id="offen-ticket-filiale"
             className="form-input"
@@ -289,6 +306,8 @@ export default function LeadNachrichtHistory({
             onChange={(ev) => patchWorking('shop', ev.target.value)}
             disabled={busy}
             aria-label="Filiale"
+            required={requireCreateFields}
+            aria-required={requireCreateFields || undefined}
           >
             {!filialeValue ? <option value="">Filiale</option> : null}
             {filialeOptions.map((opt) => (
@@ -310,6 +329,7 @@ export default function LeadNachrichtHistory({
           </button>
         </div>
       </div>
+      {createError ? <p className="vorvertrag-step-required-hint">{createError}</p> : null}
       <h3 className="vorvertrag-section-title">Informationen</h3>
       <LeadFragenForm
         fieldsOnly
@@ -318,6 +338,9 @@ export default function LeadNachrichtHistory({
         questionConfig={questionConfig}
         idPrefix="offen-q"
         showMocKn
+        requiredFields={requireCreateFields
+          ? ['customerName', 'rufnummer', 'o2Kunde', 'angebot', 'stadt']
+          : []}
       />
       <hr className="offen-followup-rule" />
       <TicketDokumente

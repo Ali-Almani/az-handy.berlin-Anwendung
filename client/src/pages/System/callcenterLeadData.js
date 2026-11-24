@@ -1341,6 +1341,32 @@ export function shopAssignsTicket(shop) {
   return Boolean(normalizeNachrichtShop(shop));
 }
 
+export const MANUAL_TICKET_CREATE_REQUIRED_FIELDS = [
+  { key: 'shop', label: 'Filiale' },
+  { key: 'customerName', label: 'Kunde Name' },
+  { key: 'rufnummer', label: 'WhatsApp-Nummer' },
+  { key: 'o2Kunde', label: 'O2 Kunde' },
+  { key: 'angebot', label: 'Angebote' },
+  { key: 'stadt', label: 'Stadt' }
+];
+
+export function filledManualTicketCreateValue(ticket, key) {
+  if (key === 'shop') {
+    return shopAssignsTicket(ticket?.shop) || String(ticket?.shop || ticket?.filiale || '').trim();
+  }
+  if (key === 'customerName') {
+    const name = String(ticket?.customerName || '').trim();
+    return name && name !== MANUAL_TICKET_NAME ? name : '';
+  }
+  return String(ticket?.[key] || '').trim();
+}
+
+export function missingManualTicketCreateFields(ticket) {
+  return MANUAL_TICKET_CREATE_REQUIRED_FIELDS
+    .filter((field) => !filledManualTicketCreateValue(ticket, field.key))
+    .map((field) => field.label);
+}
+
 function compactShopKey(value) {
   return String(value ?? '')
     .toLowerCase()

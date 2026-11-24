@@ -5,7 +5,8 @@ export default function StadtPicker({
   id,
   label = 'Stadt',
   value = '',
-  onChange
+  onChange,
+  required = false
 }) {
   const listId = useId();
   const rootRef = useRef(null);
@@ -39,7 +40,7 @@ export default function StadtPicker({
 
   return (
     <div className="form-group original-anbieter-picker sz-qfield" ref={rootRef}>
-      <label htmlFor={id} className="sz-qfield__label">{label}</label>
+      <label htmlFor={id} className={`sz-qfield__label${required ? ' form-label--required' : ''}`}>{label}</label>
       <input
         id={id}
         type="text"
@@ -51,6 +52,8 @@ export default function StadtPicker({
         aria-autocomplete="list"
         aria-label={label}
         autoComplete="off"
+        required={required}
+        aria-required={required || undefined}
         onFocus={() => setOpen(true)}
         onChange={(ev) => {
           const next = ev.target.value;
