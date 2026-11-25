@@ -9,7 +9,8 @@ import {
   sanitizeMitarbeiterName,
   compactShopLabel,
   displayTicketShop1,
-  displayTicketShop2
+  displayTicketShop2,
+  shopOptionLabel
 } from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
@@ -263,7 +264,7 @@ export default function VorvertragEntryCard({
         )}
       </td>
       <td className="vorvertrag-ticket-row__filiale">
-        {filiale ? <MetaChip accent>{compactShopLabel(filiale)}</MetaChip> : '—'}
+        {filiale ? <MetaChip accent>{shopOptionLabel(filiale)}</MetaChip> : '—'}
       </td>
       <td className="vorvertrag-ticket-row__shop-hist">
         {shop1 ? <MetaChip accent>{compactShopLabel(shop1)}</MetaChip> : '—'}
