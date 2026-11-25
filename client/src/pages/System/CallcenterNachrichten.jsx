@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SOCIAL_CHANNELS,
   NACHRICHTEN_FILIALE_GROUPS,
+  KEIN_VERKAUF_CHANNEL,
+  isKeinVerkaufTicket,
   QUESTION_CHAT_LOCALES,
   formFromLead,
   appendLeadEditLog,
@@ -570,6 +572,7 @@ const CallcenterNachrichten = ({
   onQuestionConfigChange
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const [channel, setChannel] = useState('all');
   const [readTab, setReadTabState] = useState(() => (
     inboxTab === 'gelesen' ? 'gelesen' : 'ungelesen'
@@ -648,7 +651,7 @@ const CallcenterNachrichten = ({
         return !t.unread;
       })
       .sort((a, b) => String(lastMessageAt(b)).localeCompare(String(lastMessageAt(a))));
-  }, [list, channel, readTab, search, activeId]);
+  }, [list, channel, readTab, search, activeId, nowTick]);
 
   const active = list.find((t) => t.id === activeId) || null;
   const agentTyping = Boolean(activeId && ticketTyping(activeId, 'agent'));
@@ -672,6 +675,11 @@ const CallcenterNachrichten = ({
     setDraftPrev('');
     setDraftTranslateError('');
   }, [activeId]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const templateQuestions = useMemo(
     () => localizedTemplateQuestions(chatLocale, questionConfig),
@@ -847,7 +855,14 @@ const CallcenterNachrichten = ({
   }, [active?.id, active?.messages?.length, agentTyping, customerTyping]);
 
   const emptyChannelCounts = () => {
-    const counts = { all: 0, facebook: 0, whatsapp: 0, instagram: 0, tiktok: 0 };
+    const counts = {
+      all: 0,
+      facebook: 0,
+      whatsapp: 0,
+      instagram: 0,
+      tiktok: 0,
+      [KEIN_VERKAUF_CHANNEL]: 0
+    };
     NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
       counts[filialeGroupChannelId(group)] = 0;
     });
@@ -860,6 +875,7 @@ const CallcenterNachrichten = ({
       const ch = normalizeSocialChannel(t.channel);
       counts[ch] = (counts[ch] || 0) + 1;
     }
+    if (isKeinVerkaufTicket(t, nowTick)) counts[KEIN_VERKAUF_CHANNEL] += 1;
     const group = filialeGroupForTicket(t);
     if (!group) return;
     const id = filialeGroupChannelId(group);
@@ -874,7 +890,7 @@ const CallcenterNachrichten = ({
       addTicketToChannelCounts(unread, t);
     });
     return unread;
-  }, [list]);
+  }, [list, nowTick]);
 
   const gelesenByChannel = useMemo(() => {
     const gelesen = emptyChannelCounts();
@@ -883,10 +899,11 @@ const CallcenterNachrichten = ({
       addTicketToChannelCounts(gelesen, t);
     });
     return gelesen;
-  }, [list]);
+  }, [list, nowTick]);
 
   const showingGelesenChips = readTab === 'gelesen';
   const chipCountByChannel = showingGelesenChips ? gelesenByChannel : unreadByChannel;
+  const keinVerkaufCount = gelesenByChannel[KEIN_VERKAUF_CHANNEL] || 0;
 
   const readTabCounts = useMemo(() => {
     let ungelesen = 0;
@@ -1940,7 +1957,7 @@ const CallcenterNachrichten = ({
                       const id = filialeGroupChannelId(group);
                       const unread = unreadByChannel[id] || 0;
                       const count = chipCountByChannel[id] || 0;
-                      return (
+                      const chip = (
                         <button
                           key={id}
                           type="button"
@@ -1964,14 +1981,38 @@ const CallcenterNachrichten = ({
                           ) : null}
                         </button>
                       );
+                      if (group.id !== 'callcenter') return chip;
+                      return (
+                        <Fragment key={id}>
+                          {chip}
+                          <button
+                            type="button"
+                            role="tab"
+                            title="Gelesen, letzte Mitarbeiter-Nachricht vor über 24 Stunden, keine Kundenantwort"
+                            aria-label={keinVerkaufCount > 0 ? `Kein Verkauf, ${keinVerkaufCount}` : 'Kein Verkauf'}
+                            aria-selected={channel === KEIN_VERKAUF_CHANNEL}
+                            className={`sz-chip sz-chip--shop${channel === KEIN_VERKAUF_CHANNEL ? ' sz-chip--active' : ''}`}
+                            onClick={() => {
+                              setChannel(KEIN_VERKAUF_CHANNEL);
+                              if (readTab === 'notiz' || readTab === 'anweisung') return;
+                              setReadTab('gelesen');
+                            }}
+                          >
+                            Kein Verkauf
+                            {keinVerkaufCount > 0 ? (
+                              <span className="sz-chip-count sz-chip-count--read">{keinVerkaufCount}</span>
+                            ) : null}
+                          </button>
+                        </Fragment>
+                      );
                     })}
                   </div>
                   <label className="sz-filiale-select-wrap" htmlFor="sz-filiale-select">
                     <span className="visually-hidden">Filiale</span>
                     <select
                       id="sz-filiale-select"
-                      className={`form-input sz-filiale-select${filialeGroupByChannel(channel) ? ' sz-filiale-select--active' : ''}`}
-                      value={filialeGroupByChannel(channel) ? channel : ''}
+                      className={`form-input sz-filiale-select${filialeGroupByChannel(channel) || channel === KEIN_VERKAUF_CHANNEL ? ' sz-filiale-select--active' : ''}`}
+                      value={channel === KEIN_VERKAUF_CHANNEL ? KEIN_VERKAUF_CHANNEL : (filialeGroupByChannel(channel) ? channel : '')}
                       onChange={(ev) => {
                         const id = ev.target.value;
                         if (!id) {
@@ -1980,21 +2021,33 @@ const CallcenterNachrichten = ({
                         }
                         setChannel(id);
                         if (readTab === 'notiz' || readTab === 'anweisung') return;
+                        if (id === KEIN_VERKAUF_CHANNEL) {
+                          setReadTab('gelesen');
+                          return;
+                        }
                         if (readTab === 'gelesen') return;
                         const unread = unreadByChannel[id] || 0;
                         setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
                       }}
                     >
                       <option value="">Filiale</option>
-                      {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
+                      {NACHRICHTEN_FILIALE_GROUPS.flatMap((group) => {
                         const id = filialeGroupChannelId(group);
                         const count = chipCountByChannel[id] || 0;
                         const suffix = count > 0 ? ` (${count})` : '';
-                        return (
+                        const option = (
                           <option key={id} value={id}>
                             {group.label}{suffix}
                           </option>
                         );
+                        if (group.id !== 'callcenter') return [option];
+                        const kvSuffix = keinVerkaufCount > 0 ? ` (${keinVerkaufCount})` : '';
+                        return [
+                          option,
+                          <option key={KEIN_VERKAUF_CHANNEL} value={KEIN_VERKAUF_CHANNEL}>
+                            Kein Verkauf{kvSuffix}
+                          </option>
+                        ];
                       })}
                     </select>
                   </label>
@@ -2070,7 +2123,9 @@ const CallcenterNachrichten = ({
                   ? 'Keine Treffer für Name, Nummer oder ID.'
                   : readTab === 'ungelesen'
                     ? 'Keine ungelesenen Nachrichten.'
-                    : 'Keine gelesenen Nachrichten.'}
+                    : channel === KEIN_VERKAUF_CHANNEL
+                      ? 'Keine Nachrichten ohne Kundenrückmeldung seit 24 Stunden.'
+                      : 'Keine gelesenen Nachrichten.'}
               </li>
             ) : (
               filtered.map((t) => {

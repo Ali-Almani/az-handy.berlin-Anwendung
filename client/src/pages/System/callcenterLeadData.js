@@ -46,6 +46,9 @@ export const NACHRICHTEN_FILIALE_GROUPS = [
   { id: 'kitzingstr', shop: 'Kitzingstraße', label: 'Ktz' }
 ];
 
+export const KEIN_VERKAUF_CHANNEL = 'kein-verkauf';
+export const KEIN_VERKAUF_AFTER_MS = 24 * 60 * 60 * 1000;
+
 export const NACHRICHT_ART_OPTIONS = [
   { id: 'angebot', label: 'Angebot' },
   { id: 'beschwerde', label: 'Beschwerde' },
@@ -1450,8 +1453,27 @@ export function isTicketInFilialeGroup(ticket) {
   return Boolean(filialeGroupForTicket(ticket));
 }
 
+function lastThreadMessage(ticket) {
+  const messages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message?.from === 'agent' || message?.from === 'customer') return message;
+  }
+  return null;
+}
+
+export function isKeinVerkaufTicket(ticket, now = Date.now()) {
+  if (!ticket || isManualLeadTicket(ticket) || isLeadArchived(ticket) || ticket.unread) return false;
+  const last = lastThreadMessage(ticket);
+  if (!last || last.from !== 'agent') return false;
+  const at = Date.parse(last.at || '');
+  if (!Number.isFinite(at)) return false;
+  return now - at >= KEIN_VERKAUF_AFTER_MS;
+}
+
 export function ticketMatchesNachrichtenChannel(ticket, channel) {
   if (isLeadArchived(ticket)) return false;
+  if (channel === KEIN_VERKAUF_CHANNEL) return isKeinVerkaufTicket(ticket);
   const group = filialeGroupByChannel(channel);
   const ticketGroup = filialeGroupForTicket(ticket);
   if (group) {
