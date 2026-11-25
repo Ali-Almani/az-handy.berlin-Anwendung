@@ -1536,11 +1536,11 @@ const System = () => {
                   {listTab !== 'archiv' ? <th>Priorität</th> : null}
                   {listTab !== 'archiv' ? <th>Sprache</th> : null}
                   <th>Status</th>
-                  <th className="vorvertrag-table__th--compact">Marketing Mitarbeiter</th>
-                  <th className="vorvertrag-table__th--compact">Bearbeiter</th>
+                  <th className="vorvertrag-table__th--staff">Marketing Mitarbeiter</th>
+                  <th className="vorvertrag-table__th--staff">Bearbeiter</th>
                   <th className="vorvertrag-table__th--compact">Filiale</th>
-                  <th className="vorvertrag-table__th--compact">Shop 1</th>
-                  <th className="vorvertrag-table__th--compact">Shop 2</th>
+                  <th className="vorvertrag-table__th--shop">Shop 1</th>
+                  <th className="vorvertrag-table__th--shop">Shop 2</th>
                   <th>Aktion</th>
                 </tr>
               </thead>

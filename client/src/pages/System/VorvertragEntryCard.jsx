@@ -228,7 +228,10 @@ export default function VorvertragEntryCard({
           ) : null}
         </div>
       </td>
-      <td className="vorvertrag-ticket-row__mitarbeiter">
+      <td
+        className="vorvertrag-ticket-row__mitarbeiter"
+        title={entry?.mitarbeiterName || mitarbeiter[0] || ''}
+      >
         {canEditStaffNames && lead ? (
           <StaffNameEditor
             value={entry?.mitarbeiterName}
@@ -241,7 +244,10 @@ export default function VorvertragEntryCard({
           <MitarbeiterNamesSelect names={mitarbeiter} />
         )}
       </td>
-      <td className="vorvertrag-ticket-row__shop-mitarbeiter">
+      <td
+        className="vorvertrag-ticket-row__shop-mitarbeiter"
+        title={entry?.shopMitarbeiter || shopMitarbeiter[0] || ''}
+      >
         {canEditStaffNames && lead ? (
           <StaffNameEditor
             value={entry?.shopMitarbeiter}
