@@ -182,7 +182,6 @@ export default function VorvertragEntryCard({
       data-entry-id={entry?.id}
     >
       <td className="vorvertrag-ticket-row__id">{displayTicketId(entry) || '—'}</td>
-      <td className="vorvertrag-ticket-row__kunde">{name}</td>
       <td className="vorvertrag-ticket-row__datum">{formatDatum(entry?.datum)}</td>
       <td className="vorvertrag-ticket-row__zeit">{formatGeoeffnetZeit(entry?.createdAt)}</td>
       <td className="vorvertrag-ticket-row__typ">

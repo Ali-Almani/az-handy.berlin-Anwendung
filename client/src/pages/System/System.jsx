@@ -1530,7 +1530,6 @@ const System = () => {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Kunde</th>
                   <th className="vorvertrag-table__th--compact">Datum</th>
                   <th className="vorvertrag-table__th--compact">Zeit</th>
                   <th>Angebot</th>
