@@ -885,11 +885,11 @@
     z-index: 10;
 
     th {
-      padding: 0.4rem 0.5rem;
+      padding: 0.32rem 0.35rem;
       text-align: left;
       font-weight: $font-weight-bold;
       color: $text-color;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       border: 1px solid $border-color;
       background: $bg-light;
       position: sticky;
@@ -897,29 +897,38 @@
       white-space: nowrap;
 
       &:last-child {
-        min-width: 5.6rem;
+        min-width: 4.6rem;
       }
     }
 
+    .vorvertrag-table__th--id {
+      font-size: 0.6rem;
+      padding: 0.28rem 0.22rem;
+    }
+
     .vorvertrag-table__th--compact {
-      font-size: 0.62rem;
-      padding: 0.32rem 0.28rem;
+      font-size: 0.6rem;
+      padding: 0.28rem 0.22rem;
       white-space: nowrap;
       line-height: 1.15;
     }
 
+    .vorvertrag-table__th--angebot {
+      font-size: 0.6rem;
+      padding: 0.28rem 0.22rem;
+    }
+
     .vorvertrag-table__th--staff {
-      font-size: 0.56rem;
-      padding: 0.28rem 0.18rem;
+      font-size: 0.58rem;
+      padding: 0.28rem 0.28rem;
       white-space: normal;
       line-height: 1.1;
-      width: 4.2rem;
-      max-width: 4.2rem;
+      min-width: 7.6rem;
     }
 
     .vorvertrag-table__th--shop {
-      font-size: 0.62rem;
-      padding: 0.32rem 0.28rem;
+      font-size: 0.6rem;
+      padding: 0.28rem 0.22rem;
       white-space: nowrap;
       width: 1%;
     }
@@ -943,9 +952,9 @@
     }
 
     td {
-      padding: 0.35rem 0.5rem;
+      padding: 0.28rem 0.32rem;
       color: $text-color;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       border: 1px solid $border-color;
       vertical-align: middle;
     }
@@ -980,7 +989,11 @@
   font-family: 'Courier New', Courier, monospace;
   font-weight: $font-weight-bold;
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+  font-size: 0.6rem;
+  padding-left: 0.22rem;
+  padding-right: 0.22rem;
+  width: 1%;
 }
 
 .vorvertrag-ticket-row__datum,
@@ -1003,17 +1016,43 @@
   padding-right: 0.28rem;
 }
 
+.vorvertrag-ticket-row__typ {
+  max-width: 6.4rem;
+  overflow: hidden;
+
+  .vorvertrag-ticket-chip {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0.04rem 0.28rem;
+    font-size: 0.56rem;
+  }
+}
+
+.vorvertrag-ticket-row__priority,
+.vorvertrag-ticket-row__sprache {
+  width: 1%;
+  padding-left: 0.18rem;
+  padding-right: 0.18rem;
+
+  .vorvertrag-ticket-chip,
+  .vorvertrag-ticket-badge {
+    padding: 0.04rem 0.26rem;
+    font-size: 0.56rem;
+  }
+}
+
 .vorvertrag-ticket-row__mitarbeiter-select {
   box-sizing: border-box;
-  width: 4.1rem;
-  min-width: 4.1rem;
-  max-width: 4.1rem;
+  width: 7.4rem;
+  min-width: 7.4rem;
+  max-width: 7.4rem;
   height: 1.65rem;
   min-height: 1.65rem;
   max-height: 1.65rem;
-  padding: 0 0.95rem 0 0.2rem;
+  padding: 0 1.1rem 0 0.3rem;
   overflow: hidden;
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   line-height: 1.65rem;
   white-space: nowrap;
 }
@@ -1039,13 +1078,14 @@
 
 .vorvertrag-table .vorvertrag-ticket-row__mitarbeiter,
 .vorvertrag-table .vorvertrag-ticket-row__shop-mitarbeiter {
-  width: 4.2rem;
-  max-width: 4.2rem;
+  width: 7.6rem;
+  min-width: 7.6rem;
+  max-width: 8.2rem;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.56rem;
-  padding-left: 0.18rem;
-  padding-right: 0.18rem;
+  font-size: 0.62rem;
+  padding-left: 0.28rem;
+  padding-right: 0.28rem;
 }
 
 .vorvertrag-table .vorvertrag-ticket-row__filiale,
@@ -1057,8 +1097,8 @@
 
 .vorvertrag-ticket-row__kundenbesuch-datum {
   display: block;
-  width: 8.75rem;
-  max-width: 8.75rem;
+  width: 7.6rem;
+  max-width: 7.6rem;
   margin: 0;
   font-size: 0.68rem;
   font-weight: 500;
@@ -1081,9 +1121,9 @@
 .vorvertrag-ticket-row__status-select {
   box-sizing: border-box;
   display: block;
-  width: 8.75rem;
-  min-width: 8.75rem;
-  max-width: 8.75rem;
+  width: 7.6rem;
+  min-width: 7.6rem;
+  max-width: 7.6rem;
   height: 1.65rem;
   min-height: 1.65rem;
   max-height: 1.65rem;
@@ -1098,8 +1138,8 @@
 
 .vorvertrag-ticket-row__actions {
   width: 1%;
-  min-width: 5.6rem;
-  padding: 0.35rem 0.4rem;
+  min-width: 4.6rem;
+  padding: 0.28rem 0.28rem;
   white-space: nowrap;
   vertical-align: middle;
 

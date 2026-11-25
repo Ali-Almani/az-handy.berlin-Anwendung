@@ -27,3 +27,14 @@ export function ticketPriorityBadge(priority) {
   if (p === 'Hoch') return 'high';
   return 'normal';
 }
+
+const PRIORITY_SHORT = {
+  Normal: 'Nrm',
+  Hoch: 'Hoch',
+  Dringend: 'Dring.'
+};
+
+export function compactTicketPriority(value) {
+  const p = normalizeTicketPriority(value);
+  return PRIORITY_SHORT[p] || p;
+}

@@ -32,3 +32,16 @@ export function normalizeTicketLanguage(value) {
   if (TICKET_LANGUAGE_OPTIONS.includes(v)) return v;
   return LANGUAGE_ALIASES[v.toLowerCase()] || TICKET_LANGUAGE_DEFAULT;
 }
+
+const LANGUAGE_SHORT = {
+  Arabisch: 'AR',
+  Deutsch: 'DE',
+  Englisch: 'EN',
+  Indisch: 'IN',
+  Urdu: 'UR'
+};
+
+export function compactTicketLanguage(value) {
+  const v = normalizeTicketLanguage(value);
+  return LANGUAGE_SHORT[v] || v.slice(0, 2).toUpperCase();
+}

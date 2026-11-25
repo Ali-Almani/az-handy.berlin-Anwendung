@@ -16,8 +16,8 @@ import {
   VORVERTRAG_TICKET_STATUS_OPTIONS,
   vorvertragTicketStatusBadge
 } from './vorvertragTicketStatus';
-import { normalizeTicketPriority, ticketPriorityBadge } from './ticketPriority';
-import { normalizeTicketLanguage } from './ticketLanguage';
+import { compactTicketPriority, normalizeTicketPriority, ticketPriorityBadge } from './ticketPriority';
+import { compactTicketLanguage, normalizeTicketLanguage } from './ticketLanguage';
 
 function MetaChip({ children, accent }) {
   return (
@@ -181,10 +181,12 @@ export default function VorvertragEntryCard({
       className={`vorvertrag-ticket-row${highlighted ? ' vorvertrag-ticket-row--highlight' : ''}`}
       data-entry-id={entry?.id}
     >
-      <td className="vorvertrag-ticket-row__id">{displayTicketId(entry) || '—'}</td>
+      <td className="vorvertrag-ticket-row__id" title={displayTicketId(entry) || ''}>
+        {displayTicketId(entry) || '—'}
+      </td>
       <td className="vorvertrag-ticket-row__datum">{formatDatum(entry?.datum)}</td>
       <td className="vorvertrag-ticket-row__zeit">{formatGeoeffnetZeit(entry?.createdAt)}</td>
-      <td className="vorvertrag-ticket-row__typ">
+      <td className="vorvertrag-ticket-row__typ" title={lead ? (entry?.angebot || 'Nachricht') : ''}>
         {lead ? (
           <MetaChip accent>{entry?.angebot || 'Nachricht'}</MetaChip>
         ) : mnpOnly ? (
@@ -194,15 +196,15 @@ export default function VorvertragEntryCard({
         )}
       </td>
       {showPriority ? (
-        <td className="vorvertrag-ticket-row__priority">
+        <td className="vorvertrag-ticket-row__priority" title={priority}>
           <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--prio-${priorityMod}`}>
-            {priority}
+            {compactTicketPriority(priority)}
           </span>
         </td>
       ) : null}
       {showSprache ? (
-        <td className="vorvertrag-ticket-row__sprache">
-          <MetaChip>{sprache}</MetaChip>
+        <td className="vorvertrag-ticket-row__sprache" title={sprache}>
+          <MetaChip>{compactTicketLanguage(sprache)}</MetaChip>
         </td>
       ) : null}
       <td className="vorvertrag-ticket-row__status">
