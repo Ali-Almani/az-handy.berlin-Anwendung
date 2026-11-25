@@ -28,7 +28,10 @@ import {
   MANUAL_TICKET_NAME,
   assignShopMitarbeiter,
   assignMitarbeiter,
-  missingManualTicketCreateFields
+  missingManualTicketCreateFields,
+  withTicketFilialeChange,
+  displayTicketShop1,
+  displayTicketShop2
 } from './callcenterLeadData';
 
 function followupSnapshot(ticket) {
@@ -155,6 +158,7 @@ export default function LeadNachrichtHistory({
         }
       }
       const patched = { ...prev, [field]: value, ...extra };
+      if (field === 'shop') return withTicketFilialeChange(prev, value);
       if (field === 'shopMitarbeiter') return assignShopMitarbeiter(patched, value);
       if (field === 'mitarbeiterName') return assignMitarbeiter(patched, value);
       return patched;
@@ -315,6 +319,28 @@ export default function LeadNachrichtHistory({
               <option key={opt} value={opt}>{shopOptionLabel(opt)}</option>
             ))}
           </select>
+        </div>
+        <div className="form-group sz-qfield lead-fragen-panel__shop-hist">
+          <label htmlFor="offen-ticket-shop1" className="sz-qfield__label">Shop 1</label>
+          <input
+            id="offen-ticket-shop1"
+            className="form-input"
+            value={shopOptionLabel(displayTicketShop1(working)) || ''}
+            readOnly
+            aria-readonly="true"
+            aria-label="Shop 1"
+          />
+        </div>
+        <div className="form-group sz-qfield lead-fragen-panel__shop-hist">
+          <label htmlFor="offen-ticket-shop2" className="sz-qfield__label">Shop 2</label>
+          <input
+            id="offen-ticket-shop2"
+            className="form-input"
+            value={shopOptionLabel(displayTicketShop2(working)) || ''}
+            readOnly
+            aria-readonly="true"
+            aria-label="Shop 2"
+          />
         </div>
         <div className="lead-fragen-panel__actions">
           {onOpenNachricht ? (

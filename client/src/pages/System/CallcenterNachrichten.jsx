@@ -40,6 +40,7 @@ import {
   collectMitarbeiterNames,
   withMitarbeiter,
   rememberMitarbeiter,
+  withTicketFilialeChange,
   withFirstMessageAutoReply,
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
@@ -946,6 +947,8 @@ const CallcenterNachrichten = ({
           mitarbeiterNames: next.mitarbeiterNames,
           shopMitarbeiter: next.shopMitarbeiter,
           shopMitarbeiterNames: next.shopMitarbeiterNames,
+          shop1: next.shop1 || '',
+          shop2: next.shop2 || '',
           priority: next.priority,
           customAnswers
         };
@@ -1065,8 +1068,7 @@ const CallcenterNachrichten = ({
     const assignShop = (ticket) => {
       const editor = sanitizeMitarbeiterName(agentName);
       const next = withMitarbeiter({
-        ...ticket,
-        shop,
+        ...withTicketFilialeChange(ticket, shop),
         ticketStatus: 'Offen'
       }, editor);
       const changes = [

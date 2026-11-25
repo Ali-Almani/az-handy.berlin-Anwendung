@@ -248,13 +248,13 @@
 }
 
 .lead-fragen-panel__opened-field {
-  flex: 0 0 7.25rem;
-  min-width: 6.5rem;
+  flex: 0 0 5.4rem;
+  min-width: 4.6rem;
   margin-bottom: 0;
 
   &--time {
-    flex-basis: 5.5rem;
-    min-width: 5rem;
+    flex-basis: 4.1rem;
+    min-width: 3.6rem;
   }
 
   .form-input {
@@ -263,14 +263,15 @@
 }
 
 .lead-fragen-panel__bearbeiter {
-  flex: 0 1 12rem;
-  min-width: 8rem;
+  flex: 0 1 7.4rem;
+  min-width: 5.8rem;
   margin-bottom: 0;
 }
 
-.lead-fragen-panel__filiale {
-  flex: 0 1 9.5rem;
-  min-width: 7.5rem;
+.lead-fragen-panel__filiale,
+.lead-fragen-panel__shop-hist {
+  flex: 0 1 6.2rem;
+  min-width: 5rem;
   margin-bottom: 0;
 }
 
@@ -899,6 +900,14 @@
         min-width: 5.6rem;
       }
     }
+
+    .vorvertrag-table__th--compact {
+      font-size: 0.62rem;
+      padding: 0.32rem 0.28rem;
+      white-space: normal;
+      line-height: 1.15;
+      max-width: 5.4rem;
+    }
   }
 
   tbody {
@@ -967,6 +976,7 @@
 .vorvertrag-ticket-row__datum,
 .vorvertrag-ticket-row__zeit,
 .vorvertrag-ticket-row__filiale,
+.vorvertrag-ticket-row__shop-hist,
 .vorvertrag-ticket-row__typ,
 .vorvertrag-ticket-row__mitarbeiter {
   white-space: nowrap;
@@ -976,17 +986,24 @@
   white-space: nowrap;
 }
 
+.vorvertrag-ticket-row__datum,
+.vorvertrag-ticket-row__zeit {
+  font-size: 0.62rem;
+  padding-left: 0.28rem;
+  padding-right: 0.28rem;
+}
+
 .vorvertrag-ticket-row__mitarbeiter-select {
   box-sizing: border-box;
-  width: 7.25rem;
-  min-width: 7.25rem;
-  max-width: 7.25rem;
+  width: 5.4rem;
+  min-width: 5.4rem;
+  max-width: 5.4rem;
   height: 1.65rem;
   min-height: 1.65rem;
   max-height: 1.65rem;
-  padding: 0 1.15rem 0 0.35rem;
+  padding: 0 1.05rem 0 0.25rem;
   overflow: hidden;
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   line-height: 1.65rem;
   white-space: nowrap;
 }
@@ -1002,9 +1019,21 @@
 .vorvertrag-table .vorvertrag-ticket-row__status,
 .vorvertrag-table .vorvertrag-ticket-row__mitarbeiter,
 .vorvertrag-table .vorvertrag-ticket-row__shop-mitarbeiter,
-.vorvertrag-table .vorvertrag-ticket-row__filiale {
+.vorvertrag-table .vorvertrag-ticket-row__filiale,
+.vorvertrag-table .vorvertrag-ticket-row__shop-hist,
+.vorvertrag-table .vorvertrag-ticket-row__datum,
+.vorvertrag-table .vorvertrag-ticket-row__zeit {
   width: 1%;
   white-space: nowrap;
+}
+
+.vorvertrag-table .vorvertrag-ticket-row__mitarbeiter,
+.vorvertrag-table .vorvertrag-ticket-row__shop-mitarbeiter,
+.vorvertrag-table .vorvertrag-ticket-row__filiale,
+.vorvertrag-table .vorvertrag-ticket-row__shop-hist {
+  font-size: 0.6rem;
+  padding-left: 0.28rem;
+  padding-right: 0.28rem;
 }
 
 .vorvertrag-ticket-row__kundenbesuch-datum {
@@ -1099,6 +1128,12 @@
     color: $danger-color;
     border-color: $danger-color;
   }
+}
+
+.vorvertrag-ticket-row__filiale .vorvertrag-ticket-chip,
+.vorvertrag-ticket-row__shop-hist .vorvertrag-ticket-chip {
+  padding: 0.04rem 0.28rem;
+  font-size: 0.58rem;
 }
 
 .vorvertrag-ticket-chip {

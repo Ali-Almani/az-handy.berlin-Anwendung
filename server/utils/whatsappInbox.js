@@ -198,6 +198,8 @@ function emptyTicket(waId, name, at, existingTickets = []) {
     terminZeit: '',
     mocKn: '',
     shop: '',
+    shop1: '',
+    shop2: '',
     ticketStatus: 'Callcenter',
     nachrichtArt: 'angebot',
     unread: true,
@@ -600,7 +602,7 @@ export async function patchWhatsAppTicket(ticketId, patch) {
     const allowed = [
       'shop', 'unread', 'ticketStatus', 'sprache', 'rufnummer', 'customerName', 'ticketNr',
       'o2Kunde', 'angebot', 'produktNotiz', 'stadt', 'marketingNotiz',
-      'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'mitarbeiterNames', 'shopMitarbeiter', 'shopMitarbeiterNames', 'kundenbesuchDatum', 'priority',
+      'terminDatum', 'terminZeit', 'mocKn', 'geoeffnetAt', 'lastOpenedAt', 'nachrichtArt', 'mitarbeiterName', 'mitarbeiterNames', 'shopMitarbeiter', 'shopMitarbeiterNames', 'shop1', 'shop2', 'kundenbesuchDatum', 'priority',
       'welcomeAutoSent', 'autoQuestionField', 'autoQuestionDueAt', 'autoQuestionQueue', 'autoAnswers', 'customAnswers',
       'textFollowupDueAt', 'textFollowupSent', 'abholbereitAutoSent', 'erledigtAutoSent', 'finaleAutoSent', 'ticketIdNoticeSent', 'kontaktversuchCount', 'editLog',
       ...Array.from({ length: 20 }, (_, i) => i + 1).flatMap((n) => ([
@@ -677,6 +679,10 @@ export async function patchWhatsAppTicket(ticketId, patch) {
           if (name && !names.includes(name)) names.push(name);
         }
         ticket[key] = names;
+        continue;
+      }
+      if (key === 'shop1' || key === 'shop2') {
+        ticket[key] = String(patch[key] ?? '').trim().slice(0, 80);
         continue;
       }
       ticket[key] = patch[key];

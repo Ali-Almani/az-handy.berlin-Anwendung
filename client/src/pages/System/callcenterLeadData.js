@@ -1010,6 +1010,8 @@ export function emptyLeadForm() {
     mitarbeiterNames: [],
     shopMitarbeiter: '',
     shopMitarbeiterNames: [],
+    shop1: '',
+    shop2: '',
     kundenbesuchDatum: '',
     shop: '',
     ticketStatus: VORVERTRAG_TICKET_STATUS_DEFAULT,
@@ -1041,6 +1043,8 @@ const TICKET_FORM_PRESERVE_KEYS = [
   'mitarbeiterNames',
   'shopMitarbeiter',
   'shopMitarbeiterNames',
+  'shop1',
+  'shop2',
   'kundenbesuchDatum',
   'kontaktversuchCount'
 ];
@@ -1209,7 +1213,9 @@ const LEAD_FIELD_LABELS = {
   priority: 'Priorität',
   sprache: 'Sprache',
   mitarbeiterName: 'Marketing Mitarbeiter',
-  shopMitarbeiter: 'Bearbeiter'
+  shopMitarbeiter: 'Bearbeiter',
+  shop1: 'Shop 1',
+  shop2: 'Shop 2'
 };
 
 function formatLeadLogValue(value) {
@@ -1494,6 +1500,57 @@ export function shopOptionLabel(shop) {
   return s;
 }
 
+export function compactShopLabel(shop) {
+  const s = String(shop ?? '').trim();
+  if (!s) return '';
+  const group = filialeGroupForShop(s);
+  if (group?.label) return group.label;
+  return shopOptionLabel(s);
+}
+
+export function ticketShopValue(ticket) {
+  return normalizeNachrichtShop(ticket?.shop)
+    || String(ticket?.shop || ticket?.filiale || '').trim();
+}
+
+export function ticketHasBearbeiter(ticket) {
+  return Boolean(
+    sanitizeMitarbeiterName(ticket?.shopMitarbeiter)
+    || storedShopMitarbeiterNames(ticket)[0]
+  );
+}
+
+export function ensureTicketShop1(ticket) {
+  if (String(ticket?.shop1 || '').trim()) return ticket;
+  if (!ticketHasBearbeiter(ticket)) return ticket;
+  const shop = ticketShopValue(ticket);
+  if (!shop) return ticket;
+  return { ...ticket, shop1: shop };
+}
+
+export function withTicketFilialeChange(ticket, nextShopRaw) {
+  const next = normalizeNachrichtShop(nextShopRaw) || String(nextShopRaw || '').trim();
+  const current = ticketShopValue(ticket);
+  let out = { ...ticket, shop: next };
+  if (ticketHasBearbeiter(out) && next && current && next !== current) {
+    if (!String(out.shop1 || '').trim()) out.shop1 = current;
+    out.shop2 = next;
+    return out;
+  }
+  return ensureTicketShop1(out);
+}
+
+export function displayTicketShop1(ticket) {
+  const saved = String(ticket?.shop1 || '').trim();
+  if (saved) return saved;
+  if (!ticketHasBearbeiter(ticket)) return '';
+  return ticketShopValue(ticket);
+}
+
+export function displayTicketShop2(ticket) {
+  return String(ticket?.shop2 || '').trim();
+}
+
 const INVALID_MITARBEITER_NAMES = new Set([
   'admin',
   'Administrator',
@@ -1612,22 +1669,22 @@ export function collectShopMitarbeiterNames(entry) {
 export function withShopMitarbeiter(ticket, name) {
   const nextName = sanitizeMitarbeiterName(name);
   const names = prependMitarbeiterName(collectShopMitarbeiterNames(ticket), nextName);
-  return {
+  return ensureTicketShop1({
     ...ticket,
     shopMitarbeiter: nextName || names[0] || sanitizeMitarbeiterName(ticket?.shopMitarbeiter) || '',
     shopMitarbeiterNames: names
-  };
+  });
 }
 
 export function assignShopMitarbeiter(ticket, name) {
   const names = storedShopMitarbeiterNames(ticket);
   const nextName = sanitizeMitarbeiterName(name);
   if (nextName && !names.includes(nextName)) return ticket;
-  return {
+  return ensureTicketShop1({
     ...ticket,
     shopMitarbeiter: nextName || names[0] || '',
     shopMitarbeiterNames: names
-  };
+  });
 }
 
 export function lastMessageAt(ticket) {
@@ -2101,6 +2158,8 @@ export function leadToNeuEntry(lead) {
     terminZeit: lead.terminZeit,
     shop: lead.shop,
     filiale: lead.shop,
+    shop1: String(lead?.shop1 || '').trim(),
+    shop2: String(lead?.shop2 || '').trim(),
     kundeVorname: lead.customerName || lead.rufnummer || lead.angebot || 'Nachricht',
     kundeNachname: '',
     datum: lead.terminDatum || String(lead.createdAt || '').slice(0, 10),
@@ -2136,6 +2195,8 @@ function hydrateLeadTicket(t) {
     sprache: leadSprache(t?.sprache),
     nachrichtArt: normalizeNachrichtArt(t?.nachrichtArt),
     shop: normalizeNachrichtShop(t?.shop) || t?.shop || '',
+    shop1: String(t?.shop1 || '').trim(),
+    shop2: String(t?.shop2 || '').trim(),
     mitarbeiterName: sanitizeMitarbeiterName(t?.mitarbeiterName) || storedMitarbeiterNames(t)[0] || '',
     shopMitarbeiter: sanitizeMitarbeiterName(t?.shopMitarbeiter) || storedShopMitarbeiterNames(t)[0] || '',
     shopMitarbeiterNames: storedShopMitarbeiterNames(t),

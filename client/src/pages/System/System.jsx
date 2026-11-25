@@ -72,6 +72,7 @@ import {
   saveLeadTickets,
   sanitizeMitarbeiterName,
   withShopMitarbeiter,
+  ensureTicketShop1,
   assignMitarbeiter,
   assignShopMitarbeiter,
   appendLeadEditLog,
@@ -902,7 +903,7 @@ const System = () => {
         const data = await createInboxTicketApi({ authorName: editor });
         const created = data?.ticket;
         if (!created?.id) throw new Error('empty');
-        const merged = {
+        const merged = ensureTicketShop1({
           ...created,
           ...working,
           id: created.id,
@@ -912,7 +913,7 @@ const System = () => {
           channel: created.channel || working.channel,
           liveWhatsApp: false,
           waId: ''
-        };
+        });
         persistLiveTicket(merged);
         setLeadTickets((prev) => {
           const exists = prev.some((t) => t.id === merged.id);
@@ -927,12 +928,12 @@ const System = () => {
           tickets: leadTickets,
           agentName: editor
         });
-        const merged = {
+        const merged = ensureTicketShop1({
           ...local,
           ...working,
           id: local.id,
           ticketNr: local.ticketNr || local.id
-        };
+        });
         persistLiveTicket(merged);
         setLeadTickets((prev) => [merged, ...prev]);
         setHighlightedId(merged.id);
@@ -953,6 +954,7 @@ const System = () => {
       if (!shopChanged && !marketingChanged) saved = withShopMitarbeiter(saved, editor);
       saved = appendLeadEditLog(saved, { editorName: editor, changes });
     }
+    saved = ensureTicketShop1(saved);
     setLeadTickets((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
     const savedOk = await persistLiveTicket(saved);
     if (!savedOk) {
@@ -993,6 +995,8 @@ const System = () => {
     payload.mitarbeiterNames = Array.isArray(ticket.mitarbeiterNames) ? ticket.mitarbeiterNames : [];
     payload.shopMitarbeiter = ticket.shopMitarbeiter || '';
     payload.shopMitarbeiterNames = Array.isArray(ticket.shopMitarbeiterNames) ? ticket.shopMitarbeiterNames : [];
+    payload.shop1 = ticket.shop1 || '';
+    payload.shop2 = ticket.shop2 || '';
     for (const key of offenFollowupFieldKeys(ticket)) {
       payload[key] = ticket[key] || '';
     }
@@ -1527,15 +1531,17 @@ const System = () => {
                 <tr>
                   <th>ID</th>
                   <th>Kunde</th>
-                  <th>Datum</th>
-                  <th>Zeit</th>
+                  <th className="vorvertrag-table__th--compact">Datum</th>
+                  <th className="vorvertrag-table__th--compact">Zeit</th>
                   <th>Angebot</th>
                   {listTab !== 'archiv' ? <th>Priorität</th> : null}
                   {listTab !== 'archiv' ? <th>Sprache</th> : null}
                   <th>Status</th>
-                  <th>Marketing Mitarbeiter</th>
-                  <th>Bearbeiter</th>
-                  <th>Filiale</th>
+                  <th className="vorvertrag-table__th--compact">Marketing Mitarbeiter</th>
+                  <th className="vorvertrag-table__th--compact">Bearbeiter</th>
+                  <th className="vorvertrag-table__th--compact">Filiale</th>
+                  <th className="vorvertrag-table__th--compact">Shop 1</th>
+                  <th className="vorvertrag-table__th--compact">Shop 2</th>
                   <th>Aktion</th>
                 </tr>
               </thead>

@@ -7,7 +7,9 @@ import {
   isLeadEntry,
   migrateLeadTicketStatus,
   sanitizeMitarbeiterName,
-  shopOptionLabel
+  compactShopLabel,
+  displayTicketShop1,
+  displayTicketShop2
 } from './callcenterLeadData';
 import {
   normalizeVorvertragTicketStatus,
@@ -171,6 +173,8 @@ export default function VorvertragEntryCard({
   const priorityMod = ticketPriorityBadge(priority);
   const sprache = normalizeTicketLanguage(entry?.sprache);
   const filiale = String(entry?.filiale || entry?.shop || '').trim();
+  const shop1 = displayTicketShop1(entry);
+  const shop2 = displayTicketShop2(entry);
 
   return (
     <tr
@@ -252,7 +256,13 @@ export default function VorvertragEntryCard({
         )}
       </td>
       <td className="vorvertrag-ticket-row__filiale">
-        {filiale ? <MetaChip accent>{shopOptionLabel(filiale)}</MetaChip> : '—'}
+        {filiale ? <MetaChip accent>{compactShopLabel(filiale)}</MetaChip> : '—'}
+      </td>
+      <td className="vorvertrag-ticket-row__shop-hist">
+        {shop1 ? <MetaChip accent>{compactShopLabel(shop1)}</MetaChip> : '—'}
+      </td>
+      <td className="vorvertrag-ticket-row__shop-hist">
+        {shop2 ? <MetaChip accent>{compactShopLabel(shop2)}</MetaChip> : '—'}
       </td>
       <td className={`vorvertrag-ticket-row__actions${canDelete ? '' : ' vorvertrag-ticket-row__actions--solo'}`}>
         <div className="vorvertrag-ticket-row__action-btns">
