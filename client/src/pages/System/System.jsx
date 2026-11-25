@@ -61,6 +61,7 @@ import {
   isManualLeadTicket,
   leadToNeuEntry,
   isLiveWhatsAppTicket,
+  ticketHasCustomerNachricht,
   createManualLeadTicket,
   missingManualTicketCreateFields,
   loadLeadTickets,
@@ -786,6 +787,28 @@ const System = () => {
     setTicketDraftIsNew(false);
   };
 
+  const openNachrichtForTicket = (ticket) => {
+    if (!ticketHasCustomerNachricht(ticket)) return;
+    closeTicketEditor();
+    setOpenLeadId(ticket.id);
+    setInboxTab(ticket.unread ? 'ungelesen' : 'gelesen');
+    setListTab('nachrichten');
+  };
+
+  const openTicketFromNachricht = (id) => {
+    const ticket = leadTickets.find((t) => t.id === id);
+    if (!ticket) return;
+    setOpenLeadId('');
+    if (isLeadArchived(ticket) && canManageTicketingSystem(user)) {
+      setListTab('archiv');
+    } else if (canViewTicketingOffen(user)) {
+      setListTab('offen');
+    } else {
+      return;
+    }
+    startEdit(isLeadEntry(ticket) ? ticket : leadToNeuEntry(ticket));
+  };
+
   const startEdit = (entry) => {
     if (!isLeadEntry(entry) && !canManageTicketingSystem(user)) return;
     if (isLeadEntry(entry)) {
@@ -1334,6 +1357,7 @@ const System = () => {
             setArchivSearch('');
           }}
           onOpenArchiv={() => setListTab('archiv')}
+          onOpenTicket={openTicketFromNachricht}
         />
       ) : null}
 
@@ -1421,6 +1445,7 @@ const System = () => {
             saving={creatingOffenTicket}
             canEditStaffNames={canEditStaffNames}
             requireCreateFields={ticketDraftIsNew}
+            onOpenNachricht={ticketHasCustomerNachricht(editingLead) ? openNachrichtForTicket : undefined}
           />
         </div>
       ) : null}

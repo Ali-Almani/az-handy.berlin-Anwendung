@@ -42,6 +42,7 @@ import {
   spracheFromQuestionLocale,
   templateFieldMatchingDraft,
   isLeadArchived,
+  isLeadInNeu,
   isLiveWhatsAppTicket,
   mergeWhatsAppTickets,
   withPendingOutgoingMessages,
@@ -562,6 +563,7 @@ const CallcenterNachrichten = ({
   archivCount = 0,
   onOpenOffen,
   onOpenArchiv,
+  onOpenTicket,
   inboxTab = 'ungelesen',
   onInboxTabChange,
   questionConfig: questionConfigProp,
@@ -1000,12 +1002,15 @@ const CallcenterNachrichten = ({
   useEffect(() => {
     if (!openTicketId) return;
     const ticket = (tickets || []).find((t) => t.id === openTicketId);
-    const group = filialeGroupForShop(ticket?.shop);
+    const group = filialeGroupForShop(ticket?.shop) || filialeGroupForTicket(ticket);
     if (group) {
       setChannel(filialeGroupChannelId(group));
-      if (readTab === 'ungelesen' || readTab === 'gelesen') {
-        setReadTab(ticket?.unread ? 'ungelesen' : 'gelesen');
-      }
+    } else if (ticket) {
+      const ch = normalizeSocialChannel(ticket.channel);
+      setChannel(ch && ch !== MANUAL_TICKET_CHANNEL ? ch : 'all');
+    }
+    if (ticket && (readTab === 'ungelesen' || readTab === 'gelesen')) {
+      setReadTab(ticket.unread ? 'ungelesen' : 'gelesen');
     }
     openTicket(openTicketId);
     onOpened?.();
@@ -2797,6 +2802,16 @@ const CallcenterNachrichten = ({
             ) : null}
             <div className="sz-questions-titlebar">
               <h3 className="sz-questions-title">Ticket erstellen</h3>
+              <div className="sz-questions-titlebar-actions">
+              {canOpenOffen && active && isLeadInNeu(active) ? (
+                <button
+                  type="button"
+                  className="btn btn--outline btn--small"
+                  onClick={() => onOpenTicket?.(active.id)}
+                >
+                  Zum Ticket
+                </button>
+              ) : null}
               {canEditFragen && active ? (
               <div className="sz-questions-titlebar-actions sz-phone-hide">
               <button
@@ -2832,6 +2847,7 @@ const CallcenterNachrichten = ({
               ) : null}
               </div>
               ) : null}
+              </div>
             </div>
             {active && answers && !templateEditing ? (
               <div className="sz-questions-meta">

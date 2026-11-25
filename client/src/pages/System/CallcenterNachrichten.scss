@@ -1763,6 +1763,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+
+  .btn--small {
+    flex-shrink: 0;
+    padding: 0.18rem 0.5rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
 }
 
 .sz-questions > .sz-questions-form,

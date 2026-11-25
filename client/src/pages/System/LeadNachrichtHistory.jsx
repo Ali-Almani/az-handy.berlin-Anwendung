@@ -107,7 +107,8 @@ export default function LeadNachrichtHistory({
   questionConfig: questionConfigProp,
   saving = false,
   canEditStaffNames = false,
-  requireCreateFields = false
+  requireCreateFields = false,
+  onOpenNachricht
 }) {
   const [working, setWorking] = useState(() => ticketWorkingCopy(ticket, bearbeiterName));
   const [commitBusy, setCommitBusy] = useState(false);
@@ -316,6 +317,16 @@ export default function LeadNachrichtHistory({
           </select>
         </div>
         <div className="lead-fragen-panel__actions">
+          {onOpenNachricht ? (
+            <button
+              type="button"
+              className="btn btn--outline btn--small"
+              onClick={() => onOpenNachricht(working)}
+              disabled={busy}
+            >
+              Zur Nachricht
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn--outline btn--small"

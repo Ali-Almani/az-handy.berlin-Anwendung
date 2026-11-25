@@ -845,6 +845,14 @@ export function isLeadInNeu(entry) {
   return shopAssignsTicket(entry?.shop);
 }
 
+export function ticketHasCustomerNachricht(ticket) {
+  if (!ticket?.id || String(ticket.id).startsWith('draft-')) return false;
+  if (isLiveWhatsAppTicket(ticket) || String(ticket?.waId || '').trim()) return true;
+  const channel = normalizeSocialChannel(ticket?.channel);
+  if (channel && channel !== MANUAL_TICKET_CHANNEL) return true;
+  return (Array.isArray(ticket?.messages) ? ticket.messages : []).length > 0;
+}
+
 export function leadStatusBadge(status) {
   return normalizeLeadStatus(status) === 'Orten' ? 'orten' : 'callcenter';
 }
