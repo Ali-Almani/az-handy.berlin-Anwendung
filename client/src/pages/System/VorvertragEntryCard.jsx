@@ -16,8 +16,8 @@ import {
   VORVERTRAG_TICKET_STATUS_OPTIONS,
   vorvertragTicketStatusBadge
 } from './vorvertragTicketStatus';
-import { compactTicketPriority, normalizeTicketPriority, ticketPriorityBadge } from './ticketPriority';
-import { compactTicketLanguage, normalizeTicketLanguage } from './ticketLanguage';
+import { normalizeTicketPriority, ticketPriorityBadge } from './ticketPriority';
+import { normalizeTicketLanguage } from './ticketLanguage';
 
 function MetaChip({ children, accent }) {
   return (
@@ -198,13 +198,13 @@ export default function VorvertragEntryCard({
       {showPriority ? (
         <td className="vorvertrag-ticket-row__priority" title={priority}>
           <span className={`vorvertrag-ticket-badge vorvertrag-ticket-badge--prio-${priorityMod}`}>
-            {compactTicketPriority(priority)}
+            {priority}
           </span>
         </td>
       ) : null}
       {showSprache ? (
         <td className="vorvertrag-ticket-row__sprache" title={sprache}>
-          <MetaChip>{compactTicketLanguage(sprache)}</MetaChip>
+          <MetaChip>{sprache}</MetaChip>
         </td>
       ) : null}
       <td className="vorvertrag-ticket-row__status">

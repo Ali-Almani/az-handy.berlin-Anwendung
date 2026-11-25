@@ -916,6 +916,13 @@
     .vorvertrag-table__th--angebot {
       font-size: 0.6rem;
       padding: 0.28rem 0.22rem;
+      width: 1%;
+    }
+
+    .vorvertrag-table__th--meta {
+      font-size: 0.62rem;
+      padding: 0.32rem 0.42rem;
+      white-space: nowrap;
     }
 
     .vorvertrag-table__th--staff {
@@ -1017,11 +1024,14 @@
 }
 
 .vorvertrag-ticket-row__typ {
-  max-width: 6.4rem;
+  width: 1%;
+  max-width: 7.2rem;
   overflow: hidden;
+  padding-left: 0.22rem;
+  padding-right: 0.22rem;
 
   .vorvertrag-ticket-chip {
-    max-width: 100%;
+    max-width: 7rem;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 0.04rem 0.28rem;
@@ -1031,14 +1041,14 @@
 
 .vorvertrag-ticket-row__priority,
 .vorvertrag-ticket-row__sprache {
-  width: 1%;
-  padding-left: 0.18rem;
-  padding-right: 0.18rem;
+  padding-left: 0.42rem;
+  padding-right: 0.42rem;
+  min-width: 4.6rem;
 
   .vorvertrag-ticket-chip,
   .vorvertrag-ticket-badge {
-    padding: 0.04rem 0.26rem;
-    font-size: 0.56rem;
+    padding: 0.08rem 0.38rem;
+    font-size: 0.62rem;
   }
 }
 
@@ -1068,10 +1078,10 @@
 .vorvertrag-table .vorvertrag-ticket-row__status,
 .vorvertrag-table .vorvertrag-ticket-row__mitarbeiter,
 .vorvertrag-table .vorvertrag-ticket-row__shop-mitarbeiter,
-.vorvertrag-table .vorvertrag-ticket-row__filiale,
 .vorvertrag-table .vorvertrag-ticket-row__shop-hist,
 .vorvertrag-table .vorvertrag-ticket-row__datum,
-.vorvertrag-table .vorvertrag-ticket-row__zeit {
+.vorvertrag-table .vorvertrag-ticket-row__zeit,
+.vorvertrag-table .vorvertrag-ticket-row__typ {
   width: 1%;
   white-space: nowrap;
 }
@@ -1088,7 +1098,13 @@
   padding-right: 0.28rem;
 }
 
-.vorvertrag-table .vorvertrag-ticket-row__filiale,
+.vorvertrag-table .vorvertrag-ticket-row__filiale {
+  min-width: 3.8rem;
+  padding-left: 0.42rem;
+  padding-right: 0.42rem;
+  font-size: 0.62rem;
+}
+
 .vorvertrag-table .vorvertrag-ticket-row__shop-hist {
   font-size: 0.6rem;
   padding-left: 0.28rem;
@@ -1097,8 +1113,8 @@
 
 .vorvertrag-ticket-row__kundenbesuch-datum {
   display: block;
-  width: 7.6rem;
-  max-width: 7.6rem;
+  width: 8.9rem;
+  max-width: 8.9rem;
   margin: 0;
   font-size: 0.68rem;
   font-weight: 500;
@@ -1121,9 +1137,9 @@
 .vorvertrag-ticket-row__status-select {
   box-sizing: border-box;
   display: block;
-  width: 7.6rem;
-  min-width: 7.6rem;
-  max-width: 7.6rem;
+  width: 8.9rem;
+  min-width: 8.9rem;
+  max-width: 8.9rem;
   height: 1.65rem;
   min-height: 1.65rem;
   max-height: 1.65rem;
@@ -1189,7 +1205,11 @@
   }
 }
 
-.vorvertrag-ticket-row__filiale .vorvertrag-ticket-chip,
+.vorvertrag-ticket-row__filiale .vorvertrag-ticket-chip {
+  padding: 0.08rem 0.4rem;
+  font-size: 0.62rem;
+}
+
 .vorvertrag-ticket-row__shop-hist .vorvertrag-ticket-chip {
   padding: 0.04rem 0.28rem;
   font-size: 0.58rem;

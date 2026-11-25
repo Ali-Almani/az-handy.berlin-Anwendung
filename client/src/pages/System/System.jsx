@@ -1533,12 +1533,12 @@ const System = () => {
                   <th className="vorvertrag-table__th--compact">Datum</th>
                   <th className="vorvertrag-table__th--compact">Zeit</th>
                   <th className="vorvertrag-table__th--angebot">Angebot</th>
-                  {listTab !== 'archiv' ? <th className="vorvertrag-table__th--compact">Priorität</th> : null}
-                  {listTab !== 'archiv' ? <th className="vorvertrag-table__th--compact">Sprache</th> : null}
+                  {listTab !== 'archiv' ? <th className="vorvertrag-table__th--meta">Priorität</th> : null}
+                  {listTab !== 'archiv' ? <th className="vorvertrag-table__th--meta">Sprache</th> : null}
                   <th>Status</th>
                   <th className="vorvertrag-table__th--staff">Marketing Mitarbeiter</th>
                   <th className="vorvertrag-table__th--staff">Bearbeiter</th>
-                  <th className="vorvertrag-table__th--compact">Filiale</th>
+                  <th className="vorvertrag-table__th--meta">Filiale</th>
                   <th className="vorvertrag-table__th--shop">Shop 1</th>
                   <th className="vorvertrag-table__th--shop">Shop 2</th>
                   <th>Aktion</th>
