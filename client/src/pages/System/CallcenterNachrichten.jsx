@@ -3,6 +3,7 @@ import {
   SOCIAL_CHANNELS,
   NACHRICHTEN_FILIALE_GROUPS,
   KEIN_VERKAUF_CHANNEL,
+  KEIN_VERKAUF_LABEL,
   isKeinVerkaufTicket,
   QUESTION_CHAT_LOCALES,
   formFromLead,
@@ -579,6 +580,7 @@ const CallcenterNachrichten = ({
     inboxTab === 'gelesen' ? 'gelesen' : 'ungelesen'
   ));
   const setReadTab = (tab) => {
+    if (tab === 'ungelesen' && channel === KEIN_VERKAUF_CHANNEL) setChannel('all');
     setReadTabState(tab);
     if (tab === 'ungelesen' || tab === 'gelesen') onInboxTabChange?.(tab);
   };
@@ -1984,6 +1986,7 @@ const CallcenterNachrichten = ({
                         </button>
                       );
                       if (group.id !== 'callcenter') return chip;
+                      if (!showingGelesenChips) return chip;
                       return (
                         <Fragment key={id}>
                           {chip}
@@ -1991,7 +1994,7 @@ const CallcenterNachrichten = ({
                             type="button"
                             role="tab"
                             title="Gelesen, letzte Mitarbeiter-Nachricht vor über 24 Stunden, keine Kundenantwort"
-                            aria-label={keinVerkaufCount > 0 ? `Kein Verkauf, ${keinVerkaufCount}` : 'Kein Verkauf'}
+                            aria-label={keinVerkaufCount > 0 ? `${KEIN_VERKAUF_LABEL}, ${keinVerkaufCount}` : KEIN_VERKAUF_LABEL}
                             aria-selected={channel === KEIN_VERKAUF_CHANNEL}
                             className={`sz-chip sz-chip--shop${channel === KEIN_VERKAUF_CHANNEL ? ' sz-chip--active' : ''}`}
                             onClick={() => {
@@ -2000,7 +2003,7 @@ const CallcenterNachrichten = ({
                               setReadTab('gelesen');
                             }}
                           >
-                            Kein Verkauf
+                            {KEIN_VERKAUF_LABEL}
                             {keinVerkaufCount > 0 ? (
                               <span className="sz-chip-count sz-chip-count--read">{keinVerkaufCount}</span>
                             ) : null}
@@ -2042,12 +2045,12 @@ const CallcenterNachrichten = ({
                             {group.label}{suffix}
                           </option>
                         );
-                        if (group.id !== 'callcenter') return [option];
+                        if (group.id !== 'callcenter' || !showingGelesenChips) return [option];
                         const kvSuffix = keinVerkaufCount > 0 ? ` (${keinVerkaufCount})` : '';
                         return [
                           option,
                           <option key={KEIN_VERKAUF_CHANNEL} value={KEIN_VERKAUF_CHANNEL}>
-                            Kein Verkauf{kvSuffix}
+                            {KEIN_VERKAUF_LABEL}{kvSuffix}
                           </option>
                         ];
                       })}

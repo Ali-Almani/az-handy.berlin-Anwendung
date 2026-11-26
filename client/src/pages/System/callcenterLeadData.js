@@ -47,6 +47,7 @@ export const NACHRICHTEN_FILIALE_GROUPS = [
 ];
 
 export const KEIN_VERKAUF_CHANNEL = 'kein-verkauf';
+export const KEIN_VERKAUF_LABEL = 'Kundenrückmeldung';
 export const KEIN_VERKAUF_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export const NACHRICHT_ART_OPTIONS = [
