@@ -575,12 +575,12 @@ const CallcenterNachrichten = ({
 }) => {
   const nachrichtShops = useMemo(() => shopOptionsForNachrichten(), []);
   const [nowTick, setNowTick] = useState(() => Date.now());
-  const [channel, setChannel] = useState('all');
+  const [channel, setChannel] = useState('whatsapp');
   const [readTab, setReadTabState] = useState(() => (
     inboxTab === 'gelesen' ? 'gelesen' : 'ungelesen'
   ));
   const setReadTab = (tab) => {
-    if (tab === 'ungelesen' && channel === KEIN_VERKAUF_CHANNEL) setChannel('all');
+    if (tab === 'ungelesen' && channel === KEIN_VERKAUF_CHANNEL) setChannel('whatsapp');
     setReadTabState(tab);
     if (tab === 'ungelesen' || tab === 'gelesen') onInboxTabChange?.(tab);
   };
@@ -1029,7 +1029,7 @@ const CallcenterNachrichten = ({
       setChannel(filialeGroupChannelId(group));
     } else if (ticket) {
       const ch = normalizeSocialChannel(ticket.channel);
-      setChannel(ch && ch !== MANUAL_TICKET_CHANNEL ? ch : 'all');
+      setChannel(ch && ch !== MANUAL_TICKET_CHANNEL ? ch : 'whatsapp');
     }
     if (ticket && (readTab === 'ungelesen' || readTab === 'gelesen')) {
       setReadTab(ticket.unread ? 'ungelesen' : 'gelesen');
@@ -1920,22 +1920,6 @@ const CallcenterNachrichten = ({
                   </button>
                 ) : null}
                 <div className="sz-channel-row" role="tablist" aria-label="Kanäle und Filialen">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={channel === 'all'}
-                    className={`sz-chip${channel === 'all' ? ' sz-chip--active' : ''}`}
-                    onClick={() => setChannel('all')}
-                    title="Social Media"
-                    aria-label="Social Media"
-                  >
-                    SM
-                    {chipCountByChannel.all > 0 ? (
-                      <span className={`sz-chip-count${showingGelesenChips ? ' sz-chip-count--read' : ''}`}>
-                        {chipCountByChannel.all}
-                      </span>
-                    ) : null}
-                  </button>
                   {SOCIAL_CHANNELS.map((c) => (
                     <button
                       key={c.id}
@@ -2021,7 +2005,7 @@ const CallcenterNachrichten = ({
                       onChange={(ev) => {
                         const id = ev.target.value;
                         if (!id) {
-                          setChannel('all');
+                          setChannel('whatsapp');
                           return;
                         }
                         setChannel(id);
