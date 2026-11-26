@@ -437,8 +437,8 @@ function formatChatTime(iso) {
   });
 }
 
-function ticketMatchesChannel(ticket, channel) {
-  return ticketMatchesNachrichtenChannel(ticket, channel);
+function ticketMatchesChannel(ticket, channel, now) {
+  return ticketMatchesNachrichtenChannel(ticket, channel, now);
 }
 
 function ticketMatchesInboxSearch(ticket, query) {
@@ -649,7 +649,7 @@ const CallcenterNachrichten = ({
         if (isLeadArchived(t)) return false;
         if (readTab === 'notiz' || readTab === 'anweisung') return false;
         if (q) return ticketMatchesInboxSearch(t, q);
-        if (!ticketMatchesChannel(t, channel)) return false;
+        if (!ticketMatchesChannel(t, channel, nowTick)) return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
         return !t.unread;
       })
@@ -873,16 +873,19 @@ const CallcenterNachrichten = ({
   };
 
   const addTicketToChannelCounts = (counts, t) => {
-    if (ticketMatchesNachrichtenChannel(t, 'all')) {
+    if (isKeinVerkaufTicket(t, nowTick)) {
+      counts[KEIN_VERKAUF_CHANNEL] += 1;
+      return;
+    }
+    if (ticketMatchesNachrichtenChannel(t, 'all', nowTick)) {
       counts.all += 1;
       const ch = normalizeSocialChannel(t.channel);
       counts[ch] = (counts[ch] || 0) + 1;
     }
-    if (isKeinVerkaufTicket(t, nowTick)) counts[KEIN_VERKAUF_CHANNEL] += 1;
     const group = filialeGroupForTicket(t);
     if (!group) return;
     const id = filialeGroupChannelId(group);
-    if (!ticketMatchesNachrichtenChannel(t, id)) return;
+    if (!ticketMatchesNachrichtenChannel(t, id, nowTick)) return;
     counts[id] += 1;
   };
 
@@ -1977,7 +1980,7 @@ const CallcenterNachrichten = ({
                           <button
                             type="button"
                             role="tab"
-                            title="Gelesen, letzte Mitarbeiter-Nachricht vor über 24 Stunden, keine Kundenantwort"
+                            title="Gelesene Nachrichten älter als 24 Stunden"
                             aria-label={keinVerkaufCount > 0 ? `${KEIN_VERKAUF_LABEL}, ${keinVerkaufCount}` : KEIN_VERKAUF_LABEL}
                             aria-selected={channel === KEIN_VERKAUF_CHANNEL}
                             className={`sz-chip sz-chip--shop${channel === KEIN_VERKAUF_CHANNEL ? ' sz-chip--active' : ''}`}
@@ -2113,7 +2116,7 @@ const CallcenterNachrichten = ({
                   : readTab === 'ungelesen'
                     ? 'Keine ungelesenen Nachrichten.'
                     : channel === KEIN_VERKAUF_CHANNEL
-                      ? 'Keine Nachrichten ohne Kundenrückmeldung seit 24 Stunden.'
+                      ? 'Keine gelesenen Nachrichten älter als 24 Stunden.'
                       : 'Keine gelesenen Nachrichten.'}
               </li>
             ) : (

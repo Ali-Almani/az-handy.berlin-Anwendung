@@ -1472,15 +1472,15 @@ function lastThreadMessage(ticket) {
 export function isKeinVerkaufTicket(ticket, now = Date.now()) {
   if (!ticket || isManualLeadTicket(ticket) || isLeadArchived(ticket) || ticket.unread) return false;
   const last = lastThreadMessage(ticket);
-  if (!last || last.from !== 'agent') return false;
-  const at = Date.parse(last.at || '');
+  const at = Date.parse(last?.at || lastMessageAt(ticket) || '');
   if (!Number.isFinite(at)) return false;
   return now - at >= KEIN_VERKAUF_AFTER_MS;
 }
 
-export function ticketMatchesNachrichtenChannel(ticket, channel) {
+export function ticketMatchesNachrichtenChannel(ticket, channel, now = Date.now()) {
   if (isLeadArchived(ticket)) return false;
-  if (channel === KEIN_VERKAUF_CHANNEL) return isKeinVerkaufTicket(ticket);
+  if (channel === KEIN_VERKAUF_CHANNEL) return isKeinVerkaufTicket(ticket, now);
+  if (isKeinVerkaufTicket(ticket, now)) return false;
   const group = filialeGroupByChannel(channel);
   const ticketGroup = filialeGroupForTicket(ticket);
   if (group) {
