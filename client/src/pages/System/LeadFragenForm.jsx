@@ -434,6 +434,7 @@ function TemplateEditor({ config, locale, onUpdate, onDelete, onMove, onAdd }) {
 export default function LeadFragenForm({
   answers,
   onChange,
+  onFieldBlur,
   idPrefix = 'q',
   title = 'Ticket',
   subtitle = '',
@@ -614,13 +615,21 @@ export default function LeadFragenForm({
       />
     ),
     marketingNotiz: (
-      <QuestionField key="marketingNotiz" id={`${idPrefix}-marketing`} label={labelFor('marketingNotiz', 'Marketing Notiz')}>
+      <QuestionField
+        key="marketingNotiz"
+        id={`${idPrefix}-marketing`}
+        label={labelFor('marketingNotiz', 'Marketing Notiz')}
+        required={isRequired('marketingNotiz')}
+      >
         <input
           id={`${idPrefix}-marketing`}
           className="form-input"
           value={answers?.marketingNotiz || ''}
           aria-label={labelFor('marketingNotiz', 'Marketing Notiz')}
+          required={isRequired('marketingNotiz')}
+          aria-required={isRequired('marketingNotiz') || undefined}
           onChange={(ev) => patch('marketingNotiz', ev.target.value)}
+          onBlur={(ev) => onFieldBlur?.('marketingNotiz', ev.target.value)}
         />
       </QuestionField>
     ),

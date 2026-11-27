@@ -1332,7 +1332,11 @@ export function shopOptionsForOrten() {
 }
 
 export function shopOptionsForNachrichten() {
-  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS, NACHRICHTEN_ERLEDIGT, NACHRICHTEN_KEIN_VERKAUF];
+  return [CALLCENTER_SHOP, ...ORTEN_SHOP_OPTIONS, NACHRICHTEN_KEIN_VERKAUF];
+}
+
+export function filledMarketingNotiz(ticket) {
+  return String(ticket?.marketingNotiz || '').trim();
 }
 
 export function shopOptionsForTicketing() {

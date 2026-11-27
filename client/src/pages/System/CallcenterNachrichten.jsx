@@ -20,6 +20,8 @@ import {
   migrateLeadTicketStatus,
   normalizeSocialChannel,
   isNachrichtenArchiveChoice,
+  NACHRICHTEN_KEIN_VERKAUF,
+  filledMarketingNotiz,
   QUESTION_FIELD_TYPES,
   questionDropdownOptions,
   filterAngebotMentions,
@@ -528,6 +530,7 @@ function ChannelIcon({ channel }) {
 function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel, disabled = false }) {
   const status = migrateLeadTicketStatus(ticketStatus);
   const value = isNachrichtenArchiveChoice(status) ? status : normalizeNachrichtShop(shop);
+  const options = value && !shops.includes(value) ? [...shops, value] : shops;
   return (
     <select
       id={id}
@@ -540,7 +543,7 @@ function StatusShopSelect({ id, shop, ticketStatus, shops, onChange, ariaLabel, 
       title={disabled ? 'Zuerst Sprache, Rufnummer, O2 Kunde und Produkt wählen.' : undefined}
     >
       <option value="" />
-      {shops.map((opt) => (
+      {options.map((opt) => (
         <option key={opt} value={opt}>
           {isNachrichtenArchiveChoice(opt) ? opt : shopOptionLabel(opt)}
         </option>
@@ -607,6 +610,8 @@ const CallcenterNachrichten = ({
   const [mobileSide, setMobileSide] = useState('');
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [mobileSheet, setMobileSheet] = useState('');
+  const [keinVerkaufNeedsNotiz, setKeinVerkaufNeedsNotiz] = useState(false);
+  const [filialeHint, setFilialeHint] = useState('');
   const [lightboxSrc, setLightboxSrc] = useState('');
   const [localQuestionConfig, setLocalQuestionConfig] = useState(() => loadQuestionConfig());
   const questionConfig = questionConfigProp ?? localQuestionConfig;
@@ -681,6 +686,8 @@ const CallcenterNachrichten = ({
     });
     return base;
   }, [active, questionConfig]);
+  const marketingNotizRequired = keinVerkaufNeedsNotiz
+    || migrateLeadTicketStatus(active?.ticketStatus) === NACHRICHTEN_KEIN_VERKAUF;
   const showNotiz = readTab === 'notiz';
   const showAnweisung = canSeeAnweisung && readTab === 'anweisung';
   const showNotePane = showNotiz || showAnweisung;
@@ -703,6 +710,8 @@ const CallcenterNachrichten = ({
   useEffect(() => {
     setDraftPrev('');
     setDraftTranslateError('');
+    setKeinVerkaufNeedsNotiz(false);
+    setFilialeHint('');
   }, [activeId]);
 
   useEffect(() => {
@@ -1078,13 +1087,34 @@ const CallcenterNachrichten = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTicketId]);
 
-  const handleStatusOrShop = (id, value) => {
+  const focusMarketingNotiz = () => {
+    requestAnimationFrame(() => {
+      const el = document.getElementById('sz-ticket-marketing');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el?.focus();
+    });
+  };
+
+  const handleStatusOrShop = (id, value, extras = {}) => {
+    if (value === NACHRICHTEN_KEIN_VERKAUF) {
+      const source = (tickets || []).find((t) => t.id === id);
+      const notiz = extras.marketingNotiz != null ? extras.marketingNotiz : source?.marketingNotiz;
+      if (!filledMarketingNotiz({ marketingNotiz: notiz })) {
+        setKeinVerkaufNeedsNotiz(true);
+        setFilialeHint('Bei Kein Verkauf ist die Marketing Notiz Pflicht.');
+        focusMarketingNotiz();
+        return;
+      }
+    }
+    setKeinVerkaufNeedsNotiz(false);
+    setFilialeHint('');
     if (isNachrichtenArchiveChoice(value)) {
       const markArchived = (ticket) => {
         const editor = sanitizeMitarbeiterName(agentName);
         const next = withMitarbeiter({
           ...ticket,
-          ticketStatus: value
+          ticketStatus: value,
+          ...(extras.marketingNotiz != null ? { marketingNotiz: extras.marketingNotiz } : {})
         }, editor);
         const change = leadFieldChange(ticket, 'ticketStatus', value);
         if (!change) return next;
@@ -2927,7 +2957,7 @@ const CallcenterNachrichten = ({
                   <StatusShopSelect
                     id="sz-ticket-filiale"
                     shop={active.shop}
-                    ticketStatus={active.ticketStatus}
+                    ticketStatus={keinVerkaufNeedsNotiz ? NACHRICHTEN_KEIN_VERKAUF : active.ticketStatus}
                     shops={nachrichtShops}
                     onChange={(value) => handleStatusOrShop(active.id, value)}
                     ariaLabel="Filiale"
@@ -2936,13 +2966,23 @@ const CallcenterNachrichten = ({
                 </div>
               </div>
             ) : null}
+            {filialeHint ? (
+              <p className="vorvertrag-step-required-hint">{filialeHint}</p>
+            ) : null}
             {active && answers ? (
             <LeadFragenForm
               embedded
               answers={answers}
               onChange={patchAnswer}
+              onFieldBlur={(field, value) => {
+                if (field !== 'marketingNotiz' || !keinVerkaufNeedsNotiz || !active) return;
+                if (!String(value || '').trim()) return;
+                handleStatusOrShop(active.id, NACHRICHTEN_KEIN_VERKAUF, { marketingNotiz: value });
+              }}
               questionConfig={questionConfig}
               questionLocale="de"
+              idPrefix="sz-ticket"
+              requiredFields={marketingNotizRequired ? ['marketingNotiz'] : []}
               templateEditing={canEditFragen && templateEditing}
               onQuestionDelete={(field, label) => deleteQuestion(field, label, 'de')}
               onQuestionAdd={(type) => addQuestion(type, 'de')}
