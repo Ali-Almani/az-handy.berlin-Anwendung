@@ -627,6 +627,7 @@ const CallcenterNachrichten = ({
   const [typingTick, setTypingTick] = useState(0);
   const agentTypingTimer = useRef(null);
   const customerTypingTimer = useRef(null);
+  const readTabsRef = useRef(null);
   const threadRef = useRef(null);
   const composerRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -685,6 +686,19 @@ const CallcenterNachrichten = ({
   const showNotePane = showNotiz || showAnweisung;
   const chatLocale = questionChatLocale(active?.sprache);
   const composerRtl = chatLocale === 'ar' || /[\u0600-\u06FF]/.test(draft);
+
+  useEffect(() => {
+    const bar = readTabsRef.current;
+    const el = bar?.querySelector('.sz-read-tab--active');
+    if (!bar || !el) return;
+    const left = el.offsetLeft;
+    const right = left + el.offsetWidth;
+    if (left < bar.scrollLeft) {
+      bar.scrollTo({ left: Math.max(0, left - 12), behavior: 'smooth' });
+    } else if (right > bar.scrollLeft + bar.clientWidth) {
+      bar.scrollTo({ left: right - bar.clientWidth + 12, behavior: 'smooth' });
+    }
+  }, [readTab]);
 
   useEffect(() => {
     setDraftPrev('');
@@ -1857,7 +1871,7 @@ const CallcenterNachrichten = ({
         </div>
         <aside className="sz-list-pane">
           <div className="sz-filters">
-            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Kundenrückmeldung, Geöffnete Tickets oder Archiv">
+            <div ref={readTabsRef} className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Kundenrückmeldung, Notiz oder Anweisung">
               <button
                 type="button"
                 role="tab"
