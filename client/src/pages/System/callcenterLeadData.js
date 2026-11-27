@@ -48,6 +48,7 @@ export const NACHRICHTEN_FILIALE_GROUPS = [
 
 export const KEIN_VERKAUF_CHANNEL = 'kein-verkauf';
 export const KEIN_VERKAUF_LABEL = 'Kundenrückmeldung';
+export const KUNDENRUECKMELDUNG_TAB = 'kundenrueckmeldung';
 export const KEIN_VERKAUF_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export const NACHRICHT_ART_OPTIONS = [
@@ -1479,8 +1480,9 @@ export function isKeinVerkaufTicket(ticket, now = Date.now()) {
 
 export function ticketMatchesNachrichtenChannel(ticket, channel, now = Date.now()) {
   if (isLeadArchived(ticket)) return false;
-  if (channel === KEIN_VERKAUF_CHANNEL) return isKeinVerkaufTicket(ticket, now);
-  if (isKeinVerkaufTicket(ticket, now)) return false;
+  if (channel === KEIN_VERKAUF_CHANNEL || channel === KUNDENRUECKMELDUNG_TAB) {
+    return isKeinVerkaufTicket(ticket, now);
+  }
   const group = filialeGroupByChannel(channel);
   const ticketGroup = filialeGroupForTicket(ticket);
   if (group) {
@@ -1492,6 +1494,13 @@ export function ticketMatchesNachrichtenChannel(ticket, channel, now = Date.now(
   }
   if (channel === 'all') return true;
   return normalizeSocialChannel(ticket.channel) === channel;
+}
+
+export function inboxReadTabForTicket(ticket, now = Date.now()) {
+  if (!ticket || isManualLeadTicket(ticket) || isLeadArchived(ticket)) return 'ungelesen';
+  if (ticket.unread) return 'ungelesen';
+  if (isKeinVerkaufTicket(ticket, now)) return KUNDENRUECKMELDUNG_TAB;
+  return 'gelesen';
 }
 
 export function shopOptionLabel(shop) {
@@ -1892,12 +1901,16 @@ export function countUnreadLeadTickets(tickets) {
   }).length;
 }
 
-export function countGelesenLeadTickets(tickets) {
+export function countGelesenLeadTickets(tickets, now = Date.now()) {
   return (tickets || []).filter((t) => {
     if (t?.unread) return false;
     if (isManualLeadTicket(t) || isLeadArchived(t)) return false;
-    return true;
+    return !isKeinVerkaufTicket(t, now);
   }).length;
+}
+
+export function countKundenrueckmeldungLeadTickets(tickets, now = Date.now()) {
+  return (tickets || []).filter((t) => isKeinVerkaufTicket(t, now)).length;
 }
 
 function pad3(n) {

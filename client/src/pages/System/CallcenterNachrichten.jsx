@@ -1,10 +1,11 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SOCIAL_CHANNELS,
   NACHRICHTEN_FILIALE_GROUPS,
-  KEIN_VERKAUF_CHANNEL,
   KEIN_VERKAUF_LABEL,
+  KUNDENRUECKMELDUNG_TAB,
   isKeinVerkaufTicket,
+  inboxReadTabForTicket,
   QUESTION_CHAT_LOCALES,
   formFromLead,
   appendLeadEditLog,
@@ -577,12 +578,17 @@ const CallcenterNachrichten = ({
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [channel, setChannel] = useState('whatsapp');
   const [readTab, setReadTabState] = useState(() => (
-    inboxTab === 'gelesen' ? 'gelesen' : 'ungelesen'
+    inboxTab === 'gelesen'
+      ? 'gelesen'
+      : inboxTab === KUNDENRUECKMELDUNG_TAB
+        ? KUNDENRUECKMELDUNG_TAB
+        : 'ungelesen'
   ));
   const setReadTab = (tab) => {
-    if (tab === 'ungelesen' && channel === KEIN_VERKAUF_CHANNEL) setChannel('whatsapp');
     setReadTabState(tab);
-    if (tab === 'ungelesen' || tab === 'gelesen') onInboxTabChange?.(tab);
+    if (tab === 'ungelesen' || tab === 'gelesen' || tab === KUNDENRUECKMELDUNG_TAB) {
+      onInboxTabChange?.(tab);
+    }
   };
   const [inboxNotiz, setInboxNotiz] = useState(() => loadInboxNotiz());
   const [inboxAnweisung, setInboxAnweisung] = useState('');
@@ -651,6 +657,12 @@ const CallcenterNachrichten = ({
         if (q) return ticketMatchesInboxSearch(t, q);
         if (!ticketMatchesChannel(t, channel, nowTick)) return false;
         if (readTab === 'ungelesen') return Boolean(t.unread) || t.id === activeId;
+        if (readTab === KUNDENRUECKMELDUNG_TAB) {
+          return isKeinVerkaufTicket(t, nowTick) || t.id === activeId;
+        }
+        if (readTab === 'gelesen') {
+          return (!t.unread && !isKeinVerkaufTicket(t, nowTick)) || t.id === activeId;
+        }
         return !t.unread;
       })
       .sort((a, b) => String(lastMessageAt(b)).localeCompare(String(lastMessageAt(a))));
@@ -863,8 +875,7 @@ const CallcenterNachrichten = ({
       facebook: 0,
       whatsapp: 0,
       instagram: 0,
-      tiktok: 0,
-      [KEIN_VERKAUF_CHANNEL]: 0
+      tiktok: 0
     };
     NACHRICHTEN_FILIALE_GROUPS.forEach((group) => {
       counts[filialeGroupChannelId(group)] = 0;
@@ -873,10 +884,6 @@ const CallcenterNachrichten = ({
   };
 
   const addTicketToChannelCounts = (counts, t) => {
-    if (isKeinVerkaufTicket(t, nowTick)) {
-      counts[KEIN_VERKAUF_CHANNEL] += 1;
-      return;
-    }
     if (ticketMatchesNachrichtenChannel(t, 'all', nowTick)) {
       counts.all += 1;
       const ch = normalizeSocialChannel(t.channel);
@@ -902,25 +909,40 @@ const CallcenterNachrichten = ({
     const gelesen = emptyChannelCounts();
     list.forEach((t) => {
       if (isManualLeadTicket(t) || isLeadArchived(t) || t.unread) return;
+      if (isKeinVerkaufTicket(t, nowTick)) return;
       addTicketToChannelCounts(gelesen, t);
     });
     return gelesen;
   }, [list, nowTick]);
 
-  const showingGelesenChips = readTab === 'gelesen';
-  const chipCountByChannel = showingGelesenChips ? gelesenByChannel : unreadByChannel;
-  const keinVerkaufCount = gelesenByChannel[KEIN_VERKAUF_CHANNEL] || 0;
+  const kundenrueckmeldungByChannel = useMemo(() => {
+    const counts = emptyChannelCounts();
+    list.forEach((t) => {
+      if (!isKeinVerkaufTicket(t, nowTick)) return;
+      addTicketToChannelCounts(counts, t);
+    });
+    return counts;
+  }, [list, nowTick]);
+
+  const showingGelesenChips = readTab === 'gelesen' || readTab === KUNDENRUECKMELDUNG_TAB;
+  const chipCountByChannel = readTab === KUNDENRUECKMELDUNG_TAB
+    ? kundenrueckmeldungByChannel
+    : showingGelesenChips
+      ? gelesenByChannel
+      : unreadByChannel;
 
   const readTabCounts = useMemo(() => {
     let ungelesen = 0;
     let gelesen = 0;
+    let kundenrueckmeldung = 0;
     list.forEach((t) => {
       if (isManualLeadTicket(t) || isLeadArchived(t)) return;
       if (t.unread) ungelesen += 1;
+      else if (isKeinVerkaufTicket(t, nowTick)) kundenrueckmeldung += 1;
       else gelesen += 1;
     });
-    return { ungelesen, gelesen };
-  }, [list]);
+    return { ungelesen, gelesen, kundenrueckmeldung };
+  }, [list, nowTick]);
 
   const patchTicket = (id, updater) => {
     onTicketsChange?.((prev) => prev.map((t) => {
@@ -1034,8 +1056,8 @@ const CallcenterNachrichten = ({
       const ch = normalizeSocialChannel(ticket.channel);
       setChannel(ch && ch !== MANUAL_TICKET_CHANNEL ? ch : 'whatsapp');
     }
-    if (ticket && (readTab === 'ungelesen' || readTab === 'gelesen')) {
-      setReadTab(ticket.unread ? 'ungelesen' : 'gelesen');
+    if (ticket && (readTab === 'ungelesen' || readTab === 'gelesen' || readTab === KUNDENRUECKMELDUNG_TAB)) {
+      setReadTab(inboxReadTabForTicket(ticket, nowTick));
     }
     openTicket(openTicketId);
     onOpened?.();
@@ -1091,8 +1113,8 @@ const CallcenterNachrichten = ({
     const group = filialeGroupForShop(shop);
     if (group) {
       setChannel(filialeGroupChannelId(group));
-      if (readTab === 'ungelesen' || readTab === 'gelesen') {
-        setReadTab(source?.unread ? 'ungelesen' : 'gelesen');
+      if (readTab === 'ungelesen' || readTab === 'gelesen' || readTab === KUNDENRUECKMELDUNG_TAB) {
+        setReadTab(inboxReadTabForTicket(source, nowTick));
       }
     }
     onStatusApplied?.(id, 'offen');
@@ -1835,7 +1857,7 @@ const CallcenterNachrichten = ({
         </div>
         <aside className="sz-list-pane">
           <div className="sz-filters">
-            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Geöffnete Tickets oder Archiv">
+            <div className="sz-read-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Kundenrückmeldung, Geöffnete Tickets oder Archiv">
               <button
                 type="button"
                 role="tab"
@@ -1858,6 +1880,19 @@ const CallcenterNachrichten = ({
                 Gelesen
                 {readTabCounts.gelesen > 0 ? (
                   <span className="sz-read-tab-count">{readTabCounts.gelesen}</span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={readTab === KUNDENRUECKMELDUNG_TAB}
+                className={`sz-read-tab${readTab === KUNDENRUECKMELDUNG_TAB ? ' sz-read-tab--active' : ''}`}
+                onClick={() => setReadTab(KUNDENRUECKMELDUNG_TAB)}
+                title="Gelesene Nachrichten älter als 24 Stunden"
+              >
+                {KEIN_VERKAUF_LABEL}
+                {readTabCounts.kundenrueckmeldung > 0 ? (
+                  <span className="sz-read-tab-count">{readTabCounts.kundenrueckmeldung}</span>
                 ) : null}
               </button>
               {canOpenOffen ? (
@@ -1960,7 +1995,7 @@ const CallcenterNachrichten = ({
                           onClick={() => {
                             setChannel(id);
                             if (readTab === 'notiz' || readTab === 'anweisung') return;
-                            if (readTab === 'gelesen') return;
+                            if (readTab === 'gelesen' || readTab === KUNDENRUECKMELDUNG_TAB) return;
                             setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
                           }}
                         >
@@ -1972,39 +2007,15 @@ const CallcenterNachrichten = ({
                           ) : null}
                         </button>
                       );
-                      if (group.id !== 'callcenter') return chip;
-                      if (!showingGelesenChips) return chip;
-                      return (
-                        <Fragment key={id}>
-                          {chip}
-                          <button
-                            type="button"
-                            role="tab"
-                            title="Gelesene Nachrichten älter als 24 Stunden"
-                            aria-label={keinVerkaufCount > 0 ? `${KEIN_VERKAUF_LABEL}, ${keinVerkaufCount}` : KEIN_VERKAUF_LABEL}
-                            aria-selected={channel === KEIN_VERKAUF_CHANNEL}
-                            className={`sz-chip sz-chip--shop${channel === KEIN_VERKAUF_CHANNEL ? ' sz-chip--active' : ''}`}
-                            onClick={() => {
-                              setChannel(KEIN_VERKAUF_CHANNEL);
-                              if (readTab === 'notiz' || readTab === 'anweisung') return;
-                              setReadTab('gelesen');
-                            }}
-                          >
-                            {KEIN_VERKAUF_LABEL}
-                            {keinVerkaufCount > 0 ? (
-                              <span className="sz-chip-count sz-chip-count--read">{keinVerkaufCount}</span>
-                            ) : null}
-                          </button>
-                        </Fragment>
-                      );
+                      return chip;
                     })}
                   </div>
                   <label className="sz-filiale-select-wrap" htmlFor="sz-filiale-select">
                     <span className="visually-hidden">Filiale</span>
                     <select
                       id="sz-filiale-select"
-                      className={`form-input sz-filiale-select${filialeGroupByChannel(channel) || channel === KEIN_VERKAUF_CHANNEL ? ' sz-filiale-select--active' : ''}`}
-                      value={channel === KEIN_VERKAUF_CHANNEL ? KEIN_VERKAUF_CHANNEL : (filialeGroupByChannel(channel) ? channel : '')}
+                      className={`form-input sz-filiale-select${filialeGroupByChannel(channel) ? ' sz-filiale-select--active' : ''}`}
+                      value={filialeGroupByChannel(channel) ? channel : ''}
                       onChange={(ev) => {
                         const id = ev.target.value;
                         if (!id) {
@@ -2013,33 +2024,21 @@ const CallcenterNachrichten = ({
                         }
                         setChannel(id);
                         if (readTab === 'notiz' || readTab === 'anweisung') return;
-                        if (id === KEIN_VERKAUF_CHANNEL) {
-                          setReadTab('gelesen');
-                          return;
-                        }
-                        if (readTab === 'gelesen') return;
+                        if (readTab === 'gelesen' || readTab === KUNDENRUECKMELDUNG_TAB) return;
                         const unread = unreadByChannel[id] || 0;
                         setReadTab(unread > 0 ? 'ungelesen' : 'gelesen');
                       }}
                     >
                       <option value="">Filiale</option>
-                      {NACHRICHTEN_FILIALE_GROUPS.flatMap((group) => {
+                      {NACHRICHTEN_FILIALE_GROUPS.map((group) => {
                         const id = filialeGroupChannelId(group);
                         const count = chipCountByChannel[id] || 0;
                         const suffix = count > 0 ? ` (${count})` : '';
-                        const option = (
+                        return (
                           <option key={id} value={id}>
                             {group.label}{suffix}
                           </option>
                         );
-                        if (group.id !== 'callcenter' || !showingGelesenChips) return [option];
-                        const kvSuffix = keinVerkaufCount > 0 ? ` (${keinVerkaufCount})` : '';
-                        return [
-                          option,
-                          <option key={KEIN_VERKAUF_CHANNEL} value={KEIN_VERKAUF_CHANNEL}>
-                            {KEIN_VERKAUF_LABEL}{kvSuffix}
-                          </option>
-                        ];
                       })}
                     </select>
                   </label>
@@ -2115,7 +2114,7 @@ const CallcenterNachrichten = ({
                   ? 'Keine Treffer für Name, Nummer oder ID.'
                   : readTab === 'ungelesen'
                     ? 'Keine ungelesenen Nachrichten.'
-                    : channel === KEIN_VERKAUF_CHANNEL
+                    : readTab === KUNDENRUECKMELDUNG_TAB
                       ? 'Keine gelesenen Nachrichten älter als 24 Stunden.'
                       : 'Keine gelesenen Nachrichten.'}
               </li>

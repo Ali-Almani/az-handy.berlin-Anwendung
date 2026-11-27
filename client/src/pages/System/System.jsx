@@ -55,6 +55,9 @@ import {
   collectShopMitarbeiterNames,
   countUnreadLeadTickets,
   countGelesenLeadTickets,
+  countKundenrueckmeldungLeadTickets,
+  KEIN_VERKAUF_LABEL,
+  KUNDENRUECKMELDUNG_TAB,
   isLeadArchived,
   isLeadEntry,
   isLeadInNeu,
@@ -97,6 +100,7 @@ function TicketingPhoneTabs({
   onSelect,
   ungelesenCount = 0,
   gelesenCount = 0,
+  kundenrueckmeldungCount = 0,
   offenCount = 0,
   archivCount = 0,
   canSeeOffen = false,
@@ -104,7 +108,7 @@ function TicketingPhoneTabs({
 }) {
   const tabClass = (id) => `system-phone-tab${active === id ? ' system-phone-tab--active' : ''}`;
   return (
-    <div className="system-phone-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Geöffnete Tickets oder Archiv">
+    <div className="system-phone-tabs" role="tablist" aria-label="Ungelesen, Gelesen, Kundenrückmeldung, Geöffnete Tickets oder Archiv">
       <button
         type="button"
         role="tab"
@@ -124,6 +128,17 @@ function TicketingPhoneTabs({
       >
         Gelesen
         {gelesenCount > 0 ? <span className="system-phone-tab-count">{gelesenCount}</span> : null}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active === KUNDENRUECKMELDUNG_TAB}
+        className={tabClass(KUNDENRUECKMELDUNG_TAB)}
+        onClick={() => onSelect(KUNDENRUECKMELDUNG_TAB)}
+        title="Gelesene Nachrichten älter als 24 Stunden"
+      >
+        {KEIN_VERKAUF_LABEL}
+        {kundenrueckmeldungCount > 0 ? <span className="system-phone-tab-count">{kundenrueckmeldungCount}</span> : null}
       </button>
       {canSeeOffen ? (
         <button
@@ -444,6 +459,10 @@ const System = () => {
   );
   const leadGelesenCount = useMemo(
     () => countGelesenLeadTickets(leadTickets),
+    [leadTickets]
+  );
+  const leadKundenrueckmeldungCount = useMemo(
+    () => countKundenrueckmeldungLeadTickets(leadTickets),
     [leadTickets]
   );
 
@@ -1415,12 +1434,13 @@ const System = () => {
           active={listTab}
           ungelesenCount={leadUnread}
           gelesenCount={leadGelesenCount}
+          kundenrueckmeldungCount={leadKundenrueckmeldungCount}
           offenCount={offenVisibleCount}
           archivCount={archivVisibleCount}
           canSeeOffen={canSeeOffen}
           canSeeArchiv={canManageVorvertrag}
           onSelect={(tab) => {
-            if (tab === 'ungelesen' || tab === 'gelesen') {
+            if (tab === 'ungelesen' || tab === 'gelesen' || tab === KUNDENRUECKMELDUNG_TAB) {
               setInboxTab(tab);
               setListTab('nachrichten');
               closeTicketEditor();
