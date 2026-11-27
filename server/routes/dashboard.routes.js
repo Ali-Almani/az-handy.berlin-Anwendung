@@ -23,7 +23,8 @@ import {
   getSiteNewsHistory,
   updateSiteNewsHistoryEntry,
   deleteSiteNewsHistoryEntry,
-  uploadNewsFile
+  uploadNewsFile,
+  getDiskUsage
 } from '../controllers/dashboard.controller.js';
 
 const router = express.Router();
@@ -50,6 +51,7 @@ router.post('/news/upload', (req, res, next) => {
   });
 }, uploadNewsFile);
 
+router.get('/disk-usage', getDiskUsage);
 router.get('/performance', getPerformanceMetrics);
 router.put('/performance', savePerformanceMetrics);
 router.get('/imei-settings', getImeiSettings);

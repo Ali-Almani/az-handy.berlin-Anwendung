@@ -387,6 +387,30 @@ export const deleteSiteNewsHistoryEntry = (id) => {
   return api.delete(`/dashboard/site-news/history/${id}`);
 };
 
+/** Aktuelle Server-Plattenbelegung (nur Admin) */
+export const getDiskUsage = () => {
+  if (USE_MOCK_API) {
+    const totalBytes = 38 * 1024 * 1024 * 1024;
+    const usedBytes = 11 * 1024 * 1024 * 1024;
+    const availableBytes = totalBytes - usedBytes;
+    return Promise.resolve({
+      data: {
+        success: true,
+        path: '/',
+        totalBytes,
+        usedBytes,
+        availableBytes,
+        usePercent: 29,
+        totalHuman: '38G',
+        usedHuman: '11G',
+        availableHuman: '27G',
+        checkedAt: new Date().toISOString()
+      }
+    });
+  }
+  return api.get('/dashboard/disk-usage');
+};
+
 /** Bild oder PDF für NEWS-Editor hochladen (nur Admin, echte API) */
 export const uploadNewsMedia = (file) => {
   if (USE_MOCK_API) {

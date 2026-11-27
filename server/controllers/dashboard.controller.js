@@ -1,3 +1,6 @@
+import { execFile } from 'child_process';
+import { promises as fsPromises } from 'fs';
+import { promisify } from 'util';
 import DashboardNote from '../models/DashboardNote.js';
 import DashboardNoteHistory from '../models/DashboardNoteHistory.model.js';
 import User from '../models/User.js';
@@ -8,6 +11,49 @@ import { getImeiDeleteAllEnabled, saveImeiDeleteAllEnabled } from '../utils/imei
 import { getVoucherDeleteAllEnabled, saveVoucherDeleteAllEnabled } from '../utils/voucherSettings.js';
 import { writeAuditLog } from '../utils/auditLog.js';
 import { userRoles } from '../utils/userRoles.js';
+
+const execFileAsync = promisify(execFile);
+
+function formatDiskBytes(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n < 0) return '—';
+  const units = ['B', 'K', 'M', 'G', 'T'];
+  let value = n;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const digits = value >= 10 || unit === 0 ? 0 : 1;
+  return `${value.toFixed(digits)}${units[unit]}`;
+}
+
+async function readRootDiskUsage() {
+  if (typeof fsPromises.statfs === 'function') {
+    const stats = await fsPromises.statfs('/');
+    const blockSize = Number(stats.bsize) || 0;
+    const totalBytes = Number(stats.blocks) * blockSize;
+    const freeBytes = Number(stats.bfree) * blockSize;
+    const availableBytes = Number(stats.bavail) * blockSize;
+    const usedBytes = Math.max(0, totalBytes - freeBytes);
+    return { path: '/', totalBytes, usedBytes, availableBytes };
+  }
+
+  const { stdout } = await execFileAsync('df', ['-B1', '-P', '/'], { timeout: 5000 });
+  const line = String(stdout || '')
+    .trim()
+    .split(/\r?\n/)
+    .find((row, index) => index > 0 && row.trim());
+  if (!line) throw new Error('df lieferte keine Daten');
+  const parts = line.trim().split(/\s+/);
+  const totalBytes = Number(parts[1]);
+  const usedBytes = Number(parts[2]);
+  const availableBytes = Number(parts[3]);
+  if (![totalBytes, usedBytes, availableBytes].every(Number.isFinite)) {
+    throw new Error('df konnte nicht gelesen werden');
+  }
+  return { path: parts[5] || '/', totalBytes, usedBytes, availableBytes };
+}
 
 const USE_MEMORY_DB = process.env.USE_MEMORY_DB === 'true' ||
   (!process.env.DATABASE_URL && !process.env.PG_DATABASE && !process.env.PG_USER);
@@ -689,6 +735,41 @@ export const uploadNewsFile = async (req, res, next) => {
     const base = `${req.protocol}://${req.get('host')}`;
     const url = `${base}${publicPath}`;
     return res.json({ success: true, url, path: publicPath });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Aktuelle Plattenbelegung von / (nur Administrator) */
+export const getDiskUsage = async (req, res, next) => {
+  try {
+    const userId = resolveAuthUserId(req.user);
+    if (userId == null) {
+      return res.status(401).json({ success: false, message: 'Nicht angemeldet' });
+    }
+    const currentUser = await User.findByPk(userId);
+    if (!isAdminUser(currentUser)) {
+      return res.status(403).json({ message: 'Nur Administratoren können den Speicher einsehen' });
+    }
+
+    const usage = await readRootDiskUsage();
+    const capacity = usage.usedBytes + usage.availableBytes;
+    const usePercent = capacity > 0
+      ? Math.min(100, Math.round((usage.usedBytes / capacity) * 100))
+      : 0;
+
+    return res.json({
+      success: true,
+      path: usage.path,
+      totalBytes: usage.totalBytes,
+      usedBytes: usage.usedBytes,
+      availableBytes: usage.availableBytes,
+      usePercent,
+      totalHuman: formatDiskBytes(usage.totalBytes),
+      usedHuman: formatDiskBytes(usage.usedBytes),
+      availableHuman: formatDiskBytes(usage.availableBytes),
+      checkedAt: new Date().toISOString()
+    });
   } catch (error) {
     next(error);
   }

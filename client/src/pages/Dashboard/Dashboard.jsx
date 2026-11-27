@@ -24,6 +24,7 @@ import VoucherAdminSettings from '../../components/VoucherAdminSettings/VoucherA
 import VoucherExcelUpload from '../../components/VoucherExcelUpload/VoucherExcelUpload';
 import PerformanceDashboard from '../../components/PerformanceDashboard/PerformanceDashboard';
 import UserManagement from '../../components/UserManagement/UserManagement';
+import DiskUsagePanel from '../../components/DiskUsagePanel/DiskUsagePanel';
 import FormularCenterAdminPanel from '../FormularCenter/FormularCenterAdminPanel';
 import './Dashboard.scss';
 
@@ -32,6 +33,7 @@ const SEC_KENNZAHLEN = 'kennzahlen';
 const SEC_NEWS = 'news';
 const SEC_ANWEISUNG = 'anweisung';
 const SEC_BENUTZERVERWALTUNG = 'benutzerverwaltung';
+const SEC_SPEICHER = 'speicher';
 const SEC_EXCEL = 'excel';
 const SEC_VOUCHER = 'voucher';
 const SEC_FORMULAR = 'formular';
@@ -424,6 +426,23 @@ const Dashboard = () => {
                 <li>
                   <button
                     type="button"
+                    className={navBtnClass(SEC_SPEICHER)}
+                    onClick={() => setAdminSection(SEC_SPEICHER)}
+                    aria-current={adminSection === SEC_SPEICHER ? 'page' : undefined}
+                  >
+                    <DashSidebarIcon>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" strokeWidth="1.75" />
+                        <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" stroke="currentColor" strokeWidth="1.75" />
+                        <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" stroke="currentColor" strokeWidth="1.75" />
+                      </svg>
+                    </DashSidebarIcon>
+                    <span className="dashboard-admin-nav__label">Speicher</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
                     className={navBtnClass(SEC_FORMULAR)}
                     onClick={() => {
                       setFormularNavOpen((o) => !o);
@@ -808,6 +827,16 @@ const Dashboard = () => {
                 <div className="dashboard-user-management-panel">
                   <UserManagement compact />
                 </div>
+              </div>
+            )}
+
+            {adminSection === SEC_SPEICHER && (
+              <div className="card dashboard-disk-usage dashboard-admin-panel">
+                <div className="dashboard-admin-panel__header dashboard-excel-upload__headerRow">
+                  <h2 className="card-title">Speicher</h2>
+                  <span className="dashboard-excel-upload__badge">Server</span>
+                </div>
+                <DiskUsagePanel />
               </div>
             )}
 

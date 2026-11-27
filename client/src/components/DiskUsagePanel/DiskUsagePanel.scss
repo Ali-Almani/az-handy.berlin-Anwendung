@@ -1,0 +1,100 @@
+@import '../../styles/variables';
+
+.disk-usage-panel {
+  padding: $spacing-md;
+}
+
+.disk-usage-panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.disk-usage-panel__hint {
+  margin: 0;
+  flex: 1 1 14rem;
+  color: $text-light;
+  font-size: 0.9rem;
+  line-height: 1.45;
+
+  code {
+    font-size: 0.85em;
+  }
+}
+
+.disk-usage-panel__status {
+  margin: 0 0 $spacing-sm;
+  color: $text-light;
+}
+
+.disk-usage-panel__meter {
+  height: 0.85rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: mix(#fff, $text-light, 82%);
+}
+
+.disk-usage-panel__meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: $primary-color;
+  transition: width 0.35s ease;
+}
+
+.disk-usage-panel__meter--warn .disk-usage-panel__meter-fill {
+  background: #c58a1a;
+}
+
+.disk-usage-panel__meter--critical .disk-usage-panel__meter-fill {
+  background: $danger-color;
+}
+
+.disk-usage-panel__percent {
+  margin: $spacing-sm 0 $spacing-md;
+  font-size: 1.35rem;
+  font-weight: $font-weight-bold;
+  color: $text-color;
+}
+
+.disk-usage-panel__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-sm;
+  margin: 0;
+
+  div {
+    min-width: 0;
+    padding: $spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-md;
+    background: $bg-light;
+  }
+
+  dt {
+    margin: 0 0 0.2rem;
+    color: $text-light;
+    font-size: 0.78rem;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: $font-weight-bold;
+    color: $text-color;
+  }
+}
+
+.disk-usage-panel__checked {
+  margin: $spacing-md 0 0;
+  color: $text-light;
+  font-size: 0.82rem;
+}
+
+@media (max-width: $breakpoint-sm) {
+  .disk-usage-panel__stats {
+    grid-template-columns: 1fr;
+  }
+}
